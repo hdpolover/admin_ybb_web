@@ -26,6 +26,7 @@ class Filters extends BaseConfig
         'secureheaders' => SecureHeaders::class,
         'auth'          => Auth::class,
         'noauth'        => NoAuth::class,
+        'program_selection' => \App\Filters\ProgramSelectionFilter::class,
     ];
 
     /**

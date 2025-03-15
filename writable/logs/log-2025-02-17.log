@@ -1,0 +1,2179 @@
+ERROR - 2025-02-17 10:21:58 --> Error connecting to the database: mysqli_sql_exception: Access denied for user 'u1437096_ybb_master_app_admin_user'@'localhost' (using password: YES) in D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php:174
+Stack trace:
+#0 D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php(174): mysqli->real_connect()
+#1 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(391): CodeIgniter\Database\MySQLi\Connection->connect()
+#2 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(574): CodeIgniter\Database\BaseConnection->initialize()
+#3 D:\Work\admin_ybb_web\system\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query()
+#4 D:\Work\admin_ybb_web\system\Model.php(241): CodeIgniter\Database\BaseBuilder->get()
+#5 D:\Work\admin_ybb_web\system\BaseModel.php(618): CodeIgniter\Model->doFindAll()
+#6 D:\Work\admin_ybb_web\app\Controllers\Api\ProgramCategories.php(24): CodeIgniter\BaseModel->findAll()
+#7 D:\Work\admin_ybb_web\system\CodeIgniter.php(932): App\Controllers\Api\ProgramCategories->index()
+#8 D:\Work\admin_ybb_web\system\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController()
+#9 D:\Work\admin_ybb_web\system\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest()
+#10 D:\Work\admin_ybb_web\public\index.php(67): CodeIgniter\CodeIgniter->run()
+#11 D:\Work\admin_ybb_web\system\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_y...')
+#12 {main}
+
+Next CodeIgniter\Database\Exceptions\DatabaseException: Access denied for user '****'@'localhost' (using password: YES) in D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php:218
+Stack trace:
+#0 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(391): CodeIgniter\Database\MySQLi\Connection->connect()
+#1 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(574): CodeIgniter\Database\BaseConnection->initialize()
+#2 D:\Work\admin_ybb_web\system\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query()
+#3 D:\Work\admin_ybb_web\system\Model.php(241): CodeIgniter\Database\BaseBuilder->get()
+#4 D:\Work\admin_ybb_web\system\BaseModel.php(618): CodeIgniter\Model->doFindAll()
+#5 D:\Work\admin_ybb_web\app\Controllers\Api\ProgramCategories.php(24): CodeIgniter\BaseModel->findAll()
+#6 D:\Work\admin_ybb_web\system\CodeIgniter.php(932): App\Controllers\Api\ProgramCategories->index()
+#7 D:\Work\admin_ybb_web\system\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController()
+#8 D:\Work\admin_ybb_web\system\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest()
+#9 D:\Work\admin_ybb_web\public\index.php(67): CodeIgniter\CodeIgniter->run()
+#10 D:\Work\admin_ybb_web\system\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_y...')
+#11 {main}
+CRITICAL - 2025-02-17 10:21:58 --> Unable to connect to the database.
+Main connection [MySQLi]: Access denied for user '****'@'localhost' (using password: YES)
+in SYSTEMPATH\Database\BaseConnection.php on line 427.
+ 1 SYSTEMPATH\Database\BaseConnection.php(574): CodeIgniter\Database\BaseConnection->initialize()
+ 2 SYSTEMPATH\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query()
+ 3 SYSTEMPATH\Model.php(241): CodeIgniter\Database\BaseBuilder->get()
+ 4 SYSTEMPATH\BaseModel.php(618): CodeIgniter\Model->doFindAll()
+ 5 APPPATH\Controllers\Api\ProgramCategories.php(24): CodeIgniter\BaseModel->findAll()
+ 6 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Api\ProgramCategories->index()
+ 7 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController()
+ 8 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest()
+ 9 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+ERROR - 2025-02-17 10:22:11 --> Error connecting to the database: mysqli_sql_exception: Access denied for user 'u1437096_ybb_master_app_admin_user'@'localhost' (using password: YES) in D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php:174
+Stack trace:
+#0 D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php(174): mysqli->real_connect()
+#1 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(391): CodeIgniter\Database\MySQLi\Connection->connect()
+#2 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(574): CodeIgniter\Database\BaseConnection->initialize()
+#3 D:\Work\admin_ybb_web\system\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query()
+#4 D:\Work\admin_ybb_web\system\Model.php(241): CodeIgniter\Database\BaseBuilder->get()
+#5 D:\Work\admin_ybb_web\system\BaseModel.php(618): CodeIgniter\Model->doFindAll()
+#6 D:\Work\admin_ybb_web\app\Controllers\Api\ProgramCategories.php(24): CodeIgniter\BaseModel->findAll()
+#7 D:\Work\admin_ybb_web\system\CodeIgniter.php(932): App\Controllers\Api\ProgramCategories->index()
+#8 D:\Work\admin_ybb_web\system\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController()
+#9 D:\Work\admin_ybb_web\system\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest()
+#10 D:\Work\admin_ybb_web\public\index.php(67): CodeIgniter\CodeIgniter->run()
+#11 D:\Work\admin_ybb_web\system\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_y...')
+#12 {main}
+
+Next CodeIgniter\Database\Exceptions\DatabaseException: Access denied for user '****'@'localhost' (using password: YES) in D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php:218
+Stack trace:
+#0 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(391): CodeIgniter\Database\MySQLi\Connection->connect()
+#1 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(574): CodeIgniter\Database\BaseConnection->initialize()
+#2 D:\Work\admin_ybb_web\system\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query()
+#3 D:\Work\admin_ybb_web\system\Model.php(241): CodeIgniter\Database\BaseBuilder->get()
+#4 D:\Work\admin_ybb_web\system\BaseModel.php(618): CodeIgniter\Model->doFindAll()
+#5 D:\Work\admin_ybb_web\app\Controllers\Api\ProgramCategories.php(24): CodeIgniter\BaseModel->findAll()
+#6 D:\Work\admin_ybb_web\system\CodeIgniter.php(932): App\Controllers\Api\ProgramCategories->index()
+#7 D:\Work\admin_ybb_web\system\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController()
+#8 D:\Work\admin_ybb_web\system\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest()
+#9 D:\Work\admin_ybb_web\public\index.php(67): CodeIgniter\CodeIgniter->run()
+#10 D:\Work\admin_ybb_web\system\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_y...')
+#11 {main}
+CRITICAL - 2025-02-17 10:22:11 --> Unable to connect to the database.
+Main connection [MySQLi]: Access denied for user '****'@'localhost' (using password: YES)
+in SYSTEMPATH\Database\BaseConnection.php on line 427.
+ 1 SYSTEMPATH\Database\BaseConnection.php(574): CodeIgniter\Database\BaseConnection->initialize()
+ 2 SYSTEMPATH\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query()
+ 3 SYSTEMPATH\Model.php(241): CodeIgniter\Database\BaseBuilder->get()
+ 4 SYSTEMPATH\BaseModel.php(618): CodeIgniter\Model->doFindAll()
+ 5 APPPATH\Controllers\Api\ProgramCategories.php(24): CodeIgniter\BaseModel->findAll()
+ 6 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Api\ProgramCategories->index()
+ 7 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController()
+ 8 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest()
+ 9 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+CRITICAL - 2025-02-17 10:32:16 --> Allowed memory size of 134217728 bytes exhausted (tried to allocate 14684160 bytes)
+in SYSTEMPATH\Format\JSONFormatter.php on line 38.
+ 1 [internal function]: CodeIgniter\Debug\Exceptions->shutdownHandler()
+CRITICAL - 2025-02-17 10:55:31 --> Object of type App\Entities\ProgramCategoryEntity is not callable
+in APPPATH\Entities\ProgramEntity.php on line 49.
+ 1 SYSTEMPATH\Entity\Entity.php(402): App\Entities\ProgramEntity->toArray()
+ 2 [internal function]: CodeIgniter\Entity\Entity->jsonSerialize()
+ 3 SYSTEMPATH\Format\JSONFormatter.php(38): json_encode()
+ 4 SYSTEMPATH\API\ResponseTrait.php(345): CodeIgniter\Format\JSONFormatter->format()
+ 5 SYSTEMPATH\API\ResponseTrait.php(98): App\Controllers\Api\ApiBaseController->format()
+ 6 APPPATH\Controllers\Api\ApiBaseController.php(30): App\Controllers\Api\ApiBaseController->respond()
+ 7 APPPATH\Controllers\Api\ProgramCategories.php(42): App\Controllers\Api\ApiBaseController->apiResponse()
+ 8 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Api\ProgramCategories->getProgramsByCatId()
+ 9 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController()
+10 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest()
+11 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+12 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+CRITICAL - 2025-02-17 11:35:43 --> CodeIgniter\Pager\Pager::getTotal(): Return value must be of type int, null returned
+in SYSTEMPATH\Pager\Pager.php on line 195.
+ 1 APPPATH\Controllers\Api\Users.php(34): CodeIgniter\Pager\Pager->getTotal()
+ 2 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Api\Users->index()
+ 3 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController()
+ 4 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest()
+ 5 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+DEBUG - 2025-02-17 11:38:01 --> Data: Array
+(
+    [0] => App\Entities\UserEntity Object
+        (
+            [datamap:protected] => Array
+                (
+                )
+
+            [dates:protected] => Array
+                (
+                    [0] => created_at
+                    [1] => updated_at
+                    [2] => deleted_at
+                )
+
+            [casts:protected] => Array
+                (
+                )
+
+            [castHandlers:protected] => Array
+                (
+                )
+
+            [defaultCastHandlers:CodeIgniter\Entity\Entity:private] => Array
+                (
+                    [array] => CodeIgniter\Entity\Cast\ArrayCast
+                    [bool] => CodeIgniter\Entity\Cast\BooleanCast
+                    [boolean] => CodeIgniter\Entity\Cast\BooleanCast
+                    [csv] => CodeIgniter\Entity\Cast\CSVCast
+                    [datetime] => CodeIgniter\Entity\Cast\DatetimeCast
+                    [double] => CodeIgniter\Entity\Cast\FloatCast
+                    [float] => CodeIgniter\Entity\Cast\FloatCast
+                    [int] => CodeIgniter\Entity\Cast\IntegerCast
+                    [integer] => CodeIgniter\Entity\Cast\IntegerCast
+                    [int-bool] => CodeIgniter\Entity\Cast\IntBoolCast
+                    [json] => CodeIgniter\Entity\Cast\JsonCast
+                    [object] => CodeIgniter\Entity\Cast\ObjectCast
+                    [string] => CodeIgniter\Entity\Cast\StringCast
+                    [timestamp] => CodeIgniter\Entity\Cast\TimestampCast
+                    [uri] => CodeIgniter\Entity\Cast\URICast
+                )
+
+            [attributes:protected] => Array
+                (
+                    [id] => 1
+                    [full_name] => Daroca
+                    [email] => daroca@gmail.com
+                    [password] => 202cb962ac59075b964b07152d234b70
+                    [is_verified] => 1
+                    [program_category_id] => 1
+                    [is_active] => 0
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-04 20:03:01
+                    [updated_at] => 2024-04-04 20:03:01
+                )
+
+            [original:protected] => Array
+                (
+                    [id] => 1
+                    [full_name] => Daroca
+                    [email] => daroca@gmail.com
+                    [password] => 202cb962ac59075b964b07152d234b70
+                    [is_verified] => 1
+                    [program_category_id] => 1
+                    [is_active] => 0
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-04 20:03:01
+                    [updated_at] => 2024-04-04 20:03:01
+                )
+
+            [_cast:CodeIgniter\Entity\Entity:private] => 1
+            [id:protected] => 
+            [full_name:protected] => 
+            [email:protected] => 
+            [password:protected] => 
+            [is_verified:protected] => 
+            [program_category_id:protected] => 
+            [is_active:protected] => 
+            [is_deleted:protected] => 
+            [created_at:protected] => 
+            [updated_at:protected] => 
+        )
+
+    [1] => App\Entities\UserEntity Object
+        (
+            [datamap:protected] => Array
+                (
+                )
+
+            [dates:protected] => Array
+                (
+                    [0] => created_at
+                    [1] => updated_at
+                    [2] => deleted_at
+                )
+
+            [casts:protected] => Array
+                (
+                )
+
+            [castHandlers:protected] => Array
+                (
+                )
+
+            [defaultCastHandlers:CodeIgniter\Entity\Entity:private] => Array
+                (
+                    [array] => CodeIgniter\Entity\Cast\ArrayCast
+                    [bool] => CodeIgniter\Entity\Cast\BooleanCast
+                    [boolean] => CodeIgniter\Entity\Cast\BooleanCast
+                    [csv] => CodeIgniter\Entity\Cast\CSVCast
+                    [datetime] => CodeIgniter\Entity\Cast\DatetimeCast
+                    [double] => CodeIgniter\Entity\Cast\FloatCast
+                    [float] => CodeIgniter\Entity\Cast\FloatCast
+                    [int] => CodeIgniter\Entity\Cast\IntegerCast
+                    [integer] => CodeIgniter\Entity\Cast\IntegerCast
+                    [int-bool] => CodeIgniter\Entity\Cast\IntBoolCast
+                    [json] => CodeIgniter\Entity\Cast\JsonCast
+                    [object] => CodeIgniter\Entity\Cast\ObjectCast
+                    [string] => CodeIgniter\Entity\Cast\StringCast
+                    [timestamp] => CodeIgniter\Entity\Cast\TimestampCast
+                    [uri] => CodeIgniter\Entity\Cast\URICast
+                )
+
+            [attributes:protected] => Array
+                (
+                    [id] => 4
+                    [full_name] => IVAL
+                    [email] => ronaldarrivalf@gmail.com
+                    [password] => 202cb962ac59075b964b07152d234b70
+                    [is_verified] => 1
+                    [program_category_id] => 1
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-05 14:43:33
+                    [updated_at] => 2024-08-08 08:17:45
+                )
+
+            [original:protected] => Array
+                (
+                    [id] => 4
+                    [full_name] => IVAL
+                    [email] => ronaldarrivalf@gmail.com
+                    [password] => 202cb962ac59075b964b07152d234b70
+                    [is_verified] => 1
+                    [program_category_id] => 1
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-05 14:43:33
+                    [updated_at] => 2024-08-08 08:17:45
+                )
+
+            [_cast:CodeIgniter\Entity\Entity:private] => 1
+            [id:protected] => 
+            [full_name:protected] => 
+            [email:protected] => 
+            [password:protected] => 
+            [is_verified:protected] => 
+            [program_category_id:protected] => 
+            [is_active:protected] => 
+            [is_deleted:protected] => 
+            [created_at:protected] => 
+            [updated_at:protected] => 
+        )
+
+    [2] => App\Entities\UserEntity Object
+        (
+            [datamap:protected] => Array
+                (
+                )
+
+            [dates:protected] => Array
+                (
+                    [0] => created_at
+                    [1] => updated_at
+                    [2] => deleted_at
+                )
+
+            [casts:protected] => Array
+                (
+                )
+
+            [castHandlers:protected] => Array
+                (
+                )
+
+            [defaultCastHandlers:CodeIgniter\Entity\Entity:private] => Array
+                (
+                    [array] => CodeIgniter\Entity\Cast\ArrayCast
+                    [bool] => CodeIgniter\Entity\Cast\BooleanCast
+                    [boolean] => CodeIgniter\Entity\Cast\BooleanCast
+                    [csv] => CodeIgniter\Entity\Cast\CSVCast
+                    [datetime] => CodeIgniter\Entity\Cast\DatetimeCast
+                    [double] => CodeIgniter\Entity\Cast\FloatCast
+                    [float] => CodeIgniter\Entity\Cast\FloatCast
+                    [int] => CodeIgniter\Entity\Cast\IntegerCast
+                    [integer] => CodeIgniter\Entity\Cast\IntegerCast
+                    [int-bool] => CodeIgniter\Entity\Cast\IntBoolCast
+                    [json] => CodeIgniter\Entity\Cast\JsonCast
+                    [object] => CodeIgniter\Entity\Cast\ObjectCast
+                    [string] => CodeIgniter\Entity\Cast\StringCast
+                    [timestamp] => CodeIgniter\Entity\Cast\TimestampCast
+                    [uri] => CodeIgniter\Entity\Cast\URICast
+                )
+
+            [attributes:protected] => Array
+                (
+                    [id] => 5
+                    [full_name] => hendra
+                    [email] => hendraeunda@gmail.com
+                    [password] => 71b0902f4cafd9184b37c5153852b5fb
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-05 15:56:34
+                    [updated_at] => 2024-04-05 15:56:34
+                )
+
+            [original:protected] => Array
+                (
+                    [id] => 5
+                    [full_name] => hendra
+                    [email] => hendraeunda@gmail.com
+                    [password] => 71b0902f4cafd9184b37c5153852b5fb
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-05 15:56:34
+                    [updated_at] => 2024-04-05 15:56:34
+                )
+
+            [_cast:CodeIgniter\Entity\Entity:private] => 1
+            [id:protected] => 
+            [full_name:protected] => 
+            [email:protected] => 
+            [password:protected] => 
+            [is_verified:protected] => 
+            [program_category_id:protected] => 
+            [is_active:protected] => 
+            [is_deleted:protected] => 
+            [created_at:protected] => 
+            [updated_at:protected] => 
+        )
+
+    [3] => App\Entities\UserEntity Object
+        (
+            [datamap:protected] => Array
+                (
+                )
+
+            [dates:protected] => Array
+                (
+                    [0] => created_at
+                    [1] => updated_at
+                    [2] => deleted_at
+                )
+
+            [casts:protected] => Array
+                (
+                )
+
+            [castHandlers:protected] => Array
+                (
+                )
+
+            [defaultCastHandlers:CodeIgniter\Entity\Entity:private] => Array
+                (
+                    [array] => CodeIgniter\Entity\Cast\ArrayCast
+                    [bool] => CodeIgniter\Entity\Cast\BooleanCast
+                    [boolean] => CodeIgniter\Entity\Cast\BooleanCast
+                    [csv] => CodeIgniter\Entity\Cast\CSVCast
+                    [datetime] => CodeIgniter\Entity\Cast\DatetimeCast
+                    [double] => CodeIgniter\Entity\Cast\FloatCast
+                    [float] => CodeIgniter\Entity\Cast\FloatCast
+                    [int] => CodeIgniter\Entity\Cast\IntegerCast
+                    [integer] => CodeIgniter\Entity\Cast\IntegerCast
+                    [int-bool] => CodeIgniter\Entity\Cast\IntBoolCast
+                    [json] => CodeIgniter\Entity\Cast\JsonCast
+                    [object] => CodeIgniter\Entity\Cast\ObjectCast
+                    [string] => CodeIgniter\Entity\Cast\StringCast
+                    [timestamp] => CodeIgniter\Entity\Cast\TimestampCast
+                    [uri] => CodeIgniter\Entity\Cast\URICast
+                )
+
+            [attributes:protected] => Array
+                (
+                    [id] => 6
+                    [full_name] => yaza
+                    [email] => efmazaya@gmail.com
+                    [password] => 16c1f2118c8f239714f087cef8cbf1bb
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-06 12:54:00
+                    [updated_at] => 2024-04-06 12:54:00
+                )
+
+            [original:protected] => Array
+                (
+                    [id] => 6
+                    [full_name] => yaza
+                    [email] => efmazaya@gmail.com
+                    [password] => 16c1f2118c8f239714f087cef8cbf1bb
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-06 12:54:00
+                    [updated_at] => 2024-04-06 12:54:00
+                )
+
+            [_cast:CodeIgniter\Entity\Entity:private] => 1
+            [id:protected] => 
+            [full_name:protected] => 
+            [email:protected] => 
+            [password:protected] => 
+            [is_verified:protected] => 
+            [program_category_id:protected] => 
+            [is_active:protected] => 
+            [is_deleted:protected] => 
+            [created_at:protected] => 
+            [updated_at:protected] => 
+        )
+
+    [4] => App\Entities\UserEntity Object
+        (
+            [datamap:protected] => Array
+                (
+                )
+
+            [dates:protected] => Array
+                (
+                    [0] => created_at
+                    [1] => updated_at
+                    [2] => deleted_at
+                )
+
+            [casts:protected] => Array
+                (
+                )
+
+            [castHandlers:protected] => Array
+                (
+                )
+
+            [defaultCastHandlers:CodeIgniter\Entity\Entity:private] => Array
+                (
+                    [array] => CodeIgniter\Entity\Cast\ArrayCast
+                    [bool] => CodeIgniter\Entity\Cast\BooleanCast
+                    [boolean] => CodeIgniter\Entity\Cast\BooleanCast
+                    [csv] => CodeIgniter\Entity\Cast\CSVCast
+                    [datetime] => CodeIgniter\Entity\Cast\DatetimeCast
+                    [double] => CodeIgniter\Entity\Cast\FloatCast
+                    [float] => CodeIgniter\Entity\Cast\FloatCast
+                    [int] => CodeIgniter\Entity\Cast\IntegerCast
+                    [integer] => CodeIgniter\Entity\Cast\IntegerCast
+                    [int-bool] => CodeIgniter\Entity\Cast\IntBoolCast
+                    [json] => CodeIgniter\Entity\Cast\JsonCast
+                    [object] => CodeIgniter\Entity\Cast\ObjectCast
+                    [string] => CodeIgniter\Entity\Cast\StringCast
+                    [timestamp] => CodeIgniter\Entity\Cast\TimestampCast
+                    [uri] => CodeIgniter\Entity\Cast\URICast
+                )
+
+            [attributes:protected] => Array
+                (
+                    [id] => 18
+                    [full_name] => Charos
+                    [email] => nusratullaevacharos@outlook.com
+                    [password] => 054fce3af0de796ea37162aee0aee00f
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-06 19:22:29
+                    [updated_at] => 2024-04-06 19:22:29
+                )
+
+            [original:protected] => Array
+                (
+                    [id] => 18
+                    [full_name] => Charos
+                    [email] => nusratullaevacharos@outlook.com
+                    [password] => 054fce3af0de796ea37162aee0aee00f
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-06 19:22:29
+                    [updated_at] => 2024-04-06 19:22:29
+                )
+
+            [_cast:CodeIgniter\Entity\Entity:private] => 1
+            [id:protected] => 
+            [full_name:protected] => 
+            [email:protected] => 
+            [password:protected] => 
+            [is_verified:protected] => 
+            [program_category_id:protected] => 
+            [is_active:protected] => 
+            [is_deleted:protected] => 
+            [created_at:protected] => 
+            [updated_at:protected] => 
+        )
+
+    [5] => App\Entities\UserEntity Object
+        (
+            [datamap:protected] => Array
+                (
+                )
+
+            [dates:protected] => Array
+                (
+                    [0] => created_at
+                    [1] => updated_at
+                    [2] => deleted_at
+                )
+
+            [casts:protected] => Array
+                (
+                )
+
+            [castHandlers:protected] => Array
+                (
+                )
+
+            [defaultCastHandlers:CodeIgniter\Entity\Entity:private] => Array
+                (
+                    [array] => CodeIgniter\Entity\Cast\ArrayCast
+                    [bool] => CodeIgniter\Entity\Cast\BooleanCast
+                    [boolean] => CodeIgniter\Entity\Cast\BooleanCast
+                    [csv] => CodeIgniter\Entity\Cast\CSVCast
+                    [datetime] => CodeIgniter\Entity\Cast\DatetimeCast
+                    [double] => CodeIgniter\Entity\Cast\FloatCast
+                    [float] => CodeIgniter\Entity\Cast\FloatCast
+                    [int] => CodeIgniter\Entity\Cast\IntegerCast
+                    [integer] => CodeIgniter\Entity\Cast\IntegerCast
+                    [int-bool] => CodeIgniter\Entity\Cast\IntBoolCast
+                    [json] => CodeIgniter\Entity\Cast\JsonCast
+                    [object] => CodeIgniter\Entity\Cast\ObjectCast
+                    [string] => CodeIgniter\Entity\Cast\StringCast
+                    [timestamp] => CodeIgniter\Entity\Cast\TimestampCast
+                    [uri] => CodeIgniter\Entity\Cast\URICast
+                )
+
+            [attributes:protected] => Array
+                (
+                    [id] => 19
+                    [full_name] => ALDI SUBAKTI
+                    [email] => subaktialdi88@gmail.com
+                    [password] => 9135d5e8f05abce28cfd56cda66d095f
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-06 21:09:03
+                    [updated_at] => 2024-04-06 21:09:03
+                )
+
+            [original:protected] => Array
+                (
+                    [id] => 19
+                    [full_name] => ALDI SUBAKTI
+                    [email] => subaktialdi88@gmail.com
+                    [password] => 9135d5e8f05abce28cfd56cda66d095f
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-06 21:09:03
+                    [updated_at] => 2024-04-06 21:09:03
+                )
+
+            [_cast:CodeIgniter\Entity\Entity:private] => 1
+            [id:protected] => 
+            [full_name:protected] => 
+            [email:protected] => 
+            [password:protected] => 
+            [is_verified:protected] => 
+            [program_category_id:protected] => 
+            [is_active:protected] => 
+            [is_deleted:protected] => 
+            [created_at:protected] => 
+            [updated_at:protected] => 
+        )
+
+    [6] => App\Entities\UserEntity Object
+        (
+            [datamap:protected] => Array
+                (
+                )
+
+            [dates:protected] => Array
+                (
+                    [0] => created_at
+                    [1] => updated_at
+                    [2] => deleted_at
+                )
+
+            [casts:protected] => Array
+                (
+                )
+
+            [castHandlers:protected] => Array
+                (
+                )
+
+            [defaultCastHandlers:CodeIgniter\Entity\Entity:private] => Array
+                (
+                    [array] => CodeIgniter\Entity\Cast\ArrayCast
+                    [bool] => CodeIgniter\Entity\Cast\BooleanCast
+                    [boolean] => CodeIgniter\Entity\Cast\BooleanCast
+                    [csv] => CodeIgniter\Entity\Cast\CSVCast
+                    [datetime] => CodeIgniter\Entity\Cast\DatetimeCast
+                    [double] => CodeIgniter\Entity\Cast\FloatCast
+                    [float] => CodeIgniter\Entity\Cast\FloatCast
+                    [int] => CodeIgniter\Entity\Cast\IntegerCast
+                    [integer] => CodeIgniter\Entity\Cast\IntegerCast
+                    [int-bool] => CodeIgniter\Entity\Cast\IntBoolCast
+                    [json] => CodeIgniter\Entity\Cast\JsonCast
+                    [object] => CodeIgniter\Entity\Cast\ObjectCast
+                    [string] => CodeIgniter\Entity\Cast\StringCast
+                    [timestamp] => CodeIgniter\Entity\Cast\TimestampCast
+                    [uri] => CodeIgniter\Entity\Cast\URICast
+                )
+
+            [attributes:protected] => Array
+                (
+                    [id] => 21
+                    [full_name] => Muhamad Ilyas @Muhamad Alli bin Haji Ismail
+                    [email] => ilyas.iismail@gmail.com
+                    [password] => 4b0a0dcf86a32832f59a200671edc11c
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-07 00:48:55
+                    [updated_at] => 2024-04-07 00:48:55
+                )
+
+            [original:protected] => Array
+                (
+                    [id] => 21
+                    [full_name] => Muhamad Ilyas @Muhamad Alli bin Haji Ismail
+                    [email] => ilyas.iismail@gmail.com
+                    [password] => 4b0a0dcf86a32832f59a200671edc11c
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-07 00:48:55
+                    [updated_at] => 2024-04-07 00:48:55
+                )
+
+            [_cast:CodeIgniter\Entity\Entity:private] => 1
+            [id:protected] => 
+            [full_name:protected] => 
+            [email:protected] => 
+            [password:protected] => 
+            [is_verified:protected] => 
+            [program_category_id:protected] => 
+            [is_active:protected] => 
+            [is_deleted:protected] => 
+            [created_at:protected] => 
+            [updated_at:protected] => 
+        )
+
+    [7] => App\Entities\UserEntity Object
+        (
+            [datamap:protected] => Array
+                (
+                )
+
+            [dates:protected] => Array
+                (
+                    [0] => created_at
+                    [1] => updated_at
+                    [2] => deleted_at
+                )
+
+            [casts:protected] => Array
+                (
+                )
+
+            [castHandlers:protected] => Array
+                (
+                )
+
+            [defaultCastHandlers:CodeIgniter\Entity\Entity:private] => Array
+                (
+                    [array] => CodeIgniter\Entity\Cast\ArrayCast
+                    [bool] => CodeIgniter\Entity\Cast\BooleanCast
+                    [boolean] => CodeIgniter\Entity\Cast\BooleanCast
+                    [csv] => CodeIgniter\Entity\Cast\CSVCast
+                    [datetime] => CodeIgniter\Entity\Cast\DatetimeCast
+                    [double] => CodeIgniter\Entity\Cast\FloatCast
+                    [float] => CodeIgniter\Entity\Cast\FloatCast
+                    [int] => CodeIgniter\Entity\Cast\IntegerCast
+                    [integer] => CodeIgniter\Entity\Cast\IntegerCast
+                    [int-bool] => CodeIgniter\Entity\Cast\IntBoolCast
+                    [json] => CodeIgniter\Entity\Cast\JsonCast
+                    [object] => CodeIgniter\Entity\Cast\ObjectCast
+                    [string] => CodeIgniter\Entity\Cast\StringCast
+                    [timestamp] => CodeIgniter\Entity\Cast\TimestampCast
+                    [uri] => CodeIgniter\Entity\Cast\URICast
+                )
+
+            [attributes:protected] => Array
+                (
+                    [id] => 22
+                    [full_name] => NUR ADILA PUTERI IRWAN
+                    [email] => napbiyo@gmail.com
+                    [password] => d357ac2ee1bb2460fa6c3d8db983a156
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-07 00:57:36
+                    [updated_at] => 2024-04-07 00:57:36
+                )
+
+            [original:protected] => Array
+                (
+                    [id] => 22
+                    [full_name] => NUR ADILA PUTERI IRWAN
+                    [email] => napbiyo@gmail.com
+                    [password] => d357ac2ee1bb2460fa6c3d8db983a156
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-07 00:57:36
+                    [updated_at] => 2024-04-07 00:57:36
+                )
+
+            [_cast:CodeIgniter\Entity\Entity:private] => 1
+            [id:protected] => 
+            [full_name:protected] => 
+            [email:protected] => 
+            [password:protected] => 
+            [is_verified:protected] => 
+            [program_category_id:protected] => 
+            [is_active:protected] => 
+            [is_deleted:protected] => 
+            [created_at:protected] => 
+            [updated_at:protected] => 
+        )
+
+    [8] => App\Entities\UserEntity Object
+        (
+            [datamap:protected] => Array
+                (
+                )
+
+            [dates:protected] => Array
+                (
+                    [0] => created_at
+                    [1] => updated_at
+                    [2] => deleted_at
+                )
+
+            [casts:protected] => Array
+                (
+                )
+
+            [castHandlers:protected] => Array
+                (
+                )
+
+            [defaultCastHandlers:CodeIgniter\Entity\Entity:private] => Array
+                (
+                    [array] => CodeIgniter\Entity\Cast\ArrayCast
+                    [bool] => CodeIgniter\Entity\Cast\BooleanCast
+                    [boolean] => CodeIgniter\Entity\Cast\BooleanCast
+                    [csv] => CodeIgniter\Entity\Cast\CSVCast
+                    [datetime] => CodeIgniter\Entity\Cast\DatetimeCast
+                    [double] => CodeIgniter\Entity\Cast\FloatCast
+                    [float] => CodeIgniter\Entity\Cast\FloatCast
+                    [int] => CodeIgniter\Entity\Cast\IntegerCast
+                    [integer] => CodeIgniter\Entity\Cast\IntegerCast
+                    [int-bool] => CodeIgniter\Entity\Cast\IntBoolCast
+                    [json] => CodeIgniter\Entity\Cast\JsonCast
+                    [object] => CodeIgniter\Entity\Cast\ObjectCast
+                    [string] => CodeIgniter\Entity\Cast\StringCast
+                    [timestamp] => CodeIgniter\Entity\Cast\TimestampCast
+                    [uri] => CodeIgniter\Entity\Cast\URICast
+                )
+
+            [attributes:protected] => Array
+                (
+                    [id] => 23
+                    [full_name] => Rachana Panthi 
+                    [email] => rp.rachana97@gmail.com
+                    [password] => 9d6d5f1920130cb38c2e8d1fa70bae6f
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-07 01:05:13
+                    [updated_at] => 2024-04-07 01:05:13
+                )
+
+            [original:protected] => Array
+                (
+                    [id] => 23
+                    [full_name] => Rachana Panthi 
+                    [email] => rp.rachana97@gmail.com
+                    [password] => 9d6d5f1920130cb38c2e8d1fa70bae6f
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-07 01:05:13
+                    [updated_at] => 2024-04-07 01:05:13
+                )
+
+            [_cast:CodeIgniter\Entity\Entity:private] => 1
+            [id:protected] => 
+            [full_name:protected] => 
+            [email:protected] => 
+            [password:protected] => 
+            [is_verified:protected] => 
+            [program_category_id:protected] => 
+            [is_active:protected] => 
+            [is_deleted:protected] => 
+            [created_at:protected] => 
+            [updated_at:protected] => 
+        )
+
+    [9] => App\Entities\UserEntity Object
+        (
+            [datamap:protected] => Array
+                (
+                )
+
+            [dates:protected] => Array
+                (
+                    [0] => created_at
+                    [1] => updated_at
+                    [2] => deleted_at
+                )
+
+            [casts:protected] => Array
+                (
+                )
+
+            [castHandlers:protected] => Array
+                (
+                )
+
+            [defaultCastHandlers:CodeIgniter\Entity\Entity:private] => Array
+                (
+                    [array] => CodeIgniter\Entity\Cast\ArrayCast
+                    [bool] => CodeIgniter\Entity\Cast\BooleanCast
+                    [boolean] => CodeIgniter\Entity\Cast\BooleanCast
+                    [csv] => CodeIgniter\Entity\Cast\CSVCast
+                    [datetime] => CodeIgniter\Entity\Cast\DatetimeCast
+                    [double] => CodeIgniter\Entity\Cast\FloatCast
+                    [float] => CodeIgniter\Entity\Cast\FloatCast
+                    [int] => CodeIgniter\Entity\Cast\IntegerCast
+                    [integer] => CodeIgniter\Entity\Cast\IntegerCast
+                    [int-bool] => CodeIgniter\Entity\Cast\IntBoolCast
+                    [json] => CodeIgniter\Entity\Cast\JsonCast
+                    [object] => CodeIgniter\Entity\Cast\ObjectCast
+                    [string] => CodeIgniter\Entity\Cast\StringCast
+                    [timestamp] => CodeIgniter\Entity\Cast\TimestampCast
+                    [uri] => CodeIgniter\Entity\Cast\URICast
+                )
+
+            [attributes:protected] => Array
+                (
+                    [id] => 24
+                    [full_name] => FASANYA OPEYEMI ELIZABETH 
+                    [email] => opeyemi.elizabeth.of@gmail.com
+                    [password] => 23a556fab9a90f582bdaa999cecee448
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-07 02:42:18
+                    [updated_at] => 2024-04-07 02:42:18
+                )
+
+            [original:protected] => Array
+                (
+                    [id] => 24
+                    [full_name] => FASANYA OPEYEMI ELIZABETH 
+                    [email] => opeyemi.elizabeth.of@gmail.com
+                    [password] => 23a556fab9a90f582bdaa999cecee448
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-07 02:42:18
+                    [updated_at] => 2024-04-07 02:42:18
+                )
+
+            [_cast:CodeIgniter\Entity\Entity:private] => 1
+            [id:protected] => 
+            [full_name:protected] => 
+            [email:protected] => 
+            [password:protected] => 
+            [is_verified:protected] => 
+            [program_category_id:protected] => 
+            [is_active:protected] => 
+            [is_deleted:protected] => 
+            [created_at:protected] => 
+            [updated_at:protected] => 
+        )
+
+)
+
+DEBUG - 2025-02-17 11:38:01 --> Pager: CodeIgniter\Pager\Pager Object
+(
+    [groups:protected] => Array
+        (
+            [group1] => Array
+                (
+                    [currentUri] => CodeIgniter\HTTP\URI Object
+                        (
+                            [uriString:protected] => 
+                            [baseURL:CodeIgniter\HTTP\URI:private] => 
+                            [segments:protected] => Array
+                                (
+                                    [0] => api
+                                    [1] => users
+                                )
+
+                            [scheme:protected] => http
+                            [user:protected] => 
+                            [password:protected] => 
+                            [host:protected] => localhost
+                            [port:protected] => 8080
+                            [path:protected] => /api/users/
+                            [fragment:protected] => 
+                            [query:protected] => Array
+                                (
+                                )
+
+                            [defaultPorts:protected] => Array
+                                (
+                                    [http] => 80
+                                    [https] => 443
+                                    [ftp] => 21
+                                    [sftp] => 22
+                                )
+
+                            [showPassword:protected] => 
+                            [silent:protected] => 
+                            [rawQueryString:protected] => 
+                        )
+
+                    [uri] => CodeIgniter\HTTP\URI Object
+                        (
+                            [uriString:protected] => 
+                            [baseURL:CodeIgniter\HTTP\URI:private] => 
+                            [segments:protected] => Array
+                                (
+                                    [0] => api
+                                    [1] => users
+                                )
+
+                            [scheme:protected] => http
+                            [user:protected] => 
+                            [password:protected] => 
+                            [host:protected] => localhost
+                            [port:protected] => 8080
+                            [path:protected] => /api/users/
+                            [fragment:protected] => 
+                            [query:protected] => Array
+                                (
+                                )
+
+                            [defaultPorts:protected] => Array
+                                (
+                                    [http] => 80
+                                    [https] => 443
+                                    [ftp] => 21
+                                    [sftp] => 22
+                                )
+
+                            [showPassword:protected] => 
+                            [silent:protected] => 
+                            [rawQueryString:protected] => 
+                        )
+
+                    [hasMore] => 
+                    [total] => 44738
+                    [perPage] => 10
+                    [pageCount] => 4474
+                    [pageSelector] => page_group1
+                    [currentPage] => 1
+                )
+
+        )
+
+    [segment:protected] => Array
+        (
+        )
+
+    [config:protected] => Config\Pager Object
+        (
+            [templates] => Array
+                (
+                    [default_full] => CodeIgniter\Pager\Views\default_full
+                    [default_simple] => CodeIgniter\Pager\Views\default_simple
+                    [default_head] => CodeIgniter\Pager\Views\default_head
+                )
+
+            [perPage] => 20
+        )
+
+    [view:protected] => CodeIgniter\View\View Object
+        (
+            [data:protected] => Array
+                (
+                )
+
+            [tempData:protected] => 
+            [viewPath:protected] => D:\Work\admin_ybb_web\app\Config/../Views\
+            [renderVars:protected] => Array
+                (
+                )
+
+            [loader:protected] => CodeIgniter\Autoloader\FileLocator Object
+                (
+                    [autoloader:protected] => CodeIgniter\Autoloader\Autoloader Object
+                        (
+                            [prefixes:protected] => Array
+                                (
+                                    [CodeIgniter] => Array
+                                        (
+                                            [0] => D:\Work\admin_ybb_web\system\
+                                        )
+
+                                    [App] => Array
+                                        (
+                                            [0] => D:\Work\admin_ybb_web\app\
+                                        )
+
+                                    [Config] => Array
+                                        (
+                                            [0] => D:\Work\admin_ybb_web\app\Config\
+                                        )
+
+                                )
+
+                            [classmap:protected] => Array
+                                (
+                                    [Psr\Log\AbstractLogger] => D:\Work\admin_ybb_web\system\ThirdParty/PSR/Log/AbstractLogger.php
+                                    [Psr\Log\InvalidArgumentException] => D:\Work\admin_ybb_web\system\ThirdParty/PSR/Log/InvalidArgumentException.php
+                                    [Psr\Log\LoggerAwareInterface] => D:\Work\admin_ybb_web\system\ThirdParty/PSR/Log/LoggerAwareInterface.php
+                                    [Psr\Log\LoggerAwareTrait] => D:\Work\admin_ybb_web\system\ThirdParty/PSR/Log/LoggerAwareTrait.php
+                                    [Psr\Log\LoggerInterface] => D:\Work\admin_ybb_web\system\ThirdParty/PSR/Log/LoggerInterface.php
+                                    [Psr\Log\LoggerTrait] => D:\Work\admin_ybb_web\system\ThirdParty/PSR/Log/LoggerTrait.php
+                                    [Psr\Log\LogLevel] => D:\Work\admin_ybb_web\system\ThirdParty/PSR/Log/LogLevel.php
+                                    [Psr\Log\NullLogger] => D:\Work\admin_ybb_web\system\ThirdParty/PSR/Log/NullLogger.php
+                                    [Laminas\Escaper\Exception\ExceptionInterface] => D:\Work\admin_ybb_web\system\ThirdParty/Escaper/Exception/ExceptionInterface.php
+                                    [Laminas\Escaper\Exception\InvalidArgumentException] => D:\Work\admin_ybb_web\system\ThirdParty/Escaper/Exception/InvalidArgumentException.php
+                                    [Laminas\Escaper\Exception\RuntimeException] => D:\Work\admin_ybb_web\system\ThirdParty/Escaper/Exception/RuntimeException.php
+                                    [Laminas\Escaper\Escaper] => D:\Work\admin_ybb_web\system\ThirdParty/Escaper/Escaper.php
+                                )
+
+                            [files:protected] => Array
+                                (
+                                )
+
+                            [helpers:protected] => Array
+                                (
+                                    [0] => url
+                                )
+
+                        )
+
+                )
+
+            [logger:protected] => CodeIgniter\Log\Logger Object
+                (
+                    [logLevels:protected] => Array
+                        (
+                            [emergency] => 1
+                            [alert] => 2
+                            [critical] => 3
+                            [error] => 4
+                            [warning] => 5
+                            [notice] => 6
+                            [info] => 7
+                            [debug] => 8
+                        )
+
+                    [loggableLevels:protected] => Array
+                        (
+                            [0] => emergency
+                            [1] => alert
+                            [2] => critical
+                            [3] => error
+                            [4] => warning
+                            [5] => notice
+                            [6] => info
+                            [7] => debug
+                            [8] => 
+                        )
+
+                    [filePermissions:protected] => 420
+                    [dateFormat:protected] => Y-m-d H:i:s
+                    [fileExt:protected] => 
+                    [handlers:protected] => Array
+                        (
+                            [CodeIgniter\Log\Handlers\FileHandler] => CodeIgniter\Log\Handlers\FileHandler Object
+                                (
+                                    [handles:protected] => Array
+                                        (
+                                            [0] => critical
+                                            [1] => alert
+                                            [2] => emergency
+                                            [3] => debug
+                                            [4] => error
+                                            [5] => info
+                                            [6] => notice
+                                            [7] => warning
+                                        )
+
+                                    [dateFormat:protected] => Y-m-d H:i:s
+                                    [path:protected] => D:\Work\admin_ybb_web\writable\logs/
+                                    [fileExtension:protected] => log
+                                    [filePermissions:protected] => 420
+                                )
+
+                        )
+
+                    [handlerConfig:protected] => Array
+                        (
+                            [CodeIgniter\Log\Handlers\FileHandler] => Array
+                                (
+                                    [handles] => Array
+                                        (
+                                            [0] => critical
+                                            [1] => alert
+                                            [2] => emergency
+                                            [3] => debug
+                                            [4] => error
+                                            [5] => info
+                                            [6] => notice
+                                            [7] => warning
+                                        )
+
+                                    [fileExtension] => 
+                                    [filePermissions] => 420
+                                    [path] => 
+                                )
+
+                        )
+
+                    [logCache] => Array
+                        (
+                            [0] => Array
+                                (
+                                    [level] => debug
+                                    [msg] => Data: Array
+(
+    [0] => App\Entities\UserEntity Object
+        (
+            [datamap:protected] => Array
+                (
+                )
+
+            [dates:protected] => Array
+                (
+                    [0] => created_at
+                    [1] => updated_at
+                    [2] => deleted_at
+                )
+
+            [casts:protected] => Array
+                (
+                )
+
+            [castHandlers:protected] => Array
+                (
+                )
+
+            [defaultCastHandlers:CodeIgniter\Entity\Entity:private] => Array
+                (
+                    [array] => CodeIgniter\Entity\Cast\ArrayCast
+                    [bool] => CodeIgniter\Entity\Cast\BooleanCast
+                    [boolean] => CodeIgniter\Entity\Cast\BooleanCast
+                    [csv] => CodeIgniter\Entity\Cast\CSVCast
+                    [datetime] => CodeIgniter\Entity\Cast\DatetimeCast
+                    [double] => CodeIgniter\Entity\Cast\FloatCast
+                    [float] => CodeIgniter\Entity\Cast\FloatCast
+                    [int] => CodeIgniter\Entity\Cast\IntegerCast
+                    [integer] => CodeIgniter\Entity\Cast\IntegerCast
+                    [int-bool] => CodeIgniter\Entity\Cast\IntBoolCast
+                    [json] => CodeIgniter\Entity\Cast\JsonCast
+                    [object] => CodeIgniter\Entity\Cast\ObjectCast
+                    [string] => CodeIgniter\Entity\Cast\StringCast
+                    [timestamp] => CodeIgniter\Entity\Cast\TimestampCast
+                    [uri] => CodeIgniter\Entity\Cast\URICast
+                )
+
+            [attributes:protected] => Array
+                (
+                    [id] => 1
+                    [full_name] => Daroca
+                    [email] => daroca@gmail.com
+                    [password] => 202cb962ac59075b964b07152d234b70
+                    [is_verified] => 1
+                    [program_category_id] => 1
+                    [is_active] => 0
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-04 20:03:01
+                    [updated_at] => 2024-04-04 20:03:01
+                )
+
+            [original:protected] => Array
+                (
+                    [id] => 1
+                    [full_name] => Daroca
+                    [email] => daroca@gmail.com
+                    [password] => 202cb962ac59075b964b07152d234b70
+                    [is_verified] => 1
+                    [program_category_id] => 1
+                    [is_active] => 0
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-04 20:03:01
+                    [updated_at] => 2024-04-04 20:03:01
+                )
+
+            [_cast:CodeIgniter\Entity\Entity:private] => 1
+            [id:protected] => 
+            [full_name:protected] => 
+            [email:protected] => 
+            [password:protected] => 
+            [is_verified:protected] => 
+            [program_category_id:protected] => 
+            [is_active:protected] => 
+            [is_deleted:protected] => 
+            [created_at:protected] => 
+            [updated_at:protected] => 
+        )
+
+    [1] => App\Entities\UserEntity Object
+        (
+            [datamap:protected] => Array
+                (
+                )
+
+            [dates:protected] => Array
+                (
+                    [0] => created_at
+                    [1] => updated_at
+                    [2] => deleted_at
+                )
+
+            [casts:protected] => Array
+                (
+                )
+
+            [castHandlers:protected] => Array
+                (
+                )
+
+            [defaultCastHandlers:CodeIgniter\Entity\Entity:private] => Array
+                (
+                    [array] => CodeIgniter\Entity\Cast\ArrayCast
+                    [bool] => CodeIgniter\Entity\Cast\BooleanCast
+                    [boolean] => CodeIgniter\Entity\Cast\BooleanCast
+                    [csv] => CodeIgniter\Entity\Cast\CSVCast
+                    [datetime] => CodeIgniter\Entity\Cast\DatetimeCast
+                    [double] => CodeIgniter\Entity\Cast\FloatCast
+                    [float] => CodeIgniter\Entity\Cast\FloatCast
+                    [int] => CodeIgniter\Entity\Cast\IntegerCast
+                    [integer] => CodeIgniter\Entity\Cast\IntegerCast
+                    [int-bool] => CodeIgniter\Entity\Cast\IntBoolCast
+                    [json] => CodeIgniter\Entity\Cast\JsonCast
+                    [object] => CodeIgniter\Entity\Cast\ObjectCast
+                    [string] => CodeIgniter\Entity\Cast\StringCast
+                    [timestamp] => CodeIgniter\Entity\Cast\TimestampCast
+                    [uri] => CodeIgniter\Entity\Cast\URICast
+                )
+
+            [attributes:protected] => Array
+                (
+                    [id] => 4
+                    [full_name] => IVAL
+                    [email] => ronaldarrivalf@gmail.com
+                    [password] => 202cb962ac59075b964b07152d234b70
+                    [is_verified] => 1
+                    [program_category_id] => 1
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-05 14:43:33
+                    [updated_at] => 2024-08-08 08:17:45
+                )
+
+            [original:protected] => Array
+                (
+                    [id] => 4
+                    [full_name] => IVAL
+                    [email] => ronaldarrivalf@gmail.com
+                    [password] => 202cb962ac59075b964b07152d234b70
+                    [is_verified] => 1
+                    [program_category_id] => 1
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-05 14:43:33
+                    [updated_at] => 2024-08-08 08:17:45
+                )
+
+            [_cast:CodeIgniter\Entity\Entity:private] => 1
+            [id:protected] => 
+            [full_name:protected] => 
+            [email:protected] => 
+            [password:protected] => 
+            [is_verified:protected] => 
+            [program_category_id:protected] => 
+            [is_active:protected] => 
+            [is_deleted:protected] => 
+            [created_at:protected] => 
+            [updated_at:protected] => 
+        )
+
+    [2] => App\Entities\UserEntity Object
+        (
+            [datamap:protected] => Array
+                (
+                )
+
+            [dates:protected] => Array
+                (
+                    [0] => created_at
+                    [1] => updated_at
+                    [2] => deleted_at
+                )
+
+            [casts:protected] => Array
+                (
+                )
+
+            [castHandlers:protected] => Array
+                (
+                )
+
+            [defaultCastHandlers:CodeIgniter\Entity\Entity:private] => Array
+                (
+                    [array] => CodeIgniter\Entity\Cast\ArrayCast
+                    [bool] => CodeIgniter\Entity\Cast\BooleanCast
+                    [boolean] => CodeIgniter\Entity\Cast\BooleanCast
+                    [csv] => CodeIgniter\Entity\Cast\CSVCast
+                    [datetime] => CodeIgniter\Entity\Cast\DatetimeCast
+                    [double] => CodeIgniter\Entity\Cast\FloatCast
+                    [float] => CodeIgniter\Entity\Cast\FloatCast
+                    [int] => CodeIgniter\Entity\Cast\IntegerCast
+                    [integer] => CodeIgniter\Entity\Cast\IntegerCast
+                    [int-bool] => CodeIgniter\Entity\Cast\IntBoolCast
+                    [json] => CodeIgniter\Entity\Cast\JsonCast
+                    [object] => CodeIgniter\Entity\Cast\ObjectCast
+                    [string] => CodeIgniter\Entity\Cast\StringCast
+                    [timestamp] => CodeIgniter\Entity\Cast\TimestampCast
+                    [uri] => CodeIgniter\Entity\Cast\URICast
+                )
+
+            [attributes:protected] => Array
+                (
+                    [id] => 5
+                    [full_name] => hendra
+                    [email] => hendraeunda@gmail.com
+                    [password] => 71b0902f4cafd9184b37c5153852b5fb
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-05 15:56:34
+                    [updated_at] => 2024-04-05 15:56:34
+                )
+
+            [original:protected] => Array
+                (
+                    [id] => 5
+                    [full_name] => hendra
+                    [email] => hendraeunda@gmail.com
+                    [password] => 71b0902f4cafd9184b37c5153852b5fb
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-05 15:56:34
+                    [updated_at] => 2024-04-05 15:56:34
+                )
+
+            [_cast:CodeIgniter\Entity\Entity:private] => 1
+            [id:protected] => 
+            [full_name:protected] => 
+            [email:protected] => 
+            [password:protected] => 
+            [is_verified:protected] => 
+            [program_category_id:protected] => 
+            [is_active:protected] => 
+            [is_deleted:protected] => 
+            [created_at:protected] => 
+            [updated_at:protected] => 
+        )
+
+    [3] => App\Entities\UserEntity Object
+        (
+            [datamap:protected] => Array
+                (
+                )
+
+            [dates:protected] => Array
+                (
+                    [0] => created_at
+                    [1] => updated_at
+                    [2] => deleted_at
+                )
+
+            [casts:protected] => Array
+                (
+                )
+
+            [castHandlers:protected] => Array
+                (
+                )
+
+            [defaultCastHandlers:CodeIgniter\Entity\Entity:private] => Array
+                (
+                    [array] => CodeIgniter\Entity\Cast\ArrayCast
+                    [bool] => CodeIgniter\Entity\Cast\BooleanCast
+                    [boolean] => CodeIgniter\Entity\Cast\BooleanCast
+                    [csv] => CodeIgniter\Entity\Cast\CSVCast
+                    [datetime] => CodeIgniter\Entity\Cast\DatetimeCast
+                    [double] => CodeIgniter\Entity\Cast\FloatCast
+                    [float] => CodeIgniter\Entity\Cast\FloatCast
+                    [int] => CodeIgniter\Entity\Cast\IntegerCast
+                    [integer] => CodeIgniter\Entity\Cast\IntegerCast
+                    [int-bool] => CodeIgniter\Entity\Cast\IntBoolCast
+                    [json] => CodeIgniter\Entity\Cast\JsonCast
+                    [object] => CodeIgniter\Entity\Cast\ObjectCast
+                    [string] => CodeIgniter\Entity\Cast\StringCast
+                    [timestamp] => CodeIgniter\Entity\Cast\TimestampCast
+                    [uri] => CodeIgniter\Entity\Cast\URICast
+                )
+
+            [attributes:protected] => Array
+                (
+                    [id] => 6
+                    [full_name] => yaza
+                    [email] => efmazaya@gmail.com
+                    [password] => 16c1f2118c8f239714f087cef8cbf1bb
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-06 12:54:00
+                    [updated_at] => 2024-04-06 12:54:00
+                )
+
+            [original:protected] => Array
+                (
+                    [id] => 6
+                    [full_name] => yaza
+                    [email] => efmazaya@gmail.com
+                    [password] => 16c1f2118c8f239714f087cef8cbf1bb
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-06 12:54:00
+                    [updated_at] => 2024-04-06 12:54:00
+                )
+
+            [_cast:CodeIgniter\Entity\Entity:private] => 1
+            [id:protected] => 
+            [full_name:protected] => 
+            [email:protected] => 
+            [password:protected] => 
+            [is_verified:protected] => 
+            [program_category_id:protected] => 
+            [is_active:protected] => 
+            [is_deleted:protected] => 
+            [created_at:protected] => 
+            [updated_at:protected] => 
+        )
+
+    [4] => App\Entities\UserEntity Object
+        (
+            [datamap:protected] => Array
+                (
+                )
+
+            [dates:protected] => Array
+                (
+                    [0] => created_at
+                    [1] => updated_at
+                    [2] => deleted_at
+                )
+
+            [casts:protected] => Array
+                (
+                )
+
+            [castHandlers:protected] => Array
+                (
+                )
+
+            [defaultCastHandlers:CodeIgniter\Entity\Entity:private] => Array
+                (
+                    [array] => CodeIgniter\Entity\Cast\ArrayCast
+                    [bool] => CodeIgniter\Entity\Cast\BooleanCast
+                    [boolean] => CodeIgniter\Entity\Cast\BooleanCast
+                    [csv] => CodeIgniter\Entity\Cast\CSVCast
+                    [datetime] => CodeIgniter\Entity\Cast\DatetimeCast
+                    [double] => CodeIgniter\Entity\Cast\FloatCast
+                    [float] => CodeIgniter\Entity\Cast\FloatCast
+                    [int] => CodeIgniter\Entity\Cast\IntegerCast
+                    [integer] => CodeIgniter\Entity\Cast\IntegerCast
+                    [int-bool] => CodeIgniter\Entity\Cast\IntBoolCast
+                    [json] => CodeIgniter\Entity\Cast\JsonCast
+                    [object] => CodeIgniter\Entity\Cast\ObjectCast
+                    [string] => CodeIgniter\Entity\Cast\StringCast
+                    [timestamp] => CodeIgniter\Entity\Cast\TimestampCast
+                    [uri] => CodeIgniter\Entity\Cast\URICast
+                )
+
+            [attributes:protected] => Array
+                (
+                    [id] => 18
+                    [full_name] => Charos
+                    [email] => nusratullaevacharos@outlook.com
+                    [password] => 054fce3af0de796ea37162aee0aee00f
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-06 19:22:29
+                    [updated_at] => 2024-04-06 19:22:29
+                )
+
+            [original:protected] => Array
+                (
+                    [id] => 18
+                    [full_name] => Charos
+                    [email] => nusratullaevacharos@outlook.com
+                    [password] => 054fce3af0de796ea37162aee0aee00f
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-06 19:22:29
+                    [updated_at] => 2024-04-06 19:22:29
+                )
+
+            [_cast:CodeIgniter\Entity\Entity:private] => 1
+            [id:protected] => 
+            [full_name:protected] => 
+            [email:protected] => 
+            [password:protected] => 
+            [is_verified:protected] => 
+            [program_category_id:protected] => 
+            [is_active:protected] => 
+            [is_deleted:protected] => 
+            [created_at:protected] => 
+            [updated_at:protected] => 
+        )
+
+    [5] => App\Entities\UserEntity Object
+        (
+            [datamap:protected] => Array
+                (
+                )
+
+            [dates:protected] => Array
+                (
+                    [0] => created_at
+                    [1] => updated_at
+                    [2] => deleted_at
+                )
+
+            [casts:protected] => Array
+                (
+                )
+
+            [castHandlers:protected] => Array
+                (
+                )
+
+            [defaultCastHandlers:CodeIgniter\Entity\Entity:private] => Array
+                (
+                    [array] => CodeIgniter\Entity\Cast\ArrayCast
+                    [bool] => CodeIgniter\Entity\Cast\BooleanCast
+                    [boolean] => CodeIgniter\Entity\Cast\BooleanCast
+                    [csv] => CodeIgniter\Entity\Cast\CSVCast
+                    [datetime] => CodeIgniter\Entity\Cast\DatetimeCast
+                    [double] => CodeIgniter\Entity\Cast\FloatCast
+                    [float] => CodeIgniter\Entity\Cast\FloatCast
+                    [int] => CodeIgniter\Entity\Cast\IntegerCast
+                    [integer] => CodeIgniter\Entity\Cast\IntegerCast
+                    [int-bool] => CodeIgniter\Entity\Cast\IntBoolCast
+                    [json] => CodeIgniter\Entity\Cast\JsonCast
+                    [object] => CodeIgniter\Entity\Cast\ObjectCast
+                    [string] => CodeIgniter\Entity\Cast\StringCast
+                    [timestamp] => CodeIgniter\Entity\Cast\TimestampCast
+                    [uri] => CodeIgniter\Entity\Cast\URICast
+                )
+
+            [attributes:protected] => Array
+                (
+                    [id] => 19
+                    [full_name] => ALDI SUBAKTI
+                    [email] => subaktialdi88@gmail.com
+                    [password] => 9135d5e8f05abce28cfd56cda66d095f
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-06 21:09:03
+                    [updated_at] => 2024-04-06 21:09:03
+                )
+
+            [original:protected] => Array
+                (
+                    [id] => 19
+                    [full_name] => ALDI SUBAKTI
+                    [email] => subaktialdi88@gmail.com
+                    [password] => 9135d5e8f05abce28cfd56cda66d095f
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-06 21:09:03
+                    [updated_at] => 2024-04-06 21:09:03
+                )
+
+            [_cast:CodeIgniter\Entity\Entity:private] => 1
+            [id:protected] => 
+            [full_name:protected] => 
+            [email:protected] => 
+            [password:protected] => 
+            [is_verified:protected] => 
+            [program_category_id:protected] => 
+            [is_active:protected] => 
+            [is_deleted:protected] => 
+            [created_at:protected] => 
+            [updated_at:protected] => 
+        )
+
+    [6] => App\Entities\UserEntity Object
+        (
+            [datamap:protected] => Array
+                (
+                )
+
+            [dates:protected] => Array
+                (
+                    [0] => created_at
+                    [1] => updated_at
+                    [2] => deleted_at
+                )
+
+            [casts:protected] => Array
+                (
+                )
+
+            [castHandlers:protected] => Array
+                (
+                )
+
+            [defaultCastHandlers:CodeIgniter\Entity\Entity:private] => Array
+                (
+                    [array] => CodeIgniter\Entity\Cast\ArrayCast
+                    [bool] => CodeIgniter\Entity\Cast\BooleanCast
+                    [boolean] => CodeIgniter\Entity\Cast\BooleanCast
+                    [csv] => CodeIgniter\Entity\Cast\CSVCast
+                    [datetime] => CodeIgniter\Entity\Cast\DatetimeCast
+                    [double] => CodeIgniter\Entity\Cast\FloatCast
+                    [float] => CodeIgniter\Entity\Cast\FloatCast
+                    [int] => CodeIgniter\Entity\Cast\IntegerCast
+                    [integer] => CodeIgniter\Entity\Cast\IntegerCast
+                    [int-bool] => CodeIgniter\Entity\Cast\IntBoolCast
+                    [json] => CodeIgniter\Entity\Cast\JsonCast
+                    [object] => CodeIgniter\Entity\Cast\ObjectCast
+                    [string] => CodeIgniter\Entity\Cast\StringCast
+                    [timestamp] => CodeIgniter\Entity\Cast\TimestampCast
+                    [uri] => CodeIgniter\Entity\Cast\URICast
+                )
+
+            [attributes:protected] => Array
+                (
+                    [id] => 21
+                    [full_name] => Muhamad Ilyas @Muhamad Alli bin Haji Ismail
+                    [email] => ilyas.iismail@gmail.com
+                    [password] => 4b0a0dcf86a32832f59a200671edc11c
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-07 00:48:55
+                    [updated_at] => 2024-04-07 00:48:55
+                )
+
+            [original:protected] => Array
+                (
+                    [id] => 21
+                    [full_name] => Muhamad Ilyas @Muhamad Alli bin Haji Ismail
+                    [email] => ilyas.iismail@gmail.com
+                    [password] => 4b0a0dcf86a32832f59a200671edc11c
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-07 00:48:55
+                    [updated_at] => 2024-04-07 00:48:55
+                )
+
+            [_cast:CodeIgniter\Entity\Entity:private] => 1
+            [id:protected] => 
+            [full_name:protected] => 
+            [email:protected] => 
+            [password:protected] => 
+            [is_verified:protected] => 
+            [program_category_id:protected] => 
+            [is_active:protected] => 
+            [is_deleted:protected] => 
+            [created_at:protected] => 
+            [updated_at:protected] => 
+        )
+
+    [7] => App\Entities\UserEntity Object
+        (
+            [datamap:protected] => Array
+                (
+                )
+
+            [dates:protected] => Array
+                (
+                    [0] => created_at
+                    [1] => updated_at
+                    [2] => deleted_at
+                )
+
+            [casts:protected] => Array
+                (
+                )
+
+            [castHandlers:protected] => Array
+                (
+                )
+
+            [defaultCastHandlers:CodeIgniter\Entity\Entity:private] => Array
+                (
+                    [array] => CodeIgniter\Entity\Cast\ArrayCast
+                    [bool] => CodeIgniter\Entity\Cast\BooleanCast
+                    [boolean] => CodeIgniter\Entity\Cast\BooleanCast
+                    [csv] => CodeIgniter\Entity\Cast\CSVCast
+                    [datetime] => CodeIgniter\Entity\Cast\DatetimeCast
+                    [double] => CodeIgniter\Entity\Cast\FloatCast
+                    [float] => CodeIgniter\Entity\Cast\FloatCast
+                    [int] => CodeIgniter\Entity\Cast\IntegerCast
+                    [integer] => CodeIgniter\Entity\Cast\IntegerCast
+                    [int-bool] => CodeIgniter\Entity\Cast\IntBoolCast
+                    [json] => CodeIgniter\Entity\Cast\JsonCast
+                    [object] => CodeIgniter\Entity\Cast\ObjectCast
+                    [string] => CodeIgniter\Entity\Cast\StringCast
+                    [timestamp] => CodeIgniter\Entity\Cast\TimestampCast
+                    [uri] => CodeIgniter\Entity\Cast\URICast
+                )
+
+            [attributes:protected] => Array
+                (
+                    [id] => 22
+                    [full_name] => NUR ADILA PUTERI IRWAN
+                    [email] => napbiyo@gmail.com
+                    [password] => d357ac2ee1bb2460fa6c3d8db983a156
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-07 00:57:36
+                    [updated_at] => 2024-04-07 00:57:36
+                )
+
+            [original:protected] => Array
+                (
+                    [id] => 22
+                    [full_name] => NUR ADILA PUTERI IRWAN
+                    [email] => napbiyo@gmail.com
+                    [password] => d357ac2ee1bb2460fa6c3d8db983a156
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-07 00:57:36
+                    [updated_at] => 2024-04-07 00:57:36
+                )
+
+            [_cast:CodeIgniter\Entity\Entity:private] => 1
+            [id:protected] => 
+            [full_name:protected] => 
+            [email:protected] => 
+            [password:protected] => 
+            [is_verified:protected] => 
+            [program_category_id:protected] => 
+            [is_active:protected] => 
+            [is_deleted:protected] => 
+            [created_at:protected] => 
+            [updated_at:protected] => 
+        )
+
+    [8] => App\Entities\UserEntity Object
+        (
+            [datamap:protected] => Array
+                (
+                )
+
+            [dates:protected] => Array
+                (
+                    [0] => created_at
+                    [1] => updated_at
+                    [2] => deleted_at
+                )
+
+            [casts:protected] => Array
+                (
+                )
+
+            [castHandlers:protected] => Array
+                (
+                )
+
+            [defaultCastHandlers:CodeIgniter\Entity\Entity:private] => Array
+                (
+                    [array] => CodeIgniter\Entity\Cast\ArrayCast
+                    [bool] => CodeIgniter\Entity\Cast\BooleanCast
+                    [boolean] => CodeIgniter\Entity\Cast\BooleanCast
+                    [csv] => CodeIgniter\Entity\Cast\CSVCast
+                    [datetime] => CodeIgniter\Entity\Cast\DatetimeCast
+                    [double] => CodeIgniter\Entity\Cast\FloatCast
+                    [float] => CodeIgniter\Entity\Cast\FloatCast
+                    [int] => CodeIgniter\Entity\Cast\IntegerCast
+                    [integer] => CodeIgniter\Entity\Cast\IntegerCast
+                    [int-bool] => CodeIgniter\Entity\Cast\IntBoolCast
+                    [json] => CodeIgniter\Entity\Cast\JsonCast
+                    [object] => CodeIgniter\Entity\Cast\ObjectCast
+                    [string] => CodeIgniter\Entity\Cast\StringCast
+                    [timestamp] => CodeIgniter\Entity\Cast\TimestampCast
+                    [uri] => CodeIgniter\Entity\Cast\URICast
+                )
+
+            [attributes:protected] => Array
+                (
+                    [id] => 23
+                    [full_name] => Rachana Panthi 
+                    [email] => rp.rachana97@gmail.com
+                    [password] => 9d6d5f1920130cb38c2e8d1fa70bae6f
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-07 01:05:13
+                    [updated_at] => 2024-04-07 01:05:13
+                )
+
+            [original:protected] => Array
+                (
+                    [id] => 23
+                    [full_name] => Rachana Panthi 
+                    [email] => rp.rachana97@gmail.com
+                    [password] => 9d6d5f1920130cb38c2e8d1fa70bae6f
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-07 01:05:13
+                    [updated_at] => 2024-04-07 01:05:13
+                )
+
+            [_cast:CodeIgniter\Entity\Entity:private] => 1
+            [id:protected] => 
+            [full_name:protected] => 
+            [email:protected] => 
+            [password:protected] => 
+            [is_verified:protected] => 
+            [program_category_id:protected] => 
+            [is_active:protected] => 
+            [is_deleted:protected] => 
+            [created_at:protected] => 
+            [updated_at:protected] => 
+        )
+
+    [9] => App\Entities\UserEntity Object
+        (
+            [datamap:protected] => Array
+                (
+                )
+
+            [dates:protected] => Array
+                (
+                    [0] => created_at
+                    [1] => updated_at
+                    [2] => deleted_at
+                )
+
+            [casts:protected] => Array
+                (
+                )
+
+            [castHandlers:protected] => Array
+                (
+                )
+
+            [defaultCastHandlers:CodeIgniter\Entity\Entity:private] => Array
+                (
+                    [array] => CodeIgniter\Entity\Cast\ArrayCast
+                    [bool] => CodeIgniter\Entity\Cast\BooleanCast
+                    [boolean] => CodeIgniter\Entity\Cast\BooleanCast
+                    [csv] => CodeIgniter\Entity\Cast\CSVCast
+                    [datetime] => CodeIgniter\Entity\Cast\DatetimeCast
+                    [double] => CodeIgniter\Entity\Cast\FloatCast
+                    [float] => CodeIgniter\Entity\Cast\FloatCast
+                    [int] => CodeIgniter\Entity\Cast\IntegerCast
+                    [integer] => CodeIgniter\Entity\Cast\IntegerCast
+                    [int-bool] => CodeIgniter\Entity\Cast\IntBoolCast
+                    [json] => CodeIgniter\Entity\Cast\JsonCast
+                    [object] => CodeIgniter\Entity\Cast\ObjectCast
+                    [string] => CodeIgniter\Entity\Cast\StringCast
+                    [timestamp] => CodeIgniter\Entity\Cast\TimestampCast
+                    [uri] => CodeIgniter\Entity\Cast\URICast
+                )
+
+            [attributes:protected] => Array
+                (
+                    [id] => 24
+                    [full_name] => FASANYA OPEYEMI ELIZABETH 
+                    [email] => opeyemi.elizabeth.of@gmail.com
+                    [password] => 23a556fab9a90f582bdaa999cecee448
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-07 02:42:18
+                    [updated_at] => 2024-04-07 02:42:18
+                )
+
+            [original:protected] => Array
+                (
+                    [id] => 24
+                    [full_name] => FASANYA OPEYEMI ELIZABETH 
+                    [email] => opeyemi.elizabeth.of@gmail.com
+                    [password] => 23a556fab9a90f582bdaa999cecee448
+                    [is_verified] => 0
+                    [program_category_id] => 2
+                    [is_active] => 1
+                    [is_deleted] => 0
+                    [created_at] => 2024-04-07 02:42:18
+                    [updated_at] => 2024-04-07 02:42:18
+                )
+
+            [_cast:CodeIgniter\Entity\Entity:private] => 1
+            [id:protected] => 
+            [full_name:protected] => 
+            [email:protected] => 
+            [password:protected] => 
+            [is_verified:protected] => 
+            [program_category_id:protected] => 
+            [is_active:protected] => 
+            [is_deleted:protected] => 
+            [created_at:protected] => 
+            [updated_at:protected] => 
+        )
+
+)
+
+                                )
+
+                        )
+
+                    [cacheLogs:protected] => 1
+                )
+
+            [debug:protected] => 1
+            [performanceData:protected] => Array
+                (
+                )
+
+            [config:protected] => Config\View Object
+                (
+                    [saveData] => 1
+                    [filters] => Array
+                        (
+                            [abs] => \abs
+                            [capitalize] => \CodeIgniter\View\Filters::capitalize
+                            [date] => \CodeIgniter\View\Filters::date
+                            [date_modify] => \CodeIgniter\View\Filters::date_modify
+                            [default] => \CodeIgniter\View\Filters::default
+                            [esc] => \CodeIgniter\View\Filters::esc
+                            [excerpt] => \CodeIgniter\View\Filters::excerpt
+                            [highlight] => \CodeIgniter\View\Filters::highlight
+                            [highlight_code] => \CodeIgniter\View\Filters::highlight_code
+                            [limit_words] => \CodeIgniter\View\Filters::limit_words
+                            [limit_chars] => \CodeIgniter\View\Filters::limit_chars
+                            [local_currency] => \CodeIgniter\View\Filters::local_currency
+                            [local_number] => \CodeIgniter\View\Filters::local_number
+                            [lower] => \strtolower
+                            [nl2br] => \CodeIgniter\View\Filters::nl2br
+                            [number_format] => \number_format
+                            [prose] => \CodeIgniter\View\Filters::prose
+                            [round] => \CodeIgniter\View\Filters::round
+                            [strip_tags] => \strip_tags
+                            [title] => \CodeIgniter\View\Filters::title
+                            [upper] => \strtoupper
+                        )
+
+                    [plugins] => Array
+                        (
+                            [csp_script_nonce] => \CodeIgniter\View\Plugins::cspScriptNonce
+                            [csp_style_nonce] => \CodeIgniter\View\Plugins::cspStyleNonce
+                            [current_url] => \CodeIgniter\View\Plugins::currentURL
+                            [previous_url] => \CodeIgniter\View\Plugins::previousURL
+                            [mailto] => \CodeIgniter\View\Plugins::mailto
+                            [safe_mailto] => \CodeIgniter\View\Plugins::safeMailto
+                            [lang] => \CodeIgniter\View\Plugins::lang
+                            [validation_errors] => \CodeIgniter\View\Plugins::validationErrors
+                            [route] => \CodeIgniter\View\Plugins::route
+                            [siteURL] => \CodeIgniter\View\Plugins::siteURL
+                        )
+
+                    [coreFilters:protected] => Array
+                        (
+                            [abs] => \abs
+                            [capitalize] => \CodeIgniter\View\Filters::capitalize
+                            [date] => \CodeIgniter\View\Filters::date
+                            [date_modify] => \CodeIgniter\View\Filters::date_modify
+                            [default] => \CodeIgniter\View\Filters::default
+                            [esc] => \CodeIgniter\View\Filters::esc
+                            [excerpt] => \CodeIgniter\View\Filters::excerpt
+                            [highlight] => \CodeIgniter\View\Filters::highlight
+                            [highlight_code] => \CodeIgniter\View\Filters::highlight_code
+                            [limit_words] => \CodeIgniter\View\Filters::limit_words
+                            [limit_chars] => \CodeIgniter\View\Filters::limit_chars
+                            [local_currency] => \CodeIgniter\View\Filters::local_currency
+                            [local_number] => \CodeIgniter\View\Filters::local_number
+                            [lower] => \strtolower
+                            [nl2br] => \CodeIgniter\View\Filters::nl2br
+                            [number_format] => \number_format
+                            [prose] => \CodeIgniter\View\Filters::prose
+                            [round] => \CodeIgniter\View\Filters::round
+                            [strip_tags] => \strip_tags
+                            [title] => \CodeIgniter\View\Filters::title
+                            [upper] => \strtoupper
+                        )
+
+                    [corePlugins:protected] => Array
+                        (
+                            [csp_script_nonce] => \CodeIgniter\View\Plugins::cspScriptNonce
+                            [csp_style_nonce] => \CodeIgniter\View\Plugins::cspStyleNonce
+                            [current_url] => \CodeIgniter\View\Plugins::currentURL
+                            [previous_url] => \CodeIgniter\View\Plugins::previousURL
+                            [mailto] => \CodeIgniter\View\Plugins::mailto
+                            [safe_mailto] => \CodeIgniter\View\Plugins::safeMailto
+                            [lang] => \CodeIgniter\View\Plugins::lang
+                            [validation_errors] => \CodeIgniter\View\Plugins::validationErrors
+                            [route] => \CodeIgniter\View\Plugins::route
+                            [siteURL] => \CodeIgniter\View\Plugins::siteURL
+                        )
+
+                    [decorators] => Array
+                        (
+                        )
+
+                )
+
+            [saveData:protected] => 1
+            [viewsCount:protected] => 0
+            [layout:protected] => 
+            [sections:protected] => Array
+                (
+                )
+
+            [currentSection:protected] => 
+            [sectionStack:protected] => Array
+                (
+                )
+
+        )
+
+    [only:protected] => Array
+        (
+        )
+
+)
+
+CRITICAL - 2025-02-17 11:38:01 --> CodeIgniter\Pager\Pager::getTotal(): Return value must be of type int, null returned
+in SYSTEMPATH\Pager\Pager.php on line 195.
+ 1 APPPATH\Controllers\Api\Users.php(38): CodeIgniter\Pager\Pager->getTotal()
+ 2 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Api\Users->index()
+ 3 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController()
+ 4 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest()
+ 5 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+CRITICAL - 2025-02-17 11:38:31 --> CodeIgniter\Pager\Pager::getTotal(): Return value must be of type int, null returned
+in SYSTEMPATH\Pager\Pager.php on line 195.
+ 1 APPPATH\Controllers\Api\ProgramCategories.php(33): CodeIgniter\Pager\Pager->getTotal()
+ 2 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Api\ProgramCategories->index()
+ 3 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController()
+ 4 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest()
+ 5 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+ERROR - 2025-02-17 11:46:40 --> mysqli_sql_exception: Unknown column 'name' in 'SELECT' in D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php:295
+Stack trace:
+#0 D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php(295): mysqli->query()
+#1 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute()
+#2 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery()
+#3 D:\Work\admin_ybb_web\system\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query()
+#4 D:\Work\admin_ybb_web\app\Models\UserModel.php(55): CodeIgniter\Database\BaseBuilder->get()
+#5 D:\Work\admin_ybb_web\app\Controllers\Api\Users.php(31): App\Models\UserModel->getUsers()
+#6 D:\Work\admin_ybb_web\system\CodeIgniter.php(932): App\Controllers\Api\Users->index()
+#7 D:\Work\admin_ybb_web\system\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController()
+#8 D:\Work\admin_ybb_web\system\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest()
+#9 D:\Work\admin_ybb_web\public\index.php(67): CodeIgniter\CodeIgniter->run()
+#10 D:\Work\admin_ybb_web\system\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_y...')
+#11 {main}
+CRITICAL - 2025-02-17 11:46:40 --> Unknown column 'name' in 'SELECT'
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 295.
+ 1 SYSTEMPATH\Database\MySQLi\Connection.php(295): mysqli->query()
+ 2 SYSTEMPATH\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute()
+ 3 SYSTEMPATH\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery()
+ 4 SYSTEMPATH\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query()
+ 5 APPPATH\Models\UserModel.php(55): CodeIgniter\Database\BaseBuilder->get()
+ 6 APPPATH\Controllers\Api\Users.php(31): App\Models\UserModel->getUsers()
+ 7 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Api\Users->index()
+ 8 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController()
+ 9 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest()
+10 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+11 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+CRITICAL - 2025-02-17 12:13:39 --> Cannot use object of type App\Entities\UserEntity as array
+in APPPATH\Models\ParticipantModel.php on line 134.
+ 1 APPPATH\Controllers\Api\Participants.php(49): App\Models\ParticipantModel->getParticipants()
+ 2 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Api\Participants->index()
+ 3 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController()
+ 4 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest()
+ 5 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+CRITICAL - 2025-02-17 12:41:53 --> Cannot use object of type stdClass as array
+in APPPATH\Models\ParticipantEssayModel.php on line 44.
+ 1 APPPATH\Models\ParticipantModel.php(105): App\Models\ParticipantEssayModel->getParticipantEssayByParticipantId()
+ 2 APPPATH\Controllers\Api\Participants.php(49): App\Models\ParticipantModel->getParticipants()
+ 3 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Api\Participants->index()
+ 4 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController()
+ 5 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest()
+ 6 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 7 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+CRITICAL - 2025-02-17 16:34:41 --> Call to undefined function App\Controllers\exportToExcel()
+in APPPATH\Controllers\Excel.php on line 15.
+ 1 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Excel->index()
+ 2 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController()
+ 3 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest()
+ 4 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 5 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+CRITICAL - 2025-02-17 17:07:36 --> Cannot use object of type stdClass as array
+in APPPATH\Models\AmbassadorModel.php on line 107.
+ 1 APPPATH\Controllers\Api\Ambassadors.php(76): App\Models\AmbassadorModel->getReferredParticipants()
+ 2 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Api\Ambassadors->getParticipantsByRefCode()
+ 3 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController()
+ 4 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest()
+ 5 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')

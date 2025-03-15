@@ -26,10 +26,10 @@ class Database extends Config
      */
     public array $default = [
         'DSN'      => '',
-        'hostname' => 'localhost',
-        'username' => '',
-        'password' => '',
-        'database' => '',
+        'hostname' => '194.163.42.101',
+        'username' => 'u1437096_ybb_master_app_admin_user',
+        'password' => '7J8*^dFEa&lN',
+        'database' => 'u1437096_ybb_master_app_db',
         'DBDriver' => 'MySQLi',
         'DBPrefix' => '',
         'pConnect' => false,

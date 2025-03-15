@@ -30,15 +30,73 @@ $routes->setAutoRoute(false);
 
 // We get a performance increase by specifying the default
 // route since we don't have to scan directories.
-$routes->get('/login', 'Auth::index', ['filter' => 'noauth']);
-$routes->post('/login', 'Auth::login');
+// $routes->get('/login', 'Auth::index', ['filter' => 'noauth']);
+// $routes->post('/login', 'Auth::login');
 
-// Filter on route group for logged in user
-$routes->group('', ['filter'=>'auth'], function ($routes){
-    $routes->get('/logout', 'Auth::logout');
-    $routes->get('/', 'Home::index');
-    $routes->get('/(:any)', 'Home::root/$1');
+// user routes with name space App\Controllers\Users
+$routes->group('', ['namespace' => 'App\Controllers'], function ($routes) {
+    $routes->get('/', 'Auth::index');
+    $routes->post('login', 'Auth::login');
 });
+
+// these routes can be accessed only by admin after auth
+$routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], function ($routes) {
+    $routes->get('dashboard', 'Dashboard::index');
+    // welcome
+    $routes->get('welcome', 'Welcome::index');
+    $routes->get('welcome/set_program/(:num)', 'Welcome::set_program/$1');
+    $routes->get('logout', 'Auth::logout');
+
+    // participants
+    $routes->get('users/participants', 'Participants::index');
+});
+
+// Protected routes that require program selection
+$routes->group('', ['filter' => 'program_selection'], function($routes) {
+    $routes->get('dashboard', 'Dashboard::index');
+    // Add other routes that require program selection here
+    
+    // Payment routes
+    $routes->get('payments', 'Payments::index');
+    $routes->get('payments/getData', 'Payments::getData');
+    $routes->get('payments/view/(:num)', 'Payments::view/$1');
+    $routes->post('payments/export', 'Payments::export');
+});
+
+// api routes
+$routes->group('api/', ['namespace' => 'App\Controllers\Api'], function ($routes) {
+    // users
+    $routes->get('users', 'Users::index');
+    $routes->get('users/(:num)', 'Users::show/$1');
+
+    // participants
+    $routes->get('participants', 'Participants::index');
+    $routes->get('participants/(:num)', 'Participants::show/$1');
+    // $routes->get('participants/program/(:num)', 'Participants::getParticipantsByProgramId/$1');
+
+    // ambassodors
+    $routes->get('ambassadors', 'Ambassadors::index');
+    $routes->get('ambassadors/(:num)', 'Ambassadors::show/$1');
+    $routes->get('ambassadors/(:any)/participants', 'Ambassadors::getParticipantsbyRefCode/$1');
+
+    // program categories
+    $routes->get('program-categories', 'ProgramCategories::index');
+    $routes->get('program-categories/(:num)', 'ProgramCategories::show/$1');
+    $routes->get('program-categories/(:num)/programs', 'ProgramCategories::getProgramsbyCatId/$1');
+});
+
+// web routes
+// excel
+$routes->get('excel', 'Excel::index');
+
+// ambassadors
+$routes->get('ambassadors', 'Ambassadors::index');
+
+// Participant routes
+$routes->get('participants', 'Participants::index');
+$routes->get('participants/view/(:num)', 'Participants::view/$1');
+$routes->get('participants/edit/(:num)', 'Participants::edit/$1');
+$routes->post('participants/delete/(:num)', 'Participants::delete/$1');
 
 /*
  * --------------------------------------------------------------------

@@ -1,0 +1,1158 @@
+INFO - 2025-03-06 12:35:20 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:35:33 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:35:33 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:39:04 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:39:13 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:39:21 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:39:30 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:39:37 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:40:02 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:40:28 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:41:09 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:41:17 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:41:40 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:41:40 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:41:52 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:41:52 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:43:43 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:43:43 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:44:04 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:44:16 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:44:24 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:44:29 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:44:29 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:46:13 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:46:41 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:47:46 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:49:40 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:52:04 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:52:06 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:52:06 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:52:16 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:52:16 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 12:54:12 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:03:12 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:03:33 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:04:33 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-06 13:04:34 --> Undefined variable $programCategories
+in APPPATH\Views\welcome\index.php on line 35.
+ 1 APPPATH\Views\welcome\index.php(35): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined variable $programCategories', 'D:\\Work\\admin_ybb_web\\app\\Views\\welcome\\index.php', 35)
+ 2 SYSTEMPATH\View\View.php(224): include('D:\\Work\\admin_ybb_web\\app\\Views\\welcome\\index.php')
+ 3 SYSTEMPATH\View\View.php(227): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1180): CodeIgniter\View\View->render('welcome/index', [], true)
+ 5 APPPATH\Controllers\Welcome.php(25): view('welcome/index', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Welcome->index()
+ 7 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Welcome))
+ 8 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-06 13:18:01 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:18:50 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:19:33 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:19:49 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:21:34 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:22:30 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-06 13:22:31 --> Undefined property: stdClass::$logo
+in APPPATH\Views\welcome\components\program-card.php on line 37.
+ 1 APPPATH\Views\welcome\components\program-card.php(37): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined property: stdClass::$logo', 'D:\\Work\\admin_ybb_web\\app\\Views\\welcome\\components\\program-card.php', 37)
+ 2 SYSTEMPATH\View\View.php(224): include('D:\\Work\\admin_ybb_web\\app\\Views\\welcome\\components\\program-card.php')
+ 3 SYSTEMPATH\View\View.php(227): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1180): CodeIgniter\View\View->render('welcome/components/program-card', [], true)
+ 5 APPPATH\Views\welcome\index.php(38): view('welcome/components/program-card', [...])
+ 6 SYSTEMPATH\View\View.php(224): include('D:\\Work\\admin_ybb_web\\app\\Views\\welcome\\index.php')
+ 7 SYSTEMPATH\View\View.php(227): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 8 SYSTEMPATH\Common.php(1180): CodeIgniter\View\View->render('welcome/index', [], true)
+ 9 APPPATH\Controllers\Welcome.php(26): view('welcome/index', [...])
+10 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Welcome->index()
+11 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Welcome))
+12 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+13 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+14 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-06 13:23:33 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:24:29 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:24:46 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:25:47 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:32:29 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:33:23 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:33:37 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:34:42 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:35:13 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-06 13:35:14 --> Undefined property: stdClass::$web_url
+in APPPATH\Views\welcome\components\program-card.php on line 49.
+ 1 APPPATH\Views\welcome\components\program-card.php(49): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined property: stdClass::$web_url', 'D:\\Work\\admin_ybb_web\\app\\Views\\welcome\\components\\program-card.php', 49)
+ 2 SYSTEMPATH\View\View.php(224): include('D:\\Work\\admin_ybb_web\\app\\Views\\welcome\\components\\program-card.php')
+ 3 SYSTEMPATH\View\View.php(227): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1180): CodeIgniter\View\View->render('welcome/components/program-card', [], true)
+ 5 APPPATH\Views\welcome\index.php(44): view('welcome/components/program-card', [...])
+ 6 SYSTEMPATH\View\View.php(224): include('D:\\Work\\admin_ybb_web\\app\\Views\\welcome\\index.php')
+ 7 SYSTEMPATH\View\View.php(227): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 8 SYSTEMPATH\Common.php(1180): CodeIgniter\View\View->render('welcome/index', [], true)
+ 9 APPPATH\Controllers\Welcome.php(31): view('welcome/index', [...])
+10 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Welcome->index()
+11 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Welcome))
+12 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+13 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+14 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-06 13:37:03 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:39:46 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:40:19 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:43:16 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:44:12 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:44:30 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:45:29 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:45:58 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:46:06 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:46:24 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:47:08 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:47:17 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:47:27 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:51:04 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:51:13 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:53:17 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:53:57 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:54:01 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:54:01 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:58:15 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:58:21 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 13:58:59 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:02:53 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:03:09 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:03:16 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:03:16 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:03:50 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:05:11 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:05:55 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:06:10 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:06:10 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:06:26 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:06:26 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:06:50 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:07:48 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:07:53 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:07:54 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:08:01 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:08:01 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:08:10 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:08:10 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:21:09 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+ERROR - 2025-03-06 14:21:10 --> mysqli_sql_exception: Unknown column 'referral_code' in 'WHERE' in D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php:295
+Stack trace:
+#0 D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php(295): mysqli->query('\r\n            S...', 0)
+#1 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('\r\n            S...')
+#2 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('\r\n            S...')
+#3 D:\Work\admin_ybb_web\app\Models\DashboardModel.php(192): CodeIgniter\Database\BaseConnection->query('\r\n            S...', Array)
+#4 D:\Work\admin_ybb_web\app\Controllers\Dashboard.php(24): App\Models\DashboardModel->getProgramSummary('1')
+#5 D:\Work\admin_ybb_web\system\CodeIgniter.php(932): App\Controllers\Dashboard->index()
+#6 D:\Work\admin_ybb_web\system\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Dashboard))
+#7 D:\Work\admin_ybb_web\system\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(NULL, Object(Config\Cache), false)
+#8 D:\Work\admin_ybb_web\public\index.php(67): CodeIgniter\CodeIgniter->run()
+#9 D:\Work\admin_ybb_web\system\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_y...')
+#10 {main}
+CRITICAL - 2025-03-06 14:21:10 --> Unknown column 'referral_code' in 'WHERE'
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 295.
+ 1 SYSTEMPATH\Database\MySQLi\Connection.php(295): mysqli->query('
+            SELECT COUNT(*) as total FROM participants 
+            WHERE program_id = \'1\' AND referral_code IS NOT NULL AND referral_code != \'\'
+        ', 0)
+ 2 SYSTEMPATH\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('
+            SELECT COUNT(*) as total FROM participants 
+            WHERE program_id = \'1\' AND referral_code IS NOT NULL AND referral_code != \'\'
+        ')
+ 3 SYSTEMPATH\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('
+            SELECT COUNT(*) as total FROM participants 
+            WHERE program_id = \'1\' AND referral_code IS NOT NULL AND referral_code != \'\'
+        ')
+ 4 APPPATH\Models\DashboardModel.php(192): CodeIgniter\Database\BaseConnection->query('
+            SELECT COUNT(*) as total FROM participants 
+            WHERE program_id = ? AND referral_code IS NOT NULL AND referral_code != \'\'
+        ', [...])
+ 5 APPPATH\Controllers\Dashboard.php(24): App\Models\DashboardModel->getProgramSummary('1')
+ 6 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Dashboard->index()
+ 7 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Dashboard))
+ 8 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-06 14:22:07 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+ERROR - 2025-03-06 14:22:08 --> mysqli_sql_exception: Unknown column 'referral_code' in 'WHERE' in D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php:295
+Stack trace:
+#0 D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php(295): mysqli->query('\r\n            S...', 0)
+#1 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('\r\n            S...')
+#2 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('\r\n            S...')
+#3 D:\Work\admin_ybb_web\app\Models\DashboardModel.php(192): CodeIgniter\Database\BaseConnection->query('\r\n            S...', Array)
+#4 D:\Work\admin_ybb_web\app\Controllers\Dashboard.php(24): App\Models\DashboardModel->getProgramSummary('1')
+#5 D:\Work\admin_ybb_web\system\CodeIgniter.php(932): App\Controllers\Dashboard->index()
+#6 D:\Work\admin_ybb_web\system\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Dashboard))
+#7 D:\Work\admin_ybb_web\system\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(NULL, Object(Config\Cache), false)
+#8 D:\Work\admin_ybb_web\public\index.php(67): CodeIgniter\CodeIgniter->run()
+#9 D:\Work\admin_ybb_web\system\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_y...')
+#10 {main}
+CRITICAL - 2025-03-06 14:22:08 --> Unknown column 'referral_code' in 'WHERE'
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 295.
+ 1 SYSTEMPATH\Database\MySQLi\Connection.php(295): mysqli->query('
+            SELECT COUNT(*) as total FROM participants 
+            WHERE program_id = \'1\' AND referral_code IS NOT NULL AND referral_code != \'\'
+        ', 0)
+ 2 SYSTEMPATH\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('
+            SELECT COUNT(*) as total FROM participants 
+            WHERE program_id = \'1\' AND referral_code IS NOT NULL AND referral_code != \'\'
+        ')
+ 3 SYSTEMPATH\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('
+            SELECT COUNT(*) as total FROM participants 
+            WHERE program_id = \'1\' AND referral_code IS NOT NULL AND referral_code != \'\'
+        ')
+ 4 APPPATH\Models\DashboardModel.php(192): CodeIgniter\Database\BaseConnection->query('
+            SELECT COUNT(*) as total FROM participants 
+            WHERE program_id = ? AND referral_code IS NOT NULL AND referral_code != \'\'
+        ', [...])
+ 5 APPPATH\Controllers\Dashboard.php(24): App\Models\DashboardModel->getProgramSummary('1')
+ 6 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Dashboard->index()
+ 7 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Dashboard))
+ 8 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-06 14:23:27 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+ERROR - 2025-03-06 14:23:28 --> mysqli_sql_exception: Unknown column 'ref_code' in 'WHERE' in D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php:295
+Stack trace:
+#0 D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php(295): mysqli->query('\r\n            S...', 0)
+#1 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('\r\n            S...')
+#2 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('\r\n            S...')
+#3 D:\Work\admin_ybb_web\app\Models\DashboardModel.php(192): CodeIgniter\Database\BaseConnection->query('\r\n            S...', Array)
+#4 D:\Work\admin_ybb_web\app\Controllers\Dashboard.php(24): App\Models\DashboardModel->getProgramSummary('1')
+#5 D:\Work\admin_ybb_web\system\CodeIgniter.php(932): App\Controllers\Dashboard->index()
+#6 D:\Work\admin_ybb_web\system\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Dashboard))
+#7 D:\Work\admin_ybb_web\system\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(NULL, Object(Config\Cache), false)
+#8 D:\Work\admin_ybb_web\public\index.php(67): CodeIgniter\CodeIgniter->run()
+#9 D:\Work\admin_ybb_web\system\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_y...')
+#10 {main}
+CRITICAL - 2025-03-06 14:23:28 --> Unknown column 'ref_code' in 'WHERE'
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 295.
+ 1 SYSTEMPATH\Database\MySQLi\Connection.php(295): mysqli->query('
+            SELECT COUNT(*) as total FROM participants 
+            WHERE program_id = \'1\' AND ref_code IS NOT NULL AND ref_code != \'\'
+        ', 0)
+ 2 SYSTEMPATH\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('
+            SELECT COUNT(*) as total FROM participants 
+            WHERE program_id = \'1\' AND ref_code IS NOT NULL AND ref_code != \'\'
+        ')
+ 3 SYSTEMPATH\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('
+            SELECT COUNT(*) as total FROM participants 
+            WHERE program_id = \'1\' AND ref_code IS NOT NULL AND ref_code != \'\'
+        ')
+ 4 APPPATH\Models\DashboardModel.php(192): CodeIgniter\Database\BaseConnection->query('
+            SELECT COUNT(*) as total FROM participants 
+            WHERE program_id = ? AND ref_code IS NOT NULL AND ref_code != \'\'
+        ', [...])
+ 5 APPPATH\Controllers\Dashboard.php(24): App\Models\DashboardModel->getProgramSummary('1')
+ 6 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Dashboard->index()
+ 7 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Dashboard))
+ 8 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-06 14:23:57 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+ERROR - 2025-03-06 14:24:00 --> mysqli_sql_exception: Unknown column 'age' in 'SELECT' in D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php:295
+Stack trace:
+#0 D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php(295): mysqli->query('\r\n            S...', 0)
+#1 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('\r\n            S...')
+#2 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('\r\n            S...')
+#3 D:\Work\admin_ybb_web\app\Models\DashboardModel.php(130): CodeIgniter\Database\BaseConnection->query('\r\n            S...', Array)
+#4 D:\Work\admin_ybb_web\app\Controllers\Dashboard.php(28): App\Models\DashboardModel->getAgeDistribution('1')
+#5 D:\Work\admin_ybb_web\system\CodeIgniter.php(932): App\Controllers\Dashboard->index()
+#6 D:\Work\admin_ybb_web\system\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Dashboard))
+#7 D:\Work\admin_ybb_web\system\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(NULL, Object(Config\Cache), false)
+#8 D:\Work\admin_ybb_web\public\index.php(67): CodeIgniter\CodeIgniter->run()
+#9 D:\Work\admin_ybb_web\system\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_y...')
+#10 {main}
+CRITICAL - 2025-03-06 14:24:00 --> Unknown column 'age' in 'SELECT'
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 295.
+ 1 SYSTEMPATH\Database\MySQLi\Connection.php(295): mysqli->query('
+            SELECT 
+                CASE
+                    WHEN age < 18 THEN \'Under 18\'
+                    WHEN age BETWEEN 18 AND 24 THEN \'18-24\'
+                    WHEN age BETWEEN 25 AND 34 THEN \'25-34\'
+                    WHEN age BETWEEN 35 AND 44 THEN \'35-44\'
+                    WHEN age BETWEEN 45 AND 54 THEN \'45-54\'
+                    WHEN age >= 55 THEN \'55+\'
+                    ELSE \'Unknown\'
+                END AS age_group,
+                COUNT(*) AS total
+            FROM participants
+            WHERE program_id = \'1\'
+            GROUP BY age_group
+            ORDER BY FIELD(age_group, \'Under 18\', \'18-24\', \'25-34\', \'35-44\', \'45-54\', \'55+\', \'Unknown\')
+        ', 0)
+ 2 SYSTEMPATH\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('
+            SELECT 
+                CASE
+                    WHEN age < 18 THEN \'Under 18\'
+                    WHEN age BETWEEN 18 AND 24 THEN \'18-24\'
+                    WHEN age BETWEEN 25 AND 34 THEN \'25-34\'
+                    WHEN age BETWEEN 35 AND 44 THEN \'35-44\'
+                    WHEN age BETWEEN 45 AND 54 THEN \'45-54\'
+                    WHEN age >= 55 THEN \'55+\'
+                    ELSE \'Unknown\'
+                END AS age_group,
+                COUNT(*) AS total
+            FROM participants
+            WHERE program_id = \'1\'
+            GROUP BY age_group
+            ORDER BY FIELD(age_group, \'Under 18\', \'18-24\', \'25-34\', \'35-44\', \'45-54\', \'55+\', \'Unknown\')
+        ')
+ 3 SYSTEMPATH\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('
+            SELECT 
+                CASE
+                    WHEN age < 18 THEN \'Under 18\'
+                    WHEN age BETWEEN 18 AND 24 THEN \'18-24\'
+                    WHEN age BETWEEN 25 AND 34 THEN \'25-34\'
+                    WHEN age BETWEEN 35 AND 44 THEN \'35-44\'
+                    WHEN age BETWEEN 45 AND 54 THEN \'45-54\'
+                    WHEN age >= 55 THEN \'55+\'
+                    ELSE \'Unknown\'
+                END AS age_group,
+                COUNT(*) AS total
+            FROM participants
+            WHERE program_id = \'1\'
+            GROUP BY age_group
+            ORDER BY FIELD(age_group, \'Under 18\', \'18-24\', \'25-34\', \'35-44\', \'45-54\', \'55+\', \'Unknown\')
+        ')
+ 4 APPPATH\Models\DashboardModel.php(130): CodeIgniter\Database\BaseConnection->query('
+            SELECT 
+                CASE
+                    WHEN age < 18 THEN \'Under 18\'
+                    WHEN age BETWEEN 18 AND 24 THEN \'18-24\'
+                    WHEN age BETWEEN 25 AND 34 THEN \'25-34\'
+                    WHEN age BETWEEN 35 AND 44 THEN \'35-44\'
+                    WHEN age BETWEEN 45 AND 54 THEN \'45-54\'
+                    WHEN age >= 55 THEN \'55+\'
+                    ELSE \'Unknown\'
+                END AS age_group,
+                COUNT(*) AS total
+            FROM participants
+            WHERE program_id = ?
+            GROUP BY age_group
+            ORDER BY FIELD(age_group, \'Under 18\', \'18-24\', \'25-34\', \'35-44\', \'45-54\', \'55+\', \'Unknown\')
+        ', [...])
+ 5 APPPATH\Controllers\Dashboard.php(28): App\Models\DashboardModel->getAgeDistribution('1')
+ 6 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Dashboard->index()
+ 7 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Dashboard))
+ 8 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-06 14:25:41 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:25:51 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:25:51 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:28:40 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:28:40 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:31:33 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:35:23 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:36:14 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:36:33 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:36:33 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:39:28 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:39:57 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 14:40:00 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+ERROR - 2025-03-06 14:40:01 --> mysqli_sql_exception: Unknown column 'program_id' in 'WHERE' in D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php:295
+Stack trace:
+#0 D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php(295): mysqli->query('\r\n            S...', 0)
+#1 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('\r\n            S...')
+#2 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('\r\n            S...')
+#3 D:\Work\admin_ybb_web\app\Models\PaymentModel.php(76): CodeIgniter\Database\BaseConnection->query('\r\n            S...', Array)
+#4 D:\Work\admin_ybb_web\app\Controllers\Payments.php(24): App\Models\PaymentModel->getPaymentStats('4')
+#5 D:\Work\admin_ybb_web\system\CodeIgniter.php(932): App\Controllers\Payments->index()
+#6 D:\Work\admin_ybb_web\system\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+#7 D:\Work\admin_ybb_web\system\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(NULL, Object(Config\Cache), false)
+#8 D:\Work\admin_ybb_web\public\index.php(67): CodeIgniter\CodeIgniter->run()
+#9 D:\Work\admin_ybb_web\system\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_y...')
+#10 {main}
+CRITICAL - 2025-03-06 14:40:01 --> Unknown column 'program_id' in 'WHERE'
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 295.
+ 1 SYSTEMPATH\Database\MySQLi\Connection.php(295): mysqli->query('
+            SELECT SUM(amount) as total_amount 
+            FROM payments 
+            WHERE program_id = \'4\' AND status = \'completed\'
+        ', 0)
+ 2 SYSTEMPATH\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('
+            SELECT SUM(amount) as total_amount 
+            FROM payments 
+            WHERE program_id = \'4\' AND status = \'completed\'
+        ')
+ 3 SYSTEMPATH\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('
+            SELECT SUM(amount) as total_amount 
+            FROM payments 
+            WHERE program_id = \'4\' AND status = \'completed\'
+        ')
+ 4 APPPATH\Models\PaymentModel.php(76): CodeIgniter\Database\BaseConnection->query('
+            SELECT SUM(amount) as total_amount 
+            FROM payments 
+            WHERE program_id = ? AND status = \'completed\'
+        ', [...])
+ 5 APPPATH\Controllers\Payments.php(24): App\Models\PaymentModel->getPaymentStats('4')
+ 6 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Payments->index()
+ 7 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+ 8 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-06 15:02:57 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+ERROR - 2025-03-06 15:02:58 --> mysqli_sql_exception: Unknown column 'payments.payment_method' in 'SELECT' in D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php:295
+Stack trace:
+#0 D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php(295): mysqli->query('\r\n            S...', 0)
+#1 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('\r\n            S...')
+#2 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('\r\n            S...')
+#3 D:\Work\admin_ybb_web\app\Models\PaymentModel.php(110): CodeIgniter\Database\BaseConnection->query('\r\n            S...', Array)
+#4 D:\Work\admin_ybb_web\app\Controllers\Payments.php(24): App\Models\PaymentModel->getPaymentStats('4')
+#5 D:\Work\admin_ybb_web\system\CodeIgniter.php(932): App\Controllers\Payments->index()
+#6 D:\Work\admin_ybb_web\system\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+#7 D:\Work\admin_ybb_web\system\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(NULL, Object(Config\Cache), false)
+#8 D:\Work\admin_ybb_web\public\index.php(67): CodeIgniter\CodeIgniter->run()
+#9 D:\Work\admin_ybb_web\system\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_y...')
+#10 {main}
+CRITICAL - 2025-03-06 15:02:58 --> Unknown column 'payments.payment_method' in 'SELECT'
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 295.
+ 1 SYSTEMPATH\Database\MySQLi\Connection.php(295): mysqli->query('
+            SELECT payments.payment_method, COUNT(*) as count 
+            FROM payments 
+            JOIN participants ON participants.id = payments.participant_id
+            WHERE participants.program_id = \'4\'
+            GROUP BY payments.payment_method
+        ', 0)
+ 2 SYSTEMPATH\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('
+            SELECT payments.payment_method, COUNT(*) as count 
+            FROM payments 
+            JOIN participants ON participants.id = payments.participant_id
+            WHERE participants.program_id = \'4\'
+            GROUP BY payments.payment_method
+        ')
+ 3 SYSTEMPATH\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('
+            SELECT payments.payment_method, COUNT(*) as count 
+            FROM payments 
+            JOIN participants ON participants.id = payments.participant_id
+            WHERE participants.program_id = \'4\'
+            GROUP BY payments.payment_method
+        ')
+ 4 APPPATH\Models\PaymentModel.php(110): CodeIgniter\Database\BaseConnection->query('
+            SELECT payments.payment_method, COUNT(*) as count 
+            FROM payments 
+            JOIN participants ON participants.id = payments.participant_id
+            WHERE participants.program_id = ?
+            GROUP BY payments.payment_method
+        ', [...])
+ 5 APPPATH\Controllers\Payments.php(24): App\Models\PaymentModel->getPaymentStats('4')
+ 6 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Payments->index()
+ 7 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+ 8 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-06 15:03:30 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+ERROR - 2025-03-06 15:03:32 --> mysqli_sql_exception: Unknown column 'payments.payment_method' in 'SELECT' in D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php:295
+Stack trace:
+#0 D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php(295): mysqli->query('\r\n            S...', 0)
+#1 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('\r\n            S...')
+#2 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('\r\n            S...')
+#3 D:\Work\admin_ybb_web\app\Models\PaymentModel.php(110): CodeIgniter\Database\BaseConnection->query('\r\n            S...', Array)
+#4 D:\Work\admin_ybb_web\app\Controllers\Payments.php(24): App\Models\PaymentModel->getPaymentStats('4')
+#5 D:\Work\admin_ybb_web\system\CodeIgniter.php(932): App\Controllers\Payments->index()
+#6 D:\Work\admin_ybb_web\system\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+#7 D:\Work\admin_ybb_web\system\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(NULL, Object(Config\Cache), false)
+#8 D:\Work\admin_ybb_web\public\index.php(67): CodeIgniter\CodeIgniter->run()
+#9 D:\Work\admin_ybb_web\system\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_y...')
+#10 {main}
+CRITICAL - 2025-03-06 15:03:32 --> Unknown column 'payments.payment_method' in 'SELECT'
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 295.
+ 1 SYSTEMPATH\Database\MySQLi\Connection.php(295): mysqli->query('
+            SELECT payments.payment_method, COUNT(*) as count 
+            FROM payments 
+            JOIN participants ON participants.id = payments.participant_id
+            WHERE participants.program_id = \'4\'
+            GROUP BY payments.payment_method_id
+        ', 0)
+ 2 SYSTEMPATH\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('
+            SELECT payments.payment_method, COUNT(*) as count 
+            FROM payments 
+            JOIN participants ON participants.id = payments.participant_id
+            WHERE participants.program_id = \'4\'
+            GROUP BY payments.payment_method_id
+        ')
+ 3 SYSTEMPATH\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('
+            SELECT payments.payment_method, COUNT(*) as count 
+            FROM payments 
+            JOIN participants ON participants.id = payments.participant_id
+            WHERE participants.program_id = \'4\'
+            GROUP BY payments.payment_method_id
+        ')
+ 4 APPPATH\Models\PaymentModel.php(110): CodeIgniter\Database\BaseConnection->query('
+            SELECT payments.payment_method, COUNT(*) as count 
+            FROM payments 
+            JOIN participants ON participants.id = payments.participant_id
+            WHERE participants.program_id = ?
+            GROUP BY payments.payment_method_id
+        ', [...])
+ 5 APPPATH\Controllers\Payments.php(24): App\Models\PaymentModel->getPaymentStats('4')
+ 6 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Payments->index()
+ 7 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+ 8 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-06 15:03:47 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:27:05 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-06 15:27:05 --> Switch statements may only contain one default clause
+in APPPATH\Controllers\Payments.php on line 275.
+ 1 [internal function]: CodeIgniter\Debug\Exceptions->shutdownHandler()
+INFO - 2025-03-06 15:27:22 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:33:06 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:34:50 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:35:52 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:35:56 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+ERROR - 2025-03-06 15:35:58 --> mysqli_sql_exception: Unknown column 'participants.name' in 'SELECT' in D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php:295
+Stack trace:
+#0 D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php(295): mysqli->query('SELECT `payment...', 0)
+#1 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('SELECT `payment...')
+#2 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT `payment...')
+#3 D:\Work\admin_ybb_web\system\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query('SELECT `payment...', Array, false)
+#4 D:\Work\admin_ybb_web\system\Model.php(836): CodeIgniter\Database\BaseBuilder->get()
+#5 D:\Work\admin_ybb_web\app\Controllers\Payments.php(89): CodeIgniter\Model->__call('get', Array)
+#6 D:\Work\admin_ybb_web\system\CodeIgniter.php(932): App\Controllers\Payments->getData()
+#7 D:\Work\admin_ybb_web\system\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+#8 D:\Work\admin_ybb_web\system\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(NULL, Object(Config\Cache), false)
+#9 D:\Work\admin_ybb_web\public\index.php(67): CodeIgniter\CodeIgniter->run()
+#10 D:\Work\admin_ybb_web\system\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_y...')
+#11 {main}
+CRITICAL - 2025-03-06 15:35:58 --> Unknown column 'participants.name' in 'SELECT'
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 295.
+ 1 SYSTEMPATH\Database\MySQLi\Connection.php(295): mysqli->query('SELECT `payments`.*, `participants`.`name` as `participant_name`, `participants`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+WHERE `participants`.`program_id` = \'4\'
+ORDER BY `payment_date` DESC
+ LIMIT 10', 0)
+ 2 SYSTEMPATH\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('SELECT `payments`.*, `participants`.`name` as `participant_name`, `participants`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+WHERE `participants`.`program_id` = \'4\'
+ORDER BY `payment_date` DESC
+ LIMIT 10')
+ 3 SYSTEMPATH\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT `payments`.*, `participants`.`name` as `participant_name`, `participants`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+WHERE `participants`.`program_id` = \'4\'
+ORDER BY `payment_date` DESC
+ LIMIT 10')
+ 4 SYSTEMPATH\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query('SELECT `payments`.*, `participants`.`name` as `participant_name`, `participants`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+WHERE `participants`.`program_id` = :participants.program_id:
+ORDER BY `payment_date` DESC
+ LIMIT 10', [...], false)
+ 5 SYSTEMPATH\Model.php(836): CodeIgniter\Database\BaseBuilder->get()
+ 6 APPPATH\Controllers\Payments.php(89): CodeIgniter\Model->__call('get', [])
+ 7 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Payments->getData()
+ 8 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+ 9 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+10 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+11 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-06 15:36:57 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:36:59 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+ERROR - 2025-03-06 15:37:01 --> mysqli_sql_exception: Unknown column 'participants.email' in 'SELECT' in D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php:295
+Stack trace:
+#0 D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php(295): mysqli->query('SELECT `payment...', 0)
+#1 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('SELECT `payment...')
+#2 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT `payment...')
+#3 D:\Work\admin_ybb_web\system\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query('SELECT `payment...', Array, false)
+#4 D:\Work\admin_ybb_web\system\Model.php(836): CodeIgniter\Database\BaseBuilder->get()
+#5 D:\Work\admin_ybb_web\app\Controllers\Payments.php(89): CodeIgniter\Model->__call('get', Array)
+#6 D:\Work\admin_ybb_web\system\CodeIgniter.php(932): App\Controllers\Payments->getData()
+#7 D:\Work\admin_ybb_web\system\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+#8 D:\Work\admin_ybb_web\system\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(NULL, Object(Config\Cache), false)
+#9 D:\Work\admin_ybb_web\public\index.php(67): CodeIgniter\CodeIgniter->run()
+#10 D:\Work\admin_ybb_web\system\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_y...')
+#11 {main}
+CRITICAL - 2025-03-06 15:37:01 --> Unknown column 'participants.email' in 'SELECT'
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 295.
+ 1 SYSTEMPATH\Database\MySQLi\Connection.php(295): mysqli->query('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `participants`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+WHERE `participants`.`program_id` = \'4\'
+ORDER BY `payment_date` DESC
+ LIMIT 10', 0)
+ 2 SYSTEMPATH\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `participants`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+WHERE `participants`.`program_id` = \'4\'
+ORDER BY `payment_date` DESC
+ LIMIT 10')
+ 3 SYSTEMPATH\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `participants`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+WHERE `participants`.`program_id` = \'4\'
+ORDER BY `payment_date` DESC
+ LIMIT 10')
+ 4 SYSTEMPATH\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `participants`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+WHERE `participants`.`program_id` = :participants.program_id:
+ORDER BY `payment_date` DESC
+ LIMIT 10', [...], false)
+ 5 SYSTEMPATH\Model.php(836): CodeIgniter\Database\BaseBuilder->get()
+ 6 APPPATH\Controllers\Payments.php(89): CodeIgniter\Model->__call('get', [])
+ 7 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Payments->getData()
+ 8 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+ 9 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+10 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+11 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-06 15:38:46 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:38:49 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+ERROR - 2025-03-06 15:38:52 --> mysqli_sql_exception: Unknown column 'participants.email' in 'SELECT' in D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php:295
+Stack trace:
+#0 D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php(295): mysqli->query('SELECT `payment...', 0)
+#1 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('SELECT `payment...')
+#2 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT `payment...')
+#3 D:\Work\admin_ybb_web\system\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query('SELECT `payment...', Array, false)
+#4 D:\Work\admin_ybb_web\system\Model.php(836): CodeIgniter\Database\BaseBuilder->get()
+#5 D:\Work\admin_ybb_web\app\Controllers\Payments.php(89): CodeIgniter\Model->__call('get', Array)
+#6 D:\Work\admin_ybb_web\system\CodeIgniter.php(932): App\Controllers\Payments->getData()
+#7 D:\Work\admin_ybb_web\system\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+#8 D:\Work\admin_ybb_web\system\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(NULL, Object(Config\Cache), false)
+#9 D:\Work\admin_ybb_web\public\index.php(67): CodeIgniter\CodeIgniter->run()
+#10 D:\Work\admin_ybb_web\system\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_y...')
+#11 {main}
+CRITICAL - 2025-03-06 15:38:52 --> Unknown column 'participants.email' in 'SELECT'
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 295.
+ 1 SYSTEMPATH\Database\MySQLi\Connection.php(295): mysqli->query('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `participants`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+WHERE `participants`.`program_id` = \'4\'
+ORDER BY `payment_date` DESC
+ LIMIT 10', 0)
+ 2 SYSTEMPATH\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `participants`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+WHERE `participants`.`program_id` = \'4\'
+ORDER BY `payment_date` DESC
+ LIMIT 10')
+ 3 SYSTEMPATH\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `participants`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+WHERE `participants`.`program_id` = \'4\'
+ORDER BY `payment_date` DESC
+ LIMIT 10')
+ 4 SYSTEMPATH\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `participants`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+WHERE `participants`.`program_id` = :participants.program_id:
+ORDER BY `payment_date` DESC
+ LIMIT 10', [...], false)
+ 5 SYSTEMPATH\Model.php(836): CodeIgniter\Database\BaseBuilder->get()
+ 6 APPPATH\Controllers\Payments.php(89): CodeIgniter\Model->__call('get', [])
+ 7 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Payments->getData()
+ 8 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+ 9 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+10 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+11 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-06 15:40:19 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:40:22 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+ERROR - 2025-03-06 15:40:23 --> mysqli_sql_exception: Unknown column 'participants.email' in 'SELECT' in D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php:295
+Stack trace:
+#0 D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php(295): mysqli->query('SELECT `payment...', 0)
+#1 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('SELECT `payment...')
+#2 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT `payment...')
+#3 D:\Work\admin_ybb_web\system\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query('SELECT `payment...', Array, false)
+#4 D:\Work\admin_ybb_web\system\Model.php(836): CodeIgniter\Database\BaseBuilder->get()
+#5 D:\Work\admin_ybb_web\app\Controllers\Payments.php(89): CodeIgniter\Model->__call('get', Array)
+#6 D:\Work\admin_ybb_web\system\CodeIgniter.php(932): App\Controllers\Payments->getData()
+#7 D:\Work\admin_ybb_web\system\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+#8 D:\Work\admin_ybb_web\system\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(NULL, Object(Config\Cache), false)
+#9 D:\Work\admin_ybb_web\public\index.php(67): CodeIgniter\CodeIgniter->run()
+#10 D:\Work\admin_ybb_web\system\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_y...')
+#11 {main}
+CRITICAL - 2025-03-06 15:40:23 --> Unknown column 'participants.email' in 'SELECT'
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 295.
+ 1 SYSTEMPATH\Database\MySQLi\Connection.php(295): mysqli->query('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `participants`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+WHERE `participants`.`program_id` = \'4\'
+ORDER BY `payment_date` DESC
+ LIMIT 10', 0)
+ 2 SYSTEMPATH\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `participants`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+WHERE `participants`.`program_id` = \'4\'
+ORDER BY `payment_date` DESC
+ LIMIT 10')
+ 3 SYSTEMPATH\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `participants`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+WHERE `participants`.`program_id` = \'4\'
+ORDER BY `payment_date` DESC
+ LIMIT 10')
+ 4 SYSTEMPATH\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `participants`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+WHERE `participants`.`program_id` = :participants.program_id:
+ORDER BY `payment_date` DESC
+ LIMIT 10', [...], false)
+ 5 SYSTEMPATH\Model.php(836): CodeIgniter\Database\BaseBuilder->get()
+ 6 APPPATH\Controllers\Payments.php(89): CodeIgniter\Model->__call('get', [])
+ 7 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Payments->getData()
+ 8 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+ 9 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+10 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+11 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-06 15:41:02 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:41:06 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+ERROR - 2025-03-06 15:41:10 --> mysqli_sql_exception: Unknown column 'participants.email' in 'SELECT' in D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php:295
+Stack trace:
+#0 D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php(295): mysqli->query('SELECT `payment...', 0)
+#1 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('SELECT `payment...')
+#2 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT `payment...')
+#3 D:\Work\admin_ybb_web\system\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query('SELECT `payment...', Array, false)
+#4 D:\Work\admin_ybb_web\system\Model.php(836): CodeIgniter\Database\BaseBuilder->get()
+#5 D:\Work\admin_ybb_web\app\Controllers\Payments.php(89): CodeIgniter\Model->__call('get', Array)
+#6 D:\Work\admin_ybb_web\system\CodeIgniter.php(932): App\Controllers\Payments->getData()
+#7 D:\Work\admin_ybb_web\system\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+#8 D:\Work\admin_ybb_web\system\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(NULL, Object(Config\Cache), false)
+#9 D:\Work\admin_ybb_web\public\index.php(67): CodeIgniter\CodeIgniter->run()
+#10 D:\Work\admin_ybb_web\system\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_y...')
+#11 {main}
+CRITICAL - 2025-03-06 15:41:10 --> Unknown column 'participants.email' in 'SELECT'
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 295.
+ 1 SYSTEMPATH\Database\MySQLi\Connection.php(295): mysqli->query('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `participants`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+WHERE `participants`.`program_id` = \'4\'
+ORDER BY `payment_date` DESC
+ LIMIT 10', 0)
+ 2 SYSTEMPATH\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `participants`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+WHERE `participants`.`program_id` = \'4\'
+ORDER BY `payment_date` DESC
+ LIMIT 10')
+ 3 SYSTEMPATH\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `participants`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+WHERE `participants`.`program_id` = \'4\'
+ORDER BY `payment_date` DESC
+ LIMIT 10')
+ 4 SYSTEMPATH\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `participants`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+WHERE `participants`.`program_id` = :participants.program_id:
+ORDER BY `payment_date` DESC
+ LIMIT 10', [...], false)
+ 5 SYSTEMPATH\Model.php(836): CodeIgniter\Database\BaseBuilder->get()
+ 6 APPPATH\Controllers\Payments.php(89): CodeIgniter\Model->__call('get', [])
+ 7 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Payments->getData()
+ 8 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+ 9 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+10 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+11 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-06 15:43:39 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:43:44 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+ERROR - 2025-03-06 15:43:50 --> mysqli_sql_exception: Unknown column 'participants.email' in 'SELECT' in D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php:295
+Stack trace:
+#0 D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php(295): mysqli->query('SELECT `payment...', 0)
+#1 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('SELECT `payment...')
+#2 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT `payment...')
+#3 D:\Work\admin_ybb_web\system\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query('SELECT `payment...', Array, false)
+#4 D:\Work\admin_ybb_web\system\Model.php(836): CodeIgniter\Database\BaseBuilder->get()
+#5 D:\Work\admin_ybb_web\app\Controllers\Payments.php(89): CodeIgniter\Model->__call('get', Array)
+#6 D:\Work\admin_ybb_web\system\CodeIgniter.php(932): App\Controllers\Payments->getData()
+#7 D:\Work\admin_ybb_web\system\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+#8 D:\Work\admin_ybb_web\system\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(NULL, Object(Config\Cache), false)
+#9 D:\Work\admin_ybb_web\public\index.php(67): CodeIgniter\CodeIgniter->run()
+#10 D:\Work\admin_ybb_web\system\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_y...')
+#11 {main}
+CRITICAL - 2025-03-06 15:43:50 --> Unknown column 'participants.email' in 'SELECT'
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 295.
+ 1 SYSTEMPATH\Database\MySQLi\Connection.php(295): mysqli->query('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `participants`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+WHERE `participants`.`program_id` = \'4\'
+ORDER BY `payment_date` DESC
+ LIMIT 10', 0)
+ 2 SYSTEMPATH\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `participants`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+WHERE `participants`.`program_id` = \'4\'
+ORDER BY `payment_date` DESC
+ LIMIT 10')
+ 3 SYSTEMPATH\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `participants`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+WHERE `participants`.`program_id` = \'4\'
+ORDER BY `payment_date` DESC
+ LIMIT 10')
+ 4 SYSTEMPATH\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `participants`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+WHERE `participants`.`program_id` = :participants.program_id:
+ORDER BY `payment_date` DESC
+ LIMIT 10', [...], false)
+ 5 SYSTEMPATH\Model.php(836): CodeIgniter\Database\BaseBuilder->get()
+ 6 APPPATH\Controllers\Payments.php(89): CodeIgniter\Model->__call('get', [])
+ 7 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Payments->getData()
+ 8 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+ 9 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+10 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+11 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-06 15:44:57 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:44:59 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+ERROR - 2025-03-06 15:45:01 --> mysqli_sql_exception: Unknown column 'payment_date' in 'ORDER BY' in D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php:295
+Stack trace:
+#0 D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php(295): mysqli->query('SELECT `payment...', 0)
+#1 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('SELECT `payment...')
+#2 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT `payment...')
+#3 D:\Work\admin_ybb_web\system\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query('SELECT `payment...', Array, false)
+#4 D:\Work\admin_ybb_web\system\Model.php(836): CodeIgniter\Database\BaseBuilder->get()
+#5 D:\Work\admin_ybb_web\app\Controllers\Payments.php(90): CodeIgniter\Model->__call('get', Array)
+#6 D:\Work\admin_ybb_web\system\CodeIgniter.php(932): App\Controllers\Payments->getData()
+#7 D:\Work\admin_ybb_web\system\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+#8 D:\Work\admin_ybb_web\system\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(NULL, Object(Config\Cache), false)
+#9 D:\Work\admin_ybb_web\public\index.php(67): CodeIgniter\CodeIgniter->run()
+#10 D:\Work\admin_ybb_web\system\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_y...')
+#11 {main}
+CRITICAL - 2025-03-06 15:45:01 --> Unknown column 'payment_date' in 'ORDER BY'
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 295.
+ 1 SYSTEMPATH\Database\MySQLi\Connection.php(295): mysqli->query('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `users`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+JOIN `users` ON `users`.`id` = `participants`.`user_id`
+WHERE `participants`.`program_id` = \'4\'
+ORDER BY `payment_date` DESC
+ LIMIT 10', 0)
+ 2 SYSTEMPATH\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `users`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+JOIN `users` ON `users`.`id` = `participants`.`user_id`
+WHERE `participants`.`program_id` = \'4\'
+ORDER BY `payment_date` DESC
+ LIMIT 10')
+ 3 SYSTEMPATH\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `users`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+JOIN `users` ON `users`.`id` = `participants`.`user_id`
+WHERE `participants`.`program_id` = \'4\'
+ORDER BY `payment_date` DESC
+ LIMIT 10')
+ 4 SYSTEMPATH\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `users`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+JOIN `users` ON `users`.`id` = `participants`.`user_id`
+WHERE `participants`.`program_id` = :participants.program_id:
+ORDER BY `payment_date` DESC
+ LIMIT 10', [...], false)
+ 5 SYSTEMPATH\Model.php(836): CodeIgniter\Database\BaseBuilder->get()
+ 6 APPPATH\Controllers\Payments.php(90): CodeIgniter\Model->__call('get', [])
+ 7 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Payments->getData()
+ 8 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+ 9 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+10 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+11 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-06 15:45:40 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:45:43 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+ERROR - 2025-03-06 15:45:45 --> mysqli_sql_exception: Unknown column 'payment_date' in 'ORDER BY' in D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php:295
+Stack trace:
+#0 D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php(295): mysqli->query('SELECT `payment...', 0)
+#1 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('SELECT `payment...')
+#2 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT `payment...')
+#3 D:\Work\admin_ybb_web\system\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query('SELECT `payment...', Array, false)
+#4 D:\Work\admin_ybb_web\system\Model.php(836): CodeIgniter\Database\BaseBuilder->get()
+#5 D:\Work\admin_ybb_web\app\Controllers\Payments.php(90): CodeIgniter\Model->__call('get', Array)
+#6 D:\Work\admin_ybb_web\system\CodeIgniter.php(932): App\Controllers\Payments->getData()
+#7 D:\Work\admin_ybb_web\system\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+#8 D:\Work\admin_ybb_web\system\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(NULL, Object(Config\Cache), false)
+#9 D:\Work\admin_ybb_web\public\index.php(67): CodeIgniter\CodeIgniter->run()
+#10 D:\Work\admin_ybb_web\system\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_y...')
+#11 {main}
+CRITICAL - 2025-03-06 15:45:45 --> Unknown column 'payment_date' in 'ORDER BY'
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 295.
+ 1 SYSTEMPATH\Database\MySQLi\Connection.php(295): mysqli->query('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `users`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+JOIN `users` ON `users`.`id` = `participants`.`user_id`
+WHERE `participants`.`program_id` = \'4\'
+ORDER BY `payment_date` DESC
+ LIMIT 10', 0)
+ 2 SYSTEMPATH\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `users`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+JOIN `users` ON `users`.`id` = `participants`.`user_id`
+WHERE `participants`.`program_id` = \'4\'
+ORDER BY `payment_date` DESC
+ LIMIT 10')
+ 3 SYSTEMPATH\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `users`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+JOIN `users` ON `users`.`id` = `participants`.`user_id`
+WHERE `participants`.`program_id` = \'4\'
+ORDER BY `payment_date` DESC
+ LIMIT 10')
+ 4 SYSTEMPATH\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `users`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+JOIN `users` ON `users`.`id` = `participants`.`user_id`
+WHERE `participants`.`program_id` = :participants.program_id:
+ORDER BY `payment_date` DESC
+ LIMIT 10', [...], false)
+ 5 SYSTEMPATH\Model.php(836): CodeIgniter\Database\BaseBuilder->get()
+ 6 APPPATH\Controllers\Payments.php(90): CodeIgniter\Model->__call('get', [])
+ 7 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Payments->getData()
+ 8 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+ 9 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+10 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+11 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-06 15:47:09 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:47:12 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-06 15:47:14 --> Undefined property: stdClass::$transaction_id
+in APPPATH\Controllers\Payments.php on line 107.
+ 1 APPPATH\Controllers\Payments.php(107): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined property: stdClass::$transaction_id', 'D:\\Work\\admin_ybb_web\\app\\Controllers\\Payments.php', 107)
+ 2 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Payments->getData()
+ 3 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+ 4 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 5 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-06 15:47:33 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:47:35 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:47:57 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:49:01 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:49:04 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:49:22 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:49:45 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+ERROR - 2025-03-06 15:49:48 --> mysqli_sql_exception: Unknown column 'participants.email' in 'SELECT' in D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php:295
+Stack trace:
+#0 D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php(295): mysqli->query('SELECT `payment...', 0)
+#1 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('SELECT `payment...')
+#2 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT `payment...')
+#3 D:\Work\admin_ybb_web\system\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query('SELECT `payment...', Array, false)
+#4 D:\Work\admin_ybb_web\system\Model.php(268): CodeIgniter\Database\BaseBuilder->get()
+#5 D:\Work\admin_ybb_web\system\BaseModel.php(656): CodeIgniter\Model->doFirst()
+#6 D:\Work\admin_ybb_web\app\Models\PaymentModel.php(63): CodeIgniter\BaseModel->first()
+#7 D:\Work\admin_ybb_web\app\Controllers\Payments.php(129): App\Models\PaymentModel->getPaymentById('4671')
+#8 D:\Work\admin_ybb_web\system\CodeIgniter.php(932): App\Controllers\Payments->view('4671')
+#9 D:\Work\admin_ybb_web\system\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+#10 D:\Work\admin_ybb_web\system\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(NULL, Object(Config\Cache), false)
+#11 D:\Work\admin_ybb_web\public\index.php(67): CodeIgniter\CodeIgniter->run()
+#12 D:\Work\admin_ybb_web\system\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_y...')
+#13 {main}
+CRITICAL - 2025-03-06 15:49:48 --> Unknown column 'participants.email' in 'SELECT'
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 295.
+ 1 SYSTEMPATH\Database\MySQLi\Connection.php(295): mysqli->query('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `participants`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+JOIN `users` ON `users`.`id` = `participants`.`user_id`
+WHERE `payments`.`id` = \'4671\'
+ LIMIT 1', 0)
+ 2 SYSTEMPATH\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `participants`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+JOIN `users` ON `users`.`id` = `participants`.`user_id`
+WHERE `payments`.`id` = \'4671\'
+ LIMIT 1')
+ 3 SYSTEMPATH\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `participants`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+JOIN `users` ON `users`.`id` = `participants`.`user_id`
+WHERE `payments`.`id` = \'4671\'
+ LIMIT 1')
+ 4 SYSTEMPATH\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query('SELECT `payments`.*, `participants`.`full_name` as `participant_name`, `participants`.`email` as `participant_email`, `participants`.`program_id`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+JOIN `users` ON `users`.`id` = `participants`.`user_id`
+WHERE `payments`.`id` = :payments.id:
+ LIMIT 1', [...], false)
+ 5 SYSTEMPATH\Model.php(268): CodeIgniter\Database\BaseBuilder->get()
+ 6 SYSTEMPATH\BaseModel.php(656): CodeIgniter\Model->doFirst()
+ 7 APPPATH\Models\PaymentModel.php(63): CodeIgniter\BaseModel->first()
+ 8 APPPATH\Controllers\Payments.php(129): App\Models\PaymentModel->getPaymentById('4671')
+ 9 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Payments->view('4671')
+10 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+11 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+12 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+13 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-06 15:50:32 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-06 15:50:34 --> Undefined property: stdClass::$transaction_id
+in APPPATH\Views\payments\view.php on line 25.
+ 1 APPPATH\Views\payments\view.php(25): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined property: stdClass::$transaction_id', 'D:\\Work\\admin_ybb_web\\app\\Views\\payments\\view.php', 25)
+ 2 SYSTEMPATH\View\View.php(224): include('D:\\Work\\admin_ybb_web\\app\\Views\\payments\\view.php')
+ 3 SYSTEMPATH\View\View.php(227): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1180): CodeIgniter\View\View->render('payments/view', [], true)
+ 5 APPPATH\Controllers\Payments.php(141): view('payments/view', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Payments->view('4671')
+ 7 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+ 8 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-06 15:51:00 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-06 15:51:03 --> Undefined property: stdClass::$transaction_id
+in APPPATH\Views\payments\view.php on line 45.
+ 1 APPPATH\Views\payments\view.php(45): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined property: stdClass::$transaction_id', 'D:\\Work\\admin_ybb_web\\app\\Views\\payments\\view.php', 45)
+ 2 SYSTEMPATH\View\View.php(224): include('D:\\Work\\admin_ybb_web\\app\\Views\\payments\\view.php')
+ 3 SYSTEMPATH\View\View.php(227): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1180): CodeIgniter\View\View->render('payments/view', [], true)
+ 5 APPPATH\Controllers\Payments.php(141): view('payments/view', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Payments->view('4671')
+ 7 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+ 8 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-06 15:51:13 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-06 15:51:16 --> Undefined property: stdClass::$payment_method
+in APPPATH\Views\payments\view.php on line 89.
+ 1 APPPATH\Views\payments\view.php(89): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined property: stdClass::$payment_method', 'D:\\Work\\admin_ybb_web\\app\\Views\\payments\\view.php', 89)
+ 2 SYSTEMPATH\View\View.php(224): include('D:\\Work\\admin_ybb_web\\app\\Views\\payments\\view.php')
+ 3 SYSTEMPATH\View\View.php(227): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1180): CodeIgniter\View\View->render('payments/view', [], true)
+ 5 APPPATH\Controllers\Payments.php(141): view('payments/view', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Payments->view('4671')
+ 7 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+ 8 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-06 15:51:39 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:51:56 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:51:58 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:52:03 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:52:14 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:52:16 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:52:22 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:52:30 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:52:48 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:52:52 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:53:06 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+ERROR - 2025-03-06 15:53:07 --> mysqli_sql_exception: Unknown column 'payments.transaction_id' in 'SELECT' in D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php:295
+Stack trace:
+#0 D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php(295): mysqli->query('SELECT `payment...', 0)
+#1 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('SELECT `payment...')
+#2 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT `payment...')
+#3 D:\Work\admin_ybb_web\system\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query('SELECT `payment...', Array, false)
+#4 D:\Work\admin_ybb_web\app\Controllers\Payments.php(257): CodeIgniter\Database\BaseBuilder->get()
+#5 D:\Work\admin_ybb_web\system\CodeIgniter.php(932): App\Controllers\Payments->export()
+#6 D:\Work\admin_ybb_web\system\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+#7 D:\Work\admin_ybb_web\system\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(NULL, Object(Config\Cache), false)
+#8 D:\Work\admin_ybb_web\public\index.php(67): CodeIgniter\CodeIgniter->run()
+#9 D:\Work\admin_ybb_web\system\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_y...')
+#10 {main}
+CRITICAL - 2025-03-06 15:53:07 --> Unknown column 'payments.transaction_id' in 'SELECT'
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 295.
+ 1 SYSTEMPATH\Database\MySQLi\Connection.php(295): mysqli->query('SELECT `payments`.`id`, `payments`.`transaction_id`, `payments`.`amount`, `payments`.`payment_method`, `_method`, `payments`.`payment_date`, `payments`.`status`, `participants`.`name` as `participant_name`, `participants`.`name` as `participant_name`, `participants`.`email` as `participant_email`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+WHERE `participants`.`program_id` = \'4\'
+AND `payments`.`status` = \'2\'
+ORDER BY `payments`.`payment_date` DESC', 0)
+ 2 SYSTEMPATH\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('SELECT `payments`.`id`, `payments`.`transaction_id`, `payments`.`amount`, `payments`.`payment_method`, `_method`, `payments`.`payment_date`, `payments`.`status`, `participants`.`name` as `participant_name`, `participants`.`name` as `participant_name`, `participants`.`email` as `participant_email`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+WHERE `participants`.`program_id` = \'4\'
+AND `payments`.`status` = \'2\'
+ORDER BY `payments`.`payment_date` DESC')
+ 3 SYSTEMPATH\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT `payments`.`id`, `payments`.`transaction_id`, `payments`.`amount`, `payments`.`payment_method`, `_method`, `payments`.`payment_date`, `payments`.`status`, `participants`.`name` as `participant_name`, `participants`.`name` as `participant_name`, `participants`.`email` as `participant_email`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+WHERE `participants`.`program_id` = \'4\'
+AND `payments`.`status` = \'2\'
+ORDER BY `payments`.`payment_date` DESC')
+ 4 SYSTEMPATH\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query('SELECT `payments`.`id`, `payments`.`transaction_id`, `payments`.`amount`, `payments`.`payment_method`, `_method`, `payments`.`payment_date`, `payments`.`status`, `participants`.`name` as `participant_name`, `participants`.`name` as `participant_name`, `participants`.`email` as `participant_email`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+WHERE `participants`.`program_id` = :participants.program_id:
+AND `payments`.`status` = :payments.status:
+ORDER BY `payments`.`payment_date` DESC', [...], false)
+ 5 APPPATH\Controllers\Payments.php(257): CodeIgniter\Database\BaseBuilder->get()
+ 6 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Payments->export()
+ 7 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+ 8 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-06 15:54:18 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+ERROR - 2025-03-06 15:54:20 --> mysqli_sql_exception: Unknown column 'participants.name' in 'SELECT' in D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php:295
+Stack trace:
+#0 D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php(295): mysqli->query('SELECT `payment...', 0)
+#1 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('SELECT `payment...')
+#2 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT `payment...')
+#3 D:\Work\admin_ybb_web\system\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query('SELECT `payment...', Array, false)
+#4 D:\Work\admin_ybb_web\app\Controllers\Payments.php(259): CodeIgniter\Database\BaseBuilder->get()
+#5 D:\Work\admin_ybb_web\system\CodeIgniter.php(932): App\Controllers\Payments->export()
+#6 D:\Work\admin_ybb_web\system\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+#7 D:\Work\admin_ybb_web\system\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(NULL, Object(Config\Cache), false)
+#8 D:\Work\admin_ybb_web\public\index.php(67): CodeIgniter\CodeIgniter->run()
+#9 D:\Work\admin_ybb_web\system\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_y...')
+#10 {main}
+CRITICAL - 2025-03-06 15:54:20 --> Unknown column 'participants.name' in 'SELECT'
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 295.
+ 1 SYSTEMPATH\Database\MySQLi\Connection.php(295): mysqli->query('SELECT `payments`.`id`, `payments`.`id`, `payments`.`amount`, `payments`.`payment_method_id`, `payments`.`created_at`, `payments`.`status`, `participants`.`name` as `participant_name`, `users`.`email` as `participant_email`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+JOIN `users` ON `users`.`id` = `participants`.`user_id`
+WHERE `participants`.`program_id` = \'4\'
+AND `payments`.`status` = \'2\'
+ORDER BY `payments`.`created_at` DESC', 0)
+ 2 SYSTEMPATH\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('SELECT `payments`.`id`, `payments`.`id`, `payments`.`amount`, `payments`.`payment_method_id`, `payments`.`created_at`, `payments`.`status`, `participants`.`name` as `participant_name`, `users`.`email` as `participant_email`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+JOIN `users` ON `users`.`id` = `participants`.`user_id`
+WHERE `participants`.`program_id` = \'4\'
+AND `payments`.`status` = \'2\'
+ORDER BY `payments`.`created_at` DESC')
+ 3 SYSTEMPATH\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT `payments`.`id`, `payments`.`id`, `payments`.`amount`, `payments`.`payment_method_id`, `payments`.`created_at`, `payments`.`status`, `participants`.`name` as `participant_name`, `users`.`email` as `participant_email`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+JOIN `users` ON `users`.`id` = `participants`.`user_id`
+WHERE `participants`.`program_id` = \'4\'
+AND `payments`.`status` = \'2\'
+ORDER BY `payments`.`created_at` DESC')
+ 4 SYSTEMPATH\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query('SELECT `payments`.`id`, `payments`.`id`, `payments`.`amount`, `payments`.`payment_method_id`, `payments`.`created_at`, `payments`.`status`, `participants`.`name` as `participant_name`, `users`.`email` as `participant_email`
+FROM `payments`
+JOIN `participants` ON `participants`.`id` = `payments`.`participant_id`
+JOIN `users` ON `users`.`id` = `participants`.`user_id`
+WHERE `participants`.`program_id` = :participants.program_id:
+AND `payments`.`status` = :payments.status:
+ORDER BY `payments`.`created_at` DESC', [...], false)
+ 5 APPPATH\Controllers\Payments.php(259): CodeIgniter\Database\BaseBuilder->get()
+ 6 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Payments->export()
+ 7 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+ 8 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-06 15:54:31 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-06 15:54:32 --> Undefined property: stdClass::$transaction_id
+in APPPATH\Controllers\Payments.php on line 330.
+ 1 APPPATH\Controllers\Payments.php(330): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined property: stdClass::$transaction_id', 'D:\\Work\\admin_ybb_web\\app\\Controllers\\Payments.php', 330)
+ 2 APPPATH\Controllers\Payments.php(271): App\Controllers\Payments->exportExcel([...], 'payments_export_20250306_155432')
+ 3 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Payments->export()
+ 4 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Payments))
+ 5 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 6 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 7 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-06 15:55:46 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:55:50 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:55:54 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 15:58:22 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 16:03:27 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-06 16:05:22 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-06 16:05:50 --> Cannot use object of type stdClass as array
+in APPPATH\Views\users\participants\index.php on line 57.
+ 1 SYSTEMPATH\View\View.php(224): include()
+ 2 SYSTEMPATH\View\View.php(227): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 3 SYSTEMPATH\Common.php(1180): CodeIgniter\View\View->render('users/participants/index', [], true)
+ 4 APPPATH\Controllers\Participants.php(20): view('users/participants/index', [...])
+ 5 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Participants->index()
+ 6 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Participants))
+ 7 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 8 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 9 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+CRITICAL - 2025-03-06 16:05:52 --> Allowed memory size of 536870912 bytes exhausted (tried to allocate 290606848 bytes)
+【Previous Exception】
+Error
+Cannot use object of type stdClass as array
+#0 D:\Work\admin_ybb_web\system\View\View.php(224): include()
+#1 D:\Work\admin_ybb_web\system\View\View.php(227): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+#2 D:\Work\admin_ybb_web\system\Common.php(1180): CodeIgniter\View\View->render('users/participa...', Array, true)
+#3 D:\Work\admin_ybb_web\app\Controllers\Participants.php(20): view('users/participa...', Array)
+#4 D:\Work\admin_ybb_web\system\CodeIgniter.php(932): App\Controllers\Participants->index()
+#5 D:\Work\admin_ybb_web\system\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Participants))
+#6 D:\Work\admin_ybb_web\system\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(NULL, Object(Config\Cache), false)
+#7 D:\Work\admin_ybb_web\public\index.php(67): CodeIgniter\CodeIgniter->run()
+#8 D:\Work\admin_ybb_web\system\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_y...')
+#9 {main}
+in VENDORPATH\laminas\laminas-escaper\src\Escaper.php on line 194.
+ 1 [internal function]: CodeIgniter\Debug\Exceptions->shutdownHandler()
