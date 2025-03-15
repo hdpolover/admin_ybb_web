@@ -36,7 +36,7 @@ $routes->setAutoRoute(false);
 // user routes with name space App\Controllers\Users
 $routes->group('', ['namespace' => 'App\Controllers'], function ($routes) {
     $routes->get('/', 'Auth::index');
-    $routes->post('login', 'Auth::login');
+    $routes->post('sign-in', 'Auth::signIn');   
 });
 
 // these routes can be accessed only by admin after auth
@@ -65,6 +65,10 @@ $routes->group('', ['filter' => 'program_selection'], function($routes) {
 
 // api routes
 $routes->group('api/', ['namespace' => 'App\Controllers\Api'], function ($routes) {
+    // auth
+    $routes->post('auth/sign-in', 'AuthApiController::signIn');
+    $routes->post('auth/sign-up', 'AuthApiController::signUp');
+
     // users
     $routes->get('users', 'Users::index');
     $routes->get('users/(:num)', 'Users::show/$1');

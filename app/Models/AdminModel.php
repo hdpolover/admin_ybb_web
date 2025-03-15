@@ -38,9 +38,10 @@ class AdminModel extends Model
     }
 
     // login
-    public function login($email, $password)
+    public function signIn($email, $password)
     {
         $admin = $this->getAdminByEmail($email);
+
         if ($admin && md5($password) === $admin->password) {
             return $admin;
         }

@@ -1,0 +1,271 @@
+INFO - 2025-03-15 08:33:11 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 08:33:24 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 08:33:24 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 08:33:31 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 08:33:31 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 08:33:47 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-15 08:33:50 --> Cannot use object of type stdClass as array
+in APPPATH\Views\users\participants\index.php on line 57.
+ 1 SYSTEMPATH\View\View.php(224): include()
+ 2 SYSTEMPATH\View\View.php(227): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 3 SYSTEMPATH\Common.php(1180): CodeIgniter\View\View->render('users/participants/index', [], true)
+ 4 APPPATH\Controllers\Participants.php(20): view('users/participants/index', [...])
+ 5 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Participants->index()
+ 6 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Participants))
+ 7 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 8 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 9 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+CRITICAL - 2025-03-15 08:33:51 --> Allowed memory size of 536870912 bytes exhausted (tried to allocate 295660816 bytes)
+【Previous Exception】
+Error
+Cannot use object of type stdClass as array
+#0 D:\Work\admin_ybb_web\system\View\View.php(224): include()
+#1 D:\Work\admin_ybb_web\system\View\View.php(227): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+#2 D:\Work\admin_ybb_web\system\Common.php(1180): CodeIgniter\View\View->render('users/participa...', Array, true)
+#3 D:\Work\admin_ybb_web\app\Controllers\Participants.php(20): view('users/participa...', Array)
+#4 D:\Work\admin_ybb_web\system\CodeIgniter.php(932): App\Controllers\Participants->index()
+#5 D:\Work\admin_ybb_web\system\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Participants))
+#6 D:\Work\admin_ybb_web\system\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(NULL, Object(Config\Cache), false)
+#7 D:\Work\admin_ybb_web\public\index.php(67): CodeIgniter\CodeIgniter->run()
+#8 D:\Work\admin_ybb_web\system\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_y...')
+#9 {main}
+in VENDORPATH\laminas\laminas-escaper\src\Escaper.php on line 194.
+ 1 [internal function]: CodeIgniter\Debug\Exceptions->shutdownHandler()
+INFO - 2025-03-15 08:35:56 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-15 08:35:57 --> Undefined array key "id"
+in APPPATH\Views\users\participants\index.php on line 57.
+ 1 APPPATH\Views\users\participants\index.php(57): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Undefined array key "id"', 'D:\\Work\\admin_ybb_web\\app\\Views\\users\\participants\\index.php', 57)
+ 2 SYSTEMPATH\View\View.php(224): include('D:\\Work\\admin_ybb_web\\app\\Views\\users\\participants\\index.php')
+ 3 SYSTEMPATH\View\View.php(227): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1180): CodeIgniter\View\View->render('users/participants/index', [], true)
+ 5 APPPATH\Controllers\Participants.php(20): view('users/participants/index', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Participants->index()
+ 7 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Participants))
+ 8 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-15 08:36:12 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-15 08:36:12 --> Attempt to read property "id" on array
+in APPPATH\Views\users\participants\index.php on line 57.
+ 1 APPPATH\Views\users\participants\index.php(57): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Attempt to read property "id" on array', 'D:\\Work\\admin_ybb_web\\app\\Views\\users\\participants\\index.php', 57)
+ 2 SYSTEMPATH\View\View.php(224): include('D:\\Work\\admin_ybb_web\\app\\Views\\users\\participants\\index.php')
+ 3 SYSTEMPATH\View\View.php(227): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1180): CodeIgniter\View\View->render('users/participants/index', [], true)
+ 5 APPPATH\Controllers\Participants.php(20): view('users/participants/index', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Participants->index()
+ 7 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Participants))
+ 8 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-15 08:42:06 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-15 08:42:07 --> Attempt to read property "id" on array
+in APPPATH\Views\users\participants\index.php on line 57.
+ 1 APPPATH\Views\users\participants\index.php(57): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Attempt to read property "id" on array', 'D:\\Work\\admin_ybb_web\\app\\Views\\users\\participants\\index.php', 57)
+ 2 SYSTEMPATH\View\View.php(224): include('D:\\Work\\admin_ybb_web\\app\\Views\\users\\participants\\index.php')
+ 3 SYSTEMPATH\View\View.php(227): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1180): CodeIgniter\View\View->render('users/participants/index', [], true)
+ 5 APPPATH\Controllers\Participants.php(20): view('users/participants/index', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Participants->index()
+ 7 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Participants))
+ 8 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-15 08:42:10 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-15 08:42:10 --> Attempt to read property "id" on array
+in APPPATH\Views\users\participants\index.php on line 57.
+ 1 APPPATH\Views\users\participants\index.php(57): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Attempt to read property "id" on array', 'D:\\Work\\admin_ybb_web\\app\\Views\\users\\participants\\index.php', 57)
+ 2 SYSTEMPATH\View\View.php(224): include('D:\\Work\\admin_ybb_web\\app\\Views\\users\\participants\\index.php')
+ 3 SYSTEMPATH\View\View.php(227): CodeIgniter\View\View->CodeIgniter\View\{closure}()
+ 4 SYSTEMPATH\Common.php(1180): CodeIgniter\View\View->render('users/participants/index', [], true)
+ 5 APPPATH\Controllers\Participants.php(20): view('users/participants/index', [...])
+ 6 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Participants->index()
+ 7 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Participants))
+ 8 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 9 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+10 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-15 09:05:50 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 09:18:47 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 09:18:56 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 09:19:01 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 09:19:01 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 09:19:13 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 09:19:13 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 09:24:06 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 09:24:11 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 09:24:12 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 09:24:44 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 09:24:49 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 09:24:49 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 09:25:29 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 09:25:31 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-15 09:25:31 --> Call to a member function getPost() on null
+in APPPATH\Controllers\Api\AuthApiController.php on line 19.
+ 1 APPPATH\Controllers\Auth.php(31): App\Controllers\Api\AuthApiController->signIn('admin@themesbrand.com', '123456', null)
+ 2 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Auth->signIn()
+ 3 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Auth))
+ 4 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 5 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-15 09:25:53 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-15 09:25:53 --> Call to a member function getPost() on null
+in APPPATH\Controllers\Api\AuthApiController.php on line 19.
+ 1 APPPATH\Controllers\Auth.php(31): App\Controllers\Api\AuthApiController->signIn('admin@themesbrand.com', '123456', null)
+ 2 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Auth->signIn()
+ 3 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Auth))
+ 4 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 5 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-15 09:25:56 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-15 09:25:56 --> Call to a member function getPost() on null
+in APPPATH\Controllers\Api\AuthApiController.php on line 19.
+ 1 APPPATH\Controllers\Auth.php(31): App\Controllers\Api\AuthApiController->signIn('admin@themesbrand.com', '123456', null)
+ 2 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Auth->signIn()
+ 3 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Auth))
+ 4 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 5 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-15 09:26:05 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 09:26:07 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-15 09:26:07 --> Call to a member function getPost() on null
+in APPPATH\Controllers\Api\AuthApiController.php on line 19.
+ 1 APPPATH\Controllers\Auth.php(31): App\Controllers\Api\AuthApiController->signIn('admin@themesbrand.com', '123456', '4')
+ 2 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Auth->signIn()
+ 3 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Auth))
+ 4 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 5 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-15 09:27:00 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-15 09:27:00 --> Call to a member function getPost() on null
+in APPPATH\Controllers\Api\AuthApiController.php on line 19.
+ 1 APPPATH\Controllers\Auth.php(33): App\Controllers\Api\AuthApiController->signIn('admin@themesbrand.com', '123456', '4')
+ 2 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Auth->signIn()
+ 3 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Auth))
+ 4 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 5 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-15 09:27:49 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 09:27:50 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 09:27:52 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-15 09:27:52 --> Call to a member function getPost() on null
+in APPPATH\Controllers\Api\AuthApiController.php on line 19.
+ 1 APPPATH\Controllers\Auth.php(31): App\Controllers\Api\AuthApiController->signIn('admin@themesbrand.com', '123456', '4')
+ 2 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Auth->signIn()
+ 3 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Auth))
+ 4 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 5 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-15 09:35:11 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 09:35:12 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 09:35:14 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-15 09:35:14 --> Call to a member function getPost() on null
+in APPPATH\Controllers\Api\AuthApiController.php on line 19.
+ 1 APPPATH\Controllers\Auth.php(31): App\Controllers\API\AuthApiController->signIn('admin@themesbrand.com', '123456', '4')
+ 2 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Auth->signIn()
+ 3 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Auth))
+ 4 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 5 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-15 09:36:56 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 09:36:57 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 09:36:58 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-15 09:36:58 --> Call to a member function getPost() on null
+in APPPATH\Controllers\Api\AuthApiController.php on line 19.
+ 1 APPPATH\Controllers\Auth.php(31): App\Controllers\API\AuthApiController->signIn('admin@themesbrand.com', '123456', 4)
+ 2 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Auth->signIn()
+ 3 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Auth))
+ 4 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 5 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-15 09:37:52 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 09:37:54 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-15 09:37:54 --> Call to a member function getPost() on null
+in APPPATH\Controllers\Api\AuthApiController.php on line 19.
+ 1 APPPATH\Controllers\Auth.php(34): App\Controllers\API\AuthApiController->signIn('admin@themesbrand.com', '123456', 4)
+ 2 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Auth->signIn()
+ 3 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Auth))
+ 4 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 5 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-15 09:39:39 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 09:39:40 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 09:39:42 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-15 09:39:42 --> Call to a member function getPost() on null
+in APPPATH\Controllers\Api\AuthApiController.php on line 19.
+ 1 APPPATH\Controllers\Auth.php(34): App\Controllers\API\AuthApiController->signIn('admin@themesbrand.com', '123456', 4)
+ 2 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Auth->signIn()
+ 3 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Auth))
+ 4 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 5 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-15 09:44:52 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 09:44:53 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 09:44:55 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-15 09:44:55 --> Call to a member function getPost() on null
+in APPPATH\Controllers\Api\AuthApiController.php on line 19.
+ 1 APPPATH\Controllers\Auth.php(31): App\Controllers\API\AuthApiController->signIn('admin@themesbrand.com', '123456', '4')
+ 2 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Auth->signIn()
+ 3 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Auth))
+ 4 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 5 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-15 09:45:27 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 09:45:28 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 09:51:15 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 09:51:16 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-15 09:51:18 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-15 09:51:18 --> Attempt to read property "is_active" on bool
+in APPPATH\Controllers\Api\AuthApiController.php on line 65.
+ 1 APPPATH\Controllers\Api\AuthApiController.php(65): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Attempt to read property "is_active" on bool', 'D:\\Work\\admin_ybb_web\\app\\Controllers\\Api\\AuthApiController.php', 65)
+ 2 APPPATH\Controllers\Api\AuthApiController.php(38): App\Controllers\API\AuthApiController->adminSignIn('admin@themesbrand.com', '123456')
+ 3 APPPATH\Controllers\Auth.php(31): App\Controllers\API\AuthApiController->signIn('admin@themesbrand.com', '123456', '4')
+ 4 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Auth->signIn()
+ 5 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Auth))
+ 6 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 7 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 8 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-15 09:51:57 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-15 09:51:57 --> Attempt to read property "is_active" on bool
+in APPPATH\Controllers\Api\AuthApiController.php on line 65.
+ 1 APPPATH\Controllers\Api\AuthApiController.php(65): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Attempt to read property "is_active" on bool', 'D:\\Work\\admin_ybb_web\\app\\Controllers\\Api\\AuthApiController.php', 65)
+ 2 APPPATH\Controllers\Api\AuthApiController.php(38): App\Controllers\API\AuthApiController->adminSignIn('admin@themesbrand.com', '123456')
+ 3 APPPATH\Controllers\Auth.php(31): App\Controllers\API\AuthApiController->signIn('admin@themesbrand.com', '123456', '4')
+ 4 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Auth->signIn()
+ 5 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Auth))
+ 6 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 7 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 8 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-15 09:52:08 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-15 09:52:08 --> Attempt to read property "is_active" on bool
+in APPPATH\Controllers\Api\AuthApiController.php on line 65.
+ 1 APPPATH\Controllers\Api\AuthApiController.php(65): CodeIgniter\Debug\Exceptions->errorHandler(2, 'Attempt to read property "is_active" on bool', 'D:\\Work\\admin_ybb_web\\app\\Controllers\\Api\\AuthApiController.php', 65)
+ 2 APPPATH\Controllers\Api\AuthApiController.php(38): App\Controllers\API\AuthApiController->adminSignIn('admin@themesbrand.com', '123456')
+ 3 APPPATH\Controllers\Auth.php(31): App\Controllers\API\AuthApiController->signIn('admin@themesbrand.com', '123456', '4')
+ 4 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Auth->signIn()
+ 5 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Auth))
+ 6 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 7 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 8 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-15 09:52:19 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-15 09:52:19 --> Call to a member function setContentType() on null
+in SYSTEMPATH\API\ResponseTrait.php on line 331.
+ 1 SYSTEMPATH\API\ResponseTrait.php(98): App\Controllers\API\ApiBaseController->format([...])
+ 2 APPPATH\Controllers\Api\AuthApiController.php(69): App\Controllers\API\ApiBaseController->respond([...], 200)
+ 3 APPPATH\Controllers\Api\AuthApiController.php(38): App\Controllers\API\AuthApiController->adminSignIn('admin@themesbrand.com', '123456')
+ 4 APPPATH\Controllers\Auth.php(31): App\Controllers\API\AuthApiController->signIn('admin@themesbrand.com', '123456', '4')
+ 5 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Auth->signIn()
+ 6 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Auth))
+ 7 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 8 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 9 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-15 09:53:27 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-15 09:53:27 --> Call to a member function setContentType() on null
+in SYSTEMPATH\API\ResponseTrait.php on line 331.
+ 1 SYSTEMPATH\API\ResponseTrait.php(98): App\Controllers\API\ApiBaseController->format([...])
+ 2 APPPATH\Controllers\Api\AuthApiController.php(69): App\Controllers\API\ApiBaseController->respond([...], 200)
+ 3 APPPATH\Controllers\Api\AuthApiController.php(38): App\Controllers\Api\AuthApiController->adminSignIn('admin@themesbrand.com', '123456')
+ 4 APPPATH\Controllers\Auth.php(31): App\Controllers\Api\AuthApiController->signIn('admin@themesbrand.com', '123456', '4')
+ 5 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Auth->signIn()
+ 6 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Auth))
+ 7 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 8 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 9 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')

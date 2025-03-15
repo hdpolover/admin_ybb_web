@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\AdminModel;
+use App\Controllers\Api\AuthApiController;
 
 class Auth extends BaseController
 {
@@ -15,33 +16,41 @@ class Auth extends BaseController
 
     public function index()
     {
-        // $session = session();
-        // if ($session->get('isLoggedIn')) {
-        //     return redirect()->to('/dashboard');
-        // }
-        return view('auth/login');
+        return view('auth/sign-in');
     }
 
-    public function login()
+    public function signIn()
     {
-        $email = trim($this->request->getPost('email', FILTER_SANITIZE_EMAIL));
-        $password = trim($this->request->getPost('password'));
+        $authApi = new AuthApiController();
 
-        // Add rate limiting/brute force protection
-        // if ($this->isRateLimited()) {
-        //     return redirect()->back()->with('error', 'Too many login attempts. Please try again later.');
-        // }
+        $email = $this->request->getPost('email');
+        $password = $this->request->getPost('password');
+        $type = $this->request->getPost('type');
 
-        $admin = $this->adminModel->login($email, $password);
+        // Pass the parameters directly to signIn method
+        $response = $authApi->signIn($email, $password, $type);
 
+        // Convert API response to array if it's a Response object
+        if (is_object($response) && method_exists($response, 'getBody')) {
+            $response = json_decode($response->getBody(), true);
+        }
 
-        if ($admin) {
-            $session = session();
-            $session->set('isLoggedIn', true);
-            $session->set('adminId', $admin->id);
-            return redirect()->to('/welcome');
+        if ($response['status'] === 'success') {
+            $admin = (object)$response['data'];
+         
+            $this->session->set('isLoggedIn', true);
+            $this->session->set('adminId', $admin->id);
+
+            // if admin role is super, return welcome page. if not, return dashboard page
+            if ($admin->role == 'super') {
+                return redirect()->to('/welcome');
+            } else {
+                // set current program id in session
+                $this->session->set('current_program_id', $admin->program_id);
+                return redirect()->to('/dashboard');
+            }
         } else {
-            return redirect()->back()->with('error', 'Invalid email or password.');
+            return redirect()->back()->with('error', $response['message'] ?? 'Invalid email or password.');
         }
     }
 

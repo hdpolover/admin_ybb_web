@@ -16,7 +16,22 @@ class Participants extends Controller
 
     public function index()
     {
-        $data['participants'] = $this->participantModel->getAllParticipants();
+        $page = (int)($this->request->uri->getQuery(['only' => ['page']]) ?? 1);
+        $limit = 10;  // Items per page
+        $offset = ($page - 1) * $limit;
+
+        $result = $this->participantModel->getCurrentProgramParticipants($limit, $offset);
+        
+        $data = [
+            'participants' => $result['data'],
+            'pager' => [
+                'total' => $result['total'],
+                'perPage' => $limit,
+                'currentPage' => $page,
+                'totalPages' => ceil($result['total'] / $limit)
+            ]
+        ];
+        
         return view('users/participants/index', $data);
     }
 
