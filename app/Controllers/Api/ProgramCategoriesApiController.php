@@ -5,13 +5,22 @@ namespace App\Controllers\Api;
 use App\Controllers\Api\ApiBaseController;
 use App\Models\ProgramCategoryModel;
 
-class ProgramCategories extends ApiBaseController
+class ProgramCategoriesApiController extends ApiBaseController
 {
     protected $model;
 
-    public function __construct()
-    {
-        parent::__construct();
+    /**
+     * Initialize controller, set model
+     */
+    public function initController(
+        \CodeIgniter\HTTP\RequestInterface $request,
+        \CodeIgniter\HTTP\ResponseInterface $response,
+        \Psr\Log\LoggerInterface $logger
+    ) {
+        // Call parent initializer
+        parent::initController($request, $response, $logger);
+        
+        // Initialize model - this is what was previously in the constructor
         $this->model = new ProgramCategoryModel();
     }
 
@@ -59,5 +68,4 @@ class ProgramCategories extends ApiBaseController
         $programs = $this->model->getPrograms($id);
         return $programs ? $this->apiResponse($programs) : $this->failNotFound("Programs not found");
     }
-
 }

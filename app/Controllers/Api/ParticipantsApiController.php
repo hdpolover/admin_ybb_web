@@ -2,35 +2,56 @@
 
 namespace App\Controllers\Api;
 
-use App\Models\UserModel;
+use App\Models\ParticipantModel;
 use CodeIgniter\HTTP\ResponseInterface;
 use App\Controllers\Api\ApiBaseController;
 
-class Users extends ApiBaseController
+class ParticipantsApiController extends ApiBaseController
 {
     protected $model;
 
     public function __construct()
     {
         parent::__construct();
-        $this->model = new UserModel();
+        $this->model = new ParticipantModel();
     }
 
-    /**
-     * 🟢 Get All Users (READ)
-     * GET /api/users
+   /**
+     * 🟢 Get All Participants (READ)
+     * GET /api/participants
+     * 
+     * Query Parameters:
+     * @param int page Page number
+     * @param int limit Items per page
+     * @param int program_id Filter by program ID
+     * @param string status Filter by status
      */
     public function index()
     {
         try {
+            // Pagination params
             $page = (int)($this->request->getGet('page') ?? 1);
             $limit = (int)($this->request->getGet('limit') ?? 10);
             $offset = ($page - 1) * $limit;
 
+            // Build filters from query params
+            $filters = [];
+         
+            // Add any additional filters from query params
+            foreach ($this->request->getGet() as $key => $value) {
+                if (!in_array($key, ['page', 'limit'])) {
+                    $filters[$key] = $value;
+                }
+            }
             // Get data using custom method
-            $result = $this->model->getUsers($limit, $offset);
+            $result = $this->model->getParticipants($limit, $offset, $filters);
             
             $totalPages = ceil($result['total'] / $limit);
+
+            // if no data found return 404
+            if (empty($result['data'])) {
+                return $this->failNotFound("No participants found");
+            }
             
             return $this->apiResponse($result['data'], 200, "Success", [
                 'current_page' => $page,

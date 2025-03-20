@@ -24,7 +24,7 @@ class AuthApiController extends ApiBaseController
         }
 
         if (empty($type)) {
-            return $this->failValidationErrors("Type is required.");
+            return $this->respondValidationErrors('Type is required.');
         }
 
         switch ($type) {
@@ -37,7 +37,7 @@ class AuthApiController extends ApiBaseController
             case 4:
                 return $this->adminSignIn($email, $password);
             default:
-                return $this->failValidationErrors("Invalid type.");
+                return $this->respondValidationErrors('Invalid type.');
         }
     }
 
@@ -54,19 +54,28 @@ class AuthApiController extends ApiBaseController
 
         // Validate input
         if (empty($email) || empty($password)) {
-            return $this->failValidationErrors("Email and password are required.");
+            return $this->respondValidationErrors('Email and password are required.');
         }
 
-        // Check credentials
-        $model = new AdminModel();
-        $admin = $model->signIn($email, $password);
+        try {
+            // Check credentials
+            $model = new AdminModel();
+            $admin = $model->signIn($email, $password);
 
-        // return data as admin
-        return $this->respond([
-            'status' => 'success',
-            'message' => 'Sign in successful',
-            'data' => $admin,
-        ], ResponseInterface::HTTP_OK);
+            if (!$admin) {
+                return $this->respondUnauthorized('Invalid email or password.');
+            }
+
+            // Check if admin is active
+            if (!$admin->is_active) {
+                return $this->respondForbidden('Your account has been deactivated.');
+            }
+
+            // return data as admin
+            return $this->respondSuccess($admin, self::HTTP_OK, 'Sign in successful');
+        } catch (\Exception $e) {
+            return $this->respondError('An error occurred during sign in: ' . $e->getMessage());
+        }
     }
 
     // participant sign in
@@ -82,43 +91,41 @@ class AuthApiController extends ApiBaseController
 
         // Validate input
         if (empty($email) || empty($password)) {
-            return $this->failValidationErrors("Email and password are required.");
+            return $this->respondValidationErrors('Email and password are required.');
         }
 
-        // Check credentials
-        $model = new ParticipantModel();
-        $participant = $model->login($email, $password);
+        try {
+            // Check credentials
+            $model = new ParticipantModel();
+            $participant = $model->login($email, $password);
 
-        // if participant found, check if the account is active
-        if (!$participant->is_active) {
-            return $this->failForbidden("Your account is not active.");
+            if (!$participant) {
+                return $this->respondUnauthorized('Invalid email or password.');
+            }
+
+            // if participant found, check if the account is active
+            if (!property_exists($participant, 'is_active') || !$participant->is_active) {
+                return $this->respondForbidden('Your account is not active.');
+            }
+
+            // return data as participant
+            return $this->respondSuccess($participant, self::HTTP_OK, 'Sign in successful');
+        } catch (\Exception $e) {
+            return $this->respondError('An error occurred during sign in: ' . $e->getMessage());
         }
-
-        // return data as participant
-        return $this->respond([
-            'status' => 'success',
-            'message' => 'Sign in successful',
-            'data' => $participant,
-        ], ResponseInterface::HTTP_OK);
     }
 
     // ambassador sign in
     public function ambassadorSignIn()
     {
         // Implement ambassador sign in logic here
-        return $this->respond([
-            'status' => 'error',
-            'message' => 'Ambassador sign in not implemented yet.'
-        ], ResponseInterface::HTTP_NOT_IMPLEMENTED);
+        return $this->respondNotImplemented('Ambassador sign in not implemented yet.');
     }
 
     // reviewer sign in
     public function reviewerSignIn()
     {
         // Implement reviewer sign in logic here
-        return $this->respond([
-            'status' => 'error',
-            'message' => 'Reviewer sign in not implemented yet.'
-        ], ResponseInterface::HTTP_NOT_IMPLEMENTED);
+        return $this->respondNotImplemented('Reviewer sign in not implemented yet.');
     }
 }

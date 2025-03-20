@@ -5,7 +5,7 @@ namespace App\Controllers\Api;
 use App\Models\AmbassadorModel;
 use App\Controllers\Api\ApiBaseController;
 
-class Ambassadors extends ApiBaseController
+class AmbassadorsApiController extends ApiBaseController
 {
     protected $model;
 
