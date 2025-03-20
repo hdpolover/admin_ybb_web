@@ -75,3 +75,151 @@ INFO - 2025-03-20 12:41:53 --> Session: Class initialized using 'CodeIgniter\Ses
 INFO - 2025-03-20 12:41:53 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
 INFO - 2025-03-20 12:41:59 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
 INFO - 2025-03-20 12:42:00 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-20 12:42:44 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-20 12:42:44 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-20 12:42:53 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+ERROR - 2025-03-20 12:42:53 --> mysqli_sql_exception: You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near '-10, 10' at line 4 in D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php:295
+Stack trace:
+#0 D:\Work\admin_ybb_web\system\Database\MySQLi\Connection.php(295): mysqli->query('SELECT *\nFROM `...', 0)
+#1 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('SELECT *\nFROM `...')
+#2 D:\Work\admin_ybb_web\system\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT *\nFROM `...')
+#3 D:\Work\admin_ybb_web\system\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query('SELECT *\nFROM `...', Array, false)
+#4 D:\Work\admin_ybb_web\app\Models\ParticipantModel.php(108): CodeIgniter\Database\BaseBuilder->get()
+#5 D:\Work\admin_ybb_web\app\Models\ParticipantModel.php(172): App\Models\ParticipantModel->getParticipants(10, -10, Array)
+#6 D:\Work\admin_ybb_web\app\Controllers\Participants.php(23): App\Models\ParticipantModel->getCurrentProgramParticipants(10, -10)
+#7 D:\Work\admin_ybb_web\system\CodeIgniter.php(932): App\Controllers\Participants->index()
+#8 D:\Work\admin_ybb_web\system\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Participants))
+#9 D:\Work\admin_ybb_web\system\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(NULL, Object(Config\Cache), false)
+#10 D:\Work\admin_ybb_web\public\index.php(67): CodeIgniter\CodeIgniter->run()
+#11 D:\Work\admin_ybb_web\system\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_y...')
+#12 {main}
+CRITICAL - 2025-03-20 12:42:53 --> You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near '-10, 10' at line 4
+in SYSTEMPATH\Database\MySQLi\Connection.php on line 295.
+ 1 SYSTEMPATH\Database\MySQLi\Connection.php(295): mysqli->query('SELECT *
+FROM `participants`
+WHERE `program_id` = \'3\'
+ LIMIT -10, 10', 0)
+ 2 SYSTEMPATH\Database\BaseConnection.php(692): CodeIgniter\Database\MySQLi\Connection->execute('SELECT *
+FROM `participants`
+WHERE `program_id` = \'3\'
+ LIMIT -10, 10')
+ 3 SYSTEMPATH\Database\BaseConnection.php(606): CodeIgniter\Database\BaseConnection->simpleQuery('SELECT *
+FROM `participants`
+WHERE `program_id` = \'3\'
+ LIMIT -10, 10')
+ 4 SYSTEMPATH\Database\BaseBuilder.php(1616): CodeIgniter\Database\BaseConnection->query('SELECT *
+FROM `participants`
+WHERE `program_id` = :program_id:
+ LIMIT -10, 10', [...], false)
+ 5 APPPATH\Models\ParticipantModel.php(108): CodeIgniter\Database\BaseBuilder->get()
+ 6 APPPATH\Models\ParticipantModel.php(172): App\Models\ParticipantModel->getParticipants(10, -10, [...])
+ 7 APPPATH\Controllers\Participants.php(23): App\Models\ParticipantModel->getCurrentProgramParticipants(10, -10)
+ 8 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Participants->index()
+ 9 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Participants))
+10 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+11 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+12 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-20 12:58:59 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-20 12:58:59 --> Cannot call constructor
+in APPPATH\Controllers\Api\ParticipantsApiController.php on line 18.
+ 1 APPPATH\Controllers\Participants.php(19): App\Controllers\Api\ParticipantsApiController->__construct()
+ 2 SYSTEMPATH\CodeIgniter.php(904): App\Controllers\Participants->__construct()
+ 3 SYSTEMPATH\CodeIgniter.php(488): CodeIgniter\CodeIgniter->createController()
+ 4 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 5 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-20 12:59:42 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-20 12:59:42 --> Cannot call constructor
+in APPPATH\Controllers\Api\ParticipantsApiController.php on line 18.
+ 1 APPPATH\Controllers\Participants.php(19): App\Controllers\Api\ParticipantsApiController->__construct()
+ 2 SYSTEMPATH\CodeIgniter.php(904): App\Controllers\Participants->__construct()
+ 3 SYSTEMPATH\CodeIgniter.php(488): CodeIgniter\CodeIgniter->createController()
+ 4 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 5 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-20 12:59:42 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-20 12:59:42 --> Cannot call constructor
+in APPPATH\Controllers\Api\ParticipantsApiController.php on line 18.
+ 1 APPPATH\Controllers\Participants.php(19): App\Controllers\Api\ParticipantsApiController->__construct()
+ 2 SYSTEMPATH\CodeIgniter.php(904): App\Controllers\Participants->__construct()
+ 3 SYSTEMPATH\CodeIgniter.php(488): CodeIgniter\CodeIgniter->createController()
+ 4 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 5 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-20 12:59:44 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-20 12:59:44 --> Cannot call constructor
+in APPPATH\Controllers\Api\ParticipantsApiController.php on line 18.
+ 1 APPPATH\Controllers\Participants.php(19): App\Controllers\Api\ParticipantsApiController->__construct()
+ 2 SYSTEMPATH\CodeIgniter.php(904): App\Controllers\Participants->__construct()
+ 3 SYSTEMPATH\CodeIgniter.php(488): CodeIgniter\CodeIgniter->createController()
+ 4 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 5 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-20 13:02:01 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-20 13:02:01 --> Cannot call constructor
+in APPPATH\Controllers\Api\ParticipantsApiController.php on line 18.
+ 1 APPPATH\Controllers\Participants.php(17): App\Controllers\Api\ParticipantsApiController->__construct()
+ 2 SYSTEMPATH\CodeIgniter.php(904): App\Controllers\Participants->__construct()
+ 3 SYSTEMPATH\CodeIgniter.php(488): CodeIgniter\CodeIgniter->createController()
+ 4 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 5 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-20 13:02:04 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-20 13:02:04 --> Cannot call constructor
+in APPPATH\Controllers\Api\ParticipantsApiController.php on line 18.
+ 1 APPPATH\Controllers\Participants.php(17): App\Controllers\Api\ParticipantsApiController->__construct()
+ 2 SYSTEMPATH\CodeIgniter.php(904): App\Controllers\Participants->__construct()
+ 3 SYSTEMPATH\CodeIgniter.php(488): CodeIgniter\CodeIgniter->createController()
+ 4 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 5 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-20 13:02:05 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+INFO - 2025-03-20 13:02:10 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-20 13:02:10 --> Cannot call constructor
+in APPPATH\Controllers\Api\ParticipantsApiController.php on line 18.
+ 1 APPPATH\Controllers\Participants.php(17): App\Controllers\Api\ParticipantsApiController->__construct()
+ 2 SYSTEMPATH\CodeIgniter.php(904): App\Controllers\Participants->__construct()
+ 3 SYSTEMPATH\CodeIgniter.php(488): CodeIgniter\CodeIgniter->createController()
+ 4 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 5 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-20 13:02:12 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-20 13:02:12 --> Cannot call constructor
+in APPPATH\Controllers\Api\ParticipantsApiController.php on line 18.
+ 1 APPPATH\Controllers\Participants.php(17): App\Controllers\Api\ParticipantsApiController->__construct()
+ 2 SYSTEMPATH\CodeIgniter.php(904): App\Controllers\Participants->__construct()
+ 3 SYSTEMPATH\CodeIgniter.php(488): CodeIgniter\CodeIgniter->createController()
+ 4 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 5 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 6 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-20 13:05:40 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-20 13:05:40 --> Call to a member function getGet() on null
+in APPPATH\Controllers\Api\ParticipantsApiController.php on line 245.
+ 1 APPPATH\Helpers\api_helper.php(94): App\Controllers\Api\ParticipantsApiController->getCurrentProgramParticipants()
+ 2 APPPATH\Controllers\Participants.php(30): handle_api_form([...], Object(App\Controllers\Api\ParticipantsApiController), 'getCurrentProgramParticipants')
+ 3 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Participants->index()
+ 4 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Participants))
+ 5 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 6 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 7 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-20 13:08:10 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-20 13:08:10 --> Call to a member function getGet() on null
+in APPPATH\Controllers\Api\ParticipantsApiController.php on line 245.
+ 1 APPPATH\Helpers\api_helper.php(94): App\Controllers\Api\ParticipantsApiController->getCurrentProgramParticipants()
+ 2 APPPATH\Controllers\Participants.php(30): handle_api_form([...], Object(App\Controllers\Api\ParticipantsApiController), 'getCurrentProgramParticipants')
+ 3 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Participants->index()
+ 4 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Participants))
+ 5 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 6 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 7 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-20 13:08:15 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.
+CRITICAL - 2025-03-20 13:08:15 --> Call to a member function getGet() on null
+in APPPATH\Controllers\Api\ParticipantsApiController.php on line 245.
+ 1 APPPATH\Helpers\api_helper.php(94): App\Controllers\Api\ParticipantsApiController->getCurrentProgramParticipants()
+ 2 APPPATH\Controllers\Participants.php(30): handle_api_form([...], Object(App\Controllers\Api\ParticipantsApiController), 'getCurrentProgramParticipants')
+ 3 SYSTEMPATH\CodeIgniter.php(932): App\Controllers\Participants->index()
+ 4 SYSTEMPATH\CodeIgniter.php(497): CodeIgniter\CodeIgniter->runController(Object(App\Controllers\Participants))
+ 5 SYSTEMPATH\CodeIgniter.php(366): CodeIgniter\CodeIgniter->handleRequest(null, Object(Config\Cache), false)
+ 6 FCPATH\index.php(67): CodeIgniter\CodeIgniter->run()
+ 7 SYSTEMPATH\Commands\Server\rewrite.php(47): require_once('D:\\Work\\admin_ybb_web\\public\\index.php')
+INFO - 2025-03-20 13:08:16 --> Session: Class initialized using 'CodeIgniter\Session\Handlers\FileHandler' driver.

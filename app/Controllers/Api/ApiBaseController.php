@@ -14,6 +14,7 @@ class ApiBaseController extends ResourceController
     use ResponseTrait;
 
     protected $format = 'json';
+    protected $request;
 
     /**
      * HTTP Status Codes
@@ -38,7 +39,8 @@ class ApiBaseController extends ResourceController
         // Call parent initController first
         parent::initController($request, $response, $logger);
         
-        // Ensure response property is set
+        // Ensure request and response properties are set
+        $this->request = $request;
         $this->response = $response;
         
         helper(['form', 'url', 'filesystem']);
