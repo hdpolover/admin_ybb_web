@@ -18,14 +18,3 @@ writable/session/*
 
 # Ignore Composer files except composer.json
 composer.lock
-
-# Ignore IDE and editor settings
-.idea/
-.vscode/
-*.sublime-workspace
-*.sublime-project
-
-# Ignore database files
-*.sqlite
-*.sqlite3
-/database/
