@@ -1,0 +1,31 @@
+# Ignore system files
+*.DS_Store
+*.swp
+*.swo
+Thumbs.db
+
+# Ignore environment and configuration files
+.env
+
+# Ignore log and cache files
+writable/logs/*
+writable/cache/*
+writable/debugbar/*
+writable/session/*
+
+# Ignore vendor and dependencies
+/vendor/
+
+# Ignore Composer files except composer.json
+composer.lock
+
+# Ignore IDE and editor settings
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# Ignore database files
+*.sqlite
+*.sqlite3
+/database/
