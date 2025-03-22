@@ -64,29 +64,29 @@ $routes->group('', ['filter' => 'program_selection'], function($routes) {
 });
 
 // api routes
-$routes->group('api/', ['namespace' => 'App\Controllers\Api'], function ($routes) {
+$routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes) {
     // auth
     $routes->post('auth/sign-in', 'AuthApiController::signIn');
     $routes->post('auth/sign-up', 'AuthApiController::signUp');
 
     // users
-    $routes->get('users', 'Users::index');
-    $routes->get('users/(:num)', 'Users::show/$1');
+    $routes->get('users', 'UsersApiController::index');
+    $routes->get('users/(:num)', 'UsersApiController::show/$1');
 
-    // participants
-    $routes->get('participants', 'Participants::index');
-    $routes->get('participants/(:num)', 'Participants::show/$1');
-    // $routes->get('participants/program/(:num)', 'Participants::getParticipantsByProgramId/$1');
+    // participants → ubah untuk pakai ParticipantApiController
+    $routes->get('participants', 'ParticipantsApiController::index');
+    $routes->get('participants/(:num)', 'ParticipantsApiController::show/$1');
+    $routes->get('participants/current-program', 'ParticipantsApiController::getCurrentProgramParticipants');
 
-    // ambassodors
-    $routes->get('ambassadors', 'Ambassadors::index');
-    $routes->get('ambassadors/(:num)', 'Ambassadors::show/$1');
-    $routes->get('ambassadors/(:any)/participants', 'Ambassadors::getParticipantsbyRefCode/$1');
+    // ambassadors
+    $routes->get('ambassadors', 'AmbassadorsApiController::index');
+    $routes->get('ambassadors/(:num)', 'AmbassadorsApiController::show/$1');
+    $routes->get('ambassadors/(:any)/participants', 'AmbassadorsApiController::getParticipantsbyRefCode/$1');
 
     // program categories
-    $routes->get('program-categories', 'ProgramCategories::index');
-    $routes->get('program-categories/(:num)', 'ProgramCategories::show/$1');
-    $routes->get('program-categories/(:num)/programs', 'ProgramCategories::getProgramsbyCatId/$1');
+    $routes->get('program-categories', 'ProgramCategoriesApiController::index');
+    $routes->get('program-categories/(:num)', 'ProgramCategoriesApiController::show/$1');
+    $routes->get('program-categories/(:num)/programs', 'ProgramCategoriesApiController::getProgramsbyCatId/$1');
 });
 
 // web routes
