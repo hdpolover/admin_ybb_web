@@ -6,6 +6,8 @@ use App\Models\UserModel;
 use CodeIgniter\HTTP\ResponseInterface;
 use App\Controllers\Api\ApiBaseController;
 use App\Models\AdminModel;
+use App\Models\PasswordResetModel;
+use App\Models\ProgramCategoryModel;
 
 
 class AuthApiController extends ApiBaseController
@@ -117,23 +119,6 @@ class AuthApiController extends ApiBaseController
         }
     }
 
-    /**
-     * @OA\Post(
-     *     path="/api/auth/sign-up",
-     *     operationId="signUp",
-     *     tags={"Auth"},
-     *     summary="Register a new user",
-     *     description="Register a new user account",
-     *     @OA\Response(
-     *         response=501,
-     *         description="Not implemented",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="string", example="error"),
-     *             @OA\Property(property="message", type="string", example="Sign up not implemented yet.")
-     *         )
-     *     )
-     * )
-     */
     public function signUp()
     {
         return $this->respondNotImplemented('Sign up not implemented yet.');
@@ -151,5 +136,102 @@ class AuthApiController extends ApiBaseController
     {
         // Implement reviewer sign in logic here
         return $this->respondNotImplemented('Reviewer sign in not implemented yet.');
+    }
+
+    public function forgotPassword()
+    {
+        $email = $this->request->getPost('email');
+        $web_url = $this->request->getPost('web_url');
+        if (empty($email) || empty($web_url)) {
+            return $this->respondValidationErrors('Email and web_url are required.');
+        }
+
+        // Check if user exists
+        $userModel = new UserModel();
+        $user = $userModel->getUserByEmailAndWebUrl($email, $web_url);
+
+        if (!$user) {
+            return $this->respondNotFound('User not found.');
+        }
+
+        try {
+             // Generate OTP
+            $otp = rand(100000, 999999);
+
+            // Save into database
+            $passwordResetModel = new PasswordResetModel();
+            $passwordResetModel->createOtp($email, $otp);
+
+            log_message('info', "OTP for $email is $otp");
+
+            return $this->respondSuccess(['otp' => $otp], self::HTTP_OK, 'OTP sent successfully. Please check your email.');
+        } catch (\Exception $e) {
+            return $this->responError('Failed to sent OTP: ' . $e->getMessage());
+        }
+    }
+
+    public function verifyOtp()
+    {
+        $email = $this->request->getPost('email');
+        $otp = $this->request->getPost('otp');
+
+        if (empty($email) || empty($otp)) {
+            return $this->respondValidationErrors('Email and OTP are required.');
+        }
+        
+        try {
+            $passwordResetModel = new PasswordResetModel();
+            $resetData = $passwordResetModel->getOtpByEmailAndOtp($email, $otp);
+
+            if (!$resetData) {
+                return $this->respondNotFound('Invalid OTP. Please try again.');
+            }
+
+            return $this->respondSuccess($resetData, self::HTTP_OK, 'OTP valid. Please reset your password.');
+
+        } catch (\Exception $e) {
+            return $this->respondError('Failed to verify OTP: ' . $e->getMessage());
+        }
+    }
+
+    public function resetPassword()
+    {
+        $email = $this->request->getPost('email');
+        $web_url = $this->request->getPost('web_url');
+        $otp = $this->request->getPost('otp');
+        $newPassword = $this->request->getPost('password');
+
+        if (empty($email) || empty($otp) || empty($newPassword)) {
+            return $this->respondValidationErrors('Email, OTP, and new password are required.');
+        }
+
+        try {
+            $passwordResetModel = new PasswordResetModel();
+            $resetData = $passwordResetModel->getOtpByEmailAndOtp($email, $otp);
+
+            if (!$resetData) {
+                return $this->respondNotFound('Invalid OTP. Please try again.');
+            }
+
+            // Validate new password
+            if (strlen($newPassword) < 6) {
+                return $this->respondValidationErrors('Password must be at least 6 characters long.');
+            }
+
+            // Update password user
+            $userModel = new UserModel();
+            $updatePassword = $userModel->updatePassword($resetData->email, $newPassword);
+            if (!$updatePassword) {
+                return $this->respondNotFound('Failed to update password. Please try again.');
+            }
+
+            // Delete OTP from database
+            $passwordResetModel->deleteOtp($resetData->email);
+
+            // Optionally, you can send a success email or notification here
+            return $this->respondSuccess(['message' => 'Password reset successfully.'], self::HTTP_OK, 'Password reset successful.');
+        } catch (\Exception $e) {
+            return $this->respondError('Failed to validate password: ' . $e->getMessage());
+        }
     }
 }

@@ -68,6 +68,9 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     // auth
     $routes->post('auth/sign-in', 'AuthApiController::signIn');
     $routes->post('auth/sign-up', 'AuthApiController::signUp');
+    $routes->post('auth/forgot-password', 'AuthApiController::forgotPassword');
+    $routes->post('auth/verify-otp', 'AuthApiController::verifyOtp');
+    $routes->post('auth/reset-password', 'AuthApiController::resetPassword');
 
     // users
     $routes->get('users', 'UsersApiController::index');

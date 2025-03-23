@@ -88,5 +88,29 @@ class UserModel extends Model
 
         return $user;
     }
+
+    public function getUserByEmail($email)
+    {
+        return $this->where('email', $email)->first();
+    }
+        
+
+    public function getUserByEmailAndWebUrl($email, $web_url)
+    {
+        $builder = $this->builder();
+        $builder->select('users.*')
+            ->where('users.email ', $email)
+            ->join('program_categories', 'program_categories.id = users.program_category_id')
+            ->where('program_categories.web_url', $web_url);
+        return $builder->get()->getRowArray();
+    }
+
+    public function updatePassword($email, $newPassword)
+    {
+        return $this->where('email', $email)
+            ->set(['password' => md5($newPassword)])
+            ->update();
+    }
+
 }
 ?>
