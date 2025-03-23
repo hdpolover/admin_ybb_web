@@ -24,6 +24,35 @@ class ParticipantModel extends Model
         'status'
     ];
 
+    // sign in
+    public function signIn($email, $password, $web_url)
+    {
+        // Validate input
+        if (empty($email) || empty($password) || empty($web_url)) {
+            return false;
+        }
+
+        // get program category id by web_url
+        $programCategoryModel = new ProgramCategoryModel();
+        $programCategory = $programCategoryModel->getProgramCategoryIdByWebUrl($web_url);
+
+        // Check if user exists
+        $user = $this->where('email', $email)
+            ->where('program_category_id', $programCategory['id'])
+            ->first();
+
+        if (!$user) {
+            return false;
+        }
+
+        // Verify password with md5
+        if (!password_verify($password, $user->password)) {
+            return false;
+        }
+
+        return $user;
+    }
+
     /**
      * Get all participants with pagination
      *
@@ -35,7 +64,7 @@ class ParticipantModel extends Model
     public function getAllParticipants($limit = 10, $offset = 0, $filters = [])
     {
         $builder = $this->builder();
-        
+
         // Apply filters if provided
         foreach ($filters as $key => $value) {
             if (is_array($value)) {
@@ -44,22 +73,22 @@ class ParticipantModel extends Model
                 $builder->where($key, $value);
             }
         }
-        
+
         // Get total count before pagination
         $total = $builder->countAllResults(false);
-        
+
         // Apply pagination
         $builder->limit($limit, $offset);
-        
+
         // Get results
         $participants = $builder->get()->getResult();
-        
+
         return [
             'data' => $participants,
             'total' => $total
         ];
     }
-    
+
     /**
      * Get participants by program ID
      *
@@ -167,7 +196,7 @@ class ParticipantModel extends Model
 
         // Merge program_id filter with other filters
         $filters['program_id'] = $currentProgramId;
-        
+
         // Use existing getParticipants method with the program filter
         return $this->getParticipants($limit, $offset, $filters);
     }

@@ -10,15 +10,11 @@ use App\Models\AdminModel;
 class AuthApiController extends ApiBaseController
 {
     // sign in
-    public function signIn($email = null, $password = null, $type = null)
+    public function signIn($email = null, $password = null, $type = null, $web_url = null)
     {
+        // type 1 = participant, 2 = ambassador, 3 = reviewer, 4 = admin
+
         // If parameters are not provided, try to get from request
-        if ($email === null) {
-            $email = $this->request->getPost('email');
-        }
-        if ($password === null) {
-            $password = $this->request->getPost('password');
-        }
         if ($type === null) {
             $type = $this->request->getPost('type');
         }
@@ -29,7 +25,7 @@ class AuthApiController extends ApiBaseController
 
         switch ($type) {
             case 1:
-                return $this->participantSignIn($email, $password);
+                return $this->participantSignIn($email, $password, $web_url);
             case 2:
                 return $this->ambassadorSignIn();
             case 3:
@@ -79,25 +75,30 @@ class AuthApiController extends ApiBaseController
     }
 
     // participant sign in
-    public function participantSignIn($email = null, $password = null)
+    public function participantSignIn($email = null, $password = null, $web_url = null)
     {
         // If parameters are not provided, try to get from request
         if ($email === null) {
             $email = $this->request->getPost('email');
         }
+
         if ($password === null) {
             $password = $this->request->getPost('password');
         }
 
+        if ($web_url === null) {
+            $web_url = $this->request->getPost('web_url');
+        }
+
         // Validate input
-        if (empty($email) || empty($password)) {
+        if (empty($email) || empty($password) || empty($web_url)) {
             return $this->respondValidationErrors('Email and password are required.');
         }
 
         try {
             // Check credentials
             $model = new ParticipantModel();
-            $participant = $model->login($email, $password);
+            $participant = $model->signIn($email, $password, $web_url);
 
             if (!$participant) {
                 return $this->respondUnauthorized('Invalid email or password.');

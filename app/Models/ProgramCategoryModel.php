@@ -35,6 +35,15 @@ class ProgramCategoryModel extends Model
         'updated_at'
     ];
 
+    // get program category id by web_url
+    public function getProgramCategoryIdByWebUrl($web_url)
+    {
+        $builder = $this->builder();
+        $builder->select('id')
+            ->where('web_url', $web_url);
+        return $builder->get()->getRowArray();
+    }
+
     public function getAllCategoriesWithPrograms() {
         $builder = $this->builder('program_categories pc');
         $builder->select('pc.*, pt.name as program_type_name')
