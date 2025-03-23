@@ -110,4 +110,18 @@ class ProgramCategoryModel extends Model
             'total' => $total
         ];
     }
+
+    /**
+     * Get program information by web URL
+     *
+     * @param string $web_url The web URL of the program
+     * @return object|null Program data or null if not found
+     */
+    public function getProgramByWebUrl(string $web_url)
+    {
+        return $this->where('web_url', $web_url)
+                    ->where('is_active', 1)
+                    ->where('is_deleted', 0)
+                    ->first();
+    }
 }

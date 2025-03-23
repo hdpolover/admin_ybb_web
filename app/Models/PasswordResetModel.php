@@ -12,7 +12,7 @@ class PasswordResetModel extends Model
     // auto increment
     protected $useAutoIncrement = true;
 
-    protected $allowedFields = ['email', 'otp', 'created_at'];
+    protected $allowedFields = ['email', 'otp', 'user_id', 'created_at'];
     protected $useTimestamps = true;
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
@@ -27,10 +27,11 @@ class PasswordResetModel extends Model
         return $this->where('email', $email)->where('otp', $otp)->first();
     }
 
-    public function createOtp($email, $otp)
+    public function createOtp($email, $user_id, $otp)
     {
         return $this->save([
             'email' => $email,
+            'user_id' => $user_id,
             'otp' => $otp
         ]);
     }

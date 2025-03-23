@@ -8,11 +8,11 @@ use App\Controllers\Api\ApiBaseController;
 use App\Models\AdminModel;
 use App\Models\PasswordResetModel;
 use App\Models\ProgramCategoryModel;
-
+use App\Services\EmailService;
 
 class AuthApiController extends ApiBaseController
 {
-   
+
     public function signIn($email = null, $password = null, $type = null, $web_url = null)
     {
         // type 1 = participant, 2 = ambassador, 3 = reviewer, 4 = admin
@@ -142,6 +142,7 @@ class AuthApiController extends ApiBaseController
     {
         $email = $this->request->getPost('email');
         $web_url = $this->request->getPost('web_url');
+
         if (empty($email) || empty($web_url)) {
             return $this->respondValidationErrors('Email and web_url are required.');
         }
@@ -155,18 +156,26 @@ class AuthApiController extends ApiBaseController
         }
 
         try {
-             // Generate OTP
+            // Generate OTP
             $otp = rand(100000, 999999);
 
             // Save into database
             $passwordResetModel = new PasswordResetModel();
-            $passwordResetModel->createOtp($email, $otp);
+            $passwordResetModel->createOtp($email, $user->id, $otp);
+
+            // Send email with OTP
+            $emailService = new EmailService();
+            $emailSent = $emailService->sendPasswordResetEmail($email, $otp, $web_url);
+
+            if (!$emailSent) {
+                return $this->respondError('Failed to send OTP email. Please try again later.');
+            }
 
             log_message('info', "OTP for $email is $otp");
 
-            return $this->respondSuccess(['otp' => $otp], self::HTTP_OK, 'OTP sent successfully. Please check your email.');
+            return $this->respondSuccess(null, self::HTTP_OK, 'OTP sent successfully. Please check your email.');
         } catch (\Exception $e) {
-            return $this->responError('Failed to sent OTP: ' . $e->getMessage());
+            return $this->respondError('Failed to send OTP: ' . $e->getMessage());
         }
     }
 
@@ -178,7 +187,7 @@ class AuthApiController extends ApiBaseController
         if (empty($email) || empty($otp)) {
             return $this->respondValidationErrors('Email and OTP are required.');
         }
-        
+
         try {
             $passwordResetModel = new PasswordResetModel();
             $resetData = $passwordResetModel->getOtpByEmailAndOtp($email, $otp);
@@ -188,7 +197,6 @@ class AuthApiController extends ApiBaseController
             }
 
             return $this->respondSuccess($resetData, self::HTTP_OK, 'OTP valid. Please reset your password.');
-
         } catch (\Exception $e) {
             return $this->respondError('Failed to verify OTP: ' . $e->getMessage());
         }
@@ -196,42 +204,25 @@ class AuthApiController extends ApiBaseController
 
     public function resetPassword()
     {
-        $email = $this->request->getPost('email');
-        $web_url = $this->request->getPost('web_url');
-        $otp = $this->request->getPost('otp');
+        $user_id = $this->request->getPost('user_id');
         $newPassword = $this->request->getPost('password');
 
-        if (empty($email) || empty($otp) || empty($newPassword)) {
-            return $this->respondValidationErrors('Email, OTP, and new password are required.');
+        if (empty($user_id) || empty($newPassword)) {
+            return $this->respondValidationErrors('User ID and new password are required.');
         }
 
         try {
-            $passwordResetModel = new PasswordResetModel();
-            $resetData = $passwordResetModel->getOtpByEmailAndOtp($email, $otp);
-
-            if (!$resetData) {
-                return $this->respondNotFound('Invalid OTP. Please try again.');
-            }
-
-            // Validate new password
-            if (strlen($newPassword) < 6) {
-                return $this->respondValidationErrors('Password must be at least 6 characters long.');
-            }
-
-            // Update password user
+            // Update password
             $userModel = new UserModel();
-            $updatePassword = $userModel->updatePassword($resetData->email, $newPassword);
-            if (!$updatePassword) {
-                return $this->respondNotFound('Failed to update password. Please try again.');
-            }
+            $userModel->updatePassword($user_id, $newPassword);
 
-            // Delete OTP from database
-            $passwordResetModel->deleteOtp($resetData->email);
+            // Delete OTP
+            $passwordResetModel = new PasswordResetModel();
+            $passwordResetModel->deleteOtp($user_id);
 
-            // Optionally, you can send a success email or notification here
-            return $this->respondSuccess(['message' => 'Password reset successfully.'], self::HTTP_OK, 'Password reset successful.');
+            return $this->respondSuccess(null, self::HTTP_OK, 'Password reset successfully. You can now sign in with your new password.');
         } catch (\Exception $e) {
-            return $this->respondError('Failed to validate password: ' . $e->getMessage());
+            return $this->respondError('Failed to reset password: ' . $e->getMessage());
         }
     }
 }

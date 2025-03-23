@@ -102,12 +102,12 @@ class UserModel extends Model
             ->where('users.email ', $email)
             ->join('program_categories', 'program_categories.id = users.program_category_id')
             ->where('program_categories.web_url', $web_url);
-        return $builder->get()->getRowArray();
+        return $builder->get()->getRow();
     }
 
-    public function updatePassword($email, $newPassword)
+    public function updatePassword($user_id, $newPassword)
     {
-        return $this->where('email', $email)
+        return $this->where('id', $user_id)
             ->set(['password' => md5($newPassword)])
             ->update();
     }
