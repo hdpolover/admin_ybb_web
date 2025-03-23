@@ -59,5 +59,34 @@ class UserModel extends Model
             'total' => $total
         ];
     }
+
+    // sign in
+    public function signIn($email, $password, $web_url)
+    {
+        // Validate input
+        if (empty($email) || empty($password) || empty($web_url)) {
+            return false;
+        }
+
+        // get program category id by web_url
+        $programCategoryModel = new ProgramCategoryModel();
+        $programCategory = $programCategoryModel->getProgramCategoryIdByWebUrl($web_url);
+
+        // Check if user exists
+        $user = $this->where('email', $email)
+            ->where('program_category_id', $programCategory['id'])
+            ->first();
+
+        if (!$user) {
+            return false;
+        }
+
+        // Verify password with md5
+        // if (!password_verify($password, $user->password)) {
+        //     return false;
+        // }
+
+        return $user;
+    }
 }
 ?>

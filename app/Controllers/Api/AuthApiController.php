@@ -2,7 +2,7 @@
 
 namespace App\Controllers\Api;
 
-use App\Models\ParticipantModel;
+use App\Models\UserModel;
 use CodeIgniter\HTTP\ResponseInterface;
 use App\Controllers\Api\ApiBaseController;
 use App\Models\AdminModel;
@@ -97,20 +97,20 @@ class AuthApiController extends ApiBaseController
 
         try {
             // Check credentials
-            $model = new ParticipantModel();
-            $participant = $model->signIn($email, $password, $web_url);
+            $model = new UserModel();
+            $user = $model->signIn($email, $password, $web_url);
 
-            if (!$participant) {
+            if (!$user) {
                 return $this->respondUnauthorized('Invalid email or password.');
             }
 
             // if participant found, check if the account is active
-            if (!property_exists($participant, 'is_active') || !$participant->is_active) {
+            if (!property_exists($user, 'is_active') || !$user->is_active) {
                 return $this->respondForbidden('Your account is not active.');
             }
 
             // return data as participant
-            return $this->respondSuccess($participant, self::HTTP_OK, 'Sign in successful');
+            return $this->respondSuccess($user, self::HTTP_OK, 'Sign in successful');
         } catch (\Exception $e) {
             return $this->respondError('An error occurred during sign in: ' . $e->getMessage());
         }

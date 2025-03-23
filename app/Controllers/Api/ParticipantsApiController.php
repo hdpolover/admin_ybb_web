@@ -273,4 +273,12 @@ class ParticipantsApiController extends ApiBaseController
             return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
         }
     }
+
+    public function getParticipantByUserId($userId){
+        try {
+            return $this->respondSuccess($participant);
+        } catch (\Exception $e) {
+            return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
+        }
+    }
 }
