@@ -24,33 +24,12 @@ class ParticipantModel extends Model
         'status'
     ];
 
-    // sign in
-    public function signIn($email, $password, $web_url)
+    // get participants by user id
+    public function getParticipantsByUserId($userId)
     {
-        // Validate input
-        if (empty($email) || empty($password) || empty($web_url)) {
-            return false;
-        }
-
-        // get program category id by web_url
-        $programCategoryModel = new ProgramCategoryModel();
-        $programCategory = $programCategoryModel->getProgramCategoryIdByWebUrl($web_url);
-
-        // Check if user exists
-        $user = $this->where('email', $email)
-            ->where('program_category_id', $programCategory['id'])
-            ->first();
-
-        if (!$user) {
-            return false;
-        }
-
-        // Verify password with md5
-        if (!password_verify($password, $user->password)) {
-            return false;
-        }
-
-        return $user;
+        // there can be more than one participant with the same user id
+        // so we need to return all participants with the same user id
+        return $this->where('user_id', $userId)->findAll();
     }
 
     /**

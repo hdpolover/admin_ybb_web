@@ -7,6 +7,7 @@ use App\Controllers\Api\ApiBaseController;
 use CodeIgniter\HTTP\ResponseInterface;
 use CodeIgniter\HTTP\RequestInterface;
 use Psr\Log\LoggerInterface;
+use OpenApi\Annotations as OA;
 
 class ParticipantsApiController extends ApiBaseController
 {
@@ -24,7 +25,7 @@ class ParticipantsApiController extends ApiBaseController
    /**
      * 🟢 Get All Participants (READ)
      * GET /api/participants
-     * 
+
      * Query Parameters:
      * @param int page Page number
      * @param int limit Items per page
@@ -74,6 +75,8 @@ class ParticipantsApiController extends ApiBaseController
     /**
      * 🔍 Get Single Participant (READ)
      * GET /api/participants/{id}
+     * 
+
      */
     public function show($id = null)
     {
@@ -97,6 +100,8 @@ class ParticipantsApiController extends ApiBaseController
     /**
      * 🆕 Create New Participant (CREATE)
      * POST /api/participants
+     * 
+
      */
     public function create()
     {
@@ -136,6 +141,8 @@ class ParticipantsApiController extends ApiBaseController
     /**
      * ✏️ Update Participant (UPDATE)
      * PUT /api/participants/{id}
+     * 
+
      */
     public function update($id = null)
     {
@@ -184,6 +191,8 @@ class ParticipantsApiController extends ApiBaseController
     /**
      * 🗑️ Delete Participant (DELETE)
      * DELETE /api/participants/{id}
+     * 
+  
      */
     public function delete($id = null)
     {
@@ -237,6 +246,8 @@ class ParticipantsApiController extends ApiBaseController
     /**
      * 🔍 Get Current Program Participants
      * GET /api/participants/current-program
+     
+     * )
      */
     public function getCurrentProgramParticipants()
     {
@@ -274,11 +285,28 @@ class ParticipantsApiController extends ApiBaseController
         }
     }
 
-    public function getParticipantByUserId($userId){
+    /**
+     * 🔍 Get Participant by User ID
+     * GET /api/participants/user/{userId}
+     * 
+     **/
+    public function getByUserId($userId = null) 
+    {
         try {
+            if (!$userId) {
+                return $this->respondError('User ID is required', self::HTTP_BAD_REQUEST);
+            }
+            
+            $participant = $this->model->getParticipantsByUserId($userId);
+            
+            if (!$participant) {
+                return $this->respondNotFound("Participant not found for this user");
+            }
+            
             return $this->respondSuccess($participant);
         } catch (\Exception $e) {
             return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
         }
     }
+
 }

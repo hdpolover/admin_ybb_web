@@ -12,7 +12,8 @@
         "dompdf/dompdf": "^3.1",
         "laminas/laminas-escaper": "^2.9",
         "phpoffice/phpspreadsheet": "^4.0",
-        "psr/log": "^1.1"
+        "psr/log": "^1.1",
+        "zircote/swagger-php": "^5.0"
     },
     "require-dev": {
         "kint-php/kint": "^5.0.4",

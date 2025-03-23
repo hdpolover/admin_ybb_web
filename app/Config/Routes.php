@@ -77,6 +77,8 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->get('participants', 'ParticipantsApiController::index');
     $routes->get('participants/(:num)', 'ParticipantsApiController::show/$1');
     $routes->get('participants/current-program', 'ParticipantsApiController::getCurrentProgramParticipants');
+    //get participants by user id
+    $routes->get('participants/user/(:num)', 'ParticipantsApiController::getByUserId/$1');
 
     // ambassadors
     $routes->get('ambassadors', 'AmbassadorsApiController::index');

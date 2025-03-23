@@ -7,9 +7,10 @@ use CodeIgniter\HTTP\ResponseInterface;
 use App\Controllers\Api\ApiBaseController;
 use App\Models\AdminModel;
 
+
 class AuthApiController extends ApiBaseController
 {
-    // sign in
+   
     public function signIn($email = null, $password = null, $type = null, $web_url = null)
     {
         // type 1 = participant, 2 = ambassador, 3 = reviewer, 4 = admin
@@ -114,6 +115,28 @@ class AuthApiController extends ApiBaseController
         } catch (\Exception $e) {
             return $this->respondError('An error occurred during sign in: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/auth/sign-up",
+     *     operationId="signUp",
+     *     tags={"Auth"},
+     *     summary="Register a new user",
+     *     description="Register a new user account",
+     *     @OA\Response(
+     *         response=501,
+     *         description="Not implemented",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="string", example="error"),
+     *             @OA\Property(property="message", type="string", example="Sign up not implemented yet.")
+     *         )
+     *     )
+     * )
+     */
+    public function signUp()
+    {
+        return $this->respondNotImplemented('Sign up not implemented yet.');
     }
 
     // ambassador sign in
