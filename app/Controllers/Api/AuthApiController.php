@@ -13,6 +13,7 @@ use App\Services\EmailService;
 class AuthApiController extends ApiBaseController
 {
 
+    // sign in
     public function signIn($email = null, $password = null, $type = null, $web_url = null)
     {
         // type 1 = participant, 2 = ambassador, 3 = reviewer, 4 = admin
@@ -107,6 +108,20 @@ class AuthApiController extends ApiBaseController
                 return $this->respondUnauthorized('Invalid email or password.');
             }
 
+            // Check if email is verified
+            if (isset($user->email_not_verified) && $user->email_not_verified) {
+                // Generate a new verification token and send email
+                $user = $model->regenerateVerificationToken($email, $web_url);
+
+                if ($user) {
+                    // Send verification email
+                    $emailService = new EmailService();
+                    $emailService->sendVerificationEmail($email, $user->verification_token, $web_url);
+                }
+
+                return $this->respondForbidden(lang('EmailVerification.verification_required'));
+            }
+
             // if participant found, check if the account is active
             if (!property_exists($user, 'is_active') || !$user->is_active) {
                 return $this->respondForbidden('Your account is not active.');
@@ -121,6 +136,9 @@ class AuthApiController extends ApiBaseController
 
     public function participantSignUp()
     {
+        $userModel = new UserModel();
+        $participantModel = new ParticipantModel();
+
         $email = $this->request->getPost('email');
         $password = $this->request->getPost('password');
         $programCategoryId = $this->request->getPost('program_category_id');
@@ -130,44 +148,84 @@ class AuthApiController extends ApiBaseController
         if (empty($email) || empty($password) || empty($programCategoryId) || empty($programId) || empty($fullName)) {
             return $this->respondValidationErrors('Email, password, program_category_id, program_id, and full_name are required.');
         }
-        // Check if user already exists by params
-        $params = [
-            'email' => $email,
-            'program_category_id' => $programCategoryId,
-        ];
-        $model = new UserModel();
-        $existingUser = $model->getUserByParams($params);
-
-        if ($existingUser) {
-            return $this->respondValidationErrors('User already exists with this email. please sign in.'); 
-        }
 
         try {
-            $model = new UserModel();
-            $user = $model->createUser($data = [
+            // Check if user already exists by params
+            $params = [
                 'email' => $email,
-                'password' => md5($password),
                 'program_category_id' => $programCategoryId,
-            ]);
+            ];
 
-            if (!$user) {
-                return $this->respondError('Failed to register user.');
+            $existingUser = $userModel->getUserByParams($params);
+
+            if ($existingUser) {
+                // check if participant already exists
+                if (is_object($existingUser)) {
+                    $existingParticipant = $participantModel->getParticipantByParams([
+                        'user_id' => $existingUser->id,
+                        'program_id' => $programId,
+                    ]);
+
+                    if ($existingParticipant) {
+                        return $this->respondValidationErrors('Participant already exists for this program. please sign in.');
+                    }
+
+                    // Create participant for existing user
+                    $participantData = [
+                        'user_id' => $existingUser->id,
+                        'program_id' => $programId,
+                        'full_name' => $fullName,
+                    ];
+
+                    $participant = $participantModel->createParticipant($participantData);
+
+                    if (!$participant) {
+                        return $this->respondError('Failed to register participant.');
+                    }
+
+                    // Send verification email
+                    $emailService = new EmailService();
+                    $emailService->sendVerificationEmail($email, $existingUser->verification_token, $programCategoryId);
+
+                    if (!$participant) {
+                        return $this->respondError('Failed to register participant.');
+                    }
+
+                    return $this->respondSuccess($participant, self::HTTP_CREATED, 'Participant sign up successful.');
+                }
+            } else {
+                // Create new user and participant
+                $userData = [
+                    'email' => $email,
+                    'password' => $password,
+                    'program_category_id' => $programCategoryId,
+                    'full_name' => $fullName,
+                ];
+
+                $user = $userModel->createUser($userData);
+
+                if (!$user) {
+                    return $this->respondError('Failed to register user.');
+                }
+
+                $participantData = [
+                    'user_id' => $user->id,
+                    'program_id' => $programId,
+                    'full_name' => $fullName,
+                ];
+
+                $participant = $participantModel->createParticipant($participantData);
+
+                if (!$participant) {
+                    return $this->respondError('Failed to register participant.');
+                }
+
+                // Send verification email
+                $emailService = new EmailService();
+                $emailService->sendVerificationEmail($email, $user->verification_token, $programCategoryId);
+
+                return $this->respondSuccess($participant, self::HTTP_CREATED, 'Participant sign up successful. Please check your email to verify your account.');
             }
-                
-            // Create participant
-            $participantModel = new ParticipantModel();
-            $participant = $participantModel->createParticipant($data = [
-                'user_id' => $user->id,
-                'program_id' => $programId,
-                'full_name' => $fullName,
-            ]);
-
-
-            if (!$participant) {
-                return $this->respondError('Failed to register participant.');
-            }
-
-            return $this->respondSuccess($participant, self::HTTP_CREATED, 'Participant sign up successful.');
         } catch (\Exception $e) {
             return $this->respondError('An error occurred: ' . $e->getMessage());
         }
@@ -305,6 +363,117 @@ class AuthApiController extends ApiBaseController
             return $this->respondSuccess(null, self::HTTP_OK, 'Password reset successfully. You can now sign in with your new password.');
         } catch (\Exception $e) {
             return $this->respondError('Failed to reset password: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Verify email with token
+     * 
+     * @return ResponseInterface
+     */
+    public function verifyEmail()
+    {
+        $token = $this->request->getGet('token');
+        $email = $this->request->getGet('email');
+        $web_url = $this->request->getGet('web_url');
+
+        if (empty($token) || empty($email)) {
+            return $this->respondValidationErrors(lang('EmailVerification.verification_failed'));
+        }
+
+        try {
+            $userModel = new UserModel();
+            $verified = $userModel->verifyEmail($email, $token);
+
+            if (!$verified) {
+                return $this->respondError(lang('EmailVerification.invalid_token'));
+            }
+
+            // Redirect to login page with success message
+            if (!empty($web_url)) {
+                return redirect()->to("https://{$web_url}/login?verified=1&message=" . urlencode(lang('EmailVerification.verification_success')));
+            }
+
+            return $this->respondSuccess(null, self::HTTP_OK, lang('EmailVerification.verification_success'));
+        } catch (\Exception $e) {
+            log_message('error', 'Email verification failed: {error}', ['error' => $e->getMessage()]);
+            return $this->respondError(lang('EmailVerification.verification_failed'));
+        }
+    }
+
+    /**
+     * Resend verification email
+     * 
+     * @return ResponseInterface
+     */
+    public function resendVerification()
+    {
+        $email = $this->request->getPost('email');
+        $web_url = $this->request->getPost('web_url');
+
+        if (empty($email) || empty($web_url)) {
+            return $this->respondValidationErrors(lang('EmailVerification.email_not_found'));
+        }
+
+        try {
+            $userModel = new UserModel();
+            $user = $userModel->getUserByEmailAndWebUrl($email, $web_url);
+
+            if (!$user) {
+                return $this->respondNotFound(lang('EmailVerification.email_not_found'));
+            }
+
+            // Check if already verified
+            if ($user->is_verified) {
+                return $this->respondSuccess(null, self::HTTP_OK, lang('EmailVerification.already_verified'));
+            }
+
+            // Generate new verification token
+            $user = $userModel->regenerateVerificationToken($email, $web_url);
+
+            if (!$user) {
+                return $this->respondError(lang('EmailVerification.resend_failed'));
+            }
+
+            // Send verification email
+            $emailService = new EmailService();
+            $emailSent = $emailService->sendVerificationEmail($email, $user->verification_token, $web_url);
+
+            if (!$emailSent) {
+                return $this->respondError(lang('EmailVerification.resend_failed'));
+            }
+
+            return $this->respondSuccess(null, self::HTTP_OK, lang('EmailVerification.resend_success'));
+        } catch (\Exception $e) {
+            log_message('error', 'Failed to resend verification email: {error}', ['error' => $e->getMessage()]);
+            return $this->respondError(lang('EmailVerification.resend_failed'));
+        }
+    }
+
+    /**
+     * Test email sending functionality
+     * 
+     * @return ResponseInterface
+     */
+    public function testEmail()
+    {
+        try {
+            $emailService = new EmailService();
+            $testToken = bin2hex(random_bytes(16));
+
+            $emailSent = $emailService->sendVerificationEmail(
+                'test@example.com', // Replace with a test email
+                $testToken,
+                'test.ybbfoundation.com' // Replace with your test domain
+            );
+
+            if (!$emailSent) {
+                return $this->respondError('Failed to send test email.');
+            }
+
+            return $this->respondSuccess(null, self::HTTP_OK, 'Test email sent successfully.');
+        } catch (\Exception $e) {
+            return $this->respondError('Email test failed: ' . $e->getMessage());
         }
     }
 }

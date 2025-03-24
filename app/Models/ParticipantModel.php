@@ -9,19 +9,43 @@ class ParticipantModel extends Model
     protected $table = 'participants';
     protected $primaryKey = 'id';
     protected $returnType = 'object';
-    // auto increment
     protected $useAutoIncrement = true;
-    public $timestamps = true;
+    protected $useTimestamps = true;
+    protected $dateFormat = 'datetime';
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
 
     // `id`, `user_id`, `account_id`, `full_name`, `birthdate`, `ref_code_ambassador`, `program_id`, `gender`, `origin_address`, `current_address`, `nationality`, `occupation`, `institution`, `organizations`, `country_code`, `phone_number`, `picture_url`, `instagram_account`, `emergency_account`, `contact_relation`, `disease_history`, `tshirt_size`, `category`, `experiences`, `achievements`, `resume_url`, `knowledge_source`, `source_account_name`, `twibbon_link`, `requirement_link`, `is_active`, `is_deleted`, `created_at`, `updated_at
     protected $allowedFields = [
-        'name',
-        'email',
-        'phone',
-        'registration_date',
-        'status'
+        'user_id',
+        'account_id',
+        'full_name',
+        'program_id',
+        'gender',
+        'origin_address',
+        'current_address',
+        'nationality',
+        'occupation',
+        'institution',
+        'organizations',
+        'country_code',
+        'phone_number',
+        'picture_url',
+        'instagram_account',
+        'emergency_account',
+        'contact_relation',
+        'disease_history', 
+        'tshirt_size',
+        'category',
+        'experiences',
+        'achievements',
+        'resume_url',
+        'knowledge_source',
+        'source_account_name',
+        'twibbon_link',
+        'requirement_link',
+        'is_active',
+        'is_deleted'
     ];
 
     // get participants by user id
@@ -180,6 +204,27 @@ class ParticipantModel extends Model
         return $this->getParticipants($limit, $offset, $filters);
     }
 
+    // get participant by params
+    public function getParticipantByParams($params)
+    {
+        $builder = $this->builder();
+
+        // Apply filters dynamically
+        foreach ($params as $key => $value) {
+            if (is_array($value)) {
+                $builder->whereIn($key, $value);
+            } else {
+                $builder->where($key, $value);
+            }
+        }
+
+        // Select all fields
+        $builder->select('*');
+
+        // Execute query and return one result
+        return $builder->get()->getRow();
+    }
+
     public function createParticipant($data)
     {
         // Validate input data
@@ -187,10 +232,32 @@ class ParticipantModel extends Model
             throw new \InvalidArgumentException('Missing required fields: user_id, program_id, full_name');
         }
 
-        // Insert participant data
-        $this->insert($data);
+        // Set default values
+        $data['account_id'] = $this->generateAccountId($data['user_id']);
+        $data['is_active'] = 1;
+        $data['is_deleted'] = 0;
 
-        // Return the ID of the newly created participant
-        return $this->insertID();
+        // Insert participant data
+        $this->save($data);
+        
+        // Return the complete participant object
+        return $this->find($this->insertID());
+    }
+
+    public function generateAccountId($userId)
+    {
+        // Generate a unique account ID with uniqid() from user id
+        $accountId = uniqid($userId);
+
+        // Check if the account ID already exists
+        $existingAccount = $this->where('account_id', $accountId)->first();
+
+        if ($existingAccount) {
+            // If it exists, generate a new one
+            return $this->generateAccountId($userId);
+        }
+
+        // If it doesn't exist, return the new account ID
+        return $accountId;
     }
 }

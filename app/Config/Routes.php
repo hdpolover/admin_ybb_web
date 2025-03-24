@@ -72,6 +72,10 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->post('auth/verify-otp', 'AuthApiController::verifyOtp');
     $routes->post('auth/reset-password', 'AuthApiController::resetPassword');
     $routes->post('auth/participant-signup', 'AuthApiController::participantSignUp');
+    // Email verification routes
+    $routes->get('auth/verify-email', 'AuthApiController::verifyEmail');
+    $routes->post('auth/resend-verification', 'AuthApiController::resendVerification');
+    $routes->get('auth/test-email', 'AuthApiController::testEmail'); // Test route
 
     // users
     $routes->get('users', 'UsersApiController::index');

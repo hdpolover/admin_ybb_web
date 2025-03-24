@@ -22,22 +22,31 @@ class EmailService
      * @param string $template Email template
      * @param array $data Data to pass to the view
      * @return bool True if email was sent, false otherwise
+     * @throws \Exception If there's an error sending the email
      */
     public function sendEmail(string $to, string $subject, string $template, array $data = []): bool
     {
-        // Load view with data
-        $message = view('emails/' . $template, $data);
-        
-        $this->email->setTo($to);
-        $this->email->setSubject($subject);
-        $this->email->setMessage($message);
-        
-        if ($this->email->send() === false) {
-            log_message('error', 'Email sending error: ' . $this->email->printDebugger(['headers']));
-            return false;
+        try {
+            // Load view with data
+            $message = view('emails/' . $template, $data);
+            
+            $this->email->setTo($to);
+            $this->email->setSubject($subject);
+            $this->email->setMessage($message);
+            
+            if ($this->email->send() === false) {
+                $error = $this->email->printDebugger(['headers']);
+                log_message('error', 'Email sending error to {email}: {error}', ['email' => $to, 'error' => $error]);
+                throw new \Exception('Failed to send email: ' . $error);
+            }
+            
+            log_message('info', 'Email sent successfully to {email}', ['email' => $to]);
+            return true;
+            
+        } catch (\Exception $e) {
+            log_message('error', 'Email service error: {error}', ['error' => $e->getMessage()]);
+            throw $e;
         }
-        
-        return true;
     }
 
     /**
@@ -53,7 +62,15 @@ class EmailService
         $subject = 'Password Reset OTP';
         
         // Get program information based on web_url
-        $programData = $this->getProgramInfoByWebUrl($web_url);
+        $programCategoryModel = new ProgramCategoryModel();
+        $programData = $programCategoryModel->getProgramCategoryByParams(['web_url' => $web_url]);
+
+        // Check if program data is found
+        if (!$programData) {
+            log_message('error', 'Program not found for web_url: {web_url}', ['web_url' => $web_url]);
+            return false;
+        }
+
         
         $data = [
             'otp' => $otp,
@@ -68,14 +85,42 @@ class EmailService
     }
     
     /**
-     * Get program information by web URL
+     * Send an email verification with token
      *
-     * @param string $web_url Program's web URL
-     * @return object|null Program data or null if not found
+     * @param string $to Recipient email
+     * @param string $token Verification token
+     * @param string $web_url Web URL to get program information
+     * @return bool True if email was sent, false otherwise
      */
-    private function getProgramInfoByWebUrl(string $web_url): ?object
+    public function sendVerificationEmail(string $to, string $token, string $program_category_id): bool
     {
-        $programModel = new ProgramCategoryModel();
-        return $programModel->getProgramByWebUrl($web_url);
+        $subject = 'Verify Your Email Address';
+        
+        // Get program information based on web_url
+        $programCategoryModel = new ProgramCategoryModel();
+        $programData = $programCategoryModel->getProgramCategoryByParams(['id' => $program_category_id]);
+
+        // Check if program data is found
+        if (!$programData) {
+            log_message('error', 'Program not found for program_category_id: {program_category_id}', ['program_category_id' => $program_category_id]);
+            return false;
+        }
+        
+        // Create verification URL
+        $baseUrl = base_url();
+        $verificationUrl = $baseUrl . "verify-email?token={$token}&email={$to}&program_category_id={$program_category_id}";
+        
+        $data = [
+            'verification_token' => $token,
+            'verification_url' => $verificationUrl
+        ];
+        
+        if ($programData) {
+            $data = array_merge($data, (array)$programData);
+        }
+        
+        return $this->sendEmail($to, $subject, 'verify_email', $data);
     }
+    
+
 }

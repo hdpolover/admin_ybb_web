@@ -117,11 +117,12 @@ class ProgramCategoryModel extends Model
      * @param string $web_url The web URL of the program
      * @return object|null Program data or null if not found
      */
-    public function getProgramByWebUrl(string $web_url)
+    public function getProgramCategoryByParams($params)
     {
-        return $this->where('web_url', $web_url)
-                    ->where('is_active', 1)
-                    ->where('is_deleted', 0)
-                    ->first();
+        $builder = $this->builder();
+        $builder->select('*')
+            ->where($params);
+        
+        return $builder->get()->getRow();
     }
 }
