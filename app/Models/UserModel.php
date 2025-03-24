@@ -24,8 +24,6 @@ class UserModel extends Model
         'program_category_id',
         'is_active',
         'is_deleted',
-        'created_at',
-        'updated_at',
         'verification_token'
     ];
 
