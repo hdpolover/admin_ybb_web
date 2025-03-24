@@ -7,7 +7,7 @@ use CodeIgniter\HTTP\ResponseInterface;
 use App\Controllers\Api\ApiBaseController;
 use App\Models\AdminModel;
 use App\Models\PasswordResetModel;
-use App\Models\ProgramCategoryModel;
+use App\Models\ParticipantModel;
 use App\Services\EmailService;
 
 class AuthApiController extends ApiBaseController
@@ -119,9 +119,91 @@ class AuthApiController extends ApiBaseController
         }
     }
 
-    public function signUp()
+    public function participantSignUp()
     {
-        return $this->respondNotImplemented('Sign up not implemented yet.');
+        $email = $this->request->getPost('email');
+        $password = $this->request->getPost('password');
+        $programCategoryId = $this->request->getPost('program_category_id');
+        $programId = $this->request->getPost('program_id');
+        $fullName = $this->request->getPost('full_name');
+
+        if (empty($email) || empty($password) || empty($programCategoryId) || empty($programId) || empty($fullName)) {
+            return $this->respondValidationErrors('Email, password, program_category_id, program_id, and full_name are required.');
+        }
+        // Check if user already exists by params
+        $params = [
+            'email' => $email,
+            'program_category_id' => $programCategoryId,
+        ];
+        $model = new UserModel();
+        $existingUser = $model->getUserByParams($params);
+
+        if ($existingUser) {
+            return $this->respondValidationErrors('User already exists with this email. please sign in.'); 
+        }
+
+        try {
+            $model = new UserModel();
+            $user = $model->createUser($data = [
+                'email' => $email,
+                'password' => md5($password),
+                'program_category_id' => $programCategoryId,
+            ]);
+
+            if (!$user) {
+                return $this->respondError('Failed to register user.');
+            }
+                
+            // Create participant
+            $participantModel = new ParticipantModel();
+            $participant = $participantModel->createParticipant($data = [
+                'user_id' => $user->id,
+                'program_id' => $programId,
+                'full_name' => $fullName,
+            ]);
+
+
+            if (!$participant) {
+                return $this->respondError('Failed to register participant.');
+            }
+
+            return $this->respondSuccess($participant, self::HTTP_CREATED, 'Participant sign up successful.');
+        } catch (\Exception $e) {
+            return $this->respondError('An error occurred: ' . $e->getMessage());
+        }
+    }
+
+    private function adminSignUp()
+    {
+        $email = $this->request->getPost('email');
+        $password = $this->request->getPost('password');
+
+        if (empty($email) || empty($password)) {
+            return $this->respondValidationErrors('Email and password are required.');
+        }
+
+        try {
+            $model = new AdminModel();
+            $admin = $model->createAdmin($email, $password);
+
+            if (!$admin) {
+                return $this->respondError('Failed to register admin.');
+            }
+
+            return $this->respondSuccess($admin, self::HTTP_CREATED, 'Admin sign up successful.');
+        } catch (\Exception $e) {
+            return $this->respondError('An error occurred: ' . $e->getMessage());
+        }
+    }
+
+    private function ambassadorSignUp()
+    {
+        return $this->respondNotImplemented('Ambassador sign up not implemented yet.');
+    }
+
+    private function reviewerSignUp()
+    {
+        return $this->respondNotImplemented('Reviewer sign up not implemented yet.');
     }
 
     // ambassador sign in
