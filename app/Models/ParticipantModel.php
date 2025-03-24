@@ -179,4 +179,18 @@ class ParticipantModel extends Model
         // Use existing getParticipants method with the program filter
         return $this->getParticipants($limit, $offset, $filters);
     }
+
+    public function createParticipant($data)
+    {
+        // Validate input data
+        if (empty($data['user_id']) || empty($data['program_id']) || empty($data['full_name'])) {
+            throw new \InvalidArgumentException('Missing required fields: user_id, program_id, full_name');
+        }
+
+        // Insert participant data
+        $this->insert($data);
+
+        // Return the ID of the newly created participant
+        return $this->insertID();
+    }
 }

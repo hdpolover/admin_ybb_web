@@ -93,7 +93,14 @@ class UserModel extends Model
     {
         return $this->where('email', $email)->first();
     }
-        
+
+    public function getUserByParams($params)
+    {
+        $builder = $this->builder();
+        $builder->select('users.*')
+            ->where($params);
+        return $builder->get()->getRow();
+    }
 
     public function getUserByEmailAndWebUrl($email, $web_url)
     {
@@ -112,5 +119,18 @@ class UserModel extends Model
             ->update();
     }
 
+    public function createUser($data)
+    {
+        // Validate input
+        if (empty($data['email']) || empty($data['password']) || empty($data['program_category_id'])) {
+            return false;
+        }
+
+        // Hash password
+        $data['password'] = md5($data['password']);
+
+        // Insert user into database
+        return $this->insert($data);
+    }
 }
 ?>
