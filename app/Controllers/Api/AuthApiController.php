@@ -97,14 +97,12 @@ class AuthApiController extends ApiBaseController
         }
 
         switch ($type) {
-            case 1: // participant
-                return $this->participantAuth->signIn();
-            case 2: // ambassador
-                return $this->ambassadorSignIn();
-            case 3: // reviewer
-                return $this->reviewerSignIn();
-            case 4: // admin
+            case 1: // admin
                 return $this->adminAuth->signIn();
+            case 2: // participant
+                return $this->participantAuth->signIn();
+            case 3: // ambassador
+                return $this->ambassadorSignIn();
             default:
                 return $this->respondValidationErrors('Invalid type.');
         }
@@ -123,11 +121,6 @@ class AuthApiController extends ApiBaseController
     public function ambassadorSignIn()
     {
         return $this->respondNotImplemented('Ambassador sign in not implemented yet.');
-    }
-    
-    public function reviewerSignIn()
-    {
-        return $this->respondNotImplemented('Reviewer sign in not implemented yet.');
     }
     
     // Password Recovery Methods

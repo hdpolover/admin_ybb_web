@@ -23,7 +23,7 @@ class JwtAuthController extends BaseAuthController
         $rules = [
             'email' => 'required|valid_email',
             'password' => 'required|min_length[6]',
-            'type' => 'required|integer|in_list[1,2,3,4]' // 1=participant, 2=ambassador, 3=reviewer, 4=admin
+            'type' => 'required|integer|in_list[1,2,3]' // 1=admin, 2=participant, 3=ambassador
         ];
 
         if (!$this->validate($rules)) {
@@ -38,7 +38,22 @@ class JwtAuthController extends BaseAuthController
         // Get user based on type
         $user = null;
         switch ($type) {
-            case 1: // participant
+            case 1: // admin
+                $adminModel = new AdminModel();
+                $user = $adminModel->signIn($email, $password);
+                
+                // Check if user exists and authentication succeeded
+                if (!$user) {
+                    return $this->respondError('Invalid email or password', ResponseInterface::HTTP_UNAUTHORIZED);
+                }
+                
+                // Check if admin is active
+                if (!$user->is_active) {
+                    return $this->respondForbidden('Your account has been deactivated.');
+                }
+                break;
+                
+            case 2: // participant
                 $userModel = new UserModel();
                 $user = $userModel->signIn($email, $password, $web_url);
                 
@@ -67,24 +82,8 @@ class JwtAuthController extends BaseAuthController
                 }
                 break;
                 
-            case 4: // admin
-                $adminModel = new AdminModel();
-                $user = $adminModel->signIn($email, $password);
-                
-                // Check if user exists and authentication succeeded
-                if (!$user) {
-                    return $this->respondError('Invalid email or password', ResponseInterface::HTTP_UNAUTHORIZED);
-                }
-                
-                // Check if admin is active
-                if (!$user->is_active) {
-                    return $this->respondForbidden('Your account has been deactivated.');
-                }
-                break;
-                
-            case 2: // ambassador
-            case 3: // reviewer
-                return $this->respondNotImplemented('JWT login for this user type is not implemented yet.');
+            case 3: // ambassador
+                return $this->respondNotImplemented('JWT login for ambassador is not implemented yet.');
         }
 
         // Generate JWT token based on user type
@@ -95,7 +94,7 @@ class JwtAuthController extends BaseAuthController
         ];
         
         // Add additional user data based on type
-        if ($type == 1 && isset($user->full_name)) {
+        if ($type == 2 && isset($user->full_name)) {
             $userData['full_name'] = $user->full_name;
         }
         
@@ -127,18 +126,21 @@ class JwtAuthController extends BaseAuthController
         // Get complete user data from database based on user type
         $user = null;
         switch ($userData->type) {
-            case 1: // participant
-                $userModel = new UserModel();
-                $user = $userModel->find($userData->id);
-                break;
-                
-            case 4: // admin
+            case 1: // admin
                 $adminModel = new AdminModel();
                 $user = $adminModel->find($userData->id);
                 break;
                 
+            case 2: // participant
+                $userModel = new UserModel();
+                $user = $userModel->find($userData->id);
+                break;
+                
+            case 3: // ambassador
+                return $this->respondNotImplemented('Profile retrieval for ambassador is not implemented yet.');
+                
             default:
-                return $this->respondNotImplemented('Profile retrieval for this user type is not implemented yet.');
+                return $this->respondError('Invalid user type');
         }
         
         if (!$user) {

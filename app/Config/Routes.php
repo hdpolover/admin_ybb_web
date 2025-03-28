@@ -88,15 +88,20 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
         $routes->post('resend-verification', 'AuthApiController::resendVerification');
         $routes->get('test-email', 'AuthApiController::testEmail');
         
-        // User type specific routes - can be accessed directly through specialized controllers if needed
+        // User type specific routes - can be accessed directly through specialized controllers
+        $routes->group('admin', function($routes) {
+            $routes->post('sign-in', 'Auth\AdminAuthController::signIn');
+            $routes->post('sign-up', 'Auth\AdminAuthController::signUp');
+        });
+        
         $routes->group('participant', function($routes) {
             $routes->post('sign-in', 'Auth\ParticipantAuthController::signIn');
             $routes->post('sign-up', 'Auth\ParticipantAuthController::signUp');
         });
         
-        $routes->group('admin', function($routes) {
-            $routes->post('sign-in', 'Auth\AdminAuthController::signIn');
-            $routes->post('sign-up', 'Auth\AdminAuthController::signUp');
+        $routes->group('ambassador', function($routes) {
+            $routes->post('sign-in', 'Auth\AmbassadorAuthController::signIn');
+            $routes->post('sign-up', 'Auth\AmbassadorAuthController::signUp');
         });
     });
     
