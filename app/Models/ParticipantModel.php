@@ -260,4 +260,42 @@ class ParticipantModel extends Model
         // If it doesn't exist, return the new account ID
         return $accountId;
     }
+
+    /**
+     * Get all programs that a user is participating in
+     *
+     * @param int $userId The user ID
+     * @return array List of programs the user is participating in
+     */
+    public function getUserPrograms($userId)
+    {
+        if (empty($userId)) {
+            return [];
+        }
+        
+        // First get all participants entries for this user
+        $participants = $this->where('user_id', $userId)
+                             ->where('is_active', 1)
+                             ->where('is_deleted', 0)
+                             ->findAll();
+        
+        if (empty($participants)) {
+            return [];
+        }
+        
+        // Extract program IDs
+        $programIds = [];
+        foreach ($participants as $participant) {
+            $programIds[] = $participant->program_id;
+        }
+        
+        // Get program details
+        $programModel = new \App\Models\ProgramModel();
+        $programs = $programModel->whereIn('id', $programIds)
+                                ->where('is_active', 1)
+                                ->where('is_deleted', 0)
+                                ->findAll();
+        
+        return $programs;
+    }
 }

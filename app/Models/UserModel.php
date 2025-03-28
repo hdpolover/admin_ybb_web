@@ -70,6 +70,12 @@ class UserModel extends Model
         $programCategoryModel = new ProgramCategoryModel();
         $programCategory = $programCategoryModel->getProgramCategoryIdByWebUrl($web_url);
 
+        // Check if program category exists
+        if (!$programCategory || !isset($programCategory['id'])) {
+            log_message('error', "Program not found for web_url: {$web_url}");
+            return false;
+        }
+
         // Check if user exists
         $user = $this->where('email', $email)
             ->where('program_category_id', $programCategory['id'])

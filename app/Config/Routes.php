@@ -65,18 +65,47 @@ $routes->group('', ['filter' => 'program_selection'], function($routes) {
 
 // api routes
 $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes) {
-    // auth
-    $routes->post('auth/sign-in', 'AuthApiController::signIn');
-    $routes->post('auth/sign-up', 'AuthApiController::signUp');
-    $routes->post('auth/forgot-password', 'AuthApiController::forgotPassword');
-    $routes->post('auth/verify-otp', 'AuthApiController::verifyOtp');
-    $routes->post('auth/reset-password', 'AuthApiController::resetPassword');
-    $routes->post('auth/participant-signup', 'AuthApiController::participantSignUp');
-    // Email verification routes
-    $routes->get('auth/verify-email', 'AuthApiController::verifyEmail');
-    $routes->post('auth/resend-verification', 'AuthApiController::resendVerification');
-    $routes->get('auth/test-email', 'AuthApiController::testEmail'); // Test route
-
+    // Auth routes - organized by functionality
+    $routes->group('auth', function($routes) {
+        // JWT Authentication
+        $routes->post('sign-in-jwt', 'AuthApiController::signInJwt');
+        $routes->get('profile', 'AuthApiController::profile', ['filter' => 'jwt']);
+        $routes->post('refresh', 'AuthApiController::refreshToken');
+        
+        // User Authentication (legacy)
+        $routes->post('sign-in', 'AuthApiController::signIn');
+        
+        // User registration
+        $routes->post('participant-signup', 'AuthApiController::participantSignUp');
+        
+        // Password Recovery
+        $routes->post('forgot-password', 'AuthApiController::forgotPassword');
+        $routes->post('verify-otp', 'AuthApiController::verifyOtp');
+        $routes->post('reset-password', 'AuthApiController::resetPassword');
+        
+        // Email Verification
+        $routes->get('verify-email', 'AuthApiController::verifyEmail');
+        $routes->post('resend-verification', 'AuthApiController::resendVerification');
+        $routes->get('test-email', 'AuthApiController::testEmail');
+        
+        // User type specific routes - can be accessed directly through specialized controllers if needed
+        $routes->group('participant', function($routes) {
+            $routes->post('sign-in', 'Auth\ParticipantAuthController::signIn');
+            $routes->post('sign-up', 'Auth\ParticipantAuthController::signUp');
+        });
+        
+        $routes->group('admin', function($routes) {
+            $routes->post('sign-in', 'Auth\AdminAuthController::signIn');
+            $routes->post('sign-up', 'Auth\AdminAuthController::signUp');
+        });
+    });
+    
+    // Protected routes with JWT authentication
+    $routes->group('', ['filter' => 'jwt'], function ($routes) {
+        $routes->get('my-programs', 'ProgramsApiController::getUserPrograms');
+        // Add more protected endpoints here
+    });
+    
     // users
     $routes->get('users', 'UsersApiController::index');
     $routes->get('users/(:num)', 'UsersApiController::show/$1');
