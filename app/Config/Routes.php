@@ -68,12 +68,9 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     // Auth routes - organized by functionality
     $routes->group('auth', function($routes) {
         // JWT Authentication
-        $routes->post('sign-in-jwt', 'AuthApiController::signInJwt');
+        $routes->post('sign-in', 'AuthApiController::signIn');
         $routes->get('profile', 'AuthApiController::profile', ['filter' => 'jwt']);
         $routes->post('refresh', 'AuthApiController::refreshToken');
-        
-        // User Authentication (legacy)
-        $routes->post('sign-in', 'AuthApiController::signIn');
         
         // User registration
         $routes->post('participant-signup', 'AuthApiController::participantSignUp');
@@ -88,21 +85,8 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
         $routes->post('resend-verification', 'AuthApiController::resendVerification');
         $routes->get('test-email', 'AuthApiController::testEmail');
         
-        // User type specific routes - can be accessed directly through specialized controllers
-        $routes->group('admin', function($routes) {
-            $routes->post('sign-in', 'Auth\AdminAuthController::signIn');
-            $routes->post('sign-up', 'Auth\AdminAuthController::signUp');
-        });
-        
-        $routes->group('participant', function($routes) {
-            $routes->post('sign-in', 'Auth\ParticipantAuthController::signIn');
-            $routes->post('sign-up', 'Auth\ParticipantAuthController::signUp');
-        });
-        
-        $routes->group('ambassador', function($routes) {
-            $routes->post('sign-in', 'Auth\AmbassadorAuthController::signIn');
-            $routes->post('sign-up', 'Auth\AmbassadorAuthController::signUp');
-        });
+        // For backward compatibility - can be removed after updating client apps
+        $routes->post('sign-in-jwt', 'AuthApiController::signIn');
     });
     
     // Protected routes with JWT authentication

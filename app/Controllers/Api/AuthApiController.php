@@ -50,13 +50,11 @@ class AuthApiController extends ApiBaseController
         $this->emailVerification->initController($request, $response, $logger);
     }
 
-    // JWT Auth Methods
-    
     /**
      * JWT-based sign in
-     * POST /api/auth/sign-in-jwt
+     * POST /api/auth/sign-in
      */
-    public function signInJwt()
+    public function signIn()
     {
         return $this->jwtAuth->signInJwt();
     }
@@ -79,35 +77,6 @@ class AuthApiController extends ApiBaseController
         return $this->jwtAuth->refreshToken();
     }
     
-    // Regular Authentication Methods
-    
-    /**
-     * Sign in based on user type
-     * POST /api/auth/sign-in
-     */
-    public function signIn($email = null, $password = null, $type = null, $web_url = null)
-    {
-        // If parameters are not provided, try to get from request
-        if ($type === null) {
-            $type = $this->request->getPost('type');
-        }
-
-        if (empty($type)) {
-            return $this->respondValidationErrors('Type is required.');
-        }
-
-        switch ($type) {
-            case 1: // admin
-                return $this->adminAuth->signIn();
-            case 2: // participant
-                return $this->participantAuth->signIn();
-            case 3: // ambassador
-                return $this->ambassadorSignIn();
-            default:
-                return $this->respondValidationErrors('Invalid type.');
-        }
-    }
-    
     /**
      * Participant sign up
      * POST /api/auth/participant-signup
@@ -115,12 +84,6 @@ class AuthApiController extends ApiBaseController
     public function participantSignUp()
     {
         return $this->participantAuth->signUp();
-    }
-    
-    // For backward compatibility - these can be moved to specialized controllers later
-    public function ambassadorSignIn()
-    {
-        return $this->respondNotImplemented('Ambassador sign in not implemented yet.');
     }
     
     // Password Recovery Methods
