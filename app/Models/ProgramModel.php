@@ -13,7 +13,6 @@ class ProgramModel extends Model
     // auto increment
     protected $useAutoIncrement = true;
 
-    // `id`, `program_category_id`, `name`, `logo_url`, `description`, `guideline`, `twibbon`, `start_date`, `end_date`, `registration_video_url`, `sponsor_canva_url`, `theme`, `sub_themes`, `share_desc`, `confirmation_desc`, `is_active`, `is_deleted`, `created_at`, `updated_at`
     protected $allowedFields = [
         'program_category_id',
         'name',
@@ -38,15 +37,80 @@ class ProgramModel extends Model
     public $timestamps = true;
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
+    
+    /**
+     * Get program by name
+     *
+     * @param string $name
+     * @return object|null
+     */
+    public function getProgramByName($name)
+    {
+        return $this->where('name', $name)
+                   ->where('is_deleted', 0)
+                   ->first();
+    }
 
+    /**
+     * Get programs by program category ID
+     *
+     * @param int $programCategoryId
+     * @return array
+     */
+    public function getActivePrograms($programCategoryId)
+    {
+        return $this->where('program_category_id', $programCategoryId)
+                   ->where('is_active', 1)
+                   ->where('is_deleted', 0)
+                   ->findAll();
+    }
+
+    /**
+     * Get featured programs by program category ID
+     *
+     * @param int $programCategoryId
+     * @return array
+     */
+    public function getAllPrograms($programCategoryId)
+    {
+        return $this->where('program_category_id', $programCategoryId)
+                   ->where('is_deleted', 0)
+                   ->findAll();
+    }
+
+    /**
+     * Get program by ID with category filter
+     *
+     * @param int $id
+     * @param int $programCategoryId
+     * @return array|null
+     */
+    public function getProgramByIdAndCategory($id, $programCategoryId)
+    {
+        return $this->where('id', $id)
+                   ->where('program_category_id', $programCategoryId)
+                   ->where('is_active', 1)
+                   ->where('is_deleted', 0)
+                   ->first();
+    }
+
+    /**
+     * Get programs with category information
+     *
+     * @param int|null $program_category_id
+     * @return array
+     */
     public function getPrograms($program_category_id = null)
     {
         // Get all programs first
         $builder = $this->builder();
-
+        
         if ($program_category_id !== null) {
             $builder->where('program_category_id', $program_category_id);
         }
+        
+        $builder->where('is_active', 1)
+                ->where('is_deleted', 0);
 
         $result = $builder->get()->getResultArray();
 

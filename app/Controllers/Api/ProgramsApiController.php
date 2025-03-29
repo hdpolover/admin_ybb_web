@@ -35,6 +35,34 @@ class ProgramsApiController extends ApiBaseController
     }
 
     /**
+     * Get Program by Slug
+     * GET /api/programs/slug/{slug}
+     */
+    public function getBySlug($slug = null)
+    {
+        if ($slug === null) {
+            return $this->respondValidationErrors('Slug is required');
+        }
+        
+        // Convert slug to program name format (replace hyphens with spaces and capitalize words)
+        $programName = str_replace('-', ' ', $slug);
+        
+        // Check if slug contains valid characters
+        if (!preg_match('/^[a-zA-Z0-9\- ]+$/', $slug)) {
+            return $this->respondValidationErrors('Invalid slug format');
+        }
+        
+        // Get program by name
+        $program = $this->model->getProgramByName($programName);
+        
+        if (!$program) {
+            return $this->respondNotFound('Program not found');
+        }
+        
+        return $this->respondSuccess($program, self::HTTP_OK, 'Program retrieved successfully');
+    }
+
+    /**
      * Get Single Program
      * GET /api/programs/{id}
      */

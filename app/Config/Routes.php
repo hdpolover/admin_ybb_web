@@ -115,6 +115,17 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->get('program-categories', 'ProgramCategoriesApiController::index');
     $routes->get('program-categories/(:num)', 'ProgramCategoriesApiController::show/$1');
     $routes->get('program-categories/(:num)/programs', 'ProgramCategoriesApiController::getProgramsbyCatId/$1');
+
+    // photos
+    $routes->get('program-photos', 'ProgramPhotosApiController::index');
+    $routes->get('program-photos/(:num)', 'ProgramPhotosApiController::show/$1');
+    $routes->get('program-photos/category/(:num)', 'ProgramPhotosApiController::getByCategory/$1');
+
+
+    // programs
+    $routes->get('programs', 'ProgramsApiController::index');
+    // get by slug
+    $routes->get('programs/(:any)', 'ProgramsApiController::getBySlug/$1');
 });
 
 // web routes
@@ -129,6 +140,22 @@ $routes->get('participants', 'Participants::index');
 $routes->get('participants/view/(:num)', 'Participants::view/$1');
 $routes->get('participants/edit/(:num)', 'Participants::edit/$1');
 $routes->post('participants/delete/(:num)', 'Participants::delete/$1');
+
+// Landing API Routes
+$routes->group('api/landing', ['namespace' => 'App\Controllers\Api'], function($routes) {
+    $routes->get('home', 'LandingApiController::home');
+    $routes->get('programs', 'LandingApiController::programs');
+    $routes->get('programs/(:num)', 'LandingApiController::programDetail/$1');
+    // insights
+    $routes->get('insights', 'LandingApiController::insights');
+    $routes->get('insights/(:num)', 'LandingApiController::insightDetail/$1');
+    // partners and sponsors
+    $routes->get('partners-sponsors', 'LandingApiController::partnersAndSponsors');
+    $routes->get('partners-sponsors/(:num)', 'LandingApiController::partnerSponsorDetail/$1');
+    // help & news
+    $routes->get('help-news', 'LandingApiController::helpAndNews');
+    $routes->get('help-news/(:num)', 'LandingApiController::helpAndNewsDetail/$1');
+ });
 
 /*
  * --------------------------------------------------------------------
