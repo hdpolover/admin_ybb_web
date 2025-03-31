@@ -56,4 +56,21 @@ class ProgramPhotoModel extends Model
                     ->where('is_deleted', 0)
                     ->findAll();
     }
+
+    /**
+     * Get all photos regardless of status
+     *
+     * @param int|null $programCategoryId Optional program category ID filter
+     * @return object[]
+     */
+    public function getAllPhotos($programCategoryId = null)
+    {
+        $query = $this->where('is_deleted', 0);
+        
+        if ($programCategoryId !== null) {
+            $query->where('program_category_id', $programCategoryId);
+        }
+        
+        return $query->findAll();
+    }
 }

@@ -61,6 +61,7 @@ $routes->group('', ['filter' => 'program_selection'], function($routes) {
     $routes->get('payments/getData', 'Payments::getData');
     $routes->get('payments/view/(:num)', 'Payments::view/$1');
     $routes->post('payments/export', 'Payments::export');
+    $routes->get('payments/make', 'Payments::makePayment');
 });
 
 // api routes
@@ -87,6 +88,15 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
         
         // For backward compatibility - can be removed after updating client apps
         $routes->post('sign-in-jwt', 'AuthApiController::signIn');
+    });
+    
+    // Midtrans Payment Integration
+    $routes->group('payments', function($routes) {
+        $routes->get('config', 'Api\PaymentsApiController::getConfig');
+        $routes->post('create', 'Api\PaymentsApiController::createTransaction');
+        $routes->post('webhook', 'Api\PaymentsApiController::webhook');
+        $routes->get('status/(:num)', 'Api\PaymentsApiController::getStatus/$1');
+        $routes->post('upload-proof', 'Api\PaymentsApiController::uploadPaymentProof');
     });
     
     // Protected routes with JWT authentication

@@ -71,6 +71,11 @@ class LandingApiController extends ApiBaseController
             // Get active photos for this category
             $photos = $this->photoModel->getActivePhotos($category->id);
 
+            // If photos are empty, get photos from other programs
+            if (empty($photos)) {
+                $photos = $this->photoModel->getAllPhotos();   
+            }
+
             // Compile home data
             $data = [
                 'category' => $category,
@@ -255,6 +260,49 @@ class LandingApiController extends ApiBaseController
             
             // Get program details
             $program = $this->programModel->getProgramByIdAndCategory($id, $category->id);
+            
+            if (!$program) {
+                return $this->respondNotFound('Program not found');
+            }
+            
+            return $this->respondSuccess([
+                'category' => $category,
+                'program' => $program
+            ]);
+            
+        } catch (\Exception $e) {
+            return $this->respondError($e->getMessage());
+        }
+    }
+
+    /**
+     * Get program details by slug
+     * 
+     * @param string $slug Program slug
+     * @return \CodeIgniter\HTTP\ResponseInterface
+     */
+    public function programBySlug($slug = null)
+    {
+        try {
+            if (empty($slug)) {
+                return $this->respondValidationErrors('Program slug is required');
+            }
+            
+            $webUrl = $this->request->getGet('web_url');
+            
+            if (empty($webUrl)) {
+                return $this->respondValidationErrors('web_url parameter is required');
+            }
+            
+            // Get program category by web_url
+            $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $webUrl]);
+            
+            if (!$category) {
+                return $this->respondNotFound('Program category not found');
+            }
+            
+            // Get program details by slug
+            $program = $this->programModel->getProgramBySlugAndCategory($slug, $category->id);
             
             if (!$program) {
                 return $this->respondNotFound('Program not found');
