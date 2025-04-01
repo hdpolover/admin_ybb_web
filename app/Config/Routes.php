@@ -44,7 +44,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
     $routes->get('dashboard', 'Dashboard::index');
     // welcome
     $routes->get('welcome', 'Welcome::index');
-    $routes->get('welcome/set_program/(:num)', 'Welcome::set_program/$1');
+    $routes->get('welcome/set-program/(:num)', 'Welcome::setProgram/$1');
     $routes->get('logout', 'Auth::logout');
 
     // participants

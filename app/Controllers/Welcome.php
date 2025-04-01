@@ -31,7 +31,7 @@ class Welcome extends BaseController
         return view('welcome/index', $data);
     }
 
-    public function set_program($program_id)
+    public function setProgram($program_id)
     {
         session()->set('current_program', $program_id);
         
