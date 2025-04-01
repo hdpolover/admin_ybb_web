@@ -115,6 +115,8 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->get('participants/current-program', 'ParticipantsApiController::getCurrentProgramParticipants');
     //get participants by user id
     $routes->get('participants/user/(:num)', 'ParticipantsApiController::getByUserId/$1');
+    // get random participant photos by program id
+    $routes->get('participants/program/(:num)/photos', 'ParticipantsApiController::getProgramParticipantsPhotos/$1');
 
     // ambassadors
     $routes->get('ambassadors', 'AmbassadorsApiController::index');
@@ -136,6 +138,11 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->get('programs', 'ProgramsApiController::index');
     // get by slug
     $routes->get('programs/(:any)', 'ProgramsApiController::getBySlug/$1');
+
+    // program schedules
+    $routes->get('program-schedules', 'ProgramSchedulesApiController::index');
+    $routes->get('program-schedules/(:num)', 'ProgramSchedulesApiController::show/$1');
+    $routes->get('program-schedules/program/(:num)', 'ProgramSchedulesApiController::getByProgramId/$1');
 });
 
 // web routes

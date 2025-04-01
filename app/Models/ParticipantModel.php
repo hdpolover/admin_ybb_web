@@ -48,6 +48,31 @@ class ParticipantModel extends Model
         'is_deleted'
     ];
 
+    /**
+     * Get photos of participants for a specific program
+     *
+     * @param int $programId The program ID
+     * @param int $limit Maximum number of photos to return
+     * @return array List of participant picture URLs
+     */
+    public function getProgramParticipantsPhotos($programId, $limit = 5)
+    {
+        $builder = $this->builder();
+        
+        $result = $builder->select('picture_url')
+                          ->where('program_id', $programId)
+                          ->where('is_active', 1)
+                          ->where('is_deleted', 0)
+                          ->where('picture_url IS NOT NULL')
+                          ->where('picture_url !=', '')
+                          ->orderBy('RAND()')  // Random order
+                          ->limit($limit)
+                          ->get()
+                          ->getResultArray();
+        
+        return array_column($result, 'picture_url');
+    }
+
     // get participants by user id
     public function getParticipantsByUserId($userId)
     {

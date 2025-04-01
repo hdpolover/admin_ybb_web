@@ -11,6 +11,7 @@ use App\Models\FAQModel;
 use App\Models\AnnouncementModel;
 // photo model
 use App\Models\ProgramPhotoModel;
+use App\Models\ParticipantModel;
 
 class LandingApiController extends ApiBaseController
 {
@@ -20,7 +21,7 @@ class LandingApiController extends ApiBaseController
     protected $faqModel;
     protected $announcementModel;
     protected $photoModel;
-
+    protected $participantModel;
     /**
      * Initialize controller, set models
      */
@@ -31,7 +32,7 @@ class LandingApiController extends ApiBaseController
     ) {
         // Call parent initializer
         parent::initController($request, $response, $logger);
-        
+
         // Initialize models
         $this->programCategoryModel = new ProgramCategoryModel();
         $this->programModel = new ProgramModel();
@@ -39,6 +40,7 @@ class LandingApiController extends ApiBaseController
         $this->faqModel = new FAQModel();
         $this->announcementModel = new AnnouncementModel();
         $this->photoModel = new ProgramPhotoModel();
+        $this->participantModel = new ParticipantModel();
     }
 
     /**
@@ -50,21 +52,21 @@ class LandingApiController extends ApiBaseController
     {
         try {
             $webUrl = $this->request->getGet('web_url');
-            
+
             if (empty($webUrl)) {
                 return $this->respondValidationErrors('web_url parameter is required');
             }
-            
+
             // Get program category by web_url
             $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $webUrl]);
-            
+
             if (!$category) {
                 return $this->respondNotFound('Program category not found');
             }
-            
+
             // Get all programs for this category
             $allPrograms = $this->programModel->getAllPrograms($category->id);
-            
+
             // Get active testimonies for this category
             $testimonies = $this->testimonyModel->getActiveTestimonies($category->id);
 
@@ -73,7 +75,7 @@ class LandingApiController extends ApiBaseController
 
             // If photos are empty, get photos from other programs
             if (empty($photos)) {
-                $photos = $this->photoModel->getAllPhotos();   
+                $photos = $this->photoModel->getAllPhotos();
             }
 
             // Compile home data
@@ -83,9 +85,8 @@ class LandingApiController extends ApiBaseController
                 'testimonies' => $testimonies,
                 'photos' => $photos,
             ];
-            
+
             return $this->respondSuccess($data);
-            
         } catch (\Exception $e) {
             return $this->respondError($e->getMessage());
         }
@@ -100,26 +101,28 @@ class LandingApiController extends ApiBaseController
     {
         try {
             $webUrl = $this->request->getGet('web_url');
-            
+
             if (empty($webUrl)) {
                 return $this->respondValidationErrors('web_url parameter is required');
             }
-            
+
             // Get program category by web_url
             $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $webUrl]);
-            
+
             if (!$category) {
                 return $this->respondNotFound('Program category not found');
             }
-            
+
             // Get all programs for this category
             $programs = $this->programModel->getActivePrograms($category->id);
-            
+
+
+
+
             return $this->respondSuccess([
                 'category' => $category,
                 'programs' => $programs
             ]);
-            
         } catch (\Exception $e) {
             return $this->respondError($e->getMessage());
         }
@@ -134,27 +137,26 @@ class LandingApiController extends ApiBaseController
     {
         try {
             $webUrl = $this->request->getGet('web_url');
-            
+
             if (empty($webUrl)) {
                 return $this->respondValidationErrors('web_url parameter is required');
             }
-            
+
             // Get program category by web_url
             $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $webUrl]);
-            
+
             if (!$category) {
                 return $this->respondNotFound('Program category not found');
             }
-            
+
             // Get partners and sponsors for this category
             // Note: You may need to create a PartnersModel to implement this functionality
             $partners = []; // Replace with actual data retrieval
-            
+
             return $this->respondSuccess([
                 'category' => $category,
                 'partners' => $partners
             ]);
-            
         } catch (\Exception $e) {
             return $this->respondError($e->getMessage());
         }
@@ -169,27 +171,26 @@ class LandingApiController extends ApiBaseController
     {
         try {
             $webUrl = $this->request->getGet('web_url');
-            
+
             if (empty($webUrl)) {
                 return $this->respondValidationErrors('web_url parameter is required');
             }
-            
+
             // Get program category by web_url
             $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $webUrl]);
-            
+
             if (!$category) {
                 return $this->respondNotFound('Program category not found');
             }
-            
+
             // Get insights for this category
             // Note: You may need to create an InsightsModel to implement this functionality
             $insights = []; // Replace with actual data retrieval
-            
+
             return $this->respondSuccess([
                 'category' => $category,
                 'insights' => $insights
             ]);
-            
         } catch (\Exception $e) {
             return $this->respondError($e->getMessage());
         }
@@ -204,34 +205,33 @@ class LandingApiController extends ApiBaseController
     {
         try {
             $webUrl = $this->request->getGet('web_url');
-            
+
             if (empty($webUrl)) {
                 return $this->respondValidationErrors('web_url parameter is required');
             }
-            
+
             // Get program category by web_url
             $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $webUrl]);
-            
+
             if (!$category) {
                 return $this->respondNotFound('Program category not found');
             }
-            
+
             // Get help and news for this category
             // Note: You may need to create a HelpNewsModel to implement this functionality
             $helpNews = []; // Replace with actual data retrieval
-            
+
             return $this->respondSuccess([
                 'category' => $category,
                 'help_news' => $helpNews
             ]);
-            
         } catch (\Exception $e) {
             return $this->respondError($e->getMessage());
         }
     }
 
 
-    
+
     /**
      * Get program details
      * 
@@ -244,32 +244,31 @@ class LandingApiController extends ApiBaseController
             if (empty($id)) {
                 return $this->respondValidationErrors('Program ID is required');
             }
-            
+
             $webUrl = $this->request->getGet('web_url');
-            
+
             if (empty($webUrl)) {
                 return $this->respondValidationErrors('web_url parameter is required');
             }
-            
+
             // Get program category by web_url
             $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $webUrl]);
-            
+
             if (!$category) {
                 return $this->respondNotFound('Program category not found');
             }
-            
+
             // Get program details
             $program = $this->programModel->getProgramByIdAndCategory($id, $category->id);
-            
+
             if (!$program) {
                 return $this->respondNotFound('Program not found');
             }
-            
+
             return $this->respondSuccess([
                 'category' => $category,
-                'program' => $program
+                'program' => $program,
             ]);
-            
         } catch (\Exception $e) {
             return $this->respondError($e->getMessage());
         }
@@ -287,32 +286,34 @@ class LandingApiController extends ApiBaseController
             if (empty($slug)) {
                 return $this->respondValidationErrors('Program slug is required');
             }
-            
+
             $webUrl = $this->request->getGet('web_url');
-            
+
             if (empty($webUrl)) {
                 return $this->respondValidationErrors('web_url parameter is required');
             }
-            
+
             // Get program category by web_url
             $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $webUrl]);
-            
+
             if (!$category) {
                 return $this->respondNotFound('Program category not found');
             }
-            
+
             // Get program details by slug
             $program = $this->programModel->getProgramBySlugAndCategory($slug, $category->id);
-            
+
             if (!$program) {
                 return $this->respondNotFound('Program not found');
             }
-            
+
+            // get participant photos by program id
+            $photos = $this->participantModel->getParticipantPhotosByProgramId($program->id);
+
             return $this->respondSuccess([
                 'category' => $category,
                 'program' => $program
             ]);
-            
         } catch (\Exception $e) {
             return $this->respondError($e->getMessage());
         }
@@ -330,32 +331,31 @@ class LandingApiController extends ApiBaseController
             if (empty($id)) {
                 return $this->respondValidationErrors('Announcement ID is required');
             }
-            
+
             $webUrl = $this->request->getGet('web_url');
-            
+
             if (empty($webUrl)) {
                 return $this->respondValidationErrors('web_url parameter is required');
             }
-            
+
             // Get program category by web_url
             $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $webUrl]);
-            
+
             if (!$category) {
                 return $this->respondNotFound('Program category not found');
             }
-            
+
             // Get announcement details
             $announcement = $this->announcementModel->getAnnouncementByIdAndProgramCategory($id, $category->id);
-            
+
             if (!$announcement) {
                 return $this->respondNotFound('Announcement not found');
             }
-            
+
             return $this->respondSuccess([
                 'category' => $category,
                 'announcement' => $announcement
             ]);
-            
         } catch (\Exception $e) {
             return $this->respondError($e->getMessage());
         }
@@ -373,32 +373,31 @@ class LandingApiController extends ApiBaseController
             if (empty($slug)) {
                 return $this->respondValidationErrors('Announcement slug is required');
             }
-            
+
             $webUrl = $this->request->getGet('web_url');
-            
+
             if (empty($webUrl)) {
                 return $this->respondValidationErrors('web_url parameter is required');
             }
-            
+
             // Get program category by web_url
             $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $webUrl]);
-            
+
             if (!$category) {
                 return $this->respondNotFound('Program category not found');
             }
-            
+
             // Get announcement details by slug
             $announcement = $this->announcementModel->getAnnouncementBySlugAndProgramCategory($slug, $category->id);
-            
+
             if (!$announcement) {
                 return $this->respondNotFound('Announcement not found');
             }
-            
+
             return $this->respondSuccess([
                 'category' => $category,
                 'announcement' => $announcement
             ]);
-            
         } catch (\Exception $e) {
             return $this->respondError($e->getMessage());
         }
@@ -415,34 +414,33 @@ class LandingApiController extends ApiBaseController
             if (empty($id)) {
                 return $this->respondValidationErrors('ID is required');
             }
-            
+
             $webUrl = $this->request->getGet('web_url');
-            
+
             if (empty($webUrl)) {
                 return $this->respondValidationErrors('web_url parameter is required');
             }
-            
+
             // Get program category by web_url
             $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $webUrl]);
-            
+
             if (!$category) {
                 return $this->respondNotFound('Program category not found');
             }
-            
+
             // Get help and news details
             $helpNews = $this->faqModel->getFAQByIdAndProgramCategory($id, $category->id);
-            
+
             if (!$helpNews) {
                 return $this->respondNotFound('Help and news not found');
             }
-            
+
             return $this->respondSuccess([
                 'category' => $category,
                 'help_news' => $helpNews
             ]);
-            
         } catch (\Exception $e) {
             return $this->respondError($e->getMessage());
         }
-    }   
+    }
 }
