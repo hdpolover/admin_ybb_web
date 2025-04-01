@@ -143,6 +143,9 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->get('program-schedules', 'ProgramSchedulesApiController::index');
     $routes->get('program-schedules/(:num)', 'ProgramSchedulesApiController::show/$1');
     $routes->get('program-schedules/program/(:num)', 'ProgramSchedulesApiController::getByProgramId/$1');
+
+    // web settings
+    $routes->get('web-settings', 'WebSettingApiController::index');
 });
 
 // web routes
