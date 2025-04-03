@@ -4,22 +4,31 @@ namespace App\Controllers\Api;
 
 use App\Models\AmbassadorModel;
 use App\Models\ProgramModel;
+use App\Models\ProgramCategoryModel;
 use App\Controllers\Api\ApiBaseController;
+use CodeIgniter\HTTP\ResponseInterface;
+use CodeIgniter\HTTP\RequestInterface;
+use Psr\Log\LoggerInterface;
 
 class AmbassadorsApiController extends ApiBaseController
 {
     protected $model;
-    protected $programModel; 
+    protected $programModel;
+    protected $programCategoryModel;
 
-    public function __construct()
+    /**
+     * Constructor.
+     */
+    public function initController(RequestInterface $request, ResponseInterface $response, LoggerInterface $logger)
     {
-        parent::__construct();
+        parent::initController($request, $response, $logger);
         $this->model = new AmbassadorModel();
         $this->programModel = new ProgramModel();
+        $this->programCategoryModel = new ProgramCategoryModel();
     }
 
     /**
-     * 🟢 Get All Ambassadors (READ)
+     * Get all ambassadors with pagination and filtering.
      * GET /api/ambassadors
      */
     public function index()
@@ -29,18 +38,18 @@ class AmbassadorsApiController extends ApiBaseController
             $limit = (int)($this->request->getGet('limit') ?? 10);
             $offset = ($page - 1) * $limit;
 
-            // Build filters from query params
             $filters = [];
-         
-            // Add any additional filters from query params
             foreach ($this->request->getGet() as $key => $value) {
                 if (!in_array($key, ['page', 'limit'])) {
                     $filters[$key] = $value;
                 }
             }
 
-            // Get data using custom method
             $result = $this->model->getAmbassadors($limit, $offset, $filters);
+
+            if (!$result || empty($result['data'])) {
+                return $this->failNotFound('Ambassadors not found');
+            }
 
             $totalPages = ceil($result['total'] / $limit);
 
@@ -56,7 +65,7 @@ class AmbassadorsApiController extends ApiBaseController
     }
 
     /**
-     * 🔍 Get Single Ambassador (READ)
+     * Get a single ambassador by ID.
      * GET /api/ambassadors/{id}
      */
     public function show($id = null)
@@ -65,7 +74,10 @@ class AmbassadorsApiController extends ApiBaseController
         return $ambassador ? $this->apiResponse($ambassador) : $this->failNotFound("Ambassador not found");
     }
 
-    // get participants based on ambassador ref code
+    /**
+     * Get participants referred by an ambassador using ref code.
+     * GET /api/ambassadors/participants/{refCode}
+     */
     public function getParticipantsByRefCode($refCode = null)
     {
         try {
@@ -73,10 +85,7 @@ class AmbassadorsApiController extends ApiBaseController
             $limit = (int)($this->request->getGet('limit') ?? 10);
             $offset = ($page - 1) * $limit;
 
-            // Build filters from query params
             $filters = [];
-         
-            // Add any additional filters from query params
             foreach ($this->request->getGet() as $key => $value) {
                 if (!in_array($key, ['page', 'limit'])) {
                     $filters[$key] = $value;
@@ -85,8 +94,11 @@ class AmbassadorsApiController extends ApiBaseController
 
             $filters['ref_code_ambassador'] = $refCode;
 
-            // Get data using custom method
             $result = $this->model->getReferredParticipants($limit, $offset, $filters);
+
+            if (!$result || empty($result['data'])) {
+                return $this->failNotFound('Participants not found');
+            }
 
             $totalPages = ceil($result['total'] / $limit);
 
@@ -102,11 +114,12 @@ class AmbassadorsApiController extends ApiBaseController
     }
 
     /**
-     * 🔍 Generate link referal (READ)
+     * Generate referral link for an ambassador.
      * GET /api/ambassadors/{id}/generate-link
      */
     public function generateLink($id)
     {
+
         $ambassador = $this->model->find($id);
 
         if (!$ambassador) {
@@ -115,13 +128,19 @@ class AmbassadorsApiController extends ApiBaseController
 
         $program = $this->programModel->getProgramById($ambassador->program_id);
 
-        if (!$program || !$program->web_url) {
-            return $this->failValidationError('web_url is not set for this program');
+        if (!$program) {
+            return $this->failValidationError('Program not found');
+        }
+
+        $programCategory = $this->programCategoryModel->getProgramCategoryById($program->program_category_id);
+
+        if (!$programCategory) {
+            return $this->failValidationError('Program category not found');
         }
 
         $refCode = $ambassador->ref_code;
-        $webUrl = $program->web_url;
-        
+        $webUrl = $programCategory->web_url;
+
         $query = 'ref=' . $refCode;
         $encryptedQuery = $this->encrypt_decrypt($query, 'encrypt');
 

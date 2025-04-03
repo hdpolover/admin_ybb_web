@@ -35,6 +35,11 @@ class ProgramCategoryModel extends Model
         'updated_at'
     ];
 
+    public function getProgramCategoryById($id)
+    {
+        return $this->find($id);
+    }
+
     // get program category id by web_url
     public function getProgramCategoryIdByWebUrl($web_url)
     {
