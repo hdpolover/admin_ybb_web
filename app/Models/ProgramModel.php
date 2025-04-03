@@ -74,4 +74,9 @@ class ProgramModel extends Model
 
         return $result;
     }
+
+    public function getProgramById($id)
+    {
+        return $this->find($id);
+    }
 }
