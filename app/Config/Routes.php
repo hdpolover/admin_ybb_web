@@ -123,6 +123,8 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->get('ambassadors/(:num)', 'AmbassadorsApiController::show/$1');
     $routes->get('ambassadors/(:any)/participants', 'AmbassadorsApiController::getParticipantsbyRefCode/$1');
     $routes->get('ambassadors/(:num)/generate-link', 'AmbassadorsApiController::generateLink/$1');
+    // check query
+    $routes->post('ambassadors/check-query', 'AmbassadorsApiController::checkEncryptedQuery');
 
     // program categories
     $routes->get('program-categories', 'ProgramCategoriesApiController::index');
@@ -147,6 +149,9 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
 
     // web settings
     $routes->get('web-settings', 'WebSettingApiController::index');
+
+    // Maintenance check endpoint - publicly accessible
+    $routes->get('api/maintenance/check', 'Api\MaintenanceApiController::check');
 });
 
 // web routes
