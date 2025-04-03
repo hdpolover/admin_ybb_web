@@ -217,13 +217,16 @@ class LandingApiController extends ApiBaseController
                 return $this->respondNotFound('Program category not found');
             }
 
-            // Get help and news for this category
-            // Note: You may need to create a HelpNewsModel to implement this functionality
-            $helpNews = []; // Replace with actual data retrieval
+            // get news for this category
+            $news = $this->announcementModel->getAnnouncementsByProgramCategory($category->id);
+
+            // get faqs for this category
+            $faqs = $this->faqModel->getActiveFaqsByProgramCategory($category->id);
 
             return $this->respondSuccess([
                 'category' => $category,
-                'help_news' => $helpNews
+                'news' => $news,
+                'faqs' => $faqs,
             ]);
         } catch (\Exception $e) {
             return $this->respondError($e->getMessage());

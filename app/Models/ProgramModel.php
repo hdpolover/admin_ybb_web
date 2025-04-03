@@ -37,7 +37,7 @@ class ProgramModel extends Model
     public $timestamps = true;
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
-    
+
     /**
      * Get program by name
      *
@@ -47,8 +47,8 @@ class ProgramModel extends Model
     public function getProgramByName($name)
     {
         return $this->where('name', $name)
-                   ->where('is_deleted', 0)
-                   ->first();
+            ->where('is_deleted', 0)
+            ->first();
     }
 
     /**
@@ -60,9 +60,9 @@ class ProgramModel extends Model
     public function getActivePrograms($programCategoryId)
     {
         return $this->where('program_category_id', $programCategoryId)
-                   ->where('is_active', 1)
-                   ->where('is_deleted', 0)
-                   ->findAll();
+            ->where('is_active', 1)
+            ->where('is_deleted', 0)
+            ->findAll();
     }
 
     /**
@@ -74,8 +74,8 @@ class ProgramModel extends Model
     public function getAllPrograms($programCategoryId)
     {
         return $this->where('program_category_id', $programCategoryId)
-                   ->where('is_deleted', 0)
-                   ->findAll();
+            ->where('is_deleted', 0)
+            ->findAll();
     }
 
     /**
@@ -88,10 +88,10 @@ class ProgramModel extends Model
     public function getProgramByIdAndCategory($id, $programCategoryId)
     {
         return $this->where('id', $id)
-                   ->where('program_category_id', $programCategoryId)
-                   ->where('is_active', 1)
-                   ->where('is_deleted', 0)
-                   ->first();
+            ->where('program_category_id', $programCategoryId)
+            ->where('is_active', 1)
+            ->where('is_deleted', 0)
+            ->first();
     }
 
     /**
@@ -104,39 +104,17 @@ class ProgramModel extends Model
     {
         // Get all programs first
         $builder = $this->builder();
-        
+
         if ($program_category_id !== null) {
             $builder->where('program_category_id', $program_category_id);
         }
-        
-        $builder->where('is_active', 1)
-                ->where('is_deleted', 0);
 
-        $result = $builder->get()->getResultArray();
+        $builder->where('is_deleted', 0)
+                ->orderBy('created_at', 'DESC');
 
-        // Get all program categories in a single query to avoid N+1 problem
-        $categoryIds = array_column($result, 'program_category_id');
-        $categories = [];
+        $programs = $builder->get()->getResult();
 
-        if (!empty($categoryIds)) {
-            $categoriesQuery = $this->db->table('program_categories')
-                ->whereIn('id', $categoryIds)
-                ->get()
-                ->getResultArray();
-
-            // Index categories by ID for easy lookup
-            foreach ($categoriesQuery as $category) {
-                $categories[$category['id']] = $category;
-            }
-        }
-
-        // Add the category objects to each program
-        foreach ($result as &$program) {
-            $catId = $program['program_category_id'];
-            $program['program_category'] = $categories[$catId] ?? null;
-        }
-
-        return $result;
+        return $programs;
     }
 
     public function getProgramById($id)

@@ -87,32 +87,36 @@ class ProgramsApiController extends ApiBaseController
             return $this->respondValidationErrors('Category ID is required');
         }
         
-        $programs = $this->model->getPrograms($categoryId);
+        $programs = $this->model->getAllPrograms($categoryId);
+
+        if (empty($programs)) {
+            return $this->respondNotFound('No programs found for this category ID');
+        }
+
         return $this->respondSuccess($programs, self::HTTP_OK, 'Programs retrieved successfully');
     }
     
     /**
-     * Get current user's programs based on JWT token
-     * Requires JWT authentication
-     * GET /api/my-programs
+     * Get programs by user ID
+     * GET /api/programs/user/{userId}
      */
-    public function getUserPrograms()
+    public function getByUser($userId = null)
     {
-        // Get the request instance
-        $request = service('request');
-        
-        // Get the user data from the JWT token
-        $userData = $request->jwtUser ?? null;
-        
-        if (!$userData || !isset($userData->id)) {
-            return $this->respondUnauthorized('Invalid user token');
+        if ($userId === null) {
+            return $this->respondValidationErrors('User ID is required');
         }
         
-        // Get user's programs - implementation depends on your application logic
-        // This might involve checking participant records or other relationships
-        $participantModel = new \App\Models\ParticipantModel();
-        $programs = $participantModel->getUserPrograms($userData->id);
+        // Validate user ID is numeric
+        if (!is_numeric($userId)) {
+            return $this->respondValidationErrors('Invalid user ID format');
+        }
         
-        return $this->respondSuccess($programs, self::HTTP_OK, 'User programs retrieved successfully');
+        $programs = $this->model->getProgramsByUserId($userId);
+        
+        if (empty($programs)) {
+            return $this->respondNotFound('No programs found for this user');
+        }
+        
+        return $this->respondSuccess($programs, self::HTTP_OK, 'Programs retrieved successfully');
     }
 }

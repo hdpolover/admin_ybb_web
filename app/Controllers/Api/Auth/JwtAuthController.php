@@ -102,6 +102,10 @@ class JwtAuthController extends BaseAuthController
             $userData['role'] = $user->role;
         }
 
+        if (isset($user->program_category_id)) {
+            $userData['program_category_id'] = $user->program_category_id;
+        }
+
         $token = $this->jwtHandler->generateToken($userData);
 
         // Return token to client

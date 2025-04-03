@@ -136,22 +136,33 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->get('program-photos/(:num)', 'ProgramPhotosApiController::show/$1');
     $routes->get('program-photos/category/(:num)', 'ProgramPhotosApiController::getByCategory/$1');
 
-
     // programs
     $routes->get('programs', 'ProgramsApiController::index');
-    // get by slug
-    $routes->get('programs/(:any)', 'ProgramsApiController::getBySlug/$1');
+    // get by slug (accepts string parameter)
+    $routes->get('programs/slug/(:any)', 'ProgramsApiController::getBySlug/$1');
+    // get by category id
+    $routes->get('programs/category/(:num)', 'ProgramsApiController::getByCategory/$1');
 
     // program schedules
     $routes->get('program-schedules', 'ProgramSchedulesApiController::index');
     $routes->get('program-schedules/(:num)', 'ProgramSchedulesApiController::show/$1');
     $routes->get('program-schedules/program/(:num)', 'ProgramSchedulesApiController::getByProgramId/$1');
 
+    // program subthemes
+    $routes->get('program-subthemes', 'ProgramSubthemeApiController::index');
+    $routes->get('program-subthemes/(:num)', 'ProgramSubthemeApiController::show/$1');
+    $routes->get('program-subthemes/program/(:num)', 'ProgramSubthemeApiController::getByProgramId/$1');
+
+    // program essays
+    $routes->get('program-essays', 'ProgramEssayApiController::index');
+    $routes->get('program-essays/(:num)', 'ProgramEssayApiController::show/$1');
+    $routes->get('program-essays/program/(:num)', 'ProgramEssayApiController::getByProgramId/$1');
+
     // web settings
     $routes->get('web-settings', 'WebSettingApiController::index');
 
     // Maintenance check endpoint - publicly accessible
-    $routes->get('api/maintenance/check', 'Api\MaintenanceApiController::check');
+    $routes->get('maintenance/check', 'Api\MaintenanceApiController::check');
 });
 
 // web routes
