@@ -122,6 +122,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->get('ambassadors', 'AmbassadorsApiController::index');
     $routes->get('ambassadors/(:num)', 'AmbassadorsApiController::show/$1');
     $routes->get('ambassadors/(:any)/participants', 'AmbassadorsApiController::getParticipantsbyRefCode/$1');
+    $routes->get('ambassadors/(:num)/generate-link', 'AmbassadorsApiController::generateLink/$1');
 
     // program categories
     $routes->get('program-categories', 'ProgramCategoriesApiController::index');
