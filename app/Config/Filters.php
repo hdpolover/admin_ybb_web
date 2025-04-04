@@ -11,6 +11,7 @@ use CodeIgniter\Filters\SecureHeaders;
 
 use App\Filters\Auth;
 use App\Filters\NoAuth;
+use App\Filters\JWTAuthFilter;
 
 class Filters extends BaseConfig
 {
@@ -27,6 +28,7 @@ class Filters extends BaseConfig
         'auth'          => Auth::class,
         'noauth'        => NoAuth::class,
         'program_selection' => \App\Filters\ProgramSelectionFilter::class,
+        'jwt'           => JWTAuthFilter::class,
     ];
 
     /**

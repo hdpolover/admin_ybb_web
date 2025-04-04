@@ -48,6 +48,31 @@ class ParticipantModel extends Model
         'is_deleted'
     ];
 
+    /**
+     * Get photos of participants for a specific program
+     *
+     * @param int $programId The program ID
+     * @param int $limit Maximum number of photos to return
+     * @return array List of participant picture URLs
+     */
+    public function getProgramParticipantsPhotos($programId, $limit = 5)
+    {
+        $builder = $this->builder();
+        
+        $result = $builder->select('picture_url')
+                          ->where('program_id', $programId)
+                          ->where('is_active', 1)
+                          ->where('is_deleted', 0)
+                          ->where('picture_url IS NOT NULL')
+                          ->where('picture_url !=', '')
+                          ->orderBy('RAND()')  // Random order
+                          ->limit($limit)
+                          ->get()
+                          ->getResultArray();
+        
+        return array_column($result, 'picture_url');
+    }
+
     // get participants by user id
     public function getParticipantsByUserId($userId)
     {
@@ -259,5 +284,43 @@ class ParticipantModel extends Model
 
         // If it doesn't exist, return the new account ID
         return $accountId;
+    }
+
+    /**
+     * Get all programs that a user is participating in
+     *
+     * @param int $userId The user ID
+     * @return array List of programs the user is participating in
+     */
+    public function getUserPrograms($userId)
+    {
+        if (empty($userId)) {
+            return [];
+        }
+        
+        // First get all participants entries for this user
+        $participants = $this->where('user_id', $userId)
+                             ->where('is_active', 1)
+                             ->where('is_deleted', 0)
+                             ->findAll();
+        
+        if (empty($participants)) {
+            return [];
+        }
+        
+        // Extract program IDs
+        $programIds = [];
+        foreach ($participants as $participant) {
+            $programIds[] = $participant->program_id;
+        }
+        
+        // Get program details
+        $programModel = new \App\Models\ProgramModel();
+        $programs = $programModel->whereIn('id', $programIds)
+                                ->where('is_active', 1)
+                                ->where('is_deleted', 0)
+                                ->findAll();
+        
+        return $programs;
     }
 }

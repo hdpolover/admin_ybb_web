@@ -170,6 +170,9 @@
                                 <div class="card-header d-flex align-items-center">
                                     <h5 class="card-title mb-0 flex-grow-1">All Payments</h5>
                                     <div class="flex-shrink-0">
+                                        <a href="<?= site_url('payments/make') ?>" class="btn btn-primary waves-effect waves-light me-2">
+                                            <i class="ri-add-line align-middle me-1"></i> Make Payment
+                                        </a>
                                         <button type="button" class="btn btn-success waves-effect waves-light" data-bs-toggle="modal" data-bs-target="#exportModal">
                                             <i class="ri-file-excel-2-line align-middle me-1"></i> Export
                                         </button>

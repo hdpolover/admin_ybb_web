@@ -14,8 +14,9 @@ class PaymentModel extends Model
     protected $returnType     = 'object';
     
     protected $allowedFields = [
-        'program_id', 'participant_id', 'amount', 'currency', 'payment_method', 
-        'payment_date', 'transaction_id', 'status', 'notes'
+        'program_id', 'participant_id', 'amount', 'currency', 'payment_method_id', 
+        'payment_method', 'payment_date', 'transaction_id', 'status', 'notes',
+        'payment_proof'
     ];
     
     protected $useTimestamps = true;
@@ -149,5 +150,54 @@ class PaymentModel extends Model
         $stats->total_usd = $query->getRow()->total_amount ?? 0;
         
         return $stats;
+    }
+    
+    /**
+     * Get pending manual payments that need admin review
+     * 
+     * @param int $programId Program ID
+     * @return array
+     */
+    public function getPendingManualPayments($programId)
+    {
+        return $this->select('
+                payments.*, 
+                participants.full_name as participant_name,
+                users.email as participant_email,
+                participants.program_id
+            ')
+            ->join('participants', 'participants.id = payments.participant_id')
+            ->join('users', 'users.id = participants.user_id')
+            ->where('participants.program_id', $programId)
+            ->where('payments.payment_method_id', 2) // Manual payment
+            ->where('payments.status', 1) // Pending
+            ->where('payments.payment_proof IS NOT NULL')
+            ->orderBy('payment_date', 'DESC')
+            ->findAll();
+    }
+    
+    /**
+     * Update payment status
+     * 
+     * @param int $id Payment ID
+     * @param int $status New status
+     * @param string $notes Optional notes for the update
+     * @return bool
+     */
+    public function updatePaymentStatus($id, $status, $notes = '')
+    {
+        $data = [
+            'status' => $status,
+            'updated_at' => date('Y-m-d H:i:s')
+        ];
+        
+        if (!empty($notes)) {
+            $payment = $this->find($id);
+            $existingNotes = $payment->notes ?? '';
+            $combinedNotes = $existingNotes . "\n\n" . date('Y-m-d H:i:s') . " - Status updated: " . $notes;
+            $data['notes'] = trim($combinedNotes);
+        }
+        
+        return $this->update($id, $data);
     }
 }

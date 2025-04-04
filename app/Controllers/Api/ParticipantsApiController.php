@@ -189,6 +189,32 @@ class ParticipantsApiController extends ApiBaseController
     }
 
     /**
+     * 📸 Get Participants Photos by Program ID
+     * GET /api/participants/program/{programId}/photos
+     * 
+     * Returns up to 5 participant photos from a specific program
+     */
+    public function getProgramParticipantsPhotos($programId = null)
+    {
+        try {
+            if (!$programId) {
+                return $this->respondError('Program ID is required', self::HTTP_BAD_REQUEST);
+            }
+            
+            // Get up to 5 participants from the program with their photos
+            $participants = $this->model->getProgramParticipantsPhotos($programId, 5);
+            
+            if (empty($participants)) {
+                return $this->respondNotFound("No participant photos found for this program");
+            }
+            
+            return $this->respondSuccess($participants);
+        } catch (\Exception $e) {
+            return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
+        }
+    }
+
+    /**
      * 🗑️ Delete Participant (DELETE)
      * DELETE /api/participants/{id}
      * 

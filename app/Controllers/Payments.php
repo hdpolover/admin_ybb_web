@@ -352,4 +352,24 @@ class Payments extends BaseController
         return redirect()->to('payments')->with('error', 'PDF export requires additional libraries. Please use Excel or CSV export.');       return redirect()->to('payments')->with('error', 'PDF export requires additional libraries. Please use Excel or CSV export.');
     }
 
+    /**
+     * Show the payment form
+     */
+    public function makePayment()
+    {
+        // Get participants from the current program
+        $programId = session('current_program');
+        
+        $participantModel = new \App\Models\ParticipantModel();
+        $participants = $participantModel->where('program_id', $programId)
+                                       ->where('is_deleted', 0)
+                                       ->findAll();
+        
+        $data = [
+            'participants' => $participants,
+            'program' => $this->programModel->find($programId)
+        ];
+        
+        return view('payments/make-payment', $data);
+    }
 }

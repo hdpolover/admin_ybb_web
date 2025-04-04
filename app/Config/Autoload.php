@@ -96,5 +96,7 @@ class Autoload extends AutoloadConfig
     public $helpers = [
         'custom',
         'api',
+        'url_encryption',
+        'maintenance',
     ];
 }

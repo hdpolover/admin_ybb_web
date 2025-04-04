@@ -71,6 +71,40 @@ class ApiBaseController extends ResourceController
     }
 
     /**
+     * Get input data from various sources (JSON, POST, PUT)
+     * Works with any HTTP method including PUT/PATCH
+     * 
+     * @param string|null $key Specific input field to retrieve (null for all data)
+     * @param mixed $default Default value if key not found
+     * @return mixed The input data (array or single value)
+     */
+    protected function getInput($key = null, $default = null)
+    {
+        // Try to get JSON input first (application/json)
+        $json = $this->request->getJSON(true);
+        
+        // Then check for form data based on request method
+        $form = [];
+        if (in_array($this->request->getMethod(), ['PUT', 'PATCH', 'DELETE'])) {
+            // For PUT/PATCH/DELETE, use getRawInput()
+            $form = $this->request->getRawInput();
+        } else {
+            // For POST/GET, use getPost()
+            $form = $this->request->getPost();
+        }
+        
+        // Combine the data with JSON taking precedence
+        $data = array_merge($form, is_array($json) ? $json : []);
+        
+        // Return specific key or all data
+        if ($key !== null) {
+            return $data[$key] ?? $default;
+        }
+        
+        return $data;
+    }
+
+    /**
      * Return success response with data
      * 
      * @param mixed $data Data to return

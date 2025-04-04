@@ -13,7 +13,6 @@ class ProgramModel extends Model
     // auto increment
     protected $useAutoIncrement = true;
 
-    // `id`, `program_category_id`, `name`, `logo_url`, `description`, `guideline`, `twibbon`, `start_date`, `end_date`, `registration_video_url`, `sponsor_canva_url`, `theme`, `sub_themes`, `share_desc`, `confirmation_desc`, `is_active`, `is_deleted`, `created_at`, `updated_at`
     protected $allowedFields = [
         'program_category_id',
         'name',
@@ -39,6 +38,68 @@ class ProgramModel extends Model
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
 
+    /**
+     * Get program by name
+     *
+     * @param string $name
+     * @return object|null
+     */
+    public function getProgramByName($name)
+    {
+        return $this->where('name', $name)
+            ->where('is_deleted', 0)
+            ->first();
+    }
+
+    /**
+     * Get programs by program category ID
+     *
+     * @param int $programCategoryId
+     * @return array
+     */
+    public function getActivePrograms($programCategoryId)
+    {
+        return $this->where('program_category_id', $programCategoryId)
+            ->where('is_active', 1)
+            ->where('is_deleted', 0)
+            ->findAll();
+    }
+
+    /**
+     * Get featured programs by program category ID
+     *
+     * @param int $programCategoryId
+     * @return array
+     */
+    public function getAllPrograms($programCategoryId)
+    {
+        return $this->where('program_category_id', $programCategoryId)
+            ->where('is_deleted', 0)
+            ->findAll();
+    }
+
+    /**
+     * Get program by ID with category filter
+     *
+     * @param int $id
+     * @param int $programCategoryId
+     * @return array|null
+     */
+    public function getProgramByIdAndCategory($id, $programCategoryId)
+    {
+        return $this->where('id', $id)
+            ->where('program_category_id', $programCategoryId)
+            ->where('is_active', 1)
+            ->where('is_deleted', 0)
+            ->first();
+    }
+
+    /**
+     * Get programs with category information
+     *
+     * @param int|null $program_category_id
+     * @return array
+     */
     public function getPrograms($program_category_id = null)
     {
         // Get all programs first
@@ -48,35 +109,46 @@ class ProgramModel extends Model
             $builder->where('program_category_id', $program_category_id);
         }
 
-        $result = $builder->get()->getResultArray();
+        $builder->where('is_deleted', 0)
+                ->orderBy('created_at', 'DESC');
 
-        // Get all program categories in a single query to avoid N+1 problem
-        $categoryIds = array_column($result, 'program_category_id');
-        $categories = [];
+        $programs = $builder->get()->getResult();
 
-        if (!empty($categoryIds)) {
-            $categoriesQuery = $this->db->table('program_categories')
-                ->whereIn('id', $categoryIds)
-                ->get()
-                ->getResultArray();
-
-            // Index categories by ID for easy lookup
-            foreach ($categoriesQuery as $category) {
-                $categories[$category['id']] = $category;
-            }
-        }
-
-        // Add the category objects to each program
-        foreach ($result as &$program) {
-            $catId = $program['program_category_id'];
-            $program['program_category'] = $categories[$catId] ?? null;
-        }
-
-        return $result;
+        return $programs;
     }
 
     public function getProgramById($id)
     {
         return $this->find($id);
+    }
+
+    /**
+     * Get programs not in the specified category
+     *
+     * @param int $categoryId Category ID to exclude
+     * @param int $limit Optional limit of results
+     * @param bool $activeOnly Whether to return only active programs
+     * @return array
+     */
+    public function getOtherPrograms($categoryId, $limit = null, $activeOnly = true)
+    {
+        $builder = $this->builder();
+        
+        $builder->select('programs.*')
+               ->join('program_categories', 'program_categories.id = programs.program_category_id')
+               ->where('programs.program_category_id !=', $categoryId)
+               ->where('programs.is_deleted', 0);
+        
+        if ($activeOnly) {
+            $builder->where('programs.is_active', 1);
+        }
+        
+        $builder->orderBy('created_at', 'DESC');
+        
+        if ($limit !== null) {
+            $builder->limit($limit);
+        }
+        
+        return $builder->get()->getResult();
     }
 }
