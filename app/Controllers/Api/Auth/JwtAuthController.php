@@ -6,6 +6,8 @@ use CodeIgniter\HTTP\ResponseInterface;
 use App\Models\UserModel;
 use App\Models\AdminModel;
 use App\Services\EmailService;
+use App\Controllers\Api\ProgramCategoriesApiController;
+use App\Models\ProgramCategoryModel;
 
 /**
  * JWT Authentication Controller
@@ -16,7 +18,7 @@ class JwtAuthController extends BaseAuthController
 {
     /**
      * Login with JWT authentication
-     * POST /api/auth/sign-in-jwt
+     * POST /api/auth/sign-in
      */
     public function signInJwt()
     {
@@ -61,19 +63,30 @@ class JwtAuthController extends BaseAuthController
                 if (!$user) {
                     return $this->respondError('Invalid email or password', ResponseInterface::HTTP_UNAUTHORIZED);
                 }
+
+                // check if verification is required
+                $programCategoryModel = new ProgramCategoryModel();
+                $programCategory = $programCategoryModel->find($user->program_category_id);
                 
-                // Check email verification
-                if (isset($user->email_not_verified) && $user->email_not_verified) {
-                    // Generate a new verification token and send email
-                    $user = $userModel->regenerateVerificationToken($email, $web_url);
-                    
-                    if ($user) {
-                        // Send verification email
-                        $emailService = new EmailService();
-                        $emailService->sendVerificationEmail($email, $user->verification_token, $web_url);
+                // check if program category is not empty
+                if (!$programCategory) {
+                    return $this->respondError('Program category not found', ResponseInterface::HTTP_NOT_FOUND);
+                }
+
+                if ($programCategory->verification_required) {
+                    // Check if user is verified
+                    if (isset($user->is_verified) && !$user->is_verified) {
+                        // Generate a new verification token and send email
+                        $user = $userModel->regenerateVerificationToken($email, $web_url);
+                        
+                        if ($user) {
+                            // Send verification email
+                            $emailService = new EmailService();
+                            $emailService->sendVerificationEmail($email, $user->verification_token, $web_url);
+                        }
+                        
+                        return $this->respondForbidden(lang('EmailVerification.verification_required'));
                     }
-                    
-                    return $this->respondForbidden(lang('EmailVerification.verification_required'));
                 }
                 
                 // Check if account is active

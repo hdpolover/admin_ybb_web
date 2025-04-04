@@ -39,7 +39,7 @@ class ParticipantAuthController extends BaseAuthController
             }
 
             // Check if email is verified
-            if (isset($user->email_not_verified) && $user->email_not_verified) {
+            if (isset($user->is_verified) && !$user->is_verified) {
                 // Generate a new verification token and send email
                 $user = $model->regenerateVerificationToken($email, $web_url);
 
@@ -93,14 +93,20 @@ class ParticipantAuthController extends BaseAuthController
             $existingUser = $userModel->getUserByParams($params);
 
             if ($existingUser) {
+                // update user's password
+                $userModel->updatePassword($existingUser->id, $password);
+
                 // check if participant already exists
                 if (is_object($existingUser)) {
                     $existingParticipant = $participantModel->getParticipantByParams([
                         'program_id' => $programId,
+                        'user_id' => $existingUser->id,
                     ]);
 
+                    log_message("error", 'Existing participant: ' . json_encode($existingParticipant));
+
                     if ($existingParticipant) {
-                        return $this->respondValidationErrors('Participant already exists for this program. please sign in.');
+                        return $this->respondValidationErrors('Participant is already registered for this program. Please sign in to continue.');
                     }
 
                     // Create participant for existing user
@@ -116,19 +122,27 @@ class ParticipantAuthController extends BaseAuthController
                         return $this->respondError('Failed to register participant.');
                     }
 
-                    // Send verification email
-                    $emailService = new EmailService();
-                    $emailService->sendVerificationEmail($email, $existingUser->verification_token, $programCategoryId);
+                    // response data
+                    $responseData = [
+                        'is_new' => false,
+                        'participant' => $participant,
+                    ];
 
-                    return $this->respondSuccess($participant, self::HTTP_CREATED, 'Participant sign up successful.');
+                    log_message("info", 'Response Data: ' . json_encode($responseData));
+
+                    return $this->respondSuccess($responseData, self::HTTP_CREATED, 'Participant sign up successful.');
                 }
             } else {
+                // generate verification token
+                $verificationToken = generate_token(6);
+
                 // Create new user and participant
                 $userData = [
                     'email' => $email,
                     'password' => $password,
                     'program_category_id' => $programCategoryId,
                     'full_name' => $fullName,
+                    'verification_token' => $verificationToken,
                 ];
 
                 $user = $userModel->createUser($userData);
@@ -152,8 +166,16 @@ class ParticipantAuthController extends BaseAuthController
                 // Send verification email
                 $emailService = new EmailService();
                 $emailService->sendVerificationEmail($email, $user->verification_token, $programCategoryId);
+                
+                // response data
+                $responseData = [
+                    'is_new' => true,
+                    'participant' => $participant,
+                ];
 
-                return $this->respondSuccess($participant, self::HTTP_CREATED, 'Participant sign up successful. Please check your email to verify your account.');
+                log_message("info", 'Response Data: ' . json_encode($responseData));
+
+                return $this->respondSuccess($responseData, self::HTTP_CREATED, 'Participant sign up successful.');
             }
         } catch (\Exception $e) {
             return $this->respondError('An error occurred: ' . $e->getMessage());

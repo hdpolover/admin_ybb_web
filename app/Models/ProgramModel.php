@@ -121,4 +121,34 @@ class ProgramModel extends Model
     {
         return $this->find($id);
     }
+
+    /**
+     * Get programs not in the specified category
+     *
+     * @param int $categoryId Category ID to exclude
+     * @param int $limit Optional limit of results
+     * @param bool $activeOnly Whether to return only active programs
+     * @return array
+     */
+    public function getOtherPrograms($categoryId, $limit = null, $activeOnly = true)
+    {
+        $builder = $this->builder();
+        
+        $builder->select('programs.*')
+               ->join('program_categories', 'program_categories.id = programs.program_category_id')
+               ->where('programs.program_category_id !=', $categoryId)
+               ->where('programs.is_deleted', 0);
+        
+        if ($activeOnly) {
+            $builder->where('programs.is_active', 1);
+        }
+        
+        $builder->orderBy('created_at', 'DESC');
+        
+        if ($limit !== null) {
+            $builder->limit($limit);
+        }
+        
+        return $builder->get()->getResult();
+    }
 }

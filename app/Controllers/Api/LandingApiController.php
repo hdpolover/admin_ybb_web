@@ -116,12 +116,13 @@ class LandingApiController extends ApiBaseController
             // Get all programs for this category
             $programs = $this->programModel->getActivePrograms($category->id);
 
-
-
+            // get other programs
+            $otherPrograms = $this->programModel->getOtherPrograms($category->id);
 
             return $this->respondSuccess([
                 'category' => $category,
-                'programs' => $programs
+                'programs' => $programs,
+                'otherPrograms' => $otherPrograms
             ]);
         } catch (\Exception $e) {
             return $this->respondError($e->getMessage());

@@ -74,7 +74,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
         $routes->post('refresh', 'AuthApiController::refreshToken');
         
         // User registration
-        $routes->post('participant-signup', 'AuthApiController::participantSignUp');
+        $routes->post('participant/sign-up', 'AuthApiController::participantSignUp');
         
         // Password Recovery
         $routes->post('forgot-password', 'AuthApiController::forgotPassword');
@@ -108,8 +108,10 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     // users
     $routes->get('users', 'UsersApiController::index');
     $routes->get('users/(:num)', 'UsersApiController::show/$1');
+    // check users by params
+    $routes->get('users/check', 'UsersApiController::checkUserByParams');
 
-    // participants → ubah untuk pakai ParticipantApiController
+    // participants 
     $routes->get('participants', 'ParticipantsApiController::index');
     $routes->get('participants/(:num)', 'ParticipantsApiController::show/$1');
     $routes->get('participants/current-program', 'ParticipantsApiController::getCurrentProgramParticipants');
@@ -142,7 +144,9 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->get('programs/slug/(:any)', 'ProgramsApiController::getBySlug/$1');
     // get by category id
     $routes->get('programs/category/(:num)', 'ProgramsApiController::getByCategory/$1');
-
+    // get programs not in program category id
+    $routes->get('programs/not-in-category/(:num)', 'ProgramsApiController::getNotInCategory/$1');
+    
     // program schedules
     $routes->get('program-schedules', 'ProgramSchedulesApiController::index');
     $routes->get('program-schedules/(:num)', 'ProgramSchedulesApiController::show/$1');

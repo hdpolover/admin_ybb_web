@@ -19,7 +19,7 @@ class ProgramCategoriesApiController extends ApiBaseController
     ) {
         // Call parent initializer
         parent::initController($request, $response, $logger);
-        
+
         // Initialize model - this is what was previously in the constructor
         $this->model = new ProgramCategoryModel();
     }
@@ -37,16 +37,15 @@ class ProgramCategoriesApiController extends ApiBaseController
 
             // Get data using custom method
             $result = $this->model->getProgramCategories($limit, $offset);
-            
+
             $totalPages = ceil($result['total'] / $limit);
-            
+
             return $this->apiResponse($result['data'], 200, "Success", [
                 'current_page' => $page,
                 'per_page' => $limit,
                 'total_items' => $result['total'],
                 'total_pages' => $totalPages
             ]);
-            
         } catch (\Exception $e) {
             return $this->failServerError('An error occurred: ' . $e->getMessage());
         }
@@ -59,13 +58,17 @@ class ProgramCategoriesApiController extends ApiBaseController
     public function show($id = null)
     {
         $programCategory = $this->model->find($id);
-        return $programCategory ? $this->apiResponse($programCategory) : $this->failNotFound("Program Category not found");
+        return $programCategory ? $this->respondSuccess($programCategory, self::HTTP_OK, 'Program Category retrieved successfully') : $this->failNotFound("Program Category not found");
     }
 
     // get programs based on program category id
     public function getProgramsByCatId($id = null)
     {
+        if (is_null($id)) {
+            return $this->respondValidationErrors("Program Category ID is required");
+        }
+
         $programs = $this->model->getPrograms($id);
-        return $programs ? $this->apiResponse($programs) : $this->failNotFound("Programs not found");
+        return $programs ? $this->respondSuccess($programs, self::HTTP_OK, 'Programs retrieved successfully') : $this->failNotFound("Programs not found");
     }
 }

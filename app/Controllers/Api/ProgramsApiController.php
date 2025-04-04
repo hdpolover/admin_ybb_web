@@ -95,6 +95,30 @@ class ProgramsApiController extends ApiBaseController
 
         return $this->respondSuccess($programs, self::HTTP_OK, 'Programs retrieved successfully');
     }
+
+    /**
+     * Get programs not in a category
+     * GET /api/programs/not-in-category/{categoryId}
+     */
+    public function getNotInCategory($categoryId = null)
+    {
+        if ($categoryId === null) {
+            return $this->respondValidationErrors('Category ID is required');
+        }
+        
+        // Validate category ID is numeric
+        if (!is_numeric($categoryId)) {
+            return $this->respondValidationErrors('Invalid category ID format');
+        }
+        
+        $programs = $this->model->getOtherPrograms($categoryId);
+        
+        if (empty($programs)) {
+            return $this->respondNotFound('No programs found outside this category');
+        }
+        
+        return $this->respondSuccess($programs, self::HTTP_OK, 'Programs retrieved successfully');
+    }
     
     /**
      * Get programs by user ID

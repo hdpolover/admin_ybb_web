@@ -79,7 +79,7 @@ class AuthApiController extends ApiBaseController
     
     /**
      * Participant sign up
-     * POST /api/auth/participant-signup
+     * POST /api/auth/participant/sign-up
      */
     public function participantSignUp()
     {

@@ -30,6 +30,7 @@ class UserModel extends Model
         'password'
     ];
 
+
     public function getUsers($limit = 10, $offset = 0, $filters = [])
     {
         $builder = $this->builder();
@@ -88,7 +89,7 @@ class UserModel extends Model
         if (md5($password) !== $user->password) {
             return false;
         }
-        
+
         // Check if user's email is verified
         if (!$user->is_verified) {
             // Set a custom property to indicate email not verified
@@ -138,10 +139,10 @@ class UserModel extends Model
 
         // Hash password
         $data['password'] = md5($data['password']);
-        
+
         // Set is_verified to 0 (false) by default
         $data['is_verified'] = 0;
-        
+
         // Generate verification token
         $data['verification_token'] = bin2hex(random_bytes(16));
 
@@ -152,7 +153,7 @@ class UserModel extends Model
 
         return $this->find($userId);
     }
-    
+
     /**
      * Verify a user's email with the provided token
      *
@@ -164,20 +165,20 @@ class UserModel extends Model
     {
         // Find the user by email and token
         $user = $this->where('email', $email)
-                     ->where('verification_token', $token)
-                     ->first();
-                     
+            ->where('verification_token', $token)
+            ->first();
+
         if (!$user) {
             return false;
         }
-        
+
         // Update user as verified
         return $this->update($user->id, [
             'is_verified' => 1,
             'verification_token' => null // Clear the token after verification
         ]);
     }
-    
+
     /**
      * Get user by verification token
      * 
@@ -188,7 +189,7 @@ class UserModel extends Model
     {
         return $this->where('verification_token', $token)->first();
     }
-    
+
     /**
      * Resend verification email token
      *
@@ -201,33 +202,33 @@ class UserModel extends Model
         // Get program category by web URL
         $programCategoryModel = new ProgramCategoryModel();
         $programCategory = $programCategoryModel->getProgramCategoryIdByWebUrl($web_url);
-        
+
         // Find the user
         $user = $this->where('email', $email)
-                     ->where('program_category_id', $programCategory['id'])
-                     ->first();
-        
+            ->where('program_category_id', $programCategory['id'])
+            ->first();
+
         if (!$user) {
             return false;
         }
-        
+
         // Don't regenerate if already verified
         if ($user->is_verified) {
             return $user;
         }
-        
+
         // Generate new token
         $token = bin2hex(random_bytes(16));
-        
+
         // Update user with new token
         $updated = $this->update($user->id, [
             'verification_token' => $token
         ]);
-        
+
         if (!$updated) {
             return false;
         }
-        
+
         // Return updated user
         return $this->find($user->id);
     }
