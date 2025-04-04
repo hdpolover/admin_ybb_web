@@ -323,4 +323,32 @@ class ParticipantModel extends Model
         
         return $programs;
     }
+
+    public function getTotalParticipants($programId)
+    {
+        return $this->where('program_id', $programId)
+                    ->where('is_active', 1)
+                    ->where('is_deleted', 0)
+                    ->countAllResults();
+    }
+
+    public function getTotalCountries($programId)
+    {
+        return $this->select('COUNT(DISTINCT nationality) as total_countries')
+                    ->where('program_id', $programId)
+                    ->where('is_active', 1)
+                    ->where('is_deleted', 0)
+                    ->get()
+                    ->getRow()
+                    ->total_countries;
+    }
+
+    public function getCountriesData($programId)
+    {
+        return $this->select('nationality, COUNT(*) as participants_count')
+            ->where('program_id', $programId)
+            ->groupBy('nationality')
+            ->orderBy('participants_count', 'DESC')
+            ->findAll();
+    }
 }

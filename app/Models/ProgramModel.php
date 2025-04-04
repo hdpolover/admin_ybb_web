@@ -59,10 +59,13 @@ class ProgramModel extends Model
      */
     public function getActivePrograms($programCategoryId)
     {
-        return $this->where('program_category_id', $programCategoryId)
+        $builder = $this->builder();
+        $builder->select('*')
+            ->where('program_category_id', $programCategoryId)
             ->where('is_active', 1)
-            ->where('is_deleted', 0)
-            ->findAll();
+            ->where('is_deleted', 0);
+        
+        return $builder->get()->getRow();
     }
 
     /**
