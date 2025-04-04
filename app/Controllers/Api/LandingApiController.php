@@ -183,14 +183,25 @@ class LandingApiController extends ApiBaseController
             if (!$category) {
                 return $this->respondNotFound('Program category not found');
             }
+            
+            
 
             // Get insights for this category
             // Note: You may need to create an InsightsModel to implement this functionality
-            $insights = []; // Replace with actual data retrieval
+            $insightsData = [
+                'total_registered_participants' => 100, // Replace with actual data retrieval
+                'total_countries' => 3, // Replace with actual data retrieval
+                'countries_data' => [
+                    // Replace with actual data retrieval
+                    ['country' => 'Country 1', 'participants_count' => 50],
+                    ['country' => 'Country 2', 'participants_count' => 30],
+                    ['country' => 'Country 3', 'participants_count' => 20],
+                ], // Replace with actual data retrieval
+            ];
 
             return $this->respondSuccess([
                 'category' => $category,
-                'insights' => $insights
+                'insightsData' => $insightsData,
             ]);
         } catch (\Exception $e) {
             return $this->respondError($e->getMessage());
