@@ -26,7 +26,7 @@ $statusText = isset($statusText[$status]) ? $statusText[$status] : 'Unknown';
 
 ?>
 
-<a href="<?= site_url('welcome/set_program/' . $program->id) ?>" class="text-decoration-none text-dark">
+<a href="<?= site_url('welcome/set-program/' . $program->id) ?>" class="text-decoration-none text-dark">
     <div class="program-card card shadow-sm mb-4">
         <div class="card-body p-3">
             <div class="d-flex align-items-center">

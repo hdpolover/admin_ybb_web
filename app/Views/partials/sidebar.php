@@ -33,7 +33,7 @@
             </div>
             <ul class="navbar-nav" id="navbar-nav">
                 <li class="nav-item">
-                    <a class="nav-link menu-link" href="widgets">
+                    <a class="nav-link menu-link" href="<?= base_url("dashboard") ?>">
                         <i class="ri-honour-line"></i> <span>Dashboard</span>
                     </a>
                 </li>

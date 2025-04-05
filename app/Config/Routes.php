@@ -36,7 +36,7 @@ $routes->setAutoRoute(false);
 // user routes with name space App\Controllers\Users
 $routes->group('', ['namespace' => 'App\Controllers'], function ($routes) {
     $routes->get('/', 'Auth::index');
-    $routes->post('sign-in', 'Auth::signIn');   
+    $routes->post('admin/sign-in', 'Auth::signIn');
 });
 
 // these routes can be accessed only by admin after auth
@@ -52,10 +52,10 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
 });
 
 // Protected routes that require program selection
-$routes->group('', ['filter' => 'program_selection'], function($routes) {
+$routes->group('', ['filter' => 'program_selection'], function ($routes) {
     $routes->get('dashboard', 'Dashboard::index');
     // Add other routes that require program selection here
-    
+
     // Payment routes
     $routes->get('payments', 'Payments::index');
     $routes->get('payments/getData', 'Payments::getData');
@@ -67,44 +67,47 @@ $routes->group('', ['filter' => 'program_selection'], function($routes) {
 // api routes
 $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes) {
     // Auth routes - organized by functionality
-    $routes->group('auth', function($routes) {
+    $routes->group('auth', function ($routes) {
         // JWT Authentication
         $routes->post('sign-in', 'AuthApiController::signIn');
         $routes->get('profile', 'AuthApiController::profile', ['filter' => 'jwt']);
         $routes->post('refresh', 'AuthApiController::refreshToken');
-        
+
         // User registration
         $routes->post('participant/sign-up', 'AuthApiController::participantSignUp');
-        
+
         // Password Recovery
         $routes->post('forgot-password', 'AuthApiController::forgotPassword');
         $routes->get('verify-token', 'AuthApiController::verifyToken');
         $routes->post('reset-password', 'AuthApiController::resetPassword');
-        
+
         // Email Verification
         $routes->get('verify-email', 'AuthApiController::verifyEmail');
         $routes->post('resend-verification', 'AuthApiController::resendVerification');
         $routes->get('test-email', 'AuthApiController::testEmail');
-        
+
         // For backward compatibility - can be removed after updating client apps
         $routes->post('sign-in-jwt', 'AuthApiController::signIn');
     });
-    
+
     // Midtrans Payment Integration
-    $routes->group('payments', function($routes) {
+    $routes->group('payments', function ($routes) {
         $routes->get('config', 'Api\PaymentsApiController::getConfig');
         $routes->post('create', 'Api\PaymentsApiController::createTransaction');
         $routes->post('webhook', 'Api\PaymentsApiController::webhook');
         $routes->get('status/(:num)', 'Api\PaymentsApiController::getStatus/$1');
         $routes->post('upload-proof', 'Api\PaymentsApiController::uploadPaymentProof');
+        $routes->get('participant/(:num)', 'PaymentsApiController::getPaymentsByParticipantId/$1');
     });
-    
+
+    // get payments by participant id
+
     // Protected routes with JWT authentication
     $routes->group('', ['filter' => 'jwt'], function ($routes) {
         $routes->get('my-programs', 'ProgramsApiController::getUserPrograms');
         // Add more protected endpoints here
     });
-    
+
     // users
     $routes->get('users', 'UsersApiController::index');
     $routes->get('users/(:num)', 'UsersApiController::show/$1');
@@ -150,7 +153,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->get('programs/category/(:num)', 'ProgramsApiController::getByCategory/$1');
     // get programs not in program category id
     $routes->get('programs/not-in-category/(:num)', 'ProgramsApiController::getNotInCategory/$1');
-    
+
     // program schedules
     $routes->get('program-schedules', 'ProgramSchedulesApiController::index');
     $routes->get('program-schedules/(:num)', 'ProgramSchedulesApiController::show/$1');
@@ -198,7 +201,7 @@ $routes->get('participants/edit/(:num)', 'Participants::edit/$1');
 $routes->post('participants/delete/(:num)', 'Participants::delete/$1');
 
 // Landing API Routes
-$routes->group('api/landing', ['namespace' => 'App\Controllers\Api'], function($routes) {
+$routes->group('api/landing', ['namespace' => 'App\Controllers\Api'], function ($routes) {
     $routes->get('home', 'LandingApiController::home');
     $routes->get('programs', 'LandingApiController::programs');
     $routes->get('programs/(:num)', 'LandingApiController::programDetail/$1');
@@ -211,7 +214,7 @@ $routes->group('api/landing', ['namespace' => 'App\Controllers\Api'], function($
     // help & news
     $routes->get('help-news', 'LandingApiController::helpAndNews');
     $routes->get('help-news/(:num)', 'LandingApiController::helpAndNewsDetail/$1');
- });
+});
 
 /*
  * --------------------------------------------------------------------

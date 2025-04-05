@@ -2,6 +2,8 @@
 
 namespace App\Controllers\Api\Auth;
 
+use App\Models\AmbassadorModel;
+use App\Models\AmbassadorParticipantReferralModel;
 use App\Models\UserModel;
 use App\Models\ParticipantModel;
 use App\Services\EmailService;
@@ -64,6 +66,20 @@ class ParticipantAuthController extends BaseAuthController
         }
     }
 
+    // add new record for ambassador participant referral
+    function addAmbassadorParticipantReferral($participantId, $ambassadorId)
+    {
+        if (empty($ambassadorId)) {
+            return $this->respondValidationErrors('Ambassador ID is required.');
+        }
+
+        $ambassadorParticipantReferralModel = new AmbassadorParticipantReferralModel();
+        $ambassadorParticipantReferralModel->addParticipantReferral([
+            'participant_id' => $participantId,
+            'ambassador_id' => $ambassadorId
+        ]);
+    }
+
     /**
      * Participant sign up
      * POST /api/auth/participant/sign-up
@@ -78,9 +94,25 @@ class ParticipantAuthController extends BaseAuthController
         $programCategoryId = $this->request->getPost('program_category_id');
         $programId = $this->request->getPost('program_id');
         $fullName = $this->request->getPost('full_name');
+        $ambassadorId = $this->request->getPost('ambassador_id');
 
-        if (empty($email) || empty($password) || empty($programCategoryId) || empty($programId) || empty($fullName)) {
-            return $this->respondValidationErrors('Email, password, program_category_id, program_id, and full_name are required.');
+        if (empty($email) || empty($password) || empty($programCategoryId) || empty($programId) || empty($fullName) ) {
+            return $this->respondValidationErrors('All fields are required.');
+        }
+
+        // check if ambassador id is valid
+        if (!empty($ambassadorId)) {
+            $ambassadorModel = new AmbassadorModel();
+            $ambassador = $ambassadorModel->getAmbassadorById($ambassadorId);
+
+            if (!$ambassador) {
+                return $this->respondValidationErrors('Invalid ambassador ID.');
+            }
+
+            // check if ambassador program id is the same as the program id
+            if ($ambassador->program_id != $programId) {
+                return $this->respondValidationErrors('Ambassador is not valid for this program.');
+            }
         }
 
         try {
@@ -121,6 +153,13 @@ class ParticipantAuthController extends BaseAuthController
                     if (!$participant) {
                         return $this->respondError('Failed to register participant.');
                     }
+
+                    // if ambassador_id is not empty, check if it exists in the database
+                    if (!empty($ambassadorId)) {
+                        $this->addAmbassadorParticipantReferral($participant->id, $ambassadorId);
+                    }
+
+                    log_message("info", 'Ambassador participant referral added for participant ID: ' . $participant->id . ' with ambassador ID: ' . $ambassadorId);
 
                     // response data
                     $responseData = [
@@ -163,10 +202,15 @@ class ParticipantAuthController extends BaseAuthController
                     return $this->respondError('Failed to register participant.');
                 }
 
+                // if ambassadorID is not empty, check if it exists in the database
+                if (!empty($ambassadorId)) {
+                    $this->addAmbassadorParticipantReferral($participant->id, $ambassadorId);
+                }
+
                 // Send verification email
                 $emailService = new EmailService();
                 $emailService->sendVerificationEmail($email, $user->verification_token, $programCategoryId);
-                
+
                 // response data
                 $responseData = [
                     'is_new' => true,

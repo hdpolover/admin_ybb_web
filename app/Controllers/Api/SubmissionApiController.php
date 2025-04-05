@@ -17,6 +17,7 @@ class SubmissionApiController extends ApiBaseController
     protected $participantSubthemeModel;
     protected $participantEssayModel;
     protected $programEssayModel;
+    protected $competitionCategoryModel;
 
      /**
      * Initialize controller, set models
@@ -35,6 +36,7 @@ class SubmissionApiController extends ApiBaseController
         $this->participantSubthemeModel = new \App\Models\ParticipantSubthemeModel();
         $this->participantEssayModel = new \App\Models\ParticipantEssayModel();
         $this->programEssayModel = new \App\Models\ProgramEssayModel();
+        $this->competitionCategoryModel = new \App\Models\CompetitionCategoryModel();
     }
 
      /**
@@ -146,7 +148,10 @@ class SubmissionApiController extends ApiBaseController
             // Get program subthemes
             $subthemes = $this->programSubthemeModel->getSubthemesByProgramId($programId);
 
-            if (empty($essays) && empty($subthemes)) {
+            // get competition categories
+            $competitionCategories = $this->competitionCategoryModel->getCategoriesByProgramId($programId);
+
+            if (empty($essays) && empty($subthemes) && empty($competitionCategories)) {
                 return $this->respondError('No submission form data found for this program', self::HTTP_NOT_FOUND);
             }
 
@@ -154,7 +159,8 @@ class SubmissionApiController extends ApiBaseController
             $data = [
                 'program_id' => $programId,
                 'essays' => $essays,
-                'subthemes' => $subthemes
+                'subthemes' => $subthemes,
+                'competition_categories' => $competitionCategories,
             ];
 
             return $this->respondSuccess($data);

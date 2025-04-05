@@ -69,24 +69,16 @@ if (!function_exists('url_decrypt')) {
                 return false;
             }
             
-            // Try to decode JSON
-            $data = json_decode($decrypted, true);
-            
-            // If not valid JSON, treat as query string or plain text
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                if (strpos($decrypted, '=') !== false) {
-                    parse_str($decrypted, $data);
-                } else {
-                    $data = $decrypted;
-                }
+            // return as string
+            if (!$as_array) {
+                return $decrypted;
             }
-            
-            // Return as array or query string
-            if ($as_array || !is_array($data)) {
-                return $data;
-            } else {
-                return http_build_query($data);
+
+            if ($as_array) {
+                return json_decode($decrypted, true);
             }
+
+            return $decrypted;
         } catch (\Exception $e) {
             log_message('error', 'URL Decryption failed: ' . $e->getMessage());
             return false;
