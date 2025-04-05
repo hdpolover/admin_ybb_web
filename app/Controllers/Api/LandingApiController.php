@@ -7,7 +7,7 @@ use App\Models\ProgramCategoryModel;
 use App\Models\ProgramModel;
 use App\Models\ProgramTestimonyModel;
 // faq model
-use App\Models\FAQModel;
+use App\Models\FaqModel;
 use App\Models\AnnouncementModel;
 // photo model
 use App\Models\ProgramPhotoModel;
@@ -37,7 +37,7 @@ class LandingApiController extends ApiBaseController
         $this->programCategoryModel = new ProgramCategoryModel();
         $this->programModel = new ProgramModel();
         $this->testimonyModel = new ProgramTestimonyModel();
-        $this->faqModel = new FAQModel();
+        $this->faqModel = new FaqModel();
         $this->announcementModel = new AnnouncementModel();
         $this->photoModel = new ProgramPhotoModel();
         $this->participantModel = new ParticipantModel();
@@ -183,20 +183,31 @@ class LandingApiController extends ApiBaseController
             if (!$category) {
                 return $this->respondNotFound('Program category not found');
             }
-            
-            
+
+            // get latest program for this category
+            $activeProgram = $this->programModel->getActivePrograms($category->id);
+
+            if (!$activeProgram) {
+                return $this->respondNotFound('No active program found for this category');
+            }
+
+            // Get insights for the active program
+            $totalParticipants = $this->participantModel->getTotalParticipants($activeProgram->id);
+            $totalCountries = $this->participantModel->getTotalCountries($activeProgram->id);
+            $countriesData = $this->participantModel->getCountriesData($activeProgram->id);
+
+            $activeProgramInsights = [
+                'program' => $activeProgram,
+                'total_registered_participants' =>$totalParticipants,
+                'total_countries' => $totalCountries,
+                'countries_data' => $countriesData,
+            ];
+
 
             // Get insights for this category
             // Note: You may need to create an InsightsModel to implement this functionality
             $insightsData = [
-                'total_registered_participants' => 100, // Replace with actual data retrieval
-                'total_countries' => 3, // Replace with actual data retrieval
-                'countries_data' => [
-                    // Replace with actual data retrieval
-                    ['country' => 'Country 1', 'participants_count' => 50],
-                    ['country' => 'Country 2', 'participants_count' => 30],
-                    ['country' => 'Country 3', 'participants_count' => 20],
-                ], // Replace with actual data retrieval
+                'activeProgramInsights' => $activeProgramInsights,
             ];
 
             return $this->respondSuccess([

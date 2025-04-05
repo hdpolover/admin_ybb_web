@@ -6,6 +6,9 @@ use App\Models\AmbassadorModel;
 use App\Models\ProgramModel;
 use App\Models\ProgramCategoryModel;
 use App\Controllers\Api\ApiBaseController;
+use CodeIgniter\HTTP\ResponseInterface;
+use CodeIgniter\HTTP\RequestInterface;
+use Psr\Log\LoggerInterface;
 
 class AmbassadorsApiController extends ApiBaseController
 {
@@ -29,13 +32,14 @@ class AmbassadorsApiController extends ApiBaseController
         $this->programModel = new ProgramModel();
         $this->programCategoryModel = new ProgramCategoryModel();
     }
-
+    
     /**
-     * 🔍 Generate link referal (READ)
+     * Generate referral link for an ambassador.
      * GET /api/ambassadors/{id}/generate-link
      */
     public function generateLink($id)
     {
+
         $ambassador = $this->model->find($id);
 
         if (!$ambassador) {
