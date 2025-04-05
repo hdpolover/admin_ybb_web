@@ -98,12 +98,12 @@ class AuthApiController extends ApiBaseController
     }
     
     /**
-     * Verify OTP
-     * POST /api/auth/verify-otp
+     * Verify token for password reset
+     * GET /api/auth/verify-token
      */
-    public function verifyOtp()
+    public function verifyToken()
     {
-        return $this->passwordRecovery->verifyOtp();
+        return $this->passwordRecovery->verifyToken();
     }
     
     /**

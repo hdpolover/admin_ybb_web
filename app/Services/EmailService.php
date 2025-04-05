@@ -50,16 +50,16 @@ class EmailService
     }
 
     /**
-     * Send a password reset email with OTP
+     * Send a password reset email with a reset link
      *
      * @param string $to Recipient email
-     * @param string $otp One-time password
+     * @param string $token Reset token
      * @param string $web_url Web URL to get program information
      * @return bool True if email was sent, false otherwise
      */
-    public function sendPasswordResetEmail(string $to, string $otp, string $web_url): bool
+    public function sendPasswordResetEmail(string $to, string $token, string $web_url): bool
     {
-        $subject = 'Password Reset OTP';
+        $subject = 'Password Reset Request';
         
         // Get program information based on web_url
         $programCategoryModel = new ProgramCategoryModel();
@@ -71,17 +71,21 @@ class EmailService
             return false;
         }
 
+        // Create reset URL - Using frontend URL with token
+        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://';
+        $resetUrl = $protocol . $web_url . '/reset-password?token=' . $token;
         
         $data = [
-            'otp' => $otp,
-            // Merge program data with email data
+            'reset_link' => $resetUrl,
+            // If program contact email is different from the sender email
+            'email_contact' => $programData->contact_email ?? null,
         ];
         
         if ($programData) {
             $data = array_merge($data, (array)$programData);
         }
         
-        return $this->sendEmail($to, $subject, 'reset_password', $data);
+        return $this->sendEmail($to, $subject, 'reset_password_link', $data);
     }
     
     /**

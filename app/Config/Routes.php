@@ -78,7 +78,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
         
         // Password Recovery
         $routes->post('forgot-password', 'AuthApiController::forgotPassword');
-        $routes->post('verify-otp', 'AuthApiController::verifyOtp');
+        $routes->get('verify-token', 'AuthApiController::verifyToken');
         $routes->post('reset-password', 'AuthApiController::resetPassword');
         
         // Email Verification

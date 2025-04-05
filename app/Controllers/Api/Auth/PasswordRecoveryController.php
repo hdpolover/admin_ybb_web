@@ -14,8 +14,9 @@ use CodeIgniter\HTTP\ResponseInterface;
  */
 class PasswordRecoveryController extends BaseAuthController
 {
+    
     /**
-     * Request password reset with OTP
+     * Request password reset with a reset link
      * POST /api/auth/forgot-password
      */
     public function forgotPassword()
@@ -36,77 +37,93 @@ class PasswordRecoveryController extends BaseAuthController
         }
 
         try {
-            // Generate OTP
-            $otp = rand(100000, 999999);
+            // Generate token
+            $token = generate_token(32, true); // Use the enhanced generate_token function
 
             // Save into database
             $passwordResetModel = new PasswordResetModel();
-            $passwordResetModel->createOtp($email, $user->id, $otp);
+            $passwordResetModel->createToken($email, $user->id, $token);
 
-            // Send email with OTP
+            // Send email with reset link
             $emailService = new EmailService();
-            $emailSent = $emailService->sendPasswordResetEmail($email, $otp, $web_url);
+            $emailSent = $emailService->sendPasswordResetEmail($email, $token, $web_url);
 
             if (!$emailSent) {
-                return $this->respondError('Failed to send OTP email. Please try again later.');
+                return $this->respondError('Failed to send password reset email. Please try again later.');
             }
 
-            log_message('info', "OTP for $email is $otp");
+            log_message('info', "Password reset link sent to {$email} with token: {$token}");
 
-            return $this->respondSuccess(null, self::HTTP_OK, 'OTP sent successfully. Please check your email.');
+            return $this->respondSuccess(null, self::HTTP_OK, 'Password reset instructions sent to your email.');
         } catch (\Exception $e) {
-            return $this->respondError('Failed to send OTP: ' . $e->getMessage());
+            return $this->respondError('Failed to initiate password reset: ' . $e->getMessage());
         }
     }
 
     /**
-     * Verify OTP for password reset
-     * POST /api/auth/verify-otp
+     * Verify reset token and get user info
+     * GET /api/auth/verify-token
      */
-    public function verifyOtp()
+    public function verifyToken()
     {
-        $email = $this->request->getPost('email');
-        $otp = $this->request->getPost('otp');
+        $token = $this->request->getGet('token');
 
-        if (empty($email) || empty($otp)) {
-            return $this->respondValidationErrors('Email and OTP are required.');
+        if (empty($token)) {
+            return $this->respondValidationErrors('Reset token is required.');
         }
 
         try {
             $passwordResetModel = new PasswordResetModel();
-            $resetData = $passwordResetModel->getOtpByEmailAndOtp($email, $otp);
+            $resetData = $passwordResetModel->getResetByToken($token);
 
             if (!$resetData) {
-                return $this->respondNotFound('Invalid OTP. Please try again.');
+                return $this->respondNotFound('Invalid or expired reset token.');
             }
 
-            return $this->respondSuccess($resetData, self::HTTP_OK, 'OTP valid. Please reset your password.');
+            // Check if token has expired
+            if (!$passwordResetModel->isValidToken($token)) {
+                return $this->respondError('Reset token has expired. Please request a new password reset.');
+            }
+
+            return $this->respondSuccess($resetData, self::HTTP_OK, 'Token valid. Please reset your password.');
         } catch (\Exception $e) {
-            return $this->respondError('Failed to verify OTP: ' . $e->getMessage());
+            return $this->respondError('Failed to verify token: ' . $e->getMessage());
         }
     }
 
     /**
-     * Reset password after OTP verification
+     * Reset password using token
      * POST /api/auth/reset-password
      */
     public function resetPassword()
     {
-        $user_id = $this->request->getPost('user_id');
+        $token = $this->request->getPost('token');
         $newPassword = $this->request->getPost('password');
 
-        if (empty($user_id) || empty($newPassword)) {
-            return $this->respondValidationErrors('User ID and new password are required.');
+        if (empty($token) || empty($newPassword)) {
+            return $this->respondValidationErrors('Token and new password are required.');
         }
 
         try {
+            // Verify the token is valid
+            $passwordResetModel = new PasswordResetModel();
+            $resetData = $passwordResetModel->getResetByToken($token);
+
+            if (!$resetData) {
+                return $this->respondNotFound('Invalid reset token.');
+            }
+
+            // Check if token has expired
+            if (!$passwordResetModel->isValidToken($token)) {
+                return $this->respondError('Reset token has expired. Please request a new password reset.');
+            }
+
             // Update password
             $userModel = new UserModel();
-            $userModel->updatePassword($user_id, $newPassword);
+            $userModel->updatePassword($resetData->user_id, $newPassword);
 
-            // Delete OTP
-            $passwordResetModel = new PasswordResetModel();
-            $passwordResetModel->deleteOtp($user_id);
+            // Delete token after successful reset
+            $passwordResetModel->deleteToken($resetData->email);
 
             return $this->respondSuccess(null, self::HTTP_OK, 'Password reset successfully. You can now sign in with your new password.');
         } catch (\Exception $e) {

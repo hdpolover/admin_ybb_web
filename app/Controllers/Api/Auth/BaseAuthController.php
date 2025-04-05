@@ -24,6 +24,9 @@ class BaseAuthController extends ApiBaseController
         
         // Initialize JWT Handler
         $this->jwtHandler = new JWTHandler();
+
+         // Load the helper that contains the generate_token function
+         helper('otp');
     }
     
     /**

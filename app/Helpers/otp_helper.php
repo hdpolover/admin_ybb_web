@@ -19,12 +19,19 @@ if (!function_exists('generate_token')) {
     /**
      * Generates a random token
      *
-     * @param int $length Length of the token (default 6)
+     * @param int $length Length of the token (default 32)
+     * @param bool $alphanumeric Whether to use alphanumeric characters (default true)
      * @return string The generated token
      */
-    function generate_token($length = 6) {
-        // For numeric-only tokens
-        $characters = '0123456789';
+    function generate_token($length = 32, $alphanumeric = true) {
+        if ($alphanumeric) {
+            // For alphanumeric tokens (more secure)
+            $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        } else {
+            // For numeric-only tokens
+            $characters = '0123456789';
+        }
+        
         $token = '';
         
         for ($i = 0; $i < $length; $i++) {
