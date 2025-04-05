@@ -47,4 +47,12 @@ class ProgramEssayModel extends Model
             ->where('is_deleted', 0)
             ->findAll();
     }
+
+    // Get essays by program ID
+    public function getEssaysByProgramId($programId)
+    {
+        return $this->where('program_id', $programId)
+                   ->where('is_deleted', 0)
+                   ->findAll();
+    }
 }

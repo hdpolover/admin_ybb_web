@@ -156,7 +156,6 @@ class LandingApiController extends ApiBaseController
 
             return $this->respondSuccess([
                 'category' => $category,
-                'partners' => $partners
             ]);
         } catch (\Exception $e) {
             return $this->respondError($e->getMessage());

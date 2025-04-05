@@ -335,4 +335,73 @@ class ParticipantsApiController extends ApiBaseController
         }
     }
 
+    /**
+     * 📝 Get Participant Essays
+     * GET /api/participants/{id}/essays
+     * 
+     * Returns all essays submitted by a specific participant
+     */
+    public function getParticipantEssays($id = null)
+    {
+        try {
+            if (!$id) {
+                return $this->respondError('Participant ID is required', self::HTTP_BAD_REQUEST);
+            }
+            
+            // Check if participant exists
+            $participant = $this->model->getParticipant($id);
+            if (!$participant) {
+                return $this->respondNotFound("Participant not found");
+            }
+
+            // participant essay model
+            $participantEssayModel = new \App\Models\ParticipantEssayModel();
+            
+            // Get essays from participant
+            $essays = $participantEssayModel->getEssaysByParticipantId($id);
+            
+            if (empty($essays)) {
+                return $this->respondNotFound("No essays found for this participant");
+            }
+
+            return $this->respondSuccess($essays);
+        } catch (\Exception $e) {
+            return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
+        }
+    }
+
+    /**
+     * 🔍 Get Participant Subthemes
+     * GET /api/participants/{id}/subthemes
+     * 
+     * Returns all subthemes assigned to a specific participant
+     */
+    public function getParticipantSubthemes($id = null)
+    {
+        try {
+            if (!$id) {
+                return $this->respondError('Participant ID is required', self::HTTP_BAD_REQUEST);
+            }
+            
+            // Check if participant exists
+            $participant = $this->model->getParticipant($id);
+            if (!$participant) {
+                return $this->respondNotFound("Participant not found");
+            }
+
+            // Get participant subthemes model
+            $participantSubthemeModel = new \App\Models\ParticipantSubthemeModel();
+            
+            // Get subthemes assigned to the participant
+            $subthemes = $participantSubthemeModel->getSubthemesByParticipantId($id);
+            
+            if (empty($subthemes)) {
+                return $this->respondNotFound("No subthemes found for this participant");
+            }
+
+            return $this->respondSuccess($subthemes);
+        } catch (\Exception $e) {
+            return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
+        }
+    }
 }

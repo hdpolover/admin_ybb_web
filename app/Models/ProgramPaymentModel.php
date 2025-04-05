@@ -31,4 +31,28 @@ class ProgramPaymentModel extends Model {
     public $timestamps = true;
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
+
+    /**
+     * Get program payments by program ID
+     *
+     * @param int $programId The program ID
+     * @param bool $activeOnly Whether to get only active payments (default: true)
+     * @param bool $includeDeleted Whether to include deleted payments (default: false)
+     * @return array The program payments
+     */
+    public function getByProgramId($programId, $activeOnly = true, $includeDeleted = false)
+    {
+        $this->where('program_id', $programId);
+        
+        if ($activeOnly) {
+            $this->where('is_active', 1);
+        }
+        
+        if (!$includeDeleted) {
+            $this->where('is_deleted', 0);
+        }
+        
+        $this->orderBy('order_number', 'ASC');
+        return $this->findAll();
+    }
 }

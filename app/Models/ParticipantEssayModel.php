@@ -23,6 +23,32 @@ class ParticipantEssayModel extends Model
         'updated_at'
     ];
 
+    public function getEssaysByParticipantId($participant_id)
+    {
+        $builder = $this->builder();
+        
+        // Select all fields
+        $builder->select('*');
+        
+        // Filter by participant ID
+        $result = $builder->where('participant_id', $participant_id)->get()->getResultArray();
+        
+        if (empty($result)) {
+            return null;
+        }
+        
+        // Add questions to each essay
+        $programEssayModel = new ProgramEssayModel();
+        
+        foreach ($result as $key => $row) {
+            $programEssayId = $row['program_essay_id'];
+            $programEssay = $programEssayModel->find($programEssayId);
+            $result[$key]['question'] = $programEssay->questions;
+        }
+        
+        return $result;
+    }
+
     function getParticipantEssaysByParticipantIds($participant_ids)
     {
         $builder = $this->builder();

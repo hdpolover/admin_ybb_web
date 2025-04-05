@@ -61,4 +61,17 @@ class ProgramSubthemeModel extends Model
         return $this->where('program_id', $programId)
                     ->findAll();
     }
+
+    /**
+     * Get subthemes by program ID
+     *
+     * @param int $programId
+     * @return object[]
+     */
+    public function getSubthemesByProgramId($programId)
+    {
+        return $this->where('program_id', $programId)
+                    ->where('is_deleted', 0)
+                    ->findAll();
+    }
 }

@@ -119,6 +119,10 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->get('participants/user/(:num)', 'ParticipantsApiController::getByUserId/$1');
     // get random participant photos by program id
     $routes->get('participants/program/(:num)/photos', 'ParticipantsApiController::getProgramParticipantsPhotos/$1');
+    // get participants essays
+    $routes->get('participants/(:num)/essays', 'ParticipantsApiController::getParticipantEssays/$1');
+    // get participants subthemes
+    $routes->get('participants/(:num)/subthemes', 'ParticipantsApiController::getParticipantSubthemes/$1');
 
     // ambassadors
     $routes->get('ambassadors', 'AmbassadorsApiController::index');
@@ -162,8 +166,19 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->get('program-essays/(:num)', 'ProgramEssayApiController::show/$1');
     $routes->get('program-essays/program/(:num)', 'ProgramEssayApiController::getByProgramId/$1');
 
+    // prorgam payments
+    $routes->get('program-payments', 'ProgramPaymentsApiController::index');
+    $routes->get('program-payments/(:num)', 'ProgramPaymentsApiController::show/$1');
+    $routes->get('program-payments/program/(:num)', 'ProgramPaymentsApiController::getByProgramId/$1');
+
     // web settings
     $routes->get('web-settings', 'WebSettingApiController::index');
+
+    // submission
+    $routes->get('submissions/participants/(:num)', 'SubmissionApiController::index/$1');
+    $routes->get('submissions/participants', 'SubmissionApiController::index');
+    // get submission data form
+    $routes->get('submissions/program/(:num)/form', 'SubmissionApiController::getSubmissionFormData/$1');
 
     // Maintenance check endpoint - publicly accessible
     $routes->get('maintenance/check', 'Api\MaintenanceApiController::check');
@@ -191,7 +206,7 @@ $routes->group('api/landing', ['namespace' => 'App\Controllers\Api'], function($
     $routes->get('insights', 'LandingApiController::insights');
     $routes->get('insights/(:num)', 'LandingApiController::insightDetail/$1');
     // partners and sponsors
-    $routes->get('partners-sponsors', 'LandingApiController::partnersAndSponsors');
+    $routes->get('partners-sponsors', 'LandingApiController::partnersSponsors');
     $routes->get('partners-sponsors/(:num)', 'LandingApiController::partnerSponsorDetail/$1');
     // help & news
     $routes->get('help-news', 'LandingApiController::helpAndNews');
