@@ -121,6 +121,7 @@ class PaymentsApiController extends ApiBaseController
             return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
         }
     }
+<<<<<<< HEAD
     
     /**
      * Handle successful payment redirect from Midtrans
@@ -192,4 +193,6 @@ class PaymentsApiController extends ApiBaseController
             ]
         );
     }
+=======
+>>>>>>> b823deea4209c296dc00fd245888ead726c3bba2
 }

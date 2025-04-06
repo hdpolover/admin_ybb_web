@@ -92,6 +92,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
 
     // Midtrans Payment Integration
     $routes->group('payments', function ($routes) {
+<<<<<<< HEAD
         // Configuration and initialization
         $routes->get('config', 'PaymentsApiController::getConfig');
         
@@ -108,6 +109,14 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
         $routes->get('finish', 'PaymentsApiController::finishRedirect');
         $routes->get('unfinish', 'PaymentsApiController::unfinishRedirect');
         $routes->get('error', 'PaymentsApiController::errorRedirect');
+=======
+        $routes->get('config', 'Api\PaymentsApiController::getConfig');
+        $routes->post('create', 'Api\PaymentsApiController::createTransaction');
+        $routes->post('webhook', 'Api\PaymentsApiController::webhook');
+        $routes->get('status/(:num)', 'Api\PaymentsApiController::getStatus/$1');
+        $routes->post('upload-proof', 'Api\PaymentsApiController::uploadPaymentProof');
+        $routes->get('participant/(:num)', 'PaymentsApiController::getPaymentsByParticipantId/$1');
+>>>>>>> b823deea4209c296dc00fd245888ead726c3bba2
     });
 
     // get payments by participant id
@@ -118,9 +127,12 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
         // Add more protected endpoints here
     });
 
+<<<<<<< HEAD
     // Profile picture routes - publicly accessible
     $routes->post('participants/(:num)/upload-picture', 'ProfileApiController::uploadParticipantProfilePicture/$1');
 
+=======
+>>>>>>> b823deea4209c296dc00fd245888ead726c3bba2
     // users
     $routes->get('users', 'UsersApiController::index');
     $routes->get('users/(:num)', 'UsersApiController::show/$1');

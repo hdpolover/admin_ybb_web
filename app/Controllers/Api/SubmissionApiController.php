@@ -37,9 +37,12 @@ class SubmissionApiController extends ApiBaseController
         $this->participantEssayModel = new \App\Models\ParticipantEssayModel();
         $this->programEssayModel = new \App\Models\ProgramEssayModel();
         $this->competitionCategoryModel = new \App\Models\CompetitionCategoryModel();
+<<<<<<< HEAD
         
         // Load helpers
         helper(['storage']);
+=======
+>>>>>>> b823deea4209c296dc00fd245888ead726c3bba2
     }
 
      /**
