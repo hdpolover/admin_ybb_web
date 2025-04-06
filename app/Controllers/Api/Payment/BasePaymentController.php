@@ -10,32 +10,39 @@ class BasePaymentController extends ApiBaseController
 {
     protected $paymentModel;
     protected $participantModel;
-    
+
     // Payment method constants
     const PAYMENT_METHOD_MIDTRANS = 1;
     const PAYMENT_METHOD_MANUAL = 2;
-    
+
     // Payment status constants
     const STATUS_CREATED = 0;
     const STATUS_PENDING = 1;
     const STATUS_SUCCESS = 2;
     const STATUS_CANCELLED = 3;
     const STATUS_REJECTED = 4;
-    
-    public function __construct()
-    {
-        parent::__construct();
-        
+
+    /**
+     * Initialize controller, set models
+     */
+    public function initController(
+        \CodeIgniter\HTTP\RequestInterface $request,
+        \CodeIgniter\HTTP\ResponseInterface $response,
+        \Psr\Log\LoggerInterface $logger
+    ) {
+        // Call parent initializer
+        parent::initController($request, $response, $logger);
+
         // Configure Midtrans
         \Midtrans\Config::$serverKey = getenv('midtrans.serverKey');
         \Midtrans\Config::$isProduction = getenv('midtrans.isProduction') === 'true';
         \Midtrans\Config::$isSanitized = true;
         \Midtrans\Config::$is3ds = true;
-        
+
         $this->paymentModel = new PaymentModel();
         $this->participantModel = new ParticipantModel();
     }
-    
+
     /**
      * Get bank details for manual transfer
      * 

@@ -98,5 +98,6 @@ class Autoload extends AutoloadConfig
         'api',
         'url_encryption',
         'maintenance',
+        'storage',
     ];
 }

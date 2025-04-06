@@ -15,7 +15,7 @@ class Config
      * Your Midtrans server key (secret key) - keep this confidential
      * @var string
      */
-    protected $serverKey = 'SB-Mid-server-YOUR_SERVER_KEY';
+    protected $serverKey = 'Mid-server-gXaK3X0M-oZhY4RPL0g2Mt_z';
     
     /**
      * Midtrans Client Key
@@ -23,7 +23,7 @@ class Config
      * Your Midtrans client key for frontend integration
      * @var string
      */
-    protected $clientKey = 'SB-Mid-client-YOUR_CLIENT_KEY';
+    protected $clientKey = 'Mid-client-KKoCMEQRJeeFcpOS';
     
     /**
      * Production Mode Flag
@@ -31,7 +31,7 @@ class Config
      * Set to true when in production environment
      * @var bool
      */
-    protected $isProduction = false;
+    protected $isProduction = true;
     
     /**
      * 3DS Transaction Flag

@@ -57,10 +57,10 @@ class AmbassadorsApiController extends ApiBaseController
         $refCode = $ambassador->ref_code;
         $webUrl = $programCategory->web_url;
 
-        $query = 'ref=' . $refCode;
+        $query = $refCode;
         $encryptedQuery = url_encrypt($query);
 
-        $referralLink = $webUrl . '/sign-up?' . urlencode($encryptedQuery);
+        $referralLink = $webUrl . '/sign-up?q=' . urlencode($encryptedQuery);
 
         $data = [
             'ref_code' => $refCode,
@@ -95,29 +95,18 @@ class AmbassadorsApiController extends ApiBaseController
                 $decryptedQuery = url_decrypt($encryptedQuery, false);
 
                 if ($decryptedQuery === false) {
-                    return $this->respondError('Decryption failed');
-                }
-
-                $params = [];
-
-                // Parse the decrypted query string into an associative array
-                // Only parse if it's a string
-                if (is_string($decryptedQuery)) {
-                    parse_str($decryptedQuery, $params);
-                } else if (is_array($decryptedQuery)) {
-                    // If already an array, use directly
-                    $params = $decryptedQuery;
+                    return $this->fail('Decryption failed', 400);
                 }
 
                 // get ambassador details by ref_code
-                $ambassador = $this->model->getAmbassadorByRefCode($params['ref'] ?? null);
+                $ambassador = $this->model->getAmbassadorByRefCode($decryptedQuery);
 
                 if (!$ambassador) {
                     return $this->failNotFound('Ambassador not found');
                 }
 
                 $data = [
-                    'ref_code' => $params['ref'] ?? null,
+                    'ref_code' => $ambassador->ref_code,
                     'is_valid' => true,
                     'ambassador' => $ambassador,
                 ];

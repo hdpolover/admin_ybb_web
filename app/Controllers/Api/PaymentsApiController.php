@@ -20,10 +20,19 @@ class PaymentsApiController extends ApiBaseController
     protected $webhookController;
     protected $statusController;
     
-    public function __construct()
-    {
-        parent::__construct();
-        
+    
+    /**
+     * Initialize controller, set models
+     */
+    public function initController(
+        \CodeIgniter\HTTP\RequestInterface $request,
+        \CodeIgniter\HTTP\ResponseInterface $response,
+        \Psr\Log\LoggerInterface $logger
+    ) {
+        // Call parent initializer
+        parent::initController($request, $response, $logger);
+
+        // Initialize models
         $this->configController = new ConfigController();
         $this->transactionController = new TransactionController();
         $this->webhookController = new WebhookController();
@@ -84,5 +93,103 @@ class PaymentsApiController extends ApiBaseController
     public function getStatus($id = null): ResponseInterface
     {
         return $this->statusController->getStatus($id);
+    }
+
+    /**
+     * Get payments by participant ID
+     *
+     * @param int|null $participantId
+     * @return ResponseInterface
+     */
+    public function getPaymentsByParticipantId($participantId = null): ResponseInterface
+    {
+        if (!$participantId) {
+            return $this->respondValidationErrors('Participant ID is required');
+        }
+
+        $paymentModel = new \App\Models\PaymentModel();
+
+        try {
+            $payments = $paymentModel->getPaymentsByParticipantId($participantId);
+
+            if (!$payments) {
+                return $this->respondNotFound('No payments found for this participant ID');
+            }
+
+            return $this->respondSuccess($payments, self::HTTP_OK, 'Payments retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
+        }
+    }
+    
+    /**
+     * Handle successful payment redirect from Midtrans
+     * 
+     * @return ResponseInterface
+     */
+    public function finishRedirect(): ResponseInterface
+    {
+        // Get transaction ID and order ID from the query parameters
+        $orderId = $this->request->getGet('order_id');
+        $transactionId = $this->request->getGet('transaction_id');
+        $status = $this->request->getGet('transaction_status');
+        
+        // Log the successful payment
+        log_message('info', "Payment finished: Order ID {$orderId}, Transaction ID {$transactionId}, Status {$status}");
+        
+        // Optional: Update payment status if needed
+        if ($orderId) {
+            $paymentModel = new \App\Models\PaymentModel();
+            $payment = $paymentModel->where('order_id', $orderId)->first();
+            
+            // Only update if payment exists and status is not already success
+            if ($payment && $payment->status !== 'success') {
+                // You might want to verify with Midtrans before updating
+                // This is where you'd call your StatusController to check
+            }
+        }
+        
+        // You can return a JSON response or redirect to a success page
+        return $this->respondSuccess([
+            'order_id' => $orderId,
+            'transaction_id' => $transactionId,
+            'status' => $status
+        ], self::HTTP_OK, 'Payment completed successfully');
+    }
+    
+    /**
+     * Handle unfinished payment redirect from Midtrans
+     * 
+     * @return ResponseInterface
+     */
+    public function unfinishRedirect(): ResponseInterface
+    {
+        $orderId = $this->request->getGet('order_id');
+        log_message('info', "Payment unfinished: Order ID {$orderId}");
+        
+        return $this->respondSuccess([
+            'order_id' => $orderId,
+        ], self::HTTP_OK, 'Payment is pending or unfinished');
+    }
+    
+    /**
+     * Handle error payment redirect from Midtrans
+     * 
+     * @return ResponseInterface
+     */
+    public function errorRedirect(): ResponseInterface
+    {
+        $orderId = $this->request->getGet('order_id');
+        $message = $this->request->getGet('message') ?? 'Payment error occurred';
+        
+        log_message('error', "Payment error: Order ID {$orderId}, Message: {$message}");
+        
+        return $this->respondError(
+            $message,
+            self::HTTP_BAD_REQUEST,
+            [
+                'order_id' => $orderId,
+            ]
+        );
     }
 }

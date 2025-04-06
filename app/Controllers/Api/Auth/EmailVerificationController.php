@@ -23,7 +23,6 @@ class EmailVerificationController extends BaseAuthController
     {
         $token = $this->request->getGet('token');
         $email = $this->request->getGet('email');
-        $web_url = $this->request->getGet('web_url');
 
         if (empty($token) || empty($email)) {
             return $this->respondValidationErrors(lang('EmailVerification.verification_failed'));
@@ -35,11 +34,6 @@ class EmailVerificationController extends BaseAuthController
 
             if (!$verified) {
                 return $this->respondError(lang('EmailVerification.invalid_token'));
-            }
-
-            // Redirect to login page with success message
-            if (!empty($web_url)) {
-                return redirect()->to("https://{$web_url}/login?verified=1&message=" . urlencode(lang('EmailVerification.verification_success')));
             }
 
             return $this->respondSuccess(null, self::HTTP_OK, lang('EmailVerification.verification_success'));

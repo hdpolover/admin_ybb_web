@@ -123,4 +123,23 @@ class AmbassadorModel extends Model
             'total' => $total
         ];
     }
+
+    // get ambassador by id
+    public function getAmbassadorById($id)
+    {
+        $builder = $this->builder();
+
+        // get data
+        $builder->select('*');
+
+        // Execute the query and get the result as an array of objects
+        $result  = $builder->where('id', $id)->get()->getRow();
+
+        // check if result is empty
+        if (empty($result)) {
+            return null;
+        } else {
+            return $result;
+        }
+    }
 }

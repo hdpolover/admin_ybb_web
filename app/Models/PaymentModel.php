@@ -9,20 +9,31 @@ class PaymentModel extends Model
 {
     protected $table      = 'payments';
     protected $primaryKey = 'id';
-    
+
     protected $useAutoIncrement = true;
     protected $returnType     = 'object';
-    
+
+    //`id`, `participant_id`, `program_payment_id`, `payment_method_id`, `status`, `proof_url`, `account_name`, `amount`, `currency`, `source_name`, `is_active`, `is_deleted`, `created_at`, `updated_at
     protected $allowedFields = [
-        'program_id', 'participant_id', 'amount', 'currency', 'payment_method_id', 
-        'payment_method', 'payment_date', 'transaction_id', 'status', 'notes',
-        'payment_proof'
+        'participant_id',
+        'program_payment_id',
+        'payment_method_id',
+        'status',
+        'proof_url',
+        'account_name',
+        'amount',
+        'currency',
+        'source_name',
+        'is_active',
+        'is_deleted',
+        'created_at',
+        'updated_at'
     ];
-    
+
     protected $useTimestamps = true;
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
-    
+
     /**
      * Get payments with participant details
      * 
@@ -43,7 +54,7 @@ class PaymentModel extends Model
             ->orderBy('payment_date', 'DESC')
             ->findAll();
     }
-    
+
     /**
      * Get payment by ID with participant details
      * 
@@ -63,7 +74,7 @@ class PaymentModel extends Model
             ->where('payments.id', $id)
             ->first();
     }
-    
+
     /**
      * Get payment statistics
      * 
@@ -73,7 +84,7 @@ class PaymentModel extends Model
     public function getPaymentStats($programId)
     {
         $stats = new \stdClass();
-        
+
         // Total amount received
         $query = $this->db->query("
             SELECT SUM(payments.amount) as total_amount 
@@ -82,7 +93,7 @@ class PaymentModel extends Model
             WHERE participants.program_id = ? AND payments.status = 2
         ", [$programId]);
         $stats->total_amount = $query->getRow()->total_amount ?? 0;
-        
+
         // Count of payments by status
         $query = $this->db->query("
             SELECT payments.status, COUNT(*) as count 
@@ -91,7 +102,7 @@ class PaymentModel extends Model
             WHERE participants.program_id = ?
             GROUP BY payments.status
         ", [$programId]);
-        
+
         $stats->status_counts = [
             0 => 0, // created
             1 => 0, // pending
@@ -99,11 +110,11 @@ class PaymentModel extends Model
             3 => 0, // cancelled
             4 => 0, // rejected
         ];
-        
+
         foreach ($query->getResult() as $row) {
             $stats->status_counts[$row->status] = $row->count;
         }
-        
+
         // Payment methods distribution
         $query = $this->db->query("
             SELECT payments.payment_method_id, COUNT(*) as count 
@@ -113,7 +124,7 @@ class PaymentModel extends Model
             GROUP BY payments.payment_method_id
         ", [$programId]);
         $stats->payment_methods = $query->getResult();
-        
+
         return $stats;
     }
 
@@ -126,7 +137,7 @@ class PaymentModel extends Model
     public function getPaymentStatsByCurrency($programId)
     {
         $stats = new \stdClass();
-        
+
         // Total amount received in IDR
         $query = $this->db->query("
             SELECT SUM(payments.amount) as total_amount 
@@ -137,7 +148,7 @@ class PaymentModel extends Model
             AND (payments.currency = 'IDR' OR payments.currency IS NULL)
         ", [$programId]);
         $stats->total_idr = $query->getRow()->total_amount ?? 0;
-        
+
         // Total amount received in USD
         $query = $this->db->query("
             SELECT SUM(payments.amount) as total_amount 
@@ -148,10 +159,10 @@ class PaymentModel extends Model
             AND payments.currency = 'USD'
         ", [$programId]);
         $stats->total_usd = $query->getRow()->total_amount ?? 0;
-        
+
         return $stats;
     }
-    
+
     /**
      * Get pending manual payments that need admin review
      * 
@@ -175,7 +186,7 @@ class PaymentModel extends Model
             ->orderBy('payment_date', 'DESC')
             ->findAll();
     }
-    
+
     /**
      * Update payment status
      * 
@@ -190,14 +201,27 @@ class PaymentModel extends Model
             'status' => $status,
             'updated_at' => date('Y-m-d H:i:s')
         ];
-        
+
         if (!empty($notes)) {
             $payment = $this->find($id);
             $existingNotes = $payment->notes ?? '';
             $combinedNotes = $existingNotes . "\n\n" . date('Y-m-d H:i:s') . " - Status updated: " . $notes;
             $data['notes'] = trim($combinedNotes);
         }
-        
+
         return $this->update($id, $data);
+    }
+
+    /**
+     * Get payments by participant ID
+     * 
+     * @param int $participantId Participant ID
+     * @return object|null
+     */
+    public function getPaymentsByParticipantId($participantId)
+    {
+        return $this->where('participant_id', $participantId)
+            ->where('is_deleted', 0)
+            ->findAll();
     }
 }
