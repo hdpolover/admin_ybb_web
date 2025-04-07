@@ -213,6 +213,20 @@ class PaymentModel extends Model
     }
 
     /**
+     * Get payments by participant ID and program payment ID
+     * 
+     * @param int $participantId Participant ID
+     * @return object|null
+     */
+    public function getPaymentsByParticipantIdAndProgramPaymentId($participantId, $programPaymentId)
+    {
+        return $this->where('participant_id', $participantId)
+            ->where('program_payment_id', $programPaymentId)
+            ->where('is_deleted', 0)
+            ->findAll();
+    }
+
+    /**
      * Get payments by participant ID
      * 
      * @param int $participantId Participant ID
@@ -224,4 +238,5 @@ class PaymentModel extends Model
             ->where('is_deleted', 0)
             ->findAll();
     }
+  
 }

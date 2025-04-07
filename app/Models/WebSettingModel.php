@@ -29,12 +29,18 @@ class WebSettingModel extends Model
      */
     public function getSettingByWebUrl($webUrl)
     {
+        // remove the 'https://' or 'http://' from the URL or www
+        $webUrl = preg_replace('/^https?:\/\//', '', $webUrl); // Remove http:// or https://
+        $webUrl = preg_replace('/^www\./', '', $webUrl);
+        $webUrl = rtrim($webUrl, '/'); // Remove trailing slash if any
+        $webUrl = strtolower($webUrl); // Convert to lowercase
+        
         // Get the web setting joined with program category
         $webSetting = $this->select('web_settings.*, program_categories.*, program_categories.web_url')
             ->join('program_categories', 'program_categories.id = web_settings.program_category_id')
             ->where('program_categories.web_url', $webUrl)
             ->first();
-        
+
         if ($webSetting) {
             // Get a random photo separately
             $photoModel = new ProgramPhotoModel();
@@ -42,13 +48,13 @@ class WebSettingModel extends Model
             $randomPhoto = $photoModel->select('img_url')
                 ->orderBy('RAND()')
                 ->first();
-            
+
             // Add the random photo to the web setting object
             if ($randomPhoto) {
-            $webSetting->img_url = $randomPhoto->img_url;
+                $webSetting->img_url = $randomPhoto->img_url;
             }
         }
-        
+
         return $webSetting;
     }
 

@@ -92,13 +92,14 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
 
     // Midtrans Payment Integration
     $routes->group('payments', function ($routes) {
+
         // Configuration and initialization
         $routes->get('config', 'PaymentsApiController::getConfig');
         
         // Transaction management
         $routes->post('create', 'PaymentsApiController::createTransaction');
         $routes->get('status/(:num)', 'PaymentsApiController::getStatus/$1');
-        $routes->get('list/participant/(:num)', 'PaymentsApiController::getPaymentsByParticipantId/$1');
+        $routes->get('participant/(:num)', 'PaymentsApiController::getPaymentsByParticipantId/$1');
         
         // Manual payment handling
         $routes->post('upload-proof', 'PaymentsApiController::uploadPaymentProof');
@@ -108,7 +109,14 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
         $routes->get('finish', 'PaymentsApiController::finishRedirect');
         $routes->get('unfinish', 'PaymentsApiController::unfinishRedirect');
         $routes->get('error', 'PaymentsApiController::errorRedirect');
+
+        $routes->get('program-payment/(:num)/participant/(:num)', 'PaymentsApiController::getPaymentsByProgramPaymentIdAndParticipantId/$1/$2');
     });
+
+    // routes for program documents
+    $routes->get('program-documents', 'ProgramDocumentsApiController::index');
+    $routes->get('program-documents/(:num)', 'ProgramDocumentsApiController::show/$1');
+    $routes->get('program-documents/program/(:num)', 'ProgramDocumentsApiController::getByProgram/$1');
 
     // get payments by participant id
 
@@ -187,6 +195,14 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->get('program-payments/(:num)', 'ProgramPaymentsApiController::show/$1');
     $routes->get('program-payments/program/(:num)', 'ProgramPaymentsApiController::getByProgramId/$1');
 
+    // payment methods
+    $routes->get('payment-methods', 'PaymentMethodsApiController::index');
+    $routes->get('payment-methods/(:num)', 'PaymentMethodsApiController::show/$1');
+    $routes->get('payment-methods/(:num)/update', 'PaymentMethodsApiController::update/$1');
+    $routes->post('payment-methods', 'PaymentMethodsApiController::create');
+    $routes->post('payment-methods/(:num)', 'PaymentMethodsApiController::update/$1');
+    $routes->delete('payment-methods/(:num)', 'PaymentMethodsApiController::delete/$1');
+    $routes->get('payment-methods/program/(:num)', 'PaymentMethodsApiController::getByProgramId/$1');
     // web settings
     $routes->get('web-settings', 'WebSettingApiController::index');
 

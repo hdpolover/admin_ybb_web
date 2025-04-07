@@ -3,7 +3,7 @@
 namespace App\Controllers\Api;
 
 use App\Controllers\Api\ApiBaseController;
-use App\Models\ProgramPhotoModel;
+use App\Models\PaymentMethodModel;
 
 class PaymentMethodsApiController extends ApiBaseController
 {
@@ -21,51 +21,51 @@ class PaymentMethodsApiController extends ApiBaseController
         parent::initController($request, $response, $logger);
         
         // Initialize model - this is what was previously in the constructor
-        $this->model = new ProgramPhotoModel();
+        $this->model = new PaymentMethodModel();
     }
 
     /**
-     * Get All Program Photos
-     * GET /api/program-photos
+     * Get All Payment Methods
+     * GET /api/payment-methods
      */
     public function index()
     {
-        $programPhotos = $this->model->findAll();
-        return $this->respondSuccess($programPhotos, self::HTTP_OK, 'Program photos retrieved successfully');
+        $paymentMethods = $this->model->findAll();
+        return $this->respondSuccess($paymentMethods, self::HTTP_OK, 'Payment methods retrieved successfully');
     }
 
     /**
-     * Get Single Program Photo
-     * GET /api/program-photos/{id}
+     * Get Single Payment Method
+     * GET /api/payment-methods/{id}
      */
     public function show($id = null)
     {
-        $programPhoto = $this->model->find($id);
+        $paymentMethod = $this->model->find($id);
         
-        if (!$programPhoto) {
-            return $this->respondNotFound('Program photo not found');
+        if (!$paymentMethod) {
+            return $this->respondNotFound('Payment method not found');
         }
         
-        return $this->respondSuccess($programPhoto, self::HTTP_OK, 'Program photo retrieved successfully');
+        return $this->respondSuccess($paymentMethod, self::HTTP_OK, 'Payment method retrieved successfully');
     }
 
     /**
-     * Get program photos by category ID
-     * GET /api/program-photos/category/{categoryId}
+     * Get payment methods by program ID
+     * GET /api/payment-methods/program/{programId}
      */
-    public function getByCategory($categoryId = null)
+    public function getByProgramId($programId = null)
     {
-        if ($categoryId === null) {
-            return $this->respondValidationErrors('Category ID is required');
+        if ($programId === null) {
+            return $this->respondValidationErrors('Program ID is required');
         }
 
-        $programPhotos = $this->model->getActivePhotos($categoryId);
+        $paymentMethods = $this->model->getPaymentMethodsByProgramId($programId);
 
-        if (empty($programPhotos)) {
-            return $this->respondNotFound('No program photos found for this category');
+        if (empty($paymentMethods)) {
+            return $this->respondNotFound('No payment methods found for this program');
         }
 
-        return $this->respondSuccess($programPhotos, self::HTTP_OK, 'Program photos retrieved successfully');
+        return $this->respondSuccess($paymentMethods, self::HTTP_OK, 'Payment methods retrieved successfully');
     }
 
 }

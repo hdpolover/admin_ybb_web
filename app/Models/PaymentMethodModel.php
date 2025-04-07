@@ -16,6 +16,7 @@ class PaymentMethodModel extends Model
     protected $updatedField  = 'updated_at';
     protected $returnType     = 'object';
     protected $useAutoIncrement = true;
+    protected $useSoftDeletes = false; // Using is_deleted field manually
 
     protected $validationRules = [
         'program_id' => 'required|integer',
@@ -63,11 +64,9 @@ class PaymentMethodModel extends Model
     protected $allowCallbacks = true;
 
     // get all payment methods for a program
-    public function getPaymentMethods($programId)
+    public function getPaymentMethodsByProgramId($programId)
     {
         return $this->where('program_id', $programId)
-            ->where('is_active', 1)
-            ->where('is_deleted', 0)
             ->findAll();
     }
     

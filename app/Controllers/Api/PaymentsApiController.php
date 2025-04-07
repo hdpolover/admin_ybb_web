@@ -20,7 +20,6 @@ class PaymentsApiController extends ApiBaseController
     protected $webhookController;
     protected $statusController;
     
-    
     /**
      * Initialize controller, set models
      */
@@ -120,6 +119,43 @@ class PaymentsApiController extends ApiBaseController
         } catch (\Exception $e) {
             return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
         }
+    }
+
+    /**
+     * Get payments by program payment ID and participant ID
+     * @param int|null $programPaymentId
+     * @param int|null $participantId
+     * @return ResponseInterface
+     */
+    public function getPaymentsByProgramPaymentIdAndParticipantId($programPaymentId = null, $participantId = null): ResponseInterface
+    {
+        // Validate required parameters
+        if (!$programPaymentId || !$participantId) {
+            return $this->respondValidationErrors('Program payment ID and participant ID are required');
+        }
+
+        $paymentModel = new \App\Models\PaymentModel();
+        $programPaymentModel = new \App\Models\ProgramPaymentModel();
+
+        $payments = $paymentModel->getPaymentsByParticipantIdAndProgramPaymentId($participantId, $programPaymentId);
+
+        // if no payments found, return empty array
+        if (!$payments) {
+            $payments = [];
+        }
+
+        $programPayment = $programPaymentModel->find($programPaymentId);
+
+        if (!$programPayment) {
+            return $this->respondNotFound('Program payment not found');
+        }
+
+        $data = [
+            'program_payment' => $programPayment,
+            'payments' => $payments
+        ];
+
+        return $this->respondSuccess($data, self::HTTP_OK, 'Payments retrieved successfully');
     }
     
     /**
