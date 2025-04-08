@@ -46,6 +46,12 @@ class AmbassadorParticipantReferralModel extends Model
                     ->findAll();
     }
 
+    // get ambassador by ref_code
+    public function getAmbassadorByRefCode($ref_code)
+    {
+        return $this->where('ref_code', $ref_code)->first();
+    }
+
     // Get all referrals data
     public function getAllReferrals()
     {

@@ -238,5 +238,25 @@ class PaymentModel extends Model
             ->where('is_deleted', 0)
             ->findAll();
     }
+
+    /**
+     * Check if a participant has successful payments for a specific program
+     * 
+     * @param int $participantId Participant ID
+     * @param int $programId Program ID
+     * @return bool Returns true if participant has successful payments, false otherwise
+     */
+    public function hasSuccessfulPayments($participantId, $programId)
+    {
+        $result = $this->select('COUNT(*) as payment_count')
+            ->join('participants', 'participants.id = payments.participant_id')
+            ->where('payments.participant_id', $participantId)
+            ->where('participants.program_id', $programId)
+            ->where('payments.status', 2) // Success status
+            ->where('payments.is_deleted', 0)
+            ->first();
+        
+        return ($result && $result->payment_count > 0);
+    }
   
 }

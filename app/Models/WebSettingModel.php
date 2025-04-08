@@ -19,6 +19,8 @@ class WebSettingModel extends Model
     protected $allowedFields  = [
         'program_category_id',
         'is_maintenance_mode',
+        'usd_in_idr',
+        'is_verification_required',
     ];
 
     /**

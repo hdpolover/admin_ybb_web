@@ -119,4 +119,40 @@ class AmbassadorsApiController extends ApiBaseController
             return $this->failServerError('An error occurred: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Get ambassador by ID
+     * GET /api/ambassadors/{id}
+     */
+    public function getAmbassador($id)
+    {
+        $ambassador = $this->model->find($id);
+
+        if (!$ambassador) {
+            return $this->failNotFound('Ambassador not found');
+        }
+
+        return $this->respondSuccess($ambassador);
+    }
+
+    /**
+     * Get ambassador by ref code
+     * GET /api/ambassadors/programs/{programId}/ref-code/{refCode}
+     */
+    public function getAmbassadorByRefAndProgram($programId, $refCode)
+    {
+        $ambassador = $this->model->getAmbassadorByRefCodeAndProgramId($refCode, $programId);
+
+        if (!$ambassador) {
+            return $this->failNotFound('Ambassador referral code is not valid for this program. Please check the code and try again.');
+        }
+
+        $data = [
+            'ref_code' => $ambassador->ref_code,
+            'is_valid' => true,
+            'ambassador' => $ambassador,
+        ];
+
+        return $this->respondSuccess($data);
+    }
 }

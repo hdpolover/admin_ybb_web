@@ -11,15 +11,18 @@ use CodeIgniter\HTTP\ResponseInterface;
  */
 class SubmissionApiController extends ApiBaseController
 {
-    
+
     protected $participantModel;
     protected $programSubthemeModel;
     protected $participantSubthemeModel;
     protected $participantEssayModel;
     protected $programEssayModel;
     protected $competitionCategoryModel;
+    protected $participantCompetitionCategoryModel;
+    protected $ambassadorModel;
+    protected $ambassadorParticipantReferralModel;
 
-     /**
+    /**
      * Initialize controller, set models
      */
     public function initController(
@@ -37,12 +40,15 @@ class SubmissionApiController extends ApiBaseController
         $this->participantEssayModel = new \App\Models\ParticipantEssayModel();
         $this->programEssayModel = new \App\Models\ProgramEssayModel();
         $this->competitionCategoryModel = new \App\Models\CompetitionCategoryModel();
-        
+        $this->participantCompetitionCategoryModel = new \App\Models\ParticipantCompetitionCategoryModel();
+        $this->ambassadorModel = new \App\Models\AmbassadorModel();
+        $this->ambassadorParticipantReferralModel = new \App\Models\AmbassadorParticipantReferralModel();
+
         // Load helpers
         helper(['storage']);
     }
 
-     /**
+    /**
      * Get submission of participant data
      * 
      * @param int|null $participantId
@@ -76,13 +82,21 @@ class SubmissionApiController extends ApiBaseController
             // get all essays by program id
             $allEssays = $this->programEssayModel->getEssaysByProgramId($programId);
 
+            // get all competition categories by program id
+            $competitionCategories = $this->competitionCategoryModel->getCategoriesByProgramId($programId);
+
+            // get all competition categories by participant id
+            $participantCompetitionCategories = $this->participantCompetitionCategoryModel->getCompetitionCategoriesByParticipantId($participantId);
+
             // Compile home data
             $data = [
                 'participant' => $participant,
                 'participant_essays' => $essays,
                 'participant_subtheme' => $subthemes,
+                'participant_competition_category' => $participantCompetitionCategories,
                 'program_subthemes' => $allSubthemes,
-                'program_essays' => $allEssays
+                'program_essays' => $allEssays,
+                'competition_categories' => $competitionCategories,
             ];
 
             return $this->respondSuccess($data);
@@ -118,11 +132,15 @@ class SubmissionApiController extends ApiBaseController
             // get subthemes by participant id
             $subthemes = $this->participantSubthemeModel->getSubthemesByParticipantId($participantId);
 
+            // get competition categories by participant id
+            $competitionCategories = $this->participantCompetitionCategoryModel->getCompetitionCategoriesByParticipantId($participantId);
+
             // Compile home data
             $data = [
                 'participant' => $participant,
                 'essays' => $essays,
                 'subthemes' => $subthemes,
+                'competition_categories' => $competitionCategories,
             ];
 
             return $this->respondSuccess($data);
@@ -147,7 +165,7 @@ class SubmissionApiController extends ApiBaseController
 
             // Get program essays
             $essays = $this->programEssayModel->getEssaysByProgramId($programId);
-            
+
             // Get program subthemes
             $subthemes = $this->programSubthemeModel->getSubthemesByProgramId($programId);
 
@@ -185,19 +203,19 @@ class SubmissionApiController extends ApiBaseController
                 'error' => $file->getError(),
                 'size' => $file->getSize()
             ];
-            
+
             // Upload using storage helper
             $uploadResult = upload_profile_picture($fileArray, $participantId);
-            
+
             if ($uploadResult['status']) {
                 return $uploadResult['url'];
             }
-            
+
             log_message('error', 'Profile picture upload failed: ' . $uploadResult['message']);
         } else {
             log_message('error', 'Invalid file data provided for profile picture upload');
         }
-        
+
         return false;
     }
 
@@ -233,27 +251,28 @@ class SubmissionApiController extends ApiBaseController
             $db->transStart();
 
             $updatedData = [
-                'essays' => [],
-                'subthemes' => null,
                 'participant' => null,
                 'profile_picture' => null,
-                'competition_category' => null,
+                'essays' => [],
+                'competition_category_id' => null,
+                'program_subtheme_id' => null,
+                'ambassador_id' => null,
             ];
 
             // Process profile picture update (if any)
             // Check both for 'profile_picture' in the input data and in $_FILES
             if (isset($input['profile_picture']) || isset($_FILES['profile_picture'])) {
                 $profilePicture = isset($input['profile_picture']) ? $input['profile_picture'] : $_FILES['profile_picture'];
-                
+
                 // Validate and process the profile picture
                 $pictureUrl = $this->saveProfilePicture($profilePicture, $participantId);
-                
+
                 if ($pictureUrl) {
                     $updatedData['profile_picture'] = $pictureUrl;
-                    
+
                     // Update participant's picture_url field
                     $this->participantModel->update($participantId, ['picture_url' => $pictureUrl]);
-                    
+
                     // If participant has a previous profile picture, delete it
                     if (!empty($participant->picture_url)) {
                         // Extract the path from the full URL
@@ -270,19 +289,43 @@ class SubmissionApiController extends ApiBaseController
             // Process participant data updates (if any)
             if (isset($input['participant'])) {
                 $participantData = $input['participant'];
-                
+
                 // Only update allowed fields
                 $allowedFields = [
-                    'full_name', 'birthdate', 'gender', 'origin_address', 'current_address', 
-                    'nationality', 'occupation', 'institution', 'organizations', 'phone_number',  'country_code', 'emergency_country_code',
-                    'profile_picture', 'instagram_account', 'emergency_account', 'contact_relation', 
-                    'disease_history', 'tshirt_size', 'experiences', 'achievements', 
-                    'resume_url', 'knowledge_source', 'source_account_name', 'twibbon_link', 
-                    'requirement_link', 'name', 'email', 'phone', 'address', 'competition_category_id'
+                    'full_name',
+                    'birthdate',
+                    'gender',
+                    'origin_address',
+                    'current_address',
+                    'nationality',
+                    'nationality_code',
+                    'nationality_flag',
+                    'major',
+                    'occupation',
+                    'education_level',
+                    'institution',
+                    'organizations',
+                    'phone_number',
+                    'phone_flag',
+                    'country_code',
+                    'emergency_country_code',
+                    'emergency_phone_flag',
+                    'instagram_account',
+                    'emergency_account',
+                    'contact_relation',
+                    'disease_history',
+                    'tshirt_size',
+                    'experiences',
+                    'achievements',
+                    'resume_url',
+                    'knowledge_source',
+                    'source_account_name',
+                    'twibbon_link',
+                    'requirement_link',
                 ];
 
                 $filteredData = array_intersect_key($participantData, array_flip($allowedFields));
-                
+
                 if (!empty($filteredData)) {
                     if ($this->participantModel->update($participantId, $filteredData)) {
                         $updatedData['participant'] = $filteredData;
@@ -296,8 +339,8 @@ class SubmissionApiController extends ApiBaseController
             // Process essay updates (if any)
             if (isset($input['essays']) && is_array($input['essays'])) {
                 foreach ($input['essays'] as $essayData) {
-                    // Essay data should contain id and content at minimum
-                    if (!isset($essayData['id']) || !isset($essayData['content'])) {
+                    // Essay data should contain id and answer at minimum
+                    if (!isset($essayData['id']) || !isset($essayData['answer'])) {
                         continue;
                     }
 
@@ -311,7 +354,7 @@ class SubmissionApiController extends ApiBaseController
                     $saveData = [
                         'participant_id' => $participantId,
                         'program_essay_id' => $essayId,
-                        'answer' => $essayData['content'],
+                        'answer' => $essayData['answer'],
                         'updated_at' => date('Y-m-d H:i:s')
                     ];
 
@@ -331,30 +374,30 @@ class SubmissionApiController extends ApiBaseController
             }
 
             // Process subtheme selections (if any)
-            if (isset($input['subtheme_id']) || (isset($input['subthemes']) && !is_array($input['subthemes']))) {
-                // Get the subtheme ID from either format
-                $subthemeId = isset($input['subtheme_id']) ? $input['subtheme_id'] : $input['subthemes'];
-                
+            if (isset($input['program_subtheme_id'])) {
+                // Get the subtheme ID 
+                $subthemeId = $input['program_subtheme_id'];
+
                 if ($subthemeId) {
                     // Check if participant already has a subtheme
                     $existingSelection = $this->participantSubthemeModel->where('participant_id', $participantId)->first();
-                    
+
                     $subthemeData = [
                         'participant_id' => $participantId,
                         'program_subtheme_id' => $subthemeId,
                         'updated_at' => date('Y-m-d H:i:s')
                     ];
-                    
+
                     if ($existingSelection) {
-                        // Update existing subtheme
+                        // Update existing selection
                         if ($this->participantSubthemeModel->update($existingSelection->id, $subthemeData)) {
-                            $updatedData['subtheme'] = array_merge(['id' => $existingSelection->id], $subthemeData);
+                            $updatedData['program_subtheme_id'] = array_merge(['id' => $existingSelection->id], $subthemeData);
                         }
                     } else {
-                        // Create new subtheme record
+                        // Create new selection
                         $subthemeData['created_at'] = date('Y-m-d H:i:s');
                         if ($newId = $this->participantSubthemeModel->insert($subthemeData)) {
-                            $updatedData['subtheme'] = array_merge(['id' => $newId], $subthemeData);
+                            $updatedData['program_subtheme_id'] = array_merge(['id' => $newId], $subthemeData);
                         }
                     }
                 }
@@ -364,22 +407,50 @@ class SubmissionApiController extends ApiBaseController
             if (isset($input['competition_category_id'])) {
                 // Update the competition category directly in the participants table
                 $competitionCategoryId = $input['competition_category_id'];
-                
+
                 if ($competitionCategoryId) {
-                    if ($this->participantModel->update($participantId, ['competition_category_id' => $competitionCategoryId])) {
-                        $updatedData['competition_category'] = [
-                            'id' => $competitionCategoryId
-                        ];
+                    // Check if participant already has a competition category
+                    $existingCategory = $this->participantCompetitionCategoryModel->where('participant_id', $participantId)->first();
+
+                    $categoryData = [
+                        'participant_id' => $participantId,
+                        'competition_category_id' => $competitionCategoryId,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ];
+
+                    if ($existingCategory) {
+                        // Update existing selection
+                        if ($this->participantCompetitionCategoryModel->update($existingCategory->id, $categoryData)) {
+                            $updatedData['competition_category_id'] = array_merge(['id' => $existingCategory->id], $categoryData);
+                        }
+                    } else {
+                        // Create new selection
+                        $categoryData['created_at'] = date('Y-m-d H:i:s');
+                        if ($newId = $this->participantCompetitionCategoryModel->insert($categoryData)) {
+                            $updatedData['competition_category_id'] = array_merge(['id' => $newId], $categoryData);
+                        }
                     }
                 }
             }
 
+            // ambassador referral check
+            if (isset($input['ambassador_id'])) {
+                $ambassadorId = $input['ambassador_id'];
+
+                if ($ambassadorId) {
+                    
+                }
+            }
+
             // Check if any updates were made
-            if (empty($updatedData['essays']) && 
-                empty($updatedData['subtheme']) && 
-                empty($updatedData['participant']) && 
+            if (
+                empty($updatedData['essays']) &&
+                empty($updatedData['program_subtheme_id']) &&
+                empty($updatedData['participant']) &&
                 empty($updatedData['profile_picture']) &&
-                empty($updatedData['competition_category'])) {
+                empty($updatedData['competition_category_id']) &&
+                empty($updatedData['ambassador_id'])
+            ) {
                 return $this->respondError('No valid data provided for update', self::HTTP_BAD_REQUEST);
             }
 
@@ -388,8 +459,34 @@ class SubmissionApiController extends ApiBaseController
                 return $this->respondError('Failed to save submission data', self::HTTP_INTERNAL_ERROR);
             }
 
-            return $this->respondSuccess($updatedData, ResponseInterface::HTTP_OK, 'Submission data updated successfully');
+            $reponseData = [];
+
+            if (!empty($updatedData['participant'])) {
+                $reponseData['participant'] = $updatedData['participant'];
+            }
+
+            if (!empty($updatedData['profile_picture'])) {
+                $reponseData['profile_picture'] = $updatedData['profile_picture'];
+            }
+
+            if (!empty($updatedData['essays'])) {
+                $reponseData['essays'] = $updatedData['essays'];
+            }
+
+            if (!empty($updatedData['program_subtheme_id'])) {
+                $reponseData['participant_subtheme'] = $updatedData['program_subtheme_id'];
+            }
+
+            if (!empty($updatedData['competition_category_id'])) {
+                $reponseData['participant_competition_category'] = $updatedData['competition_category_id'];
+            }
+
+            if (!empty($updatedData['ambassador_id'])) {
+                $reponseData['ambassador_id'] = $updatedData['ambassador_id'];
+            }
             
+            // Return success response with updated data
+            return $this->respondSuccess($reponseData, ResponseInterface::HTTP_OK, 'Submission data updated successfully');
         } catch (\Exception $e) {
             return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
         }
@@ -424,11 +521,11 @@ class SubmissionApiController extends ApiBaseController
 
             // Upload the profile picture
             $pictureUrl = $this->saveProfilePicture($_FILES['profile_picture'], $participantId);
-            
+
             if (!$pictureUrl) {
                 return $this->respondError('Failed to upload profile picture', self::HTTP_BAD_REQUEST);
             }
-            
+
             // If participant has a previous profile picture, delete it
             if (!empty($participant->profile_picture)) {
                 // Extract the path from the full URL
@@ -437,16 +534,15 @@ class SubmissionApiController extends ApiBaseController
                     delete_storage_file($oldPath);
                 }
             }
-            
+
             // Update participant's profile_picture field
             $this->participantModel->update($participantId, ['profile_picture' => $pictureUrl]);
-            
+
             return $this->respondSuccess(
                 ['profile_picture_url' => $pictureUrl],
                 ResponseInterface::HTTP_OK,
                 'Profile picture uploaded successfully'
             );
-            
         } catch (\Exception $e) {
             return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
         }

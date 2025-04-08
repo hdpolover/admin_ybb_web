@@ -68,7 +68,7 @@ class AmbassadorModel extends Model
     }
 
     // get ambassador by id
-    public function getAmbassadorByRefCode($refCode)
+    public function getAmbassadorByRefCodeAndProgramId($refCode, $programId)
     {
         $builder = $this->builder();
 
@@ -76,7 +76,7 @@ class AmbassadorModel extends Model
         $builder->select('*');
 
         // Execute the query and get the result as an array of objects
-        $result  = $builder->where('ref_code', $refCode)->get()->getRow();
+        $result  = $builder->where('ref_code', $refCode)->where('program_id', $programId)->get()->getRow();
 
         // check if result is empty
         if (empty($result)) {

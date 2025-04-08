@@ -4,10 +4,10 @@ namespace App\Models;
 
 use CodeIgniter\Model;
 
-class ParticipantSubthemeModel extends Model
+class ParticipantCompetitionCategoryModel extends Model
 {
-    // `id`, `program_subtheme_id`, `participant_id`, `is_active`, `is_deleted`, `created_at`, `updated_at`
-    protected $table = 'participant_subthemes';
+    // `id`, `participant_id`, `competition_category_id`, `is_active`, `is_deleted`, `created_at`, `updated_at`
+    protected $table = 'participant_competition_categories';
     protected $primaryKey = 'id';
     protected $returnType = 'object';
     protected $useAutoIncrement = true;
@@ -17,18 +17,18 @@ class ParticipantSubthemeModel extends Model
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
     protected $dateFormat = 'datetime'; // Set date format to datetime
-    
 
     protected $allowedFields = [
-        'program_subtheme_id',
         'participant_id',
+        'competition_category_id',
         'is_active',
         'is_deleted',
         'created_at',
         'updated_at'
     ];
-    
-    public function getSubthemesByParticipantId($participant_id)
+
+
+    public function getCompetitionCategoriesByParticipantId($participant_id)
     {
         $builder = $this->builder();
 
@@ -44,5 +44,6 @@ class ParticipantSubthemeModel extends Model
 
         return $result;
     }
+
     
 }

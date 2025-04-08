@@ -92,7 +92,6 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
 
     // Midtrans Payment Integration
     $routes->group('payments', function ($routes) {
-
         // Configuration and initialization
         $routes->get('config', 'PaymentsApiController::getConfig');
         
@@ -103,6 +102,10 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
         
         // Manual payment handling
         $routes->post('upload-proof', 'PaymentsApiController::uploadPaymentProof');
+
+        // Check if participant has successful payment
+        $routes->get('participants/(:num)/programs/(:num)/success', 'PaymentsApiController::hasSuccessfulPayment/$1/$2');
+        // Check if participant has successful payment by program payment id
         
         // Midtrans notifications and callbacks
         $routes->post('webhook', 'PaymentsApiController::webhook');
@@ -111,6 +114,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
         $routes->get('error', 'PaymentsApiController::errorRedirect');
 
         $routes->get('program-payment/(:num)/participant/(:num)', 'PaymentsApiController::getPaymentsByProgramPaymentIdAndParticipantId/$1/$2');
+        
     });
 
     // routes for program documents
@@ -155,6 +159,8 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->get('ambassadors/(:num)/generate-link', 'AmbassadorsApiController::generateLink/$1');
     // check query
     $routes->post('ambassadors/check-query', 'AmbassadorsApiController::checkEncryptedQuery');
+    // get ambassador by ref code and program id
+    $routes->get('ambassadors/programs/(:num)/ref-code/(:any)', 'AmbassadorsApiController::getAmbassadorByRefAndProgram/$1/$2');
 
     // program categories
     $routes->get('program-categories', 'ProgramCategoriesApiController::index');

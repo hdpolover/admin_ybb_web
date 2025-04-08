@@ -227,5 +227,35 @@ class PaymentsApiController extends ApiBaseController
                 'order_id' => $orderId,
             ]
         );
+    }    /**
+     * Check if participant has made any successful payments for a specific program
+     * 
+     * @param int|null $participantId
+     * @param int|null $programId
+     * @return ResponseInterface
+     */
+    public function hasSuccessfulPayment($participantId = null, $programId = null): ResponseInterface
+    {
+        // Validate required parameters
+        if (!$programId || !$participantId) {
+            return $this->respondValidationErrors('Program ID and participant ID are required');
+        }
+
+        $paymentModel = new \App\Models\PaymentModel();
+        
+
+        try {
+            // Check for successful payments
+            $hasPayment = $paymentModel->hasSuccessfulPayments($participantId, $programId);
+            
+            return $this->respondSuccess([
+                'has_payment' => $hasPayment,
+                'program_id' => $programId,
+                'participant_id' => $participantId
+            ], self::HTTP_OK);
+            
+        } catch (\Exception $e) {
+            return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
+        }
     }
 }
