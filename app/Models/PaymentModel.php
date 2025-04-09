@@ -16,12 +16,17 @@ class PaymentModel extends Model
     //`id`, `participant_id`, `program_payment_id`, `payment_method_id`, `status`, `proof_url`, `account_name`, `amount`, `currency`, `source_name`, `is_active`, `is_deleted`, `created_at`, `updated_at
     protected $allowedFields = [
         'participant_id',
+        'transaction_code',
+        'order_id',
+        'payment_date',
+        'notes',
         'program_payment_id',
         'payment_method_id',
         'status',
         'proof_url',
         'account_name',
         'amount',
+        'usd_amount',
         'currency',
         'source_name',
         'is_active',

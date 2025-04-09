@@ -11,13 +11,13 @@ class ParticipantStatusModel extends Model
     protected $table = 'participant_statuses';
     protected $primaryKey = 'id';
     protected $allowedFields = ['participant_id', 'general_status', 'form_status', 'document_status', 'payment_status', 'is_active', 'is_deleted', 'created_at', 'updated_at'];
-    
+
     protected $returnType = 'object';
     protected $useAutoIncrement = true;
     public $timestamps = true;
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
-    
+
     protected $useSoftDeletes = false; // Using is_deleted field manually
     protected $protectFields = true;
 
@@ -25,7 +25,7 @@ class ParticipantStatusModel extends Model
     public function getParticipantStatusById($participantId)
     {
         return $this->where('participant_id', $participantId)
-                    ->where('is_deleted', 0)
-                    ->first();
+            ->where('is_deleted', 0)
+            ->first();
     }
 }

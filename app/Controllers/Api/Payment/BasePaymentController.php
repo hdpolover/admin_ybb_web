@@ -10,6 +10,10 @@ class BasePaymentController extends ApiBaseController
 {
     protected $paymentModel;
     protected $participantModel;
+    protected $programPaymentModel;
+    protected $paymentMethodModel;
+    protected $programModel;
+    protected $webSettingModel;
 
     // Payment method constants
     const PAYMENT_METHOD_MIDTRANS = 1;
@@ -41,6 +45,10 @@ class BasePaymentController extends ApiBaseController
 
         $this->paymentModel = new PaymentModel();
         $this->participantModel = new ParticipantModel();
+        $this->programPaymentModel = new \App\Models\ProgramPaymentModel();
+        $this->programModel = new \App\Models\ProgramModel();
+        $this->webSettingModel = new \App\Models\WebSettingModel();
+        $this->paymentMethodModel = new \App\Models\PaymentMethodModel();
     }
 
     /**

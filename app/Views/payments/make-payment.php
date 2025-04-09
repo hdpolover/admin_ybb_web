@@ -64,6 +64,43 @@
                                             <textarea class="form-control" id="description" name="description" rows="3" placeholder="Enter payment description"></textarea>
                                         </div>
                                         
+                                        <div class="mb-3">
+                                            <label for="paymentType" class="form-label">Payment Method</label>
+                                            <select class="form-select" name="payment_type" id="paymentType" required>
+                                                <option value="midtrans">Online Payment Gateway (Credit Card, Virtual Account, E-wallet)</option>
+                                                <option value="manual">Manual Bank Transfer</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div id="manualPaymentSection" class="mb-4" style="display: none;">
+                                            <div class="alert alert-info">
+                                                <h6 class="mb-2">Bank Transfer Details:</h6>
+                                                <div class="mb-2">
+                                                    <strong>Bank Central Asia (BCA)</strong><br>
+                                                    Account Number: 1234567890<br>
+                                                    Account Holder: YBB Foundation<br>
+                                                    Branch: Jakarta Main Branch
+                                                </div>
+                                                <div>
+                                                    <strong>Bank Mandiri</strong><br>
+                                                    Account Number: 0987654321<br>
+                                                    Account Holder: YBB Foundation<br>
+                                                    Branch: Jakarta Main Branch
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label for="paymentProof" class="form-label">Upload Payment Proof</label>
+                                                <input type="file" class="form-control" id="paymentProof" name="payment_proof" accept="image/jpeg,image/png,image/jpg,application/pdf">
+                                                <small class="form-text text-muted">Upload receipt or screenshot of your payment (JPEG, PNG, or PDF, max 5MB)</small>
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label for="paymentNotes" class="form-label">Additional Notes</label>
+                                                <textarea class="form-control" id="paymentNotes" name="payment_notes" rows="2" placeholder="Optional: Add any additional information about your payment"></textarea>
+                                            </div>
+                                        </div>
+                                        
                                         <div class="mb-4">
                                             <div class="form-check">
                                                 <input class="form-check-input" type="checkbox" id="termsCheck" required>
@@ -123,6 +160,20 @@
                 document.getElementById('payButton').disabled = !this.checked;
             });
             
+            // Show/hide manual payment section based on payment type
+            document.getElementById('paymentType').addEventListener('change', function() {
+                const manualPaymentSection = document.getElementById('manualPaymentSection');
+                manualPaymentSection.style.display = this.value === 'manual' ? 'block' : 'none';
+                
+                // Update button text based on payment type
+                const payButton = document.getElementById('payButton');
+                if (this.value === 'manual') {
+                    payButton.innerHTML = '<i class="ri-secure-payment-line align-bottom me-1"></i> Submit Payment';
+                } else {
+                    payButton.innerHTML = '<i class="ri-secure-payment-line align-bottom me-1"></i> Pay Now';
+                }
+            });
+            
             // Format amount input
             document.getElementById('amount').addEventListener('input', function() {
                 // Remove non-digit characters
@@ -151,6 +202,7 @@
                     const participantId = parseInt(document.getElementById('participantId').value);
                     const currency = document.getElementById('currency').value;
                     const description = document.getElementById('description').value;
+                    const paymentType = document.getElementById('paymentType').value;
                     
                     // Parse amount (remove formatting)
                     let amount = document.getElementById('amount').value;
@@ -161,8 +213,17 @@
                         participant_id: participantId,
                         amount: amount,
                         currency: currency,
-                        description: description
+                        description: description,
+                        payment_type: paymentType
                     };
+                    
+                    // If manual payment, include additional data
+                    if (paymentType === 'manual') {
+                        const paymentProof = document.getElementById('paymentProof').files[0];
+                        const paymentNotes = document.getElementById('paymentNotes').value;
+                        paymentData.payment_proof = paymentProof;
+                        paymentData.payment_notes = paymentNotes;
+                    }
                     
                     // Process payment
                     const result = await midtrans.pay(paymentData);

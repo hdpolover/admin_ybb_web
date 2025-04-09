@@ -42,8 +42,16 @@ class AmbassadorParticipantReferralModel extends Model
     public function getReferralsByAmbassadorId($ambassadorId)
     {
         return $this->where('ambassador_id', $ambassadorId)
-                    ->where('is_deleted', 0)
-                    ->findAll();
+            ->where('is_deleted', 0)
+            ->findAll();
+    }
+
+    // get referral by participant id
+    public function getReferralByParticipantId($participantId)
+    {
+        return $this->where('participant_id', $participantId)
+            ->where('is_deleted', 0)
+            ->first();
     }
 
     // get ambassador by ref_code
@@ -57,5 +65,4 @@ class AmbassadorParticipantReferralModel extends Model
     {
         return $this->where('is_deleted', 0)->findAll();
     }
-    
 }

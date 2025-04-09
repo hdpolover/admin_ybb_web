@@ -19,11 +19,10 @@ class PaymentsApiController extends ApiBaseController
     protected $transactionController;
     protected $webhookController;
     protected $statusController;
-    
+
     /**
      * Initialize controller, set models
-     */
-    public function initController(
+     */    public function initController(
         \CodeIgniter\HTTP\RequestInterface $request,
         \CodeIgniter\HTTP\ResponseInterface $response,
         \Psr\Log\LoggerInterface $logger
@@ -31,13 +30,47 @@ class PaymentsApiController extends ApiBaseController
         // Call parent initializer
         parent::initController($request, $response, $logger);
 
-        // Initialize models
+        // Initialize controllers and pass the request, response and logger
         $this->configController = new ConfigController();
+        $this->configController->initController($request, $response, $logger);
+        
         $this->transactionController = new TransactionController();
+        $this->transactionController->initController($request, $response, $logger);
+        
         $this->webhookController = new WebhookController();
+        $this->webhookController->initController($request, $response, $logger);
+        
         $this->statusController = new StatusController();
+        $this->statusController->initController($request, $response, $logger);
     }
-    
+
+    /**
+     * Get payment details by payment ID
+     *
+     * @param int|null $id Payment ID
+     * @return ResponseInterface
+     */
+    public function getPayment($id = null): ResponseInterface
+    {
+        if (!$id) {
+            return $this->respondValidationErrors('Payment ID is required');
+        }
+
+        $paymentModel = new \App\Models\PaymentModel();
+
+        try {
+            $payment = $paymentModel->find($id);
+
+            if (!$payment) {
+                return $this->respondNotFound('Payment not found');
+            }
+
+            return $this->respondSuccess($payment, self::HTTP_OK, 'Payment retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
+        }
+    }
+
     /**
      * Get Midtrans client key for frontend initialization
      * Routes to ConfigController::getConfig()
@@ -48,7 +81,7 @@ class PaymentsApiController extends ApiBaseController
     {
         return $this->configController->getConfig();
     }
-    
+
     /**
      * Create a new payment transaction (supports both Midtrans and Manual)
      * Routes to TransactionController::createTransaction()
@@ -59,7 +92,7 @@ class PaymentsApiController extends ApiBaseController
     {
         return $this->transactionController->createTransaction();
     }
-    
+
     /**
      * Upload proof of payment for manual payments
      * Routes to TransactionController::uploadPaymentProof()
@@ -70,7 +103,7 @@ class PaymentsApiController extends ApiBaseController
     {
         return $this->transactionController->uploadPaymentProof();
     }
-    
+
     /**
      * Handle webhook notifications from Midtrans
      * Routes to WebhookController::webhook()
@@ -81,7 +114,7 @@ class PaymentsApiController extends ApiBaseController
     {
         return $this->webhookController->webhook();
     }
-    
+
     /**
      * Check payment status
      * Routes to StatusController::getStatus()
@@ -157,7 +190,7 @@ class PaymentsApiController extends ApiBaseController
 
         return $this->respondSuccess($data, self::HTTP_OK, 'Payments retrieved successfully');
     }
-    
+
     /**
      * Handle successful payment redirect from Midtrans
      * 
@@ -169,22 +202,22 @@ class PaymentsApiController extends ApiBaseController
         $orderId = $this->request->getGet('order_id');
         $transactionId = $this->request->getGet('transaction_id');
         $status = $this->request->getGet('transaction_status');
-        
+
         // Log the successful payment
         log_message('info', "Payment finished: Order ID {$orderId}, Transaction ID {$transactionId}, Status {$status}");
-        
+
         // Optional: Update payment status if needed
         if ($orderId) {
             $paymentModel = new \App\Models\PaymentModel();
             $payment = $paymentModel->where('order_id', $orderId)->first();
-            
+
             // Only update if payment exists and status is not already success
             if ($payment && $payment->status !== 'success') {
                 // You might want to verify with Midtrans before updating
                 // This is where you'd call your StatusController to check
             }
         }
-        
+
         // You can return a JSON response or redirect to a success page
         return $this->respondSuccess([
             'order_id' => $orderId,
@@ -192,7 +225,7 @@ class PaymentsApiController extends ApiBaseController
             'status' => $status
         ], self::HTTP_OK, 'Payment completed successfully');
     }
-    
+
     /**
      * Handle unfinished payment redirect from Midtrans
      * 
@@ -202,12 +235,12 @@ class PaymentsApiController extends ApiBaseController
     {
         $orderId = $this->request->getGet('order_id');
         log_message('info', "Payment unfinished: Order ID {$orderId}");
-        
+
         return $this->respondSuccess([
             'order_id' => $orderId,
         ], self::HTTP_OK, 'Payment is pending or unfinished');
     }
-    
+
     /**
      * Handle error payment redirect from Midtrans
      * 
@@ -217,9 +250,9 @@ class PaymentsApiController extends ApiBaseController
     {
         $orderId = $this->request->getGet('order_id');
         $message = $this->request->getGet('message') ?? 'Payment error occurred';
-        
+
         log_message('error', "Payment error: Order ID {$orderId}, Message: {$message}");
-        
+
         return $this->respondError(
             $message,
             self::HTTP_BAD_REQUEST,
@@ -227,35 +260,5 @@ class PaymentsApiController extends ApiBaseController
                 'order_id' => $orderId,
             ]
         );
-    }    /**
-     * Check if participant has made any successful payments for a specific program
-     * 
-     * @param int|null $participantId
-     * @param int|null $programId
-     * @return ResponseInterface
-     */
-    public function hasSuccessfulPayment($participantId = null, $programId = null): ResponseInterface
-    {
-        // Validate required parameters
-        if (!$programId || !$participantId) {
-            return $this->respondValidationErrors('Program ID and participant ID are required');
-        }
-
-        $paymentModel = new \App\Models\PaymentModel();
-        
-
-        try {
-            // Check for successful payments
-            $hasPayment = $paymentModel->hasSuccessfulPayments($participantId, $programId);
-            
-            return $this->respondSuccess([
-                'has_payment' => $hasPayment,
-                'program_id' => $programId,
-                'participant_id' => $participantId
-            ], self::HTTP_OK);
-            
-        } catch (\Exception $e) {
-            return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
-        }
     }
 }

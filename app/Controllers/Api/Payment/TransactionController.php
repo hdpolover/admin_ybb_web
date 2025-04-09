@@ -7,6 +7,42 @@ use CodeIgniter\HTTP\ResponseInterface;
 class TransactionController extends BasePaymentController
 {
     /**
+     * Generate a unique transaction code
+     * 
+     * @param int $paymentId The ID of the payment record
+     * @param string $prefix Optional prefix for the transaction code, defaults to 'YBB-PMT'
+     * @return string The generated transaction code
+     */
+    private function generateTransactionCode(int $paymentId, string $prefix = 'TR'): string
+    {
+        // Generate a unique identifier using payment ID and timestamp
+        $uniqueId = $paymentId . '-' . time();
+
+        // Combine prefix and unique identifier
+        $transactionCode = $prefix . '-' . $uniqueId;
+
+        return $transactionCode;
+    }
+
+    /**
+     * Generate a unique order ID
+     * 
+     * @param int $paymentId The ID of the payment record
+     * @return string The generated order ID (numeric only)
+     */
+    private function generateOrderId(int $paymentId): string
+    {
+        // Generate a unique identifier using payment ID, timestamp and random numeric suffix
+        $timestamp = time();
+        $random = mt_rand(100000, 999999); // 6-digit random number
+
+        // Combine payment ID, timestamp and random number, numbers only
+        $orderId = $paymentId . $timestamp . $random;
+
+        return $orderId;
+    }
+
+    /**
      * Create a new payment transaction (supports both Midtrans and Manual)
      *
      * @return ResponseInterface
@@ -15,133 +51,199 @@ class TransactionController extends BasePaymentController
     {
         try {
             $data = $this->request->getJSON(true);
-            
+
             // Validate input
             $validation = \Config\Services::validation();
             $validation->setRules([
                 'participant_id' => 'required|integer',
-                'amount' => 'required|numeric',
-                'currency' => 'required|in_list[IDR,USD]',
-                'description' => 'permit_empty|string',
-                'payment_type' => 'required|in_list[midtrans,manual]'
+                'program_payment_id' => 'required|integer',
+                'payment_method_id' => 'required|integer',
+                'account_name' => 'permit_empty|string',
+                'source_name' => 'permit_empty|string',
+                'notes' => 'permit_empty|string',
+                'payment_date' => 'permit_empty|valid_date[Y-m-d H:i:s]',
             ]);
-            
+
             if (!$validation->run($data)) {
                 return $this->fail($validation->getErrors(), 400);
             }
-            
+
             // Get participant data
             $participant = $this->participantModel->find($data['participant_id']);
+
             if (!$participant) {
-                return $this->fail('Participant not found', 404);
+                return $this->respondError('Participant not found', 404);
             }
-            
+
+            // get payment method data
+            $paymentMethod = $this->paymentMethodModel->find($data['payment_method_id']);
+
+            if (!$paymentMethod) {
+                return $this->respondError('Payment method not found', 404);
+            }
+
             // Determine payment method
-            $paymentMethod = ($data['payment_type'] === 'midtrans') ? 
+            $paymentMethodType = ($paymentMethod->type === 'gateway') ?
                 self::PAYMENT_METHOD_MIDTRANS : self::PAYMENT_METHOD_MANUAL;
-                
+
+            // get program payment data
+            $programPayment = $this->programPaymentModel->find($data['program_payment_id']);
+
+            if (!$programPayment) {
+                return $this->respondError('Program payment not found', 404);
+            }
+
+            // get program category data
+            $program = $this->programModel->find($programPayment->program_id);
+
+            if (!$program) {
+                return $this->respondError('Program not found', 404);
+            }
+
+            // get web setting data
+            $webSetting = $this->webSettingModel->find($program->program_category_id);
+
+            if (!$webSetting) {
+                return $this->respondError('Web setting not found', 404);
+            }
+
+            $usdInIdr = $webSetting->usd_in_idr ?? 0;
+
+            if ($usdInIdr <= 0) {
+                return $this->respondError('Invalid USD to IDR conversion rate', 400);
+            }
+
+            $amount = 0;
+            $usdAmount = 0;
+            $currency = 'IDR';
+
+            // Calculate amount in IDR and USD
+            if ($paymentMethodType === self::PAYMENT_METHOD_MIDTRANS) {
+                $amount = $programPayment->idr_amount ?? 0;
+                $usdAmount = $programPayment->usd_amount ?? 0;
+
+                // Convert USD amount to IDR
+                if ($usdAmount > 0) {
+                    $amount = $usdAmount * $usdInIdr;
+                }
+            } else {
+                // For manual payments, use the IDR amount directly
+                $amount = $programPayment->idr_amount ?? 0;
+                $usdAmount = $programPayment->usd_amount ?? 0;
+            }
+
+            $currency = $programPayment->currency ?? 'IDR';
+
+            if ($currency !== 'IDR' && $currency !== 'USD') {
+                return $this->respondError('Invalid currency type', 400);
+            }
+
             // Create payment record with status "created" (0)
             $paymentData = [
                 'participant_id' => $data['participant_id'],
-                'amount' => (float) $data['amount'],
-                'currency' => $data['currency'],
-                'payment_method_id' => $paymentMethod,
+                'program_payment_id' => $data['program_payment_id'],
+                'payment_method_id' => $paymentMethod->id,
+                'amount' => (float) $amount,
+                'usd_amount' => (float) $usdAmount,
+                'currency' => $currency,
                 'status' => self::STATUS_CREATED,
-                'notes' => $data['description'] ?? 'Payment for YBB Program'
+                'notes' => $data['notes'] ?? 'Payment for YBB Program',
+                'account_name' => $data['account_name'] ?? null,
+                'source_name' => $data['source_name'] ?? null,
+                'payment_date' => $data['payment_date'] ?? null,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
             ];
-            
+
             // Save to database to get payment ID
             $paymentId = $this->paymentModel->insert($paymentData);
-            
+
             if (!$paymentId) {
                 log_message('error', 'Failed to create payment record');
                 return $this->fail('Failed to create payment record', 500);
             }
-            
-            // Generate order ID
-            $orderId = 'YBB-PMT-' . $paymentId . '-' . time();
-            
-            // Update payment with order_id
-            $this->paymentModel->update($paymentId, ['transaction_id' => $orderId]);
-            
+
+            // Generate transaction code
+            $transactionCode = $this->generateTransactionCode($paymentId);
+
+            // For payments, generate a unique order ID
+            $orderId = $this->generateOrderId($paymentId);
+
+            // Update payment with transaction_code
+            $this->paymentModel->update($paymentId, ['transaction_code' => $transactionCode, 'order_id' => $orderId]);
+
             // For manual payment, return immediately with payment details
-            if ($paymentMethod === self::PAYMENT_METHOD_MANUAL) {
+            if ($paymentMethodType === self::PAYMENT_METHOD_MANUAL) {
                 // Update payment status to 'pending' for manual payments
                 $this->paymentModel->update($paymentId, ['status' => self::STATUS_PENDING]);
-                
-                // Get bank information for manual transfers
-                $bankInfo = $this->getBankDetails();
-                
-                return $this->respond([
-                    'status' => 200,
-                    'error' => false,
-                    'message' => 'Manual payment record created successfully',
-                    'data' => [
-                        'transaction_id' => $orderId,
-                        'payment_id' => $paymentId,
-                        'status' => 'Pending',
-                        'payment_type' => 'manual',
-                        'bank_details' => $bankInfo,
-                        'upload_proof_url' => site_url('api/payments/upload-proof')
-                    ]
-                ]);
+
+                // get payment data
+                $payment = $this->paymentModel->find($paymentId);
+
+                if (!$payment) {
+                    return $this->fail('Payment not found', 404);
+                }
+
+                // Return success response with payment details
+                return $this->respondSuccess(
+                    $payment,
+                    self::HTTP_OK,
+                    'Manual transaction payment created successfully'
+                );
             }
-            
+
             // For Midtrans payments
             try {
                 // Set transaction parameters for Midtrans
                 $params = [
                     'transaction_details' => [
                         'order_id' => $orderId,
-                        'gross_amount' => (float) $data['amount']
+                        'gross_amount' => (float) $amount
                     ],
                     'customer_details' => [
-                        'first_name' => $participant->full_name ?? 'Customer',
-                        'email' => $participant->email ?? '',
-                        'phone' => $participant->phone_number ?? ''
+                        'first_name' => $participant['full_name'] ?? 'Customer',
+                        'email' => $participant['email'] ?? '',
+                        'phone' => $participant['phone_number'] ?? ''
                     ],
                     'item_details' => [
                         [
-                            'id' => 'PMT-' . $paymentId,
-                            'price' => (float) $data['amount'],
+                            'id' => $data['program_payment_id'],
+                            'price' => (float) $amount,
                             'quantity' => 1,
                             'name' => $data['description'] ?? 'Payment for YBB Program'
                         ]
                     ],
-                    'enabled_payments' => [
-                        'credit_card', 'bca_va', 'bni_va', 'other_va', 'gopay', 'shopeepay'
-                    ]
                 ];
-                
+
                 // Create Snap Token
                 $snapToken = \Midtrans\Snap::getSnapToken($params);
-                
+
                 // Update payment status to 'pending'
                 $this->paymentModel->update($paymentId, ['status' => self::STATUS_PENDING]);
-                
+
+
+                $returnData = [
+                    'transaction_id' => $orderId,
+                    'payment_id' => $paymentId,
+                    'token' => $snapToken,
+                    'redirect_url' => \Midtrans\Config::$isProduction
+                        ? "https://app.midtrans.com/snap/v2/vtweb/{$snapToken}"
+                        : "https://app.sandbox.midtrans.com/snap/v2/vtweb/{$snapToken}",
+                ];
+
                 // Return success response with token
-                return $this->respond([
-                    'status' => 200,
-                    'error' => false,
-                    'message' => 'Transaction created successfully',
-                    'data' => [
-                        'transaction_id' => $orderId,
-                        'payment_id' => $paymentId,
-                        'token' => $snapToken,
-                        'redirect_url' => \Midtrans\Config::$isProduction 
-                            ? "https://app.midtrans.com/snap/v2/vtweb/{$snapToken}" 
-                            : "https://app.sandbox.midtrans.com/snap/v2/vtweb/{$snapToken}",
-                        'payment_type' => 'midtrans'
-                    ]
-                ]);
-                
+                return $this->respondSuccess(
+                    $returnData,
+                    self::HTTP_OK,
+                    'Midtrans transaction created successfully'
+                );
             } catch (\Exception $e) {
                 // If Midtrans fails, update payment status to cancelled and log error
                 $this->paymentModel->update($paymentId, [
                     'status' => self::STATUS_CANCELLED,
                     'notes' => 'Failed to create Midtrans transaction: ' . $e->getMessage()
                 ]);
-                
+
                 log_message('error', 'Midtrans API Error: ' . $e->getMessage());
                 return $this->fail('Payment gateway error: ' . $e->getMessage(), 500);
             }
@@ -150,7 +252,7 @@ class TransactionController extends BasePaymentController
             return $this->fail('An unexpected error occurred', 500);
         }
     }
-    
+
     /**
      * Upload proof of payment for manual payments
      *
@@ -164,60 +266,60 @@ class TransactionController extends BasePaymentController
             if (!$paymentId) {
                 return $this->fail('Payment ID is required', 400);
             }
-            
+
             // Check if payment exists and is a manual payment
             $payment = $this->paymentModel->find($paymentId);
             if (!$payment) {
                 return $this->fail('Payment not found', 404);
             }
-            
+
             if ($payment->payment_method_id != self::PAYMENT_METHOD_MANUAL) {
                 return $this->fail('This payment is not set for manual processing', 400);
             }
-            
+
             // Allow uploading proof for payments in 'created' or 'pending' state
             // Also allow re-uploading if payment was rejected
             $allowedStatuses = [self::STATUS_CREATED, self::STATUS_PENDING, self::STATUS_REJECTED];
             if (!in_array($payment->status, $allowedStatuses)) {
                 return $this->fail('Payment proof cannot be uploaded for this payment status', 400);
             }
-            
+
             // Process file upload
             $file = $this->request->getFile('payment_proof');
             if (!$file || !$file->isValid()) {
                 return $this->fail('Valid payment proof file is required', 400);
             }
-            
+
             if ($file->getSize() > 5242880) { // 5MB max
                 return $this->fail('File size exceeds the 5MB limit', 400);
             }
-            
+
             $allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
             if (!in_array($file->getMimeType(), $allowedTypes)) {
                 return $this->fail('Only JPEG, PNG, and PDF files are allowed', 400);
             }
-            
+
             // Generate new filename
             $newName = $payment->transaction_id . '_' . $file->getRandomName();
-            
+
             // Define upload path
             $uploadPath = WRITEPATH . 'uploads/payment_proofs/';
-            
+
             // Create directory if it doesn't exist
             if (!is_dir($uploadPath)) {
                 mkdir($uploadPath, 0755, true);
             }
-            
+
             // Move the file
             if (!$file->move($uploadPath, $newName)) {
                 return $this->fail('Failed to upload payment proof', 500);
             }
-            
+
             // Additional notes from the user
             $notes = $this->request->getPost('notes') ?? '';
             $existingNotes = $payment->notes ?? '';
             $combinedNotes = $existingNotes . "\n\n" . date('Y-m-d H:i:s') . " - Manual payment proof uploaded. User notes: {$notes}";
-            
+
             // Update payment record with proof and notes
             $updateData = [
                 'payment_proof' => $newName,
@@ -225,14 +327,14 @@ class TransactionController extends BasePaymentController
                 'status' => self::STATUS_PENDING, // Set to pending for admin review
                 'notes' => trim($combinedNotes)
             ];
-            
+
             $updated = $this->paymentModel->update($paymentId, $updateData);
-            
+
             if (!$updated) {
                 log_message('error', 'Failed to update payment record after proof upload');
                 return $this->fail('Failed to update payment details', 500);
             }
-            
+
             return $this->respond([
                 'status' => 200,
                 'error' => false,

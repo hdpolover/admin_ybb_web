@@ -60,7 +60,6 @@ class WebSettingModel extends Model
         return $webSetting;
     }
 
-
     /**
      * Get all web settings
      * 

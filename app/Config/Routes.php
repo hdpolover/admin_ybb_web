@@ -92,21 +92,21 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
 
     // Midtrans Payment Integration
     $routes->group('payments', function ($routes) {
+        // Payment routes - organized by functionality
+        // get payment by id
+        $routes->get('(:num)', 'PaymentsApiController::getPayment/$1');
+
         // Configuration and initialization
         $routes->get('config', 'PaymentsApiController::getConfig');
         
         // Transaction management
         $routes->post('create', 'PaymentsApiController::createTransaction');
         $routes->get('status/(:num)', 'PaymentsApiController::getStatus/$1');
-        $routes->get('participant/(:num)', 'PaymentsApiController::getPaymentsByParticipantId/$1');
+        $routes->get('participants/(:num)', 'PaymentsApiController::getPaymentsByParticipantId/$1');
         
         // Manual payment handling
         $routes->post('upload-proof', 'PaymentsApiController::uploadPaymentProof');
 
-        // Check if participant has successful payment
-        $routes->get('participants/(:num)/programs/(:num)/success', 'PaymentsApiController::hasSuccessfulPayment/$1/$2');
-        // Check if participant has successful payment by program payment id
-        
         // Midtrans notifications and callbacks
         $routes->post('webhook', 'PaymentsApiController::webhook');
         $routes->get('finish', 'PaymentsApiController::finishRedirect');
@@ -151,6 +151,10 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->get('participants/(:num)/essays', 'ParticipantsApiController::getParticipantEssays/$1');
     // get participants subthemes
     $routes->get('participants/(:num)/subthemes', 'ParticipantsApiController::getParticipantSubthemes/$1');
+    // get participant statuses
+    $routes->get('participants/(:num)/status', 'ParticipantsApiController::getParticipantStatuses/$1');
+    // get referral by participant id
+    $routes->get('participants/(:num)/referrals', 'ParticipantsApiController::getParticipantReferrals/$1');
 
     // ambassadors
     $routes->get('ambassadors', 'AmbassadorsApiController::index');

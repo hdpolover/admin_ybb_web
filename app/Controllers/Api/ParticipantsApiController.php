@@ -12,6 +12,7 @@ use OpenApi\Annotations as OA;
 class ParticipantsApiController extends ApiBaseController
 {
     protected $model;
+    protected $participantStatusModel;
 
     /**
      * Constructor.
@@ -20,9 +21,10 @@ class ParticipantsApiController extends ApiBaseController
     {
         parent::initController($request, $response, $logger);
         $this->model = new ParticipantModel();
+        $this->participantStatusModel = new \App\Models\ParticipantStatusModel();
     }
 
-   /**
+    /**
      * 🟢 Get All Participants (READ)
      * GET /api/participants
 
@@ -42,31 +44,30 @@ class ParticipantsApiController extends ApiBaseController
 
             // Build filters from query params
             $filters = [];
-         
+
             // Add any additional filters from query params
             foreach ($this->request->getGet() as $key => $value) {
                 if (!in_array($key, ['page', 'limit'])) {
                     $filters[$key] = $value;
                 }
             }
-            
+
             // Get data using model method
             $result = $this->model->getParticipants($limit, $offset, $filters);
-            
+
             $totalPages = ceil($result['total'] / $limit);
 
             // If no data found return 404
             if (empty($result['data'])) {
                 return $this->respondNotFound("No participants found");
             }
-            
+
             return $this->respondSuccess($result['data'], self::HTTP_OK, "Success", [
                 'current_page' => $page,
                 'per_page' => $limit,
                 'total_items' => $result['total'],
                 'total_pages' => $totalPages
             ]);
-            
         } catch (\Exception $e) {
             return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
         }
@@ -86,11 +87,11 @@ class ParticipantsApiController extends ApiBaseController
             }
 
             $participant = $this->model->getParticipant($id);
-            
+
             if (!$participant) {
                 return $this->respondNotFound("Participant not found");
             }
-            
+
             return $this->respondSuccess($participant);
         } catch (\Exception $e) {
             return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
@@ -107,7 +108,7 @@ class ParticipantsApiController extends ApiBaseController
     {
         try {
             $data = $this->request->getJSON(true);
-            
+
             // Validation rules for creating a participant
             $validationRules = [
                 'full_name' => 'required|min_length[3]',
@@ -117,21 +118,21 @@ class ParticipantsApiController extends ApiBaseController
                 'gender' => 'required|in_list[male,female]',
                 'birthdate' => 'required|valid_date'
             ];
-            
+
             if (!$this->validate($validationRules)) {
                 return $this->respondValidationErrors($this->validator->getErrors());
             }
-            
+
             // Insert the data
             $participantId = $this->model->insert($data);
-            
+
             if (!$participantId) {
                 return $this->respondError('Failed to create participant', self::HTTP_INTERNAL_ERROR);
             }
-            
+
             // Get the newly created participant
             $participant = $this->model->getParticipant($participantId);
-            
+
             return $this->respondCreated($participant, 'Participant created successfully');
         } catch (\Exception $e) {
             return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
@@ -150,15 +151,15 @@ class ParticipantsApiController extends ApiBaseController
             if (!$id) {
                 return $this->respondError('Participant ID is required', self::HTTP_BAD_REQUEST);
             }
-            
+
             // Check if participant exists
             $participant = $this->model->getParticipant($id);
             if (!$participant) {
                 return $this->respondNotFound("Participant not found");
             }
-            
+
             $data = $this->request->getJSON(true);
-            
+
             // Validation rules for updating a participant
             $validationRules = [
                 'full_name' => 'permit_empty|min_length[3]',
@@ -167,21 +168,21 @@ class ParticipantsApiController extends ApiBaseController
                 'gender' => 'permit_empty|in_list[male,female]',
                 'birthdate' => 'permit_empty|valid_date'
             ];
-            
+
             if (!$this->validate($validationRules)) {
                 return $this->respondValidationErrors($this->validator->getErrors());
             }
-            
+
             // Update the participant
             $updated = $this->model->update($id, $data);
-            
+
             if (!$updated) {
                 return $this->respondError('Failed to update participant', self::HTTP_INTERNAL_ERROR);
             }
-            
+
             // Get the updated participant
             $updatedParticipant = $this->model->getParticipant($id);
-            
+
             return $this->respondSuccess($updatedParticipant, self::HTTP_OK, 'Participant updated successfully');
         } catch (\Exception $e) {
             return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
@@ -200,14 +201,14 @@ class ParticipantsApiController extends ApiBaseController
             if (!$programId) {
                 return $this->respondError('Program ID is required', self::HTTP_BAD_REQUEST);
             }
-            
+
             // Get up to 5 participants from the program with their photos
             $participants = $this->model->getProgramParticipantsPhotos($programId, 5);
-            
+
             if (empty($participants)) {
                 return $this->respondNotFound("No participant photos found for this program");
             }
-            
+
             return $this->respondSuccess($participants);
         } catch (\Exception $e) {
             return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
@@ -226,20 +227,20 @@ class ParticipantsApiController extends ApiBaseController
             if (!$id) {
                 return $this->respondError('Participant ID is required', self::HTTP_BAD_REQUEST);
             }
-            
+
             // Check if participant exists
             $participant = $this->model->getParticipant($id);
             if (!$participant) {
                 return $this->respondNotFound("Participant not found");
             }
-            
+
             // Delete participant (or soft delete depending on your model)
             $deleted = $this->model->delete($id);
-            
+
             if (!$deleted) {
                 return $this->respondError('Failed to delete participant', self::HTTP_INTERNAL_ERROR);
             }
-            
+
             return $this->respondNoContent('Participant deleted successfully');
         } catch (\Exception $e) {
             return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
@@ -256,13 +257,13 @@ class ParticipantsApiController extends ApiBaseController
             if (!$programId) {
                 return $this->respondError('Program ID is required', self::HTTP_BAD_REQUEST);
             }
-            
+
             $participants = $this->model->getParticipantsByProgramId($programId);
-            
+
             if (empty($participants)) {
                 return $this->respondNotFound("No participants found for this program");
             }
-            
+
             return $this->respondSuccess($participants);
         } catch (\Exception $e) {
             return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
@@ -282,7 +283,7 @@ class ParticipantsApiController extends ApiBaseController
             $page = (int)($this->request->getGet('page') ?? 1);
             $limit = (int)($this->request->getGet('limit') ?? 10);
             $offset = ($page - 1) * $limit;
-            
+
             // Build filters from query params (excluding page and limit)
             $filters = [];
             foreach ($this->request->getGet() as $key => $value) {
@@ -290,16 +291,16 @@ class ParticipantsApiController extends ApiBaseController
                     $filters[$key] = $value;
                 }
             }
-            
+
             // Get participants from current program
             $result = $this->model->getCurrentProgramParticipants($limit, $offset, $filters);
-            
+
             if (empty($result['data'])) {
                 return $this->respondNotFound("No participants found in current program");
             }
-            
+
             $totalPages = ceil($result['total'] / $limit);
-            
+
             return $this->respondSuccess($result['data'], self::HTTP_OK, "Success", [
                 'current_page' => $page,
                 'per_page' => $limit,
@@ -316,19 +317,19 @@ class ParticipantsApiController extends ApiBaseController
      * GET /api/participants/user/{userId}
      * 
      **/
-    public function getByUserId($userId = null) 
+    public function getByUserId($userId = null)
     {
         try {
             if (!$userId) {
                 return $this->respondError('User ID is required', self::HTTP_BAD_REQUEST);
             }
-            
+
             $participant = $this->model->getParticipantsByUserId($userId);
-            
+
             if (!$participant) {
                 return $this->respondNotFound("Participant not found for this user");
             }
-            
+
             return $this->respondSuccess($participant);
         } catch (\Exception $e) {
             return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
@@ -347,7 +348,7 @@ class ParticipantsApiController extends ApiBaseController
             if (!$id) {
                 return $this->respondError('Participant ID is required', self::HTTP_BAD_REQUEST);
             }
-            
+
             // Check if participant exists
             $participant = $this->model->getParticipant($id);
             if (!$participant) {
@@ -356,10 +357,10 @@ class ParticipantsApiController extends ApiBaseController
 
             // participant essay model
             $participantEssayModel = new \App\Models\ParticipantEssayModel();
-            
+
             // Get essays from participant
             $essays = $participantEssayModel->getEssaysByParticipantId($id);
-            
+
             if (empty($essays)) {
                 return $this->respondNotFound("No essays found for this participant");
             }
@@ -382,7 +383,7 @@ class ParticipantsApiController extends ApiBaseController
             if (!$id) {
                 return $this->respondError('Participant ID is required', self::HTTP_BAD_REQUEST);
             }
-            
+
             // Check if participant exists
             $participant = $this->model->getParticipant($id);
             if (!$participant) {
@@ -391,15 +392,96 @@ class ParticipantsApiController extends ApiBaseController
 
             // Get participant subthemes model
             $participantSubthemeModel = new \App\Models\ParticipantSubthemeModel();
-            
+
             // Get subthemes assigned to the participant
             $subthemes = $participantSubthemeModel->getSubthemesByParticipantId($id);
-            
+
             if (empty($subthemes)) {
                 return $this->respondNotFound("No subthemes found for this participant");
             }
 
             return $this->respondSuccess($subthemes);
+        } catch (\Exception $e) {
+            return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
+        }
+    }
+
+    /**
+     * 📊 Get Participant Statuses
+     * GET /api/participants/{id}/statuses
+     * 
+     * Returns all status records for a specific participant
+     */
+    public function getParticipantStatuses($id = null)
+    {
+        try {
+            if (!$id) {
+                return $this->respondError('Participant ID is required', self::HTTP_BAD_REQUEST);
+            }
+
+            // Check if participant exists
+            $participant = $this->model->getParticipant($id);
+            if (!$participant) {
+                return $this->respondNotFound("Participant not found");
+            }
+
+            // Get statuses for the participant
+            $statuses = $this->participantStatusModel->getParticipantStatusById($id);
+
+            if (empty($statuses)) {
+                return $this->respondNotFound("No status records found for this participant");
+            }
+
+            return $this->respondSuccess($statuses);
+        } catch (\Exception $e) {
+            return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
+        }
+    }
+
+    /**
+     * 🔍 Get Participant Ambassador Referrals
+     * GET /api/participants/{id}/referrals
+     * 
+     * Returns all ambassador referrals made by a specific participant
+     */
+    public function getParticipantReferrals($id = null)
+    {
+        try {
+            if (!$id) {
+                return $this->respondError('Participant ID is required', self::HTTP_BAD_REQUEST);
+            }
+
+            // Check if participant exists
+            $participant = $this->model->getParticipant($id);
+            if (!$participant) {
+                return $this->respondNotFound("Participant not found");
+            }
+
+            // Get ambassador referrals model
+            $referralModel = new \App\Models\AmbassadorParticipantReferralModel();
+
+            // Get referrals made by the participant
+            $referral = $referralModel->getReferralByParticipantId($id);
+
+            if (empty($referral)) {
+                return $this->respondNotFound("No referrals found for this participant");
+            }
+
+            // get ambassador details
+            $ambassadorModel = new \App\Models\AmbassadorModel();
+
+            $ambassador = $ambassadorModel->getAmbassadorById($referral->ambassador_id);
+
+            if (!$ambassador) {
+                return $this->respondNotFound("Ambassador not found for this referral");
+            }
+
+            $data = [
+                'referral_data' => $referral,
+                'ambassador' => $ambassador,
+            ];
+
+            return $this->respondSuccess($data, self::HTTP_OK, 'Referral details retrieved successfully');
         } catch (\Exception $e) {
             return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
         }

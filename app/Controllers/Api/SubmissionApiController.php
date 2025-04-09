@@ -438,7 +438,27 @@ class SubmissionApiController extends ApiBaseController
                 $ambassadorId = $input['ambassador_id'];
 
                 if ($ambassadorId) {
-                    
+                    // check if participant already has a referral
+                    $existingReferral = $this->ambassadorParticipantReferralModel->where('participant_id', $participantId)->first();
+
+                    if ($existingReferral) {
+                        // Update existing referral
+                        if ($this->ambassadorParticipantReferralModel->update($existingReferral->id, ['ambassador_id' => $ambassadorId])) {
+                            $updatedData['ambassador_id'] = $ambassadorId;
+                        }
+                    } else {
+                        // Create new referral
+                        $referralData = [
+                            'participant_id' => $participantId,
+                            'ambassador_id' => $ambassadorId,
+                            'created_at' => date('Y-m-d H:i:s'),
+                            'updated_at' => date('Y-m-d H:i:s')
+                        ];
+
+                        if ($newId = $this->ambassadorParticipantReferralModel->insert($referralData)) {
+                            $updatedData['ambassador_id'] = array_merge(['id' => $newId], $referralData);
+                        }
+                    }
                 }
             }
 
@@ -484,7 +504,7 @@ class SubmissionApiController extends ApiBaseController
             if (!empty($updatedData['ambassador_id'])) {
                 $reponseData['ambassador_id'] = $updatedData['ambassador_id'];
             }
-            
+
             // Return success response with updated data
             return $this->respondSuccess($reponseData, ResponseInterface::HTTP_OK, 'Submission data updated successfully');
         } catch (\Exception $e) {
