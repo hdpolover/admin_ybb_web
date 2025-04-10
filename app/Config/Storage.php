@@ -53,8 +53,7 @@ class Storage extends BaseConfig
      * Allowed file types for profile pictures
      */
     public $allowedProfilePictureTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    
-    /**
+      /**
      * Generate full URL for a file path
      * 
      * @param string $path File path relative to storage root
@@ -62,7 +61,7 @@ class Storage extends BaseConfig
      */
     public function getFileUrl(string $path): string
     {
-        // Ensure path starts with slash
+        // Ensure path starts with slash if it's not empty
         if ($path && substr($path, 0, 1) !== '/') {
             $path = '/' . $path;
         }

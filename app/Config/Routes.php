@@ -141,6 +141,9 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
 
     // participants 
     $routes->get('participants', 'ParticipantsApiController::index');
+    //  POST /api/participants/users/{userId}/create
+    $routes->post('participants/users/(:num)/create', 'ParticipantsApiController::createFromUserId/$1');
+    $routes->post('participants', 'ParticipantsApiController::create');
     $routes->get('participants/(:num)', 'ParticipantsApiController::show/$1');
     $routes->get('participants/current-program', 'ParticipantsApiController::getCurrentProgramParticipants');
     //get participants by user id
@@ -178,6 +181,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
 
     // programs
     $routes->get('programs', 'ProgramsApiController::index');
+    $routes->get('programs/(:num)', 'ProgramsApiController::show/$1');
     // get by slug (accepts string parameter)
     $routes->get('programs/slug/(:any)', 'ProgramsApiController::getBySlug/$1');
     // get by category id
@@ -225,7 +229,9 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->post('submissions/participants/(:num)/update', 'SubmissionApiController::updateSubmission/$1');
     // dedicated endpoint for profile picture uploads
     $routes->post('submissions/participants/(:num)/upload-picture', 'SubmissionApiController::uploadProfilePicture/$1');
-
+    // submit form
+    $routes->post('submissions/participants/(:num)/submit', 'SubmissionApiController::submitForm/$1');
+    
     // Maintenance check endpoint - publicly accessible
     $routes->get('maintenance/check', 'Api\MaintenanceApiController::check');
 });

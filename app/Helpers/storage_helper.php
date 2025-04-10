@@ -40,10 +40,8 @@ if (!function_exists('upload_file_to_storage')) {
         if ($filename === null) {
             $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
             $filename = md5(uniqid(rand(), true)) . '.' . $extension;
-        }
-
-        // Create full destination path
-        $destinationPath = trim($storageConfig->basePath, '/') . '/' . trim($destination, '/');
+        }        // Create full destination path - directly use the destination without basePath
+        $destinationPath = trim($destination, '/');
         $fullPath = $destinationPath . '/' . $filename;
 
         // Upload file using appropriate method
@@ -179,42 +177,31 @@ if (!function_exists('upload_via_ftp')) {
             if ($config->ftpPassive) {
                 ftp_pasv($conn, true);
             }
-            
-            // Create destination directories if they don't exist
+              // Create destination directories if they don't exist
             $dirs = explode('/', trim(dirname($destination), '/'));
-            $path = $config->ftpRootPath;
+            $path = rtrim($config->ftpRootPath, '/');
             
             // Try to create each directory in the path
             foreach ($dirs as $dir) {
                 if (empty($dir)) continue;
                 
+                // Add directory to path
                 $path .= '/' . $dir;
                 
-                // Check if directory exists
-                $current_dir = @ftp_nlist($conn, dirname($path));
-                if ($current_dir === false) {
-                    // Parent directory doesn't exist or couldn't be read
-                    $result['message'] = "Could not read directory: " . dirname($path);
+                // First try to change to the directory to see if it exists
+                if (@ftp_chdir($conn, $path)) {
+                    // Directory exists, continue to the next one
+                    continue;
+                }
+                
+                // Directory doesn't exist, go back to parent
+                @ftp_chdir($conn, dirname($path));
+                
+                // Try to create directory
+                if (!@ftp_mkdir($conn, $path)) {
+                    $result['message'] = "Failed to create directory: {$path}";
                     ftp_close($conn);
                     return $result;
-                }
-                
-                // Normalize directory names for comparison
-                $dirExists = false;
-                foreach ($current_dir as $existing) {
-                    if (basename($existing) == $dir) {
-                        $dirExists = true;
-                        break;
-                    }
-                }
-                
-                if (!$dirExists) {
-                    // Create directory if it doesn't exist
-                    if (!@ftp_mkdir($conn, $path)) {
-                        $result['message'] = "Failed to create directory: {$path}";
-                        ftp_close($conn);
-                        return $result;
-                    }
                 }
             }
             

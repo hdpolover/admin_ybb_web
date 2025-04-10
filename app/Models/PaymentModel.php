@@ -20,6 +20,7 @@ class PaymentModel extends Model
         'order_id',
         'payment_date',
         'notes',
+        'rejection_reason',
         'program_payment_id',
         'payment_method_id',
         'status',

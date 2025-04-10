@@ -28,4 +28,21 @@ class ParticipantStatusModel extends Model
             ->where('is_deleted', 0)
             ->first();
     }
+
+    // add participant status by participant id
+    public function addParticipantStatus($participantId)
+    {
+        $data = [
+            'participant_id' => $participantId,
+            'general_status' => 0,
+            'form_status' => 0,
+            'document_status' => 0,
+            'payment_status' => 0,
+            'is_active' => 1,
+            'is_deleted' => 0,
+        ];
+
+        return $this->save($data);
+    }
+
 }

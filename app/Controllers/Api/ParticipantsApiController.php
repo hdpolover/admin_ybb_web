@@ -486,4 +486,134 @@ class ParticipantsApiController extends ApiBaseController
             return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
         }
     }
+
+    /**
+     * 🆕 Create Participant from User ID (CREATE)
+     * POST /api/participants/users/{userId}/create
+     * 
+     * Creates a new participant based on user ID and copies only the full name
+     */
+    public function createFromUserId($userId = null)
+    {
+        try {
+            if (!$userId) {
+                return $this->respondError('User ID is required', self::HTTP_BAD_REQUEST);
+            }            // Get input from POST instead of JSON
+            $data = $this->request->getPost();
+
+            // Check if POST data is empty
+            if (empty($data)) {
+                return $this->respondError('Request data is empty', self::HTTP_BAD_REQUEST);
+            }
+
+            // Check if user exists
+            $userModel = new \App\Models\UserModel();
+            $user = $userModel->find($userId);
+            if (!$user) {
+                return $this->respondNotFound("User not found");
+            }
+
+            // Check if program_id is provided
+            if (!isset($data['program_id'])) {
+                return $this->respondError('Program ID is required', self::HTTP_BAD_REQUEST);
+            }
+
+            // Check if program exists
+            $programModel = new \App\Models\ProgramModel();
+            $program = $programModel->find($data['program_id']);
+            if (!$program) {
+                return $this->respondNotFound("Program with ID {$data['program_id']} not found");
+            }
+
+            // Initialize participant data
+            $participantData = [
+                'user_id' => $userId,
+                'program_id' => $data['program_id'],
+                'full_name' => isset($data['full_name']) ? $data['full_name'] : $user->full_name,
+            ];
+
+            // Add any other provided fields from the request
+            foreach ($data as $key => $value) {
+                $participantData[$key] = $value;
+            }
+
+            // Insert the participant
+            $participant = $this->model->createParticipant($participantData);
+
+            if (!$participant) {
+                return $this->respondError('Failed to create participant', self::HTTP_INTERNAL_ERROR);
+            }
+
+            // save default participant status
+            $statusData = [
+                'participant_id' => $participant->id,
+            ];
+
+            $this->participantStatusModel->save($statusData);
+
+            // Get the newly created participant
+            $participant = $this->model->getParticipant($participant->id);
+
+            return $this->respondCreated($participant, 'Participant created successfully');
+        } catch (\Exception $e) {
+            return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
+        }
+    }
+
+    /**
+     * 🔄 Update Participant with Data from Another Participant
+     * PUT /api/participants/{targetId}/copy-from/{sourceId}
+     * 
+     * Copies data from source participant to target participant
+     */
+    public function updateParticipantWithOtherData($targetId = null, $sourceId = null)
+    {
+        try {
+            if (!$targetId || !$sourceId) {
+                return $this->respondError('Both Target and Source Participant IDs are required', self::HTTP_BAD_REQUEST);
+            }
+
+            // Check if target participant exists
+            $targetParticipant = $this->model->getParticipant($targetId);
+            if (!$targetParticipant) {
+                return $this->respondNotFound("Target participant not found");
+            }
+
+            // Check if source participant exists
+            $sourceParticipant = $this->model->getParticipant($sourceId);
+            if (!$sourceParticipant) {
+                return $this->respondNotFound("Source participant not found");
+            }
+
+            // Convert source participant to array and remove id field
+            $sourceData = json_decode(json_encode($sourceParticipant), true);
+
+            // Fields to exclude from copying
+            $excludeFields = ['id', 'user_id', 'program_id', 'created_at', 'updated_at', 'deleted_at'];
+
+            foreach ($excludeFields as $field) {
+                if (isset($sourceData[$field])) {
+                    unset($sourceData[$field]);
+                }
+            }
+
+            // Update target participant with source participant data
+            $updated = $this->model->update($targetId, $sourceData);
+
+            if (!$updated) {
+                return $this->respondError('Failed to update participant data', self::HTTP_INTERNAL_ERROR);
+            }
+
+            // Get the updated participant
+            $updatedParticipant = $this->model->getParticipant($targetId);
+
+            return $this->respondSuccess(
+                $updatedParticipant,
+                self::HTTP_OK,
+                'Participant updated successfully with data from source participant'
+            );
+        } catch (\Exception $e) {
+            return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
+        }
+    }
 }

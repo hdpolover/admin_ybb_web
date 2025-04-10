@@ -567,4 +567,63 @@ class SubmissionApiController extends ApiBaseController
             return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
         }
     }
+
+    /**
+     * Submit participant form to finalize submission
+     * 
+     * Updates the participant's form_status to 1 (submitted)
+     * 
+     * @param int|null $participantId
+     * 
+     * @return \CodeIgniter\HTTP\ResponseInterface
+     */
+    public function submitForm($participantId = null)
+    {
+        try {
+            if (!$participantId) {
+                return $this->respondError('Participant ID is required', self::HTTP_BAD_REQUEST);
+            }
+
+            // Get participant data to confirm it exists
+            $participant = $this->participantModel->find($participantId);
+            if (!$participant) {
+                return $this->respondError('Participant not found', self::HTTP_NOT_FOUND);
+            }
+
+            // Update participant's form_status to 2 (submitted)
+            $updateData = [
+                'form_status' => 2,
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+
+            $participantStatusModel = new \App\Models\ParticipantStatusModel();
+
+            $participantStatus = $participantStatusModel->where('participant_id', $participantId)->first();
+            
+            if ($participantStatus) {
+                $participantStatusModel->update($participantStatus->id, $updateData);
+            } else {
+                $updateData['participant_id'] = $participantId;
+                $updateData['created_at'] = date('Y-m-d H:i:s');
+                $updateData['updated_at'] = date('Y-m-d H:i:s');
+
+                // Insert new status record
+                $updateData['form_status'] = 2;
+                $participantStatusModel->insert($updateData);
+            }
+
+            // Check if update was successful
+            if ($participantStatusModel->errors()) {
+                return $this->respondError('Failed to update form status: ' . implode(', ', $participantStatusModel->errors()), self::HTTP_BAD_REQUEST);
+            }
+
+            return $this->respondSuccess(
+                ['participant_id' => $participantId, 'form_status' => 2],
+                ResponseInterface::HTTP_OK,
+                'Form submitted successfully'
+            );
+        } catch (\Exception $e) {
+            return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
+        }
+    }
 }

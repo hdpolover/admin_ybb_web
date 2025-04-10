@@ -88,6 +88,8 @@ class ParticipantAuthController extends BaseAuthController
     {
         $userModel = new UserModel();
         $participantModel = new ParticipantModel();
+        $participantStatusModel = new \App\Models\ParticipantStatusModel();
+        $ambassadorModel = new AmbassadorModel();
 
         $email = $this->request->getPost('email');
         $password = $this->request->getPost('password');
@@ -96,13 +98,12 @@ class ParticipantAuthController extends BaseAuthController
         $fullName = $this->request->getPost('full_name');
         $ambassadorId = $this->request->getPost('ambassador_id');
 
-        if (empty($email) || empty($password) || empty($programCategoryId) || empty($programId) || empty($fullName) ) {
+        if (empty($email) || empty($password) || empty($programCategoryId) || empty($programId) || empty($fullName)) {
             return $this->respondValidationErrors('All fields are required.');
         }
 
         // check if ambassador id is valid
         if (!empty($ambassadorId)) {
-            $ambassadorModel = new AmbassadorModel();
             $ambassador = $ambassadorModel->getAmbassadorById($ambassadorId);
 
             if (!$ambassador) {
@@ -127,6 +128,7 @@ class ParticipantAuthController extends BaseAuthController
             if ($existingUser) {
                 // update user's password
                 $userModel->updatePassword($existingUser->id, $password);
+
 
                 // check if participant already exists
                 if (is_object($existingUser)) {
@@ -153,6 +155,9 @@ class ParticipantAuthController extends BaseAuthController
                     if (!$participant) {
                         return $this->respondError('Failed to register participant.');
                     }
+
+                    // create participant status
+                    $participantStatusModel->addParticipantStatus($participant->id);
 
                     // if ambassador_id is not empty, check if it exists in the database
                     if (!empty($ambassadorId)) {
@@ -201,6 +206,9 @@ class ParticipantAuthController extends BaseAuthController
                 if (!$participant) {
                     return $this->respondError('Failed to register participant.');
                 }
+
+                // create participant status
+                $participantStatusModel->addParticipantStatus($participant->id);
 
                 // if ambassadorID is not empty, check if it exists in the database
                 if (!empty($ambassadorId)) {
