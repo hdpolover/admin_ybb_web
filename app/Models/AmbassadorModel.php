@@ -123,4 +123,19 @@ class AmbassadorModel extends Model
             'total' => $total
         ];
     }
+
+    public function createAmbassador($data)
+    {
+        if (empty($data['name']) || empty($data['email']) || empty($data['ref_code']) || empty($data['program_id']) || empty($data['institution']) || empty($data['gender'])) {
+            throw new \InvalidArgumentException('Missing required fields: name, email, ref_code, program_id, institution, gender');
+        }
+
+        // Set default values
+        $data['is_active'] = 1;
+        $data['is_deleted'] = 0;
+
+        $this->save($data);
+
+        return $this->find($this->insertID());
+    }
 }

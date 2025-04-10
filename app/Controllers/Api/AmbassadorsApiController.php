@@ -32,6 +32,61 @@ class AmbassadorsApiController extends ApiBaseController
         $this->programModel = new ProgramModel();
         $this->programCategoryModel = new ProgramCategoryModel();
     }
+
+    /**
+     * Create Ambassador
+     * POST /api/ambassadors/create
+     */
+    public function create()
+    {
+
+        $name        = $this->request->getPost('name');
+        $email       = $this->request->getPost('email');
+        $refCode     = $this->request->getPost('ref_code');
+        $programId   = $this->request->getPost('program_id');
+        $institution = $this->request->getPost('institution');
+        $gender      = $this->request->getPost('gender');
+
+        if (empty($name) || empty($email) || empty($refCode) || empty($programId) || empty($institution) || empty($gender)) {
+            return $this->response->setJSON([
+                'status' => false,
+                'message' => 'All fields are required: name, email, ref_code, program_id, institution, gender.'
+            ])->setStatusCode(400);
+        }
+
+        $existing = $this->model->where('email', $email)->first();
+        if ($existing) {
+            return $this->response->setJSON([
+                'status' => false,
+                'message' => 'Ambassador with this email already exists.'
+            ])->setStatusCode(409);
+        }
+
+        $data = [
+            'name'        => $name,
+            'email'       => $email,
+            'ref_code'    => $refCode,
+            'program_id'  => $programId,
+            'institution' => $institution,
+            'gender'      => $gender,
+        ];
+
+        try {
+            $ambassador = $this->model->createAmbassador($data);
+
+            return $this->response->setJSON([
+                'status' => true,
+                'message' => 'Ambassador created successfully.',
+                'data' => $ambassador
+            ])->setStatusCode(201);
+
+        } catch (\Throwable $e) {
+            return $this->response->setJSON([
+                'status' => false,
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ])->setStatusCode(500);
+        }
+    }
     
     /**
      * Generate referral link for an ambassador.
