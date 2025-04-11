@@ -190,10 +190,10 @@ class SubmissionApiController extends ApiBaseController
         }
     }
 
-    // save profile picture and upload to storage
-    private function saveProfilePicture($file, $participantId)
+    // save profile image and upload to storage
+    private function saveProfileImage($file, $participantId, $programId)
     {
-        // Check if file is a valid uploaded file
+        // Case 1: If file is a valid uploaded file (from form)
         if (!is_array($file) && is_object($file) && $file instanceof \CodeIgniter\HTTP\Files\UploadedFile) {
             // Convert CodeIgniter UploadedFile object to array format used by storage helper
             $fileArray = [
@@ -205,15 +205,53 @@ class SubmissionApiController extends ApiBaseController
             ];
 
             // Upload using storage helper
-            $uploadResult = upload_profile_picture($fileArray, $participantId);
+            $uploadResult = upload_profile_picture($fileArray, $participantId, $programId);
 
             if ($uploadResult['status']) {
                 return $uploadResult['url'];
             }
 
-            log_message('error', 'Profile picture upload failed: ' . $uploadResult['message']);
+            log_message('error', 'Profile image upload failed: ' . $uploadResult['message']);
+        }
+        // Case 2: If file is a base64 encoded string
+        elseif (is_string($file) && preg_match('/^data:image\/(\w+);base64,/', $file, $matches)) {
+            // Extract image format and base64 data
+            $imageType = $matches[1];
+            $base64Data = substr($file, strpos($file, ',') + 1);
+            $decodedData = base64_decode($base64Data);
+
+            if (!$decodedData) {
+                log_message('error', 'Failed to decode base64 image data');
+                return false;
+            }
+
+            // Create a temporary file with the decoded data
+            $tempFilename = tempnam(sys_get_temp_dir(), 'profile_');
+            $tempFilename .= '.' . $imageType;
+            file_put_contents($tempFilename, $decodedData);
+
+            // Create a file array for the storage helper
+            $fileArray = [
+                'name' => 'profile_picture.' . $imageType,
+                'type' => 'image/' . $imageType,
+                'tmp_name' => $tempFilename,
+                'error' => 0,
+                'size' => filesize($tempFilename)
+            ];
+
+            // Upload using storage helper
+            $uploadResult = upload_profile_picture($fileArray, $participantId, $programId);
+
+            // Clean up the temporary file
+            @unlink($tempFilename);
+
+            if ($uploadResult['status']) {
+                return $uploadResult['url'];
+            }
+
+            log_message('error', 'Base64 profile image upload failed: ' . ($uploadResult['message'] ?? 'Unknown error'));
         } else {
-            log_message('error', 'Invalid file data provided for profile picture upload');
+            log_message('error', 'Invalid file data provided for profile image upload: ' . gettype($file));
         }
 
         return false;
@@ -252,7 +290,7 @@ class SubmissionApiController extends ApiBaseController
 
             $updatedData = [
                 'participant' => null,
-                'profile_picture' => null,
+                'profile_image' => null,
                 'essays' => [],
                 'competition_category_id' => null,
                 'program_subtheme_id' => null,
@@ -260,15 +298,23 @@ class SubmissionApiController extends ApiBaseController
             ];
 
             // Process profile picture update (if any)
-            // Check both for 'profile_picture' in the input data and in $_FILES
-            if (isset($input['profile_picture']) || isset($_FILES['profile_picture'])) {
-                $profilePicture = isset($input['profile_picture']) ? $input['profile_picture'] : $_FILES['profile_picture'];
+            // Check for profile_image at root level, inside participant object, or in $_FILES
+            if (isset($input['profile_image']) || (isset($input['participant']['profile_image']) && !empty($input['participant']['profile_image'])) || isset($_FILES['profile_image'])) {
+                if (isset($input['profile_image'])) {
+                    $profileImage = $input['profile_image'];
+                } elseif (isset($input['participant']['profile_image'])) {
+                    $profileImage = $input['participant']['profile_image'];
+                } else {
+                    $profileImage = $_FILES['profile_image'];
+                }
 
-                // Validate and process the profile picture
-                $pictureUrl = $this->saveProfilePicture($profilePicture, $participantId);
+                // Validate and process the profile image
+                $pictureUrl = $this->saveProfileImage($profileImage, $participantId, $participant->program_id);
 
+                log_message('debug', 'Profile image upload result: ' . print_r($pictureUrl, true));
+                
                 if ($pictureUrl) {
-                    $updatedData['profile_picture'] = $pictureUrl;
+                    $updatedData['picture_url'] = $pictureUrl;
 
                     // Update participant's picture_url field
                     $this->participantModel->update($participantId, ['picture_url' => $pictureUrl]);
@@ -295,6 +341,7 @@ class SubmissionApiController extends ApiBaseController
                     'full_name',
                     'birthdate',
                     'gender',
+                    'picture_url',
                     'origin_address',
                     'current_address',
                     'nationality',
@@ -467,7 +514,7 @@ class SubmissionApiController extends ApiBaseController
                 empty($updatedData['essays']) &&
                 empty($updatedData['program_subtheme_id']) &&
                 empty($updatedData['participant']) &&
-                empty($updatedData['profile_picture']) &&
+                empty($updatedData['profile_image']) &&
                 empty($updatedData['competition_category_id']) &&
                 empty($updatedData['ambassador_id'])
             ) {
@@ -485,8 +532,8 @@ class SubmissionApiController extends ApiBaseController
                 $reponseData['participant'] = $updatedData['participant'];
             }
 
-            if (!empty($updatedData['profile_picture'])) {
-                $reponseData['profile_picture'] = $updatedData['profile_picture'];
+            if (!empty($updatedData['profile_image'])) {
+                $reponseData['profile_image'] = $updatedData['profile_image'];
             }
 
             if (!empty($updatedData['essays'])) {
@@ -540,7 +587,7 @@ class SubmissionApiController extends ApiBaseController
             }
 
             // Upload the profile picture
-            $pictureUrl = $this->saveProfilePicture($_FILES['profile_picture'], $participantId);
+            $pictureUrl = $this->saveProfileImage($_FILES['profile_picture'], $participantId, $participant->program_id);
 
             if (!$pictureUrl) {
                 return $this->respondError('Failed to upload profile picture', self::HTTP_BAD_REQUEST);
@@ -599,7 +646,7 @@ class SubmissionApiController extends ApiBaseController
             $participantStatusModel = new \App\Models\ParticipantStatusModel();
 
             $participantStatus = $participantStatusModel->where('participant_id', $participantId)->first();
-            
+
             if ($participantStatus) {
                 $participantStatusModel->update($participantStatus->id, $updateData);
             } else {

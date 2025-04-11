@@ -278,8 +278,26 @@ class TransactionController extends BasePaymentController
                 );
             }
 
-            // For Midtrans payments
+            $userModel = new \App\Models\UserModel();
+            $user = $userModel->find($participant->user_id);
+
+            if (!$user) {
+                return $this->respondError('User not found', 404);
+            }            // For Midtrans payments
             try {
+                // Make sure Midtrans is properly configured with server key directly from our config
+                $midtransConfig = new \App\Config\Midtrans\Config();
+                \Midtrans\Config::$serverKey = $midtransConfig->getServerKey();
+                \Midtrans\Config::$isProduction = $midtransConfig->isProduction();
+                \Midtrans\Config::$isSanitized = true;
+                \Midtrans\Config::$is3ds = true;
+
+                // Log the server key to help with debugging (mask it for security)
+                $serverKeyLength = strlen(\Midtrans\Config::$serverKey);
+                $maskedServerKey = substr(\Midtrans\Config::$serverKey, 0, 4) . str_repeat('*', $serverKeyLength - 8) . substr(\Midtrans\Config::$serverKey, -4);
+                log_message('debug', 'TransactionController::createTransaction - Configuring Midtrans with server key: ' . $maskedServerKey);
+                log_message('debug', 'TransactionController::createTransaction - Production mode: ' . (\Midtrans\Config::$isProduction ? 'true' : 'false'));
+
                 // Set transaction parameters for Midtrans
                 $params = [
                     'transaction_details' => [
@@ -287,9 +305,9 @@ class TransactionController extends BasePaymentController
                         'gross_amount' => (float) $amount
                     ],
                     'customer_details' => [
-                        'first_name' => $participant['full_name'] ?? 'Customer',
-                        'email' => $participant['email'] ?? '',
-                        'phone' => $participant['phone_number'] ?? ''
+                        'first_name' => $participant->full_name ?? 'Customer',
+                        'email' => $user->email ?? '',
+                        'phone' => $participant->country_code . $participant->phone_number ?? ''
                     ],
                     'item_details' => [
                         [
@@ -309,7 +327,7 @@ class TransactionController extends BasePaymentController
 
 
                 $returnData = [
-                    'transaction_id' => $orderId,
+                    'order_id' => $orderId,
                     'payment_id' => $paymentId,
                     'token' => $snapToken,
                     'redirect_url' => \Midtrans\Config::$isProduction

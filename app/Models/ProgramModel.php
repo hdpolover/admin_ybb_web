@@ -29,6 +29,7 @@ class ProgramModel extends Model
         'share_desc',
         'confirmation_desc',
         'is_active',
+        'is_registration_open',
         'is_deleted',
         'created_at',
         'updated_at'

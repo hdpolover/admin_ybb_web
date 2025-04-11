@@ -39,6 +39,9 @@ $routes->group('', ['namespace' => 'App\Controllers'], function ($routes) {
     $routes->post('admin/sign-in', 'Auth::signIn');
 });
 
+// Payment webhook route - no authentication required for external service callbacks
+$routes->post('api/payment/notification/midtrans', 'Api\Payment\NotificationController::handleMidtransNotification');
+
 // these routes can be accessed only by admin after auth
 $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], function ($routes) {
     $routes->get('dashboard', 'Dashboard::index');

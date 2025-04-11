@@ -15,16 +15,16 @@ class Config
      * Your Midtrans server key (secret key) - keep this confidential
      * @var string
      */
-    protected $serverKey = 'Mid-server-gXaK3X0M-oZhY4RPL0g2Mt_z';
-    
+    protected $serverKey = '';
+
     /**
      * Midtrans Client Key
      * 
      * Your Midtrans client key for frontend integration
      * @var string
      */
-    protected $clientKey = 'Mid-client-KKoCMEQRJeeFcpOS';
-    
+    protected $clientKey = '';
+
     /**
      * Production Mode Flag
      * 
@@ -32,7 +32,7 @@ class Config
      * @var bool
      */
     protected $isProduction = true;
-    
+
     /**
      * 3DS Transaction Flag
      * 
@@ -40,7 +40,7 @@ class Config
      * @var bool
      */
     protected $is3ds = true;
-    
+
     /**
      * Sanitize Flag
      * 
@@ -48,7 +48,7 @@ class Config
      * @var bool
      */
     protected $isSanitized = true;
-    
+
     /**
      * Overridden Constructor
      * 
@@ -56,20 +56,21 @@ class Config
      */
     public function __construct()
     {
-        // Apply environment-specific settings
-        if (getenv('MIDTRANS_SERVER_KEY')) {
-            $this->serverKey = getenv('MIDTRANS_SERVER_KEY');
-        }
-        
-        if (getenv('MIDTRANS_CLIENT_KEY')) {
-            $this->clientKey = getenv('MIDTRANS_CLIENT_KEY');
-        }
-        
+        // Check if production mode is set in environment
         if (getenv('MIDTRANS_IS_PRODUCTION')) {
             $this->isProduction = (getenv('MIDTRANS_IS_PRODUCTION') === 'true');
         }
+
+        // Set the appropriate keys based on production mode
+        if ($this->isProduction) {
+            $this->serverKey = getenv('MIDTRANS_SERVER_KEY');
+            $this->clientKey = getenv('MIDTRANS_CLIENT_KEY');
+        } else {
+            $this->serverKey = getenv('MIDTRANS_SB_SERVER_KEY');
+            $this->clientKey = getenv('MIDTRANS_SB_CLIENT_KEY');
+        }
     }
-    
+
     /**
      * Get Server Key
      * 
@@ -79,7 +80,7 @@ class Config
     {
         return $this->serverKey;
     }
-    
+
     /**
      * Get Client Key
      * 
@@ -89,7 +90,7 @@ class Config
     {
         return $this->clientKey;
     }
-    
+
     /**
      * Check if in production mode
      * 
@@ -99,7 +100,7 @@ class Config
     {
         return $this->isProduction;
     }
-    
+
     /**
      * Check if 3DS is enabled
      * 
@@ -109,7 +110,7 @@ class Config
     {
         return $this->is3ds;
     }
-    
+
     /**
      * Check if sanitization is enabled
      * 
@@ -119,7 +120,7 @@ class Config
     {
         return $this->isSanitized;
     }
-    
+
     /**
      * Get Midtrans API URL based on current environment
      * 
@@ -131,7 +132,7 @@ class Config
             'https://api.midtrans.com' :
             'https://api.sandbox.midtrans.com';
     }
-    
+
     /**
      * Get Midtrans Snap URL based on current environment
      * 
@@ -143,7 +144,7 @@ class Config
             'https://app.midtrans.com/snap/v1/transactions' :
             'https://app.sandbox.midtrans.com/snap/v1/transactions';
     }
-    
+
     /**
      * Get base64 encoded authorization string
      * 
