@@ -56,6 +56,30 @@ class ParticipantModel extends Model
         'is_deleted'
     ];
 
+    // get by id
+    public function getById($id)
+    {
+        // join participant data with user, program, payment, essay, subtheme etc
+        $builder = $this->builder();
+        $builder->select('participants.*, users.*, programs.*, payments.*, participant_essays.*')
+                ->join('users', 'users.id = participants.user_id', 'left')
+                ->join('programs', 'programs.id = participants.program_id', 'left')
+                ->join('payments', 'payments.participant_id = participants.id', 'left')
+                ->join('participant_essays', 'participant_essays.participant_id = participants.id', 'left')
+                ->where('participants.id', $id)
+                ->where('participants.is_active', 1)
+                ->where('participants.is_deleted', 0);
+
+        $result = $builder->get()->getRow();
+
+        if ($result) {
+            // Convert to array and return
+            return (array)$result;
+        } else {
+            return null; // No result found
+        }
+    }
+
     /**
      * Get photos of participants for a specific program
      *

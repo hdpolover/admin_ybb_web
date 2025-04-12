@@ -161,9 +161,7 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Payments Table -->
+                    </div> <!-- Payments Table -->
                     <div class="row">
                         <div class="col-12">
                             <div class="card">
@@ -178,15 +176,55 @@
                                         </button>
                                     </div>
                                 </div>
-                                <div class="card-body">
+                                <div class="card-body">                                    <!-- Filter Controls -->
+                                    <div class="row mb-4">
+                                       
+                                        <div class="col-md-3 mb-2">
+                                            <label class="form-label">Payment Status</label>
+                                            <select id="filter-status" class="form-select">
+                                                <option value="">All Statuses</option>
+                                                <option value="0">Created</option>
+                                                <option value="1">Pending</option>
+                                                <option value="2">Success</option>
+                                                <option value="3">Cancelled</option>
+                                                <option value="4">Rejected</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3 mb-2">
+                                            <label class="form-label">Program Payment</label>
+                                            <select id="filter-program-payment" class="form-select">
+                                                <option value="">All Program Payments</option>
+                                                <?php
+                                                $programPayments = $programPaymentModel->getByProgramId(session('current_program'));
+                                                foreach ($programPayments as $payment): ?>
+                                                    <option value="<?= $payment->id ?>"><?= $payment->name ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3 mb-2">
+                                            <label class="form-label">Payment Method</label>
+                                            <select id="filter-payment-method" class="form-select">
+                                                <option value="">All Payment Methods</option>
+                                                <?php
+                                                $paymentMethods = $paymentMethodModel->getByProgramId(session('current_program'));
+                                                foreach ($paymentMethods as $method): ?>
+                                                    <option value="<?= $method->id ?>"><?= $method->name ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3 d-flex align-items-end mb-2">
+                                            <button id="apply-filters" class="btn btn-primary me-2">Apply Filters</button>
+                                            <button id="reset-filters" class="btn btn-light">Reset</button>
+                                        </div>
+                                    </div>
+
                                     <table id="payments-datatable" class="table table-bordered dt-responsive nowrap table-striped align-middle" style="width:100%">
                                         <thead>
                                             <tr>
                                                 <th>Date</th>
+                                                <th>Transaction Codes</th>
                                                 <th>Participant</th>
-                                                <th>Amount</th>
-                                                <th>Method</th>
-                                                <th>Transaction ID</th>
+                                                <th>Payment Details</th>
                                                 <th>Status</th>
                                                 <th>Actions</th>
                                             </tr>
@@ -270,6 +308,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
 
     <script src="/assets/js/pages/datatables.init.js"></script>
+
     <!-- App js -->
     <script src="/assets/js/app.js"></script>
 
@@ -281,7 +320,14 @@
                 serverSide: true,
                 ajax: {
                     url: '<?= site_url('payments/getData') ?>',
-                    type: 'GET',
+                    type: 'GET',                    data: function(d) {
+                        // Add filter parameters
+                        d.status = $('#filter-status').val();
+                        d.program_payment_id = $('#filter-program-payment').val();
+                        d.payment_method_id = $('#filter-payment-method').val();
+                        d.search.value = $('#search-box').val(); // Add search term
+                        return d;
+                    },
                     dataSrc: function(json) {
                         console.log("Server response:", json);
                         return json.data || [];
@@ -293,29 +339,36 @@
                 columns: [{
                         data: 'payment_date',
                         render: function(data, type, row) {
-                            console.log("Row data:", row);
                             return data || '';
+                        }
+                    },
+                    {
+                        data: 'transaction_codes',
+                        render: function(data, type, row) {
+                            if (!data) return 'N/A';
+                            return '<div><strong>Payment ID:</strong> ' + (data.payment_id || 'N/A') + '</div>' +
+                                '<div><strong>Transaction Code:</strong> ' + (data.transaction_id || 'N/A') + '</div>' +
+                                '<div><strong>Order ID:</strong> ' + (data.order_id || 'N/A') + '</div>';
                         }
                     },
                     {
                         data: 'participant',
                         render: function(data, type, row) {
                             if (!data) {
-                                console.warn("Missing participant data for row:", row);
                                 return 'N/A';
                             }
-                            return '<div>' + (data.name || 'Unknown') + '</div>' +
+                            return '<div class="fw-medium">' + (data.name || 'Unknown') + '</div>' +
                                 '<div class="small text-muted">' + (data.email || '') + '</div>';
                         }
                     },
                     {
-                        data: 'amount'
-                    },
-                    {
-                        data: 'payment_method'
-                    },
-                    {
-                        data: 'transaction_id'
+                        data: 'payment_details',
+                        render: function(data, type, row) {
+                            if (!data) return 'N/A';
+                            return '<div><strong>Program:</strong> ' + (data.program_name || 'N/A') + '</div>' +
+                                '<div><strong>Amount:</strong> ' + (data.amount || 'N/A') + '</div>' +
+                                '<div><strong>Method:</strong> ' + (data.method || 'N/A') + '</div>';
+                        }
                     },
                     {
                         data: 'status'
@@ -338,6 +391,19 @@
                 drawCallback: function(settings) {
                     console.log("DataTable draw complete, data:", settings.json);
                 }
+            }); // Handle filter buttons
+            document.getElementById('apply-filters').addEventListener('click', function() {
+                paymentsTable.ajax.reload();
+            });
+
+            document.getElementById('reset-filters').addEventListener('click', function() {
+                // Reset all filter select values
+                document.getElementById('filter-status').value = '';
+                document.getElementById('filter-program-payment').value = '';
+                document.getElementById('filter-payment-method').value = '';
+
+                // Reload the table with reset filters
+                paymentsTable.ajax.reload();
             });
 
             // Handle export button click

@@ -3,18 +3,26 @@
 namespace App\Controllers;
 
 use App\Models\ParticipantModel;
-use App\Controllers\Api\ParticipantsApiController;
+use App\Models\UserModel;
+use App\Models\ProgramModel;
+use App\Models\PaymentModel;
+use App\Models\ParticipantEssayModel;
 
 class Participants extends BaseController
 {
     protected $participantModel;
-    protected $participantsApi;
+    protected $userModel;
+    protected $programModel;
+    protected $paymentModel;
+    protected $participantEssayModel;
 
     public function __construct()
     {
-        helper(['api']); // Load the API helper
         $this->participantModel = new ParticipantModel();
-        $this->participantsApi = new ParticipantsApiController();
+        $this->userModel = new UserModel();
+        $this->programModel = new ProgramModel();
+        $this->paymentModel = new PaymentModel();
+        $this->participantEssayModel = new ParticipantEssayModel();
     }
 
     public function index()
@@ -23,43 +31,55 @@ class Participants extends BaseController
         $limit = 10;  // Items per page
         $offset = ($page - 1) * $limit;
 
-        // Use the API controller through helper function
-        $response = handle_api_form(
-            ['page' => $page, 'limit' => $limit],
-            $this->participantsApi,
-            'getCurrentProgramParticipants'
-        );
-        
-        $result = parse_api_response($response);
-        
-        if (!$result['success']) {
-            return redirect()->back()->with('error', $result['message']);
+        try {
+            // Use the model directly to get participants
+            $result = $this->participantModel->getCurrentProgramParticipants($limit, $offset);
+
+            $data = [
+                'participants' => $result,
+                'pager' => [
+                    'total' => $result['total'] ?? 0,
+                    'perPage' => $limit,
+                    'currentPage' => $page,
+                    'totalPages' => ceil(($result['total'] ?? 0) / $limit)
+                ]
+            ];
+
+            return view('users/participants/index', $data);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to fetch participants: ' . $e->getMessage());
         }
-        
-        $data = [
-            'participants' => $result['data'],
-            'pager' => [
-                'total' => $result['data']['total'] ?? 0,
-                'perPage' => $limit,
-                'currentPage' => $page,
-                'totalPages' => ceil(($result['data']['total'] ?? 0) / $limit)
-            ]
-        ];
-        
-        return view('users/participants/index', $data);
     }
 
     public function view($id)
     {
-        // Use API controller through helper function
-        $response = call_api_controller($this->participantsApi, 'show', [$id]);
-        $result = parse_api_response($response);
-        
-        if (!$result['success']) {
-            return redirect()->to('/participants')->with('error', $result['message']);
+        try {
+            // Get participant data directly from model
+            $participant = $this->participantModel->getById($id);
+
+            if (!$participant) {
+                return redirect()->to('/participants')->with('error', 'Participant not found');
+            }
+
+            // Get related data
+            $userId = $participant['user_id'];
+
+            // Get user data
+            $user = $this->userModel->find($userId);
+            $participant['user'] = $user;
+
+            // Get participant essays
+            $essays = $this->participantEssayModel->getParticipantEssayByParticipantId($id);
+            $participant['essays'] = $essays;
+
+            // Get payment information
+            $payments = $this->paymentModel->getPayments($id);
+            $participant['payments'] = $payments;
+
+            return view('users/participants/view', ['participant' => $participant]);
+        } catch (\Exception $e) {
+            return redirect()->to('/participants')->with('error', 'Failed to retrieve participant: ' . $e->getMessage());
         }
-        
-        return view('users/participants/view', ['participant' => $result['data']]);
     }
 
     /**
@@ -69,97 +89,139 @@ class Participants extends BaseController
     {
         return view('users/participants/create');
     }
-
     /**
      * Create a new participant (process the form)
      */
     public function create()
     {
-        // Use API helper to handle form submission
-        $response = handle_api_form(
-            $_POST,
-            $this->participantsApi,
-            'create'
-        );
-        
-        $result = parse_api_response($response);
-        
-        if ($result['success']) {
-            return redirect()->to('/participants')
-                ->with('success', $result['message']);
-        }
-        
-        return redirect()->back()
-            ->with('error', $result['message'])
-            ->withInput();
-    }
+        try {
+            // Get form data
+            $data = $this->request->getPost();
 
+            // Validate required fields
+            $validation = \Config\Services::validation();
+            $validation->setRules([
+                'user_id' => 'required|integer',
+                'program_id' => 'required|integer',
+                'full_name' => 'required|string|max_length[255]'
+            ]);
+
+            if (!$validation->run($data)) {
+                return redirect()->back()
+                    ->with('error', 'Validation failed: ' . implode(', ', $validation->getErrors()))
+                    ->withInput();
+            }
+
+            // Create new participant
+            $participant = $this->participantModel->createParticipant($data);
+
+            if ($participant) {
+                return redirect()->to('/participants')
+                    ->with('success', 'Participant created successfully');
+            } else {
+                return redirect()->back()
+                    ->with('error', 'Failed to create participant')
+                    ->withInput();
+            }
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Error creating participant: ' . $e->getMessage())
+                ->withInput();
+        }
+    }
     /**
      * Edit participant form
      */
     public function edit($id)
     {
-        // Get participant data using API
-        $response = call_api_controller($this->participantsApi, 'show', [$id]);
-        $result = parse_api_response($response);
-        
-        if (!$result['success']) {
-            return redirect()->to('/participants')
-                ->with('error', $result['message']);
-        }
-        
-        return view('users/participants/edit', ['participant' => $result['data']]);
-    }
+        try {
+            // Get participant data directly from model
+            $participant = $this->participantModel->getById($id);
 
+            if (!$participant) {
+                return redirect()->to('/participants')
+                    ->with('error', 'Participant not found');
+            }
+
+            // Get user data
+            $userId = $participant['user_id'];
+            $user = $this->userModel->find($userId);
+            $participant['user'] = $user;
+
+            return view('users/participants/edit', ['participant' => $participant]);
+        } catch (\Exception $e) {
+            return redirect()->to('/participants')
+                ->with('error', 'Failed to retrieve participant data: ' . $e->getMessage());
+        }
+    }
     /**
      * Update participant (process the form)
      */
     public function update($id)
     {
-        // Use API helper to handle form update
-        $response = handle_api_form(
-            $_POST,
-            $this->participantsApi,
-            'update',
-            [$id]
-        );
-        
-        $result = parse_api_response($response);
-        
-        if ($result['success']) {
-            return redirect()->to('/participants')
-                ->with('success', $result['message']);
-        }
-        
-        return redirect()->back()
-            ->with('error', $result['message'])
-            ->withInput();
-    }
+        try {
+            // Check if participant exists
+            $participant = $this->participantModel->find($id);
 
+            if (!$participant) {
+                return redirect()->to('/participants')
+                    ->with('error', 'Participant not found');
+            }
+
+            // Get form data
+            $data = $this->request->getPost();
+
+            // Validate data
+            $validation = \Config\Services::validation();
+            $validation->setRules([
+                'full_name' => 'required|string|max_length[255]',
+                'program_id' => 'required|integer',
+            ]);
+
+            if (!$validation->run($data)) {
+                return redirect()->back()
+                    ->with('error', 'Validation failed: ' . implode(', ', $validation->getErrors()))
+                    ->withInput();
+            }
+
+            // Update participant
+            $this->participantModel->update($id, $data);
+
+            return redirect()->to('/participants')
+                ->with('success', 'Participant updated successfully');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Error updating participant: ' . $e->getMessage())
+                ->withInput();
+        }
+    }
     /**
      * Delete participant
      */
     public function delete($id)
     {
-        // Use API helper to handle deletion
-        $response = handle_api_form(
-            [],
-            $this->participantsApi,
-            'delete',
-            [$id]
-        );
-        
-        $result = parse_api_response($response);
-        
-        if ($result['success']) {
-            return redirect()->to('/participants')
-                ->with('success', $result['message']);
-        }
-        
-        return redirect()->to('/participants')
-            ->with('error', $result['message']);
-    }
+        try {
+            // Check if participant exists
+            $participant = $this->participantModel->find($id);
 
+            if (!$participant) {
+                return redirect()->to('/participants')
+                    ->with('error', 'Participant not found');
+            }
+
+            // Soft delete by updating is_deleted field
+            $this->participantModel->update($id, [
+                'is_deleted' => 1,
+                'updated_at' => date('Y-m-d H:i:s')
+            ]);
+
+            return redirect()->to('/participants')
+                ->with('success', 'Participant deleted successfully');
+        } catch (\Exception $e) {
+            return redirect()->to('/participants')
+                ->with('error', 'Error deleting participant: ' . $e->getMessage());
+        }
+    }
     /**
      * Get participants for a specific program
      */
@@ -167,37 +229,35 @@ class Participants extends BaseController
     {
         $page = (int)($this->request->uri->getQuery(['only' => ['page']]) ?? 1);
         $limit = 10;
-        
-        // Use API helper to get program participants
-        $response = handle_api_form(
-            [
-                'page' => $page,
-                'limit' => $limit,
-                'program_id' => $programId
-            ],
-            $this->participantsApi,
-            'getByProgram',
-            [$programId]
-        );
-        
-        $result = parse_api_response($response);
-        
-        if (!$result['success']) {
+        $offset = ($page - 1) * $limit;
+
+        try {
+            // Check if program exists
+            $program = $this->programModel->find($programId);
+
+            if (!$program) {
+                return redirect()->to('/participants')
+                    ->with('error', 'Program not found');
+            }
+
+            // Use model to get participants by program ID
+            $result = $this->participantModel->getParticipants($limit, $offset, ['program_id' => $programId]);
+
+            $data = [
+                'participants' => $result,
+                'pager' => [
+                    'total' => $result['total'] ?? 0,
+                    'perPage' => $limit,
+                    'currentPage' => $page,
+                    'totalPages' => ceil(($result['total'] ?? 0) / $limit)
+                ],
+                'programId' => $programId
+            ];
+
+            return view('users/participants/program', $data);
+        } catch (\Exception $e) {
             return redirect()->to('/participants')
-                ->with('error', $result['message']);
+                ->with('error', 'Failed to fetch program participants: ' . $e->getMessage());
         }
-        
-        $data = [
-            'participants' => $result['data'],
-            'pager' => [
-                'total' => $result['data']['total'] ?? 0,
-                'perPage' => $limit,
-                'currentPage' => $page,
-                'totalPages' => ceil(($result['data']['total'] ?? 0) / $limit)
-            ],
-            'programId' => $programId
-        ];
-        
-        return view('users/participants/program', $data);
     }
 }

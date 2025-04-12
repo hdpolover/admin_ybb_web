@@ -201,12 +201,28 @@ class PaymentModel extends Model
      * @param string $notes Optional notes for the update
      * @return bool
      */
-    public function updatePaymentStatus($id, $status, $notes = '')
+    public function updatePaymentStatus($id, $status, $notes = '', $rejectionReason = '')
     {
+        // Validate status
+        if (!in_array($status, [0, 1, 2, 3, 4])) {
+            throw new \InvalidArgumentException('Invalid payment status');
+        }
+
+        // Validate rejection reason for rejected status
+        if ($status == 4 && empty($rejectionReason)) {
+            throw new \InvalidArgumentException('Rejection reason is required for rejected status');
+        }
+
+        // Prepare data for update
         $data = [
             'status' => $status,
             'updated_at' => date('Y-m-d H:i:s')
         ];
+
+        // set rejection reason if status is rejected
+        if ($status == 4) {
+            $data['rejection_reason'] = $rejectionReason;
+        }
 
         if (!empty($notes)) {
             $payment = $this->find($id);
@@ -261,8 +277,7 @@ class PaymentModel extends Model
             ->where('payments.status', 2) // Success status
             ->where('payments.is_deleted', 0)
             ->first();
-        
+
         return ($result && $result->payment_count > 0);
     }
-  
 }

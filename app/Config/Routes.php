@@ -41,6 +41,9 @@ $routes->group('', ['namespace' => 'App\Controllers'], function ($routes) {
 
 // Payment webhook route - no authentication required for external service callbacks
 $routes->post('api/payment/notification/midtrans', 'Api\Payment\NotificationController::handleMidtransNotification');
+$routes->get('api/payment/finish/midtrans', 'Api\Payment\NotificationController::handleMidtransFinish');
+$routes->get('api/payment/unfinish/midtrans', 'Api\Payment\NotificationController::handleMidtransUnfinish');
+$routes->get('api/payment/error/midtrans', 'Api\Payment\NotificationController::handleMidtransError');
 
 // these routes can be accessed only by admin after auth
 $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], function ($routes) {
@@ -52,19 +55,28 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
 
     // participants
     $routes->get('users/participants', 'Participants::index');
+    $routes->get('participants/view/(:num)', 'Participants::view/$1');
+
+    // ambassadors
+    $routes->get('users/ambassadors', 'Ambassadors::index');
+    $routes->get('ambassadors/view/(:num)', 'Ambassadors::view/$1');
 });
 
 // Protected routes that require program selection
 $routes->group('', ['filter' => 'program_selection'], function ($routes) {
     $routes->get('dashboard', 'Dashboard::index');
-    // Add other routes that require program selection here
-
+    // Add other routes that require program selection here    
+    
     // Payment routes
     $routes->get('payments', 'Payments::index');
     $routes->get('payments/getData', 'Payments::getData');
     $routes->get('payments/view/(:num)', 'Payments::view/$1');
+    $routes->post('payments/update-status/(:num)', 'Payments::updateStatus/$1');
     $routes->post('payments/export', 'Payments::export');
     $routes->get('payments/make', 'Payments::makePayment');
+    
+    // Ambassador routes
+    $routes->get('ambassadors/getData', 'Ambassadors::getData');
 });
 
 // api routes

@@ -157,7 +157,7 @@ class NotificationController extends BasePaymentController
             // Don't throw the exception, just log it - we don't want to interrupt the webhook response
         }
     }
-    
+
     /**
      * Send payment confirmation email to participant
      * 
@@ -229,6 +229,233 @@ class NotificationController extends BasePaymentController
         } catch (\Exception $e) {
             log_message('error', 'NotificationController::sendPaymentConfirmationEmail - Error sending confirmation email: ' . $e->getMessage());
             // Don't throw the exception, just log it
+        }
+    }
+
+    /**
+     * Handle successful transaction completion from Midtrans payment gateway
+     * This endpoint is called when user is redirected from Midtrans after successful payment
+     * Returns API response instead of redirecting
+     * 
+     * @return ResponseInterface
+     */
+    public function handleMidtransFinish(): ResponseInterface
+    {
+        try {
+            log_message('info', 'NotificationController::handleMidtransFinish - Received finish redirect from Midtrans');
+
+            // Get transaction details from the query parameters
+            $orderId = $this->request->getGet('order_id');
+            $status = $this->request->getGet('transaction_status');
+            $fraudStatus = $this->request->getGet('fraud_status') ?? null;
+
+            log_message('info', "NotificationController::handleMidtransFinish - Order ID: {$orderId}, Status: {$status}, Fraud Status: {$fraudStatus}");
+
+            $paymentData = null;
+
+            // Process payment if we have valid order ID
+            if ($orderId) {
+                // Find payment by order_id
+                $payment = $this->paymentModel->where('order_id', $orderId)->first();
+
+                if ($payment) {
+                    // If payment exists, record the redirect in notes
+                    $existingNotes = $payment->notes ?? '';
+                    $redirectNote = date('Y-m-d H:i:s') . " - Payment finish redirect received. Status: {$status}";
+                    if ($fraudStatus) {
+                        $redirectNote .= ", Fraud status: {$fraudStatus}";
+                    }
+
+                    $this->paymentModel->update($payment->id, [
+                        'notes' => trim($existingNotes . "\n\n" . $redirectNote),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+
+                    log_message('info', "NotificationController::handleMidtransFinish - Updated payment notes for payment ID: {$payment->id}");
+
+                    // Get updated payment data
+                    $paymentData = $this->paymentModel->find($payment->id);
+                }
+            }
+
+            // Return success API response with payment details
+            return $this->respond([
+                'status' => 200,
+                'error' => false,
+                'message' => 'Payment completion successfully processed',
+                'data' => [
+                    'order_id' => $orderId,
+                    'transaction_status' => $status,
+                    'fraud_status' => $fraudStatus,
+                    'payment' => $paymentData
+                ]
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'NotificationController::handleMidtransFinish - Error: ' . $e->getMessage());
+
+            // Return error API response
+            return $this->respond([
+                'status' => 500,
+                'error' => true,
+                'message' => 'Error processing payment completion: ' . $e->getMessage(),
+                'data' => [
+                    'order_id' => $this->request->getGet('order_id') ?? null
+                ]
+            ], 500);
+        }
+    }
+
+    /**
+     * Handle unfinished transaction from Midtrans payment gateway
+     * This endpoint is called when user is redirected from Midtrans after leaving the payment page
+     * Returns API response for client-side handling
+     * 
+     * @return ResponseInterface
+     */
+    public function handleMidtransUnfinish(): ResponseInterface
+    {
+        try {
+            log_message('info', 'NotificationController::handleMidtransUnfinish - Received unfinish redirect from Midtrans');
+
+            // Get transaction details from the query parameters
+            $orderId = $this->request->getGet('order_id');
+
+            log_message('info', "NotificationController::handleMidtransUnfinish - Order ID: {$orderId}");
+
+            $paymentData = null;
+
+            // Process payment if we have valid order ID
+            if ($orderId) {
+                // Find payment by order_id
+                $payment = $this->paymentModel->where('order_id', $orderId)->first();
+
+                if ($payment) {
+                    // If payment exists, record the redirect in notes
+                    $existingNotes = $payment->notes ?? '';
+                    $redirectNote = date('Y-m-d H:i:s') . " - Payment unfinish redirect received. User left payment page.";
+
+                    $this->paymentModel->update($payment->id, [
+                        'notes' => trim($existingNotes . "\n\n" . $redirectNote),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+
+                    log_message('info', "NotificationController::handleMidtransUnfinish - Updated payment notes for payment ID: {$payment->id}");
+
+                    // Get updated payment data
+                    $paymentData = $this->paymentModel->find($payment->id);
+                }
+            }
+
+            // Return API response with suggestion for frontend redirect
+            return $this->respond([
+                'status' => 200,
+                'error' => false,
+                'message' => 'Payment is unfinished or pending completion',
+                'data' => [
+                    'order_id' => $orderId,
+                    'payment' => $paymentData,
+                    'redirect_params' => [
+                        'path' => '/payment/pending',
+                        'query' => ['order_id' => $orderId]
+                    ]
+                ]
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'NotificationController::handleMidtransUnfinish - Error: ' . $e->getMessage());
+
+            // Return error API response
+            return $this->respond([
+                'status' => 500,
+                'error' => true,
+                'message' => 'Error processing unfinished payment: ' . $e->getMessage(),
+                'data' => [
+                    'order_id' => $this->request->getGet('order_id') ?? null,
+                    'redirect_params' => [
+                        'path' => '/payment/error',
+                        'query' => ['order_id' => $this->request->getGet('order_id') ?? '']
+                    ]
+                ]
+            ], 500);
+        }
+    }
+    
+    /**
+     * Handle error from Midtrans payment gateway
+     * This endpoint is called when user is redirected from Midtrans after a payment error
+     * Returns API response for client-side handling
+     * 
+     * @return ResponseInterface
+     */
+    public function handleMidtransError(): ResponseInterface
+    {
+        try {
+            log_message('info', 'NotificationController::handleMidtransError - Received error redirect from Midtrans');
+
+            // Get transaction details from the query parameters
+            $orderId = $this->request->getGet('order_id');
+            $statusCode = $this->request->getGet('status_code') ?? 'unknown';
+            $statusMessage = $this->request->getGet('status_message') ?? 'Unknown error';
+
+            log_message('error', "NotificationController::handleMidtransError - Order ID: {$orderId}, Status code: {$statusCode}, Message: {$statusMessage}");
+
+            $paymentData = null;
+
+            // Process payment if we have valid order ID
+            if ($orderId) {
+                // Find payment by order_id
+                $payment = $this->paymentModel->where('order_id', $orderId)->first();
+
+                if ($payment) {
+                    // If payment exists, record the error in notes
+                    $existingNotes = $payment->notes ?? '';
+                    $errorNote = date('Y-m-d H:i:s') . " - Payment error redirect received. Status code: {$statusCode}, Message: {$statusMessage}";
+
+                    $this->paymentModel->update($payment->id, [
+                        'notes' => trim($existingNotes . "\n\n" . $errorNote),
+                        'updated_at' => date('Y-m-d H:i:s'),
+                        // Update payment status to indicate error
+                        'status' => self::STATUS_CANCELLED
+                    ]);
+
+                    log_message('info', "NotificationController::handleMidtransError - Updated payment notes for payment ID: {$payment->id}");
+
+                    // Get updated payment data
+                    $paymentData = $this->paymentModel->find($payment->id);
+                }
+            }
+
+            // Return API response with error details
+            return $this->respond([
+                'status' => 400,
+                'error' => true,
+                'message' => 'Payment failed with error: ' . $statusMessage,
+                'data' => [
+                    'order_id' => $orderId,
+                    'status_code' => $statusCode,
+                    'status_message' => $statusMessage,
+                    'payment' => $paymentData,
+                    'redirect_params' => [
+                        'path' => '/payment/error',
+                        'query' => ['order_id' => $orderId]
+                    ]
+                ]
+            ], 400);
+        } catch (\Exception $e) {
+            log_message('error', 'NotificationController::handleMidtransError - Error: ' . $e->getMessage());
+
+            // Return error API response
+            return $this->respond([
+                'status' => 500,
+                'error' => true,
+                'message' => 'Error processing payment failure: ' . $e->getMessage(),
+                'data' => [
+                    'order_id' => $this->request->getGet('order_id') ?? null,
+                    'redirect_params' => [
+                        'path' => '/payment/error',
+                        'query' => ['order_id' => $this->request->getGet('order_id') ?? '']
+                    ]
+                ]
+            ], 500);
         }
     }
 }

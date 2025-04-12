@@ -325,7 +325,6 @@ class TransactionController extends BasePaymentController
                 // Update payment status to 'pending'
                 $this->paymentModel->update($paymentId, ['status' => self::STATUS_PENDING]);
 
-
                 $returnData = [
                     'order_id' => $orderId,
                     'payment_id' => $paymentId,

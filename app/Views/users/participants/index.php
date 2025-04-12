@@ -1,9 +1,9 @@
 <?= $this->include('partials/main') ?>
 
 <head>
-    <?php echo view('partials/title-meta', array('title'=>'Participants')); ?>
+    <?php echo view('partials/title-meta', array('title' => 'Participants')); ?>
     <?= $this->include('partials/head-css') ?>
-    
+
     <!--datatable css-->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" />
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap.min.css" />
@@ -21,7 +21,7 @@
         <div class="main-content">
             <div class="page-content">
                 <div class="container-fluid">
-                    <?php echo view('partials/page-title', array('pagetitle'=>'Users', 'title'=>'Participants')); ?>
+                    <?php echo view('partials/page-title', array('pagetitle' => 'Users', 'title' => 'Participants')); ?>
 
                     <div class="row">
                         <div class="col-12">
@@ -69,7 +69,7 @@
                                                             <td><?= esc($participant['phone']) ?></td>
                                                             <td><?= date('M d, Y', strtotime($participant['created_at'])) ?></td>
                                                             <td>
-                                                                <?php 
+                                                                <?php
                                                                 $statusClass = [
                                                                     'active' => 'bg-success-subtle text-success',
                                                                     'pending' => 'bg-warning-subtle text-warning',
@@ -106,26 +106,26 @@
                                     </div>
 
                                     <?php if (isset($pager) && $pager['totalPages'] > 1): ?>
-                                    <div class="d-flex justify-content-between align-items-center mt-4">
-                                        <div class="text-muted">
-                                            Showing <span class="fw-semibold"><?= ($pager['currentPage'] - 1) * $pager['perPage'] + 1 ?></span> to 
-                                            <span class="fw-semibold"><?= min($pager['currentPage'] * $pager['perPage'], $pager['total']) ?></span> of 
-                                            <span class="fw-semibold"><?= $pager['total'] ?></span> results
-                                        </div>
-                                        <ul class="pagination pagination-separated mb-0">
-                                            <li class="page-item <?= $pager['currentPage'] <= 1 ? 'disabled' : '' ?>">
-                                                <a href="?page=<?= $pager['currentPage'] - 1 ?>" class="page-link">Previous</a>
-                                            </li>
-                                            <?php for ($i = 1; $i <= $pager['totalPages']; $i++): ?>
-                                                <li class="page-item <?= $i === $pager['currentPage'] ? 'active' : '' ?>">
-                                                    <a href="?page=<?= $i ?>" class="page-link"><?= $i ?></a>
+                                        <div class="d-flex justify-content-between align-items-center mt-4">
+                                            <div class="text-muted">
+                                                Showing <span class="fw-semibold"><?= ($pager['currentPage'] - 1) * $pager['perPage'] + 1 ?></span> to
+                                                <span class="fw-semibold"><?= min($pager['currentPage'] * $pager['perPage'], $pager['total']) ?></span> of
+                                                <span class="fw-semibold"><?= $pager['total'] ?></span> results
+                                            </div>
+                                            <ul class="pagination pagination-separated mb-0">
+                                                <li class="page-item <?= $pager['currentPage'] <= 1 ? 'disabled' : '' ?>">
+                                                    <a href="?page=<?= $pager['currentPage'] - 1 ?>" class="page-link">Previous</a>
                                                 </li>
-                                            <?php endfor; ?>
-                                            <li class="page-item <?= $pager['currentPage'] >= $pager['totalPages'] ? 'disabled' : '' ?>">
-                                                <a href="?page=<?= $pager['currentPage'] + 1 ?>" class="page-link">Next</a>
-                                            </li>
-                                        </ul>
-                                    </div>
+                                                <?php for ($i = 1; $i <= $pager['totalPages']; $i++): ?>
+                                                    <li class="page-item <?= $i === $pager['currentPage'] ? 'active' : '' ?>">
+                                                        <a href="?page=<?= $i ?>" class="page-link"><?= $i ?></a>
+                                                    </li>
+                                                <?php endfor; ?>
+                                                <li class="page-item <?= $pager['currentPage'] >= $pager['totalPages'] ? 'disabled' : '' ?>">
+                                                    <a href="?page=<?= $pager['currentPage'] + 1 ?>" class="page-link">Next</a>
+                                                </li>
+                                            </ul>
+                                        </div>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -153,24 +153,24 @@
                     var participantId = this.dataset.id;
                     if (confirm('Are you sure you want to delete this participant?')) {
                         fetch('<?= base_url('participants/delete/') ?>' + participantId, {
-                            method: 'POST',
-                            headers: {
-                                'X-Requested-With': 'XMLHttpRequest'
-                            }
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                alert('Participant deleted successfully');
-                                window.location.reload();
-                            } else {
-                                alert('Failed to delete participant: ' + (data.message || 'Unknown error'));
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            alert('An error occurred while trying to delete the participant');
-                        });
+                                method: 'POST',
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                }
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    alert('Participant deleted successfully');
+                                    window.location.reload();
+                                } else {
+                                    alert('Failed to delete participant: ' + (data.message || 'Unknown error'));
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
+                                alert('An error occurred while trying to delete the participant');
+                            });
                     }
                 });
             });
@@ -180,4 +180,5 @@
     <!-- App js -->
     <script src="/assets/js/app.js"></script>
 </body>
+
 </html>

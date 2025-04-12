@@ -30,6 +30,65 @@ class AmbassadorModel extends Model
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
 
+    protected $useSoftDeletes = false; // Using is_deleted field manually
+
+    // get ambassador statistics
+    public function getAmbassadorStats($programId)
+    {
+        $builder = $this->builder();
+
+        // get data
+        $builder->select('COUNT(*) as total_ambassadors, SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active_ambassadors, SUM(CASE WHEN is_deleted = 1 THEN 1 ELSE 0 END) as deleted_ambassadors');
+
+        // Execute the query and get the result as an array of objects
+        $result  = $builder->where('program_id', $programId)->get()->getRowArray();
+
+        // check if result is empty
+        if (empty($result)) {
+            return null;
+        } else {
+            return $result;
+        }
+    }
+
+    // get referrals by program id
+    public function getReferrals($programId)
+    {
+        $builder = $this->builder();
+
+        // get data
+        $builder->select('*');
+
+        // Execute the query and get the result as an array of objects
+        $result  = $builder->where('program_id', $programId)->get()->getResultArray();
+
+        // check if result is empty
+        if (empty($result)) {
+            return null;
+        } else {
+            return $result;
+        }
+    }
+
+    // get ambassador by id
+    public function getById($id)
+    {
+        $builder = $this->builder();
+
+        // get data
+        $builder->select('*');
+
+        // Execute the query and get the result as an array of objects
+        $result  = $builder->where('id', $id)->get()->getRowArray();
+
+        // check if result is empty
+        if (empty($result)) {
+            return null;
+        } else {
+            return $result;
+        }
+    }
+
     // get all ambassadors
     public function getAmbassadors($limit = 10, $offset = 0, $filters = [])
     {

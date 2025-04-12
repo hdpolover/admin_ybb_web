@@ -64,10 +64,19 @@ class PaymentMethodModel extends Model
     protected $allowCallbacks = true;
 
     // get all payment methods for a program
-    public function getPaymentMethodsByProgramId($programId)
+    public function getByProgramId($programId)
     {
         return $this->where('program_id', $programId)
             ->findAll();
+    }
+
+    // get all active payment methods for a program
+
+    // get payment method by id
+    public function getPaymentMethodById($id)
+    {
+        return $this->where('id', $id)
+            ->first();
     }
     
 }
