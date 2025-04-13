@@ -10,7 +10,7 @@ class ProgramDocumentModel extends Model
 
     protected $table = 'program_documents';
     protected $primaryKey = 'id';
-    protected $allowedFields = ['program_id', 'name', 'file_url', 'drive_url', 'desc', 'is_upload', 'is_generated', 'visibility', 'is_active', 'is_deleted', 'created_at', 'updated_at'];
+    protected $allowedFields = ['program_id', 'type', 'name', 'file_url', 'drive_url', 'desc', 'is_upload', 'is_generated', 'visibility', 'is_active', 'is_deleted', 'created_at', 'updated_at'];
     protected $returnType = 'object';
     protected $useAutoIncrement = true;
     public $timestamps = true;
@@ -22,6 +22,7 @@ class ProgramDocumentModel extends Model
     protected $validationRules = [
         'program_id' => 'required|numeric',
         'name' => 'required|string|max_length[255]',
+        'type' => 'permit_empty|in_list[loa,agreement,complement]',
         'file_url' => 'permit_empty|string|max_length[255]',
         'drive_url' => 'permit_empty|string|max_length[255]',
         'desc' => 'permit_empty|string',

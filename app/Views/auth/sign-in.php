@@ -54,7 +54,7 @@
                                             <strong> Error! </strong> <?= session()->getFlashdata('error') ?>
                                         </div>
                                     <?php endif; ?>
-                                    <form action="<?= base_url('admin/sign-in') ?>" method="post">
+                                    <form action="<?= base_url('sign-in') ?>" method="post">
 
                                         <?= csrf_field() ?>
 

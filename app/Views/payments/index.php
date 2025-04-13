@@ -176,9 +176,25 @@
                                         </button>
                                     </div>
                                 </div>
-                                <div class="card-body">                                    <!-- Filter Controls -->
+                                <div class="card-body">
+                                    <!-- Filter Controls -->
                                     <div class="row mb-4">
-                                       
+                                        <div class="col-md-12 mb-3">
+                                            <div class="input-group search-box">
+                                                <span class="input-group-text bg-light border-end-0">
+                                                    <i class="ri-search-line text-muted"></i>
+                                                </span>
+                                                <input type="text" id="search-box" class="form-control border-start-0 ps-0" 
+                                                    placeholder="Search by participant name, email, transaction ID, payment amount..." 
+                                                    autocomplete="off">
+                                                <button class="btn btn-primary" id="search-button" type="button">
+                                                    <i class="ri-search-line me-1"></i> Search
+                                                </button>
+                                            </div>
+                                            <div class="form-text text-muted mt-1">
+                                                <small>Press Enter or click Search to filter results</small>
+                                            </div>
+                                        </div>
                                         <div class="col-md-3 mb-2">
                                             <label class="form-label">Payment Status</label>
                                             <select id="filter-status" class="form-select">
@@ -195,7 +211,6 @@
                                             <select id="filter-program-payment" class="form-select">
                                                 <option value="">All Program Payments</option>
                                                 <?php
-                                                $programPayments = $programPaymentModel->getByProgramId(session('current_program'));
                                                 foreach ($programPayments as $payment): ?>
                                                     <option value="<?= $payment->id ?>"><?= $payment->name ?></option>
                                                 <?php endforeach; ?>
@@ -206,7 +221,6 @@
                                             <select id="filter-payment-method" class="form-select">
                                                 <option value="">All Payment Methods</option>
                                                 <?php
-                                                $paymentMethods = $paymentMethodModel->getByProgramId(session('current_program'));
                                                 foreach ($paymentMethods as $method): ?>
                                                     <option value="<?= $method->id ?>"><?= $method->name ?></option>
                                                 <?php endforeach; ?>
@@ -320,7 +334,8 @@
                 serverSide: true,
                 ajax: {
                     url: '<?= site_url('payments/getData') ?>',
-                    type: 'GET',                    data: function(d) {
+                    type: 'GET',
+                    data: function(d) {
                         // Add filter parameters
                         d.status = $('#filter-status').val();
                         d.program_payment_id = $('#filter-program-payment').val();
@@ -347,7 +362,7 @@
                         render: function(data, type, row) {
                             if (!data) return 'N/A';
                             return '<div><strong>Payment ID:</strong> ' + (data.payment_id || 'N/A') + '</div>' +
-                                '<div><strong>Transaction Code:</strong> ' + (data.transaction_id || 'N/A') + '</div>' +
+                                '<div><strong>Transaction Code:</strong> ' + (data.transaction_code || 'N/A') + '</div>' +
                                 '<div><strong>Order ID:</strong> ' + (data.order_id || 'N/A') + '</div>';
                         }
                     },
@@ -365,9 +380,17 @@
                         data: 'payment_details',
                         render: function(data, type, row) {
                             if (!data) return 'N/A';
-                            return '<div><strong>Program:</strong> ' + (data.program_name || 'N/A') + '</div>' +
-                                '<div><strong>Amount:</strong> ' + (data.amount || 'N/A') + '</div>' +
-                                '<div><strong>Method:</strong> ' + (data.method || 'N/A') + '</div>';
+
+                            // Assuming data contains program_name, amount, and method
+                            $paymentName = data.program_name || 'N/A';
+                            $amount = data.amount || 'N/A';
+                            $method = data.method || 'N/A';
+
+                            // method should be a badge
+                            var methodBadge = '<span class="badge bg-primary">' + $method + '</span>';
+                            return '<div><strong>' + (data.program_name || 'N/A') + '</strong></div>' +
+                                '<div>' + (data.amount || 'N/A') + '</div>' +
+                                '<div>' + methodBadge + '</div>';
                         }
                     },
                     {
@@ -391,18 +414,54 @@
                 drawCallback: function(settings) {
                     console.log("DataTable draw complete, data:", settings.json);
                 }
-            }); // Handle filter buttons
+            });                // Implement a better search functionality
+            // Hide DataTables default search box
+            $('.dataTables_filter').hide();
+            
+            // Function to perform the search
+            function performSearch() {
+                var searchTerm = $('#search-box').val();
+                console.log("Searching for term:", searchTerm);
+                
+                // Apply the search and reload the table
+                paymentsTable.ajax.reload();
+            }
+            
+            // Search when Enter is pressed in the search box
+            $('#search-box').on('keypress', function(e) {
+                if (e.which === 13) { // Enter key pressed
+                    e.preventDefault();
+                    performSearch();
+                }
+            });
+            
+            // Search when the search button is clicked
+            $(document).on('click', '#search-button', function() {
+                performSearch();
+            });
+
+            // Handle filter buttons with logging
             document.getElementById('apply-filters').addEventListener('click', function() {
+                console.log("Applying filters:", {
+                    status: $('#filter-status').val(),
+                    program_payment_id: $('#filter-program-payment').val(),
+                    payment_method_id: $('#filter-payment-method').val(),
+                    search: $('#search-box').val()
+                });
                 paymentsTable.ajax.reload();
             });
 
             document.getElementById('reset-filters').addEventListener('click', function() {
+                console.log("Resetting all filters");
                 // Reset all filter select values
                 document.getElementById('filter-status').value = '';
                 document.getElementById('filter-program-payment').value = '';
                 document.getElementById('filter-payment-method').value = '';
+                document.getElementById('search-box').value = ''; // Also reset the search box
 
                 // Reload the table with reset filters
+                console.log("Table reset - reloading with empty filters");
+                paymentsTable.search('').draw(); // Clear the search
                 paymentsTable.ajax.reload();
             });
 

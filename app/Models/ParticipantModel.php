@@ -81,6 +81,27 @@ class ParticipantModel extends Model
     }
 
     /**
+     * Get participants by an array of participant IDs
+     *
+     * @param array $participantIds Array of participant IDs
+     * @return array Array of participant data
+     */
+    public function getParticipantsByIds(array $participantIds)
+    {
+        if (empty($participantIds)) {
+            return [];
+        }
+        
+        $builder = $this->builder();
+        
+        return $builder->whereIn('id', $participantIds)
+                      ->where('is_active', 1)
+                      ->where('is_deleted', 0)
+                      ->get()
+                      ->getResultArray();
+    }
+
+    /**
      * Get photos of participants for a specific program
      *
      * @param int $programId The program ID
@@ -382,5 +403,55 @@ class ParticipantModel extends Model
             ->groupBy('nationality')
             ->orderBy('participants_count', 'DESC')
             ->findAll();
+    }
+    
+    /**
+     * Get participant statistics for a program
+     *
+     * @param int $programId
+     * @return object
+     */
+    public function getParticipantStats($programId)
+    {
+        // Count participants by category: full_funded or self_funded
+        $builder = $this->db->table($this->table);
+        $results = $builder->select('COUNT(*) as count, category')
+            ->where('program_id', $programId)
+            ->where('is_deleted', 0)
+            ->groupBy('category')
+            ->get()
+            ->getResult();
+            
+        // Initialize counts
+        $categoryCounts = [
+            'fully_funded' => 0,
+            'self_funded' => 0
+        ];
+        
+        // Map results to category counts
+        foreach ($results as $row) {
+            $category = strtolower($row->category);
+            if (array_key_exists($category, $categoryCounts)) {
+                $categoryCounts[$category] = $row->count;
+            }
+        }
+        
+        // Get total participants
+        $totalParticipants = $builder->where('program_id', $programId)
+            ->where('is_deleted', 0)
+            ->countAllResults();
+            
+        // Get participants registered in the last 30 days
+        $thirtyDaysAgo = date('Y-m-d H:i:s', strtotime('-30 days'));
+        $recentParticipants = $builder->where('program_id', $programId)
+            ->where('is_deleted', 0)
+            ->where('created_at >=', $thirtyDaysAgo)
+            ->countAllResults();
+            
+        return (object) [
+            'total' => $totalParticipants,
+            'recent' => $recentParticipants,
+            'category_counts' => $categoryCounts
+        ];
     }
 }

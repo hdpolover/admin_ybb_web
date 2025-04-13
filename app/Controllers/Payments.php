@@ -10,6 +10,13 @@ class Payments extends BaseController
     protected $programPaymentModel;
     protected $paymentMethodModel;
 
+    protected $paymentMethods = [];
+    protected $programPayments = [];
+
+    // program id
+    protected $programId = null;
+    protected $program = null;
+
     public function __construct()
     {
         $this->paymentModel = new \App\Models\PaymentModel();
@@ -17,23 +24,32 @@ class Payments extends BaseController
         $this->participantModel = new \App\Models\ParticipantModel();
         $this->programPaymentModel = new \App\Models\ProgramPaymentModel();
         $this->paymentMethodModel = new \App\Models\PaymentMethodModel();
+
+        // set data
+        $this->initData();
+    }
+
+    // init data
+    public function initData()
+    {
+        $programId = session('current_program');
+        $this->programId = $programId;
+        $this->program = $this->programModel->find($programId);
+        $this->paymentMethods = $this->paymentMethodModel->getByProgramId($programId);
+        $this->programPayments = $this->programPaymentModel->getByProgramId($programId);
     }
 
     public function index()
     {
-        $programId = session('current_program');
-        $program = $this->programModel->find($programId);
-
-        // Get payment statistics
-        $stats = $this->paymentModel->getPaymentStats($programId);
-        $currency_stats = $this->paymentModel->getPaymentStatsByCurrency($programId);
+        $stats = $this->paymentModel->getPaymentStats($this->programId);
+        $currency_stats = $this->paymentModel->getPaymentStatsByCurrency($this->programId);
 
         $data = [
-            'program' => $program,
+            'program' => $this->program,
             'stats' => $stats,
             'currency_stats' => $currency_stats,
-            'programPaymentModel' => $this->programPaymentModel,
-            'paymentMethodModel' => $this->paymentMethodModel
+            'paymentMethods' => $this->paymentMethods,
+            'programPayments' => $this->programPayments
         ];
 
         return view('payments/index', $data);
@@ -44,8 +60,6 @@ class Payments extends BaseController
      */
     public function getData()
     {
-        $programId = session('current_program');
-
         // Process DataTables server-side request
         $request = $this->request->getGet();
 
@@ -60,11 +74,10 @@ class Payments extends BaseController
 
         // Column names', 
         $columns = [
-            'created_at',
-            'participant_name',
-            'amount',
-            'payment_method',
-            'transaction_id',
+            'payment_date',
+            'transaction_codes',
+            'participant',
+            'payment_details',
             'status'
         ];
 
@@ -79,13 +92,18 @@ class Payments extends BaseController
             ')
             ->join('participants', 'participants.id = payments.participant_id')
             ->join('users', 'users.id = participants.user_id')
-            ->where('participants.program_id', $programId);        // Apply search
+            ->where('participants.program_id', $this->programId);
+
+        // Apply search
         if (!empty($search)) {
             $builder->groupStart()
                 ->like('participants.full_name', $search)
-                ->orLike('participants.email', $search)
-                ->orLike('payments.transaction_id', $search)
-                ->orLike('payments.payment_method', $search)
+                ->orLike('users.email', $search)
+                ->orLike('payments.id', $search)
+                ->orLike('payments.transaction_code', $search)
+                ->orLike('payments.order_id', $search)
+                ->orLike('payments.amount', $search)
+                ->orLike('payments.notes', $search)
                 ->groupEnd();
         }
 
@@ -111,7 +129,9 @@ class Payments extends BaseController
         // Order and limit
         $result = $builder->orderBy($orderColumn, $order['dir'])
             ->limit($length, $start) // Format data for DataTables
-            ->get()->getResult();        // Format data for DataTable
+            ->get()->getResult();
+
+        // Format data for DataTable
         $data = [];
         foreach ($result as $row) {
             // Get payment method name
@@ -119,7 +139,7 @@ class Payments extends BaseController
             $paymentMethod = $this->getPaymentMethodName($row->payment_method_id);
 
             // Get program payment name
-            $programPayment = $this->programPaymentModel->find($row->program_payment_id ?? 0);
+            $programPayment = $this->getProgramPayment($row->program_payment_id ?? 0);
             $programPaymentName = $programPayment ? $programPayment->name : 'General Payment';
 
             $data[] = [
@@ -127,7 +147,7 @@ class Payments extends BaseController
                 'payment_date' => format_date($row->created_at, 'M j, Y H:i'),
                 'transaction_codes' => [
                     'payment_id' => $row->id,
-                    'transaction_id' => $row->transaction_code ?? 'N/A',
+                    'transaction_code' => $row->transaction_code ?? 'N/A',
                     'order_id' => $row->order_id ?? 'N/A'
                 ],
                 'participant' => [
@@ -173,7 +193,6 @@ class Payments extends BaseController
         ];
 
         return view('payments/view', $data);
-        return view('payments/view', $data);
     }
 
     /**
@@ -190,7 +209,22 @@ class Payments extends BaseController
         ];
 
         return $badges[$status] ?? '<span class="badge bg-secondary">Unknown</span>';
-        return $badges[$status] ?? '<span class="badge bg-secondary">Unknown</span>';
+    }
+
+    /**
+     * Get program payment by ID
+     */
+    private function getProgramPayment($id)
+    {
+        // Loop through program payments to find the payment name
+        foreach ($this->programPayments as $payment) {
+            if ($payment->id == $id) {
+                return $payment;
+            }
+        }
+
+        // If not found, return null
+        return null;
     }
 
     /**
@@ -207,7 +241,6 @@ class Payments extends BaseController
         ];
 
         return $statuses[$statusCode] ?? 'Unknown';
-        return $statuses[$statusCode] ?? 'Unknown';
     }
 
     /**
@@ -215,10 +248,15 @@ class Payments extends BaseController
      */
     private function getPaymentMethodName($methodId)
     {
-        $paymetMethodModel = new \App\Models\PaymentMethodModel();
-        $methods = $paymetMethodModel->getPaymentMethodById($methodId);
+        // loop thorugh payment methods to find the method name
+        foreach ($this->paymentMethods as $method) {
+            if ($method->id == $methodId) {
+                return $method->name;
+            }
+        }
 
-        return $methods->name ?? 'Unknown';
+        // If not found, return 'Unknown'
+        return 'Unknown';
     }
 
     /**
@@ -457,7 +495,7 @@ class Payments extends BaseController
         // if rejected, add rejection reason if provided
         if ($status == 4) {
             $rejectionReason = $notes ?? '';
-        } else  {
+        } else {
             $statusUpdateNote .= ". Additional notes: {$notes}";
         }
 

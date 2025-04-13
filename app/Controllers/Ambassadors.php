@@ -13,17 +13,19 @@ class Ambassadors extends BaseController
     protected $ambassadorParticipantReferralModel;
 
     public function __construct()
-    {   
+    {
         // Load the required models
         $this->ambassadorModel = new AmbassadorModel();
         $this->programModel = new ProgramModel();
         $this->ambassadorParticipantReferralModel = new AmbassadorParticipantReferralModel();
     }
-    
+
     public function index()
     {
         $programId = session('current_program');
         $program = $this->programModel->find($programId);
+
+
 
         // Get ambassador statistics
         $stats = $this->ambassadorModel->getAmbassadorStats($programId);
@@ -35,13 +37,14 @@ class Ambassadors extends BaseController
         ];
 
         return view('users/ambassadors/index', $data);
-    }    /**
+    }
+
+    /**
      * Get ambassadors data for DataTables
      */
     public function getData()
-    {
-        $programId = session('current_program');
-        
+    {        $programId = session('current_program');
+
         // Process DataTables server-side request
         $request = $this->request->getGet();
 
@@ -56,78 +59,66 @@ class Ambassadors extends BaseController
 
         // Column names
         $columns = [
-            'created_at',
-            'full_name',
+            'name',
             'email',
-            'phone',
+            'institution',
+            'is_active',
+            'created_at',
             'ref_code',
-            'status'
+            'referral_count',
         ];
 
-        $orderColumn = $columns[$order['column']] ?? 'created_at';
+        $orderColumn = $columns[$order['column']] ?? '#';
 
-        // Get data from database
-        $builder = $this->ambassadorModel->select('
-                ambassadors.*,
-                users.email,
-                users.phone
-            ')
-            ->join('users', 'users.id = ambassadors.user_id', 'left')
-            ->where('ambassadors.program_id', $programId);
-        
+        // Get data from database 
+        $builder = $this->ambassadorModel->select('ambassadors.*')
+            ->where('ambassadors.program_id', $programId)
+            ->where('ambassadors.is_deleted', 0);
+
         // Apply search
         if (!empty($search)) {
             $builder->groupStart()
-                ->like('ambassadors.full_name', $search)
-                ->orLike('users.email', $search)
-                ->orLike('users.phone', $search)
-                ->orLike('ambassadors.ref_code', $search)
+                ->like('name', $search)
+                ->orLike('email', $search)
+                ->orLike('institution', $search)
+                ->orLike('ref_code', $search)
                 ->groupEnd();
-        }
-
-        // Apply filters
-        $status = $this->request->getGet('status');
-        if ($status !== '' && $status !== null) {
-            $builder->where('ambassadors.status', $status);
         }
 
         // Get total count
         $totalRecords = $builder->countAllResults(false);
-
+        
         // Order and limit
         $result = $builder->orderBy($orderColumn, $order['dir'])
             ->limit($length, $start)
             ->get()->getResult();
-        
-        // Format data for DataTable
+            
+        // Get comprehensive referral counts that include both old and new referral structures
+        $referralCounts = $this->ambassadorModel->getComprehensiveReferralCounts($programId);        // Format data for DataTable
         $data = [];
         foreach ($result as $row) {
-            // Format status badge
-            $statusBadge = $this->getStatusBadge($row->status);
-            
-            // Count referrals using ambassador_participant_referrals table
-            $referralCount = $this->ambassadorParticipantReferralModel->where('ambassador_id', $row->id)
-                ->where('program_id', $programId)
-                ->countAllResults();
-            
+            // Get the referral count from our comprehensive count array
+            $referralCount = $referralCounts[$row->id] ?? 0;
+
             $data[] = [
                 'id' => $row->id,
-                'created_date' => format_date($row->created_at, 'M j, Y'),
-                'ambassador' => [
-                    'name' => $row->full_name,
+                'details' => [
+                    'name' => $row->name,
+                    'first_letter' => strtoupper(substr($row->name, 0, 1)),
                     'email' => $row->email,
-                    'phone' => $row->phone
+                    'institution' => $row->institution,
+                    'created_at' => date('d M Y', strtotime($row->created_at)),
+                    'status' => $row->is_active,
                 ],
                 'ref_code' => $row->ref_code,
                 'referral_count' => $referralCount,
-                'status' => $statusBadge,
-                'actions' => '<a href="' . base_url('ambassadors/view/' . $row->id) . '" class="btn btn-sm btn-primary">View</a>'
+                'actions' => $this->generateActionButtons($row)
             ];
         }
 
         // Response for DataTables
         $response = [
-            'draw' => intval($draw),
+            'draw' => $draw,
             'recordsTotal' => $totalRecords,
             'recordsFiltered' => $totalRecords,
             'data' => $data
@@ -137,49 +128,147 @@ class Ambassadors extends BaseController
     }
 
     /**
-     * Helper method to generate status badge HTML
+     * Get HTML for status badge
      */
     private function getStatusBadge($status)
     {
-        $badges = [
-            0 => '<span class="badge bg-danger">Inactive</span>',
-            1 => '<span class="badge bg-success">Active</span>',
-            2 => '<span class="badge bg-warning">Suspended</span>'
-        ];
-
-        return $badges[$status] ?? '<span class="badge bg-secondary">Unknown</span>';
+        switch ($status) {
+            case '1': // Active
+                return '<span class="badge bg-success-subtle text-success">Active</span>';
+            case '0': // Inactive
+                return '<span class="badge bg-danger-subtle text-danger">Inactive</span>';
+            case '2': // Suspended
+                return '<span class="badge bg-warning-subtle text-warning">Suspended</span>';
+            default:
+                return '<span class="badge bg-secondary-subtle text-secondary">Unknown</span>';
+        }
     }
-      /**
+
+    /**
+     * Generate action buttons for each ambassador row
+     */
+    private function generateActionButtons($ambassador)
+    {
+        $buttons = '<div class="d-flex gap-2">';
+
+        // View button
+        $buttons .= '<a href="' . base_url("users/ambassadors/view/{$ambassador->id}") . '" class="btn btn-sm btn-soft-primary">';
+        $buttons .= '<i class="ri-eye-fill align-bottom"></i>';
+        $buttons .= '</a>';
+
+        // Edit button
+        $buttons .= '<a href="' . base_url("users/ambassadors/edit/{$ambassador->id}") . '" class="btn btn-sm btn-soft-warning">';
+        $buttons .= '<i class="ri-pencil-fill align-bottom"></i>';
+        $buttons .= '</a>';
+
+        // Delete button
+        $buttons .= '<button type="button" class="btn btn-sm btn-soft-danger delete-ambassador" data-id="' . $ambassador->id . '">';
+        $buttons .= '<i class="ri-delete-bin-2-line align-bottom"></i>';
+        $buttons .= '</button>';
+
+        $buttons .= '</div>';
+
+        return $buttons;
+    }    
+    
+    /**
      * View ambassador details
      */
     public function view($id)
     {
-        $ambassador = $this->ambassadorModel->select('ambassadors.*, users.email, users.phone')
-            ->join('users', 'users.id = ambassadors.user_id', 'left')
+        $ambassador = $this->ambassadorModel->select('ambassadors.*')
             ->where('ambassadors.id', $id)
             ->first();
-        
+
         if (!$ambassador) {
             return redirect()->to('ambassadors')->with('error', 'Ambassador not found');
         }
-        
+
         $programId = session('current_program');
-        
-        // Get referrals from ambassador_participant_referrals table
-        $referrals = $this->ambassadorParticipantReferralModel
+
+        // Get referrals from new structure (ambassador_participant_referrals table)
+        $newReferrals = $this->ambassadorParticipantReferralModel
             ->select('ambassador_participant_referrals.*, participants.full_name, users.email, participants.id as participant_id')
             ->join('participants', 'participants.id = ambassador_participant_referrals.participant_id')
             ->join('users', 'users.id = participants.user_id', 'left')
             ->where('ambassador_participant_referrals.ambassador_id', $id)
-            ->where('ambassador_participant_referrals.program_id', $programId)
+            ->where('ambassador_participant_referrals.is_deleted', 0)
             ->findAll();
+            
+        // Get the ambassador's reference code
+        $refCode = $ambassador->ref_code;
         
+        // Get participants using the old structure (ref_code_ambassador field)
+        $db = \Config\Database::connect();
+        $builder = $db->table('participants');
+        $builder->select('participants.*, users.email')
+            ->join('users', 'users.id = participants.user_id', 'left')
+            ->where('participants.ref_code_ambassador', $refCode)
+            ->where('participants.program_id', $programId)
+            ->where('participants.is_deleted', 0);
+            
+        // Exclude participants that are already in the new structure
+        $existingParticipantIds = array_column($newReferrals, 'participant_id');
+        if (!empty($existingParticipantIds)) {
+            $builder->whereNotIn('participants.id', $existingParticipantIds);
+        }
+        
+        $oldReferrals = $builder->get()->getResult();
+
+        // Format old referrals to match the structure expected by the view
+        $formattedOldReferrals = [];
+        foreach ($oldReferrals as $referral) {
+            $formattedOldReferrals[] = (object)[
+                'participant_id' => $referral->id,
+                'full_name' => $referral->full_name,
+                'email' => $referral->email,
+                'created_at' => $referral->created_at,
+                'referral_type' => 'legacy', // Mark as legacy referral
+            ];
+        }
+        
+        // Combine both referral lists
+        $allReferrals = array_merge($newReferrals, $formattedOldReferrals);
+        
+        // Calculate total counts for both types
+        $newReferralCount = count($newReferrals);
+        $oldReferralCount = count($formattedOldReferrals);
+        $totalReferralCount = $newReferralCount + $oldReferralCount;
+
+        // set generated link
+        $encryptedQuery = url_encrypt($refCode);
+
+        // get program
+        $programModel = new \App\Models\ProgramModel();
+        $program = $programModel->find($programId);
+
+        // get program category
+        $programCategoryModel = new \App\Models\ProgramCategoryModel();
+        $programCategory = $programCategoryModel->find($program->program_category_id);
+
+        $webUrl = $programCategory->web_url ?? 'https://example.com'; // Default to example.com if not set
+        $webUrl = rtrim($webUrl, '/'); // Ensure no trailing slash
+
+        // add https:// if not present
+        if (!preg_match('/^https?:\/\//', $webUrl)) {
+            $webUrl = 'https://' . $webUrl;
+        }
+
+        // Generate the full URL
+        $generatedUrl = $webUrl . '/sign-up?q=' . urlencode($encryptedQuery);
+
         $data = [
             'title' => 'Ambassador Details',
             'ambassador' => $ambassador,
-            'referrals' => $referrals
+            'referrals' => $allReferrals,
+            'referralCounts' => [
+                'new' => $newReferralCount,
+                'legacy' => $oldReferralCount,
+                'total' => $totalReferralCount
+            ],
+            'generated_url' => $generatedUrl,
         ];
-        
+
         return view('users/ambassadors/view', $data);
     }
 }

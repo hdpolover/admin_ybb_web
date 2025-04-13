@@ -63,7 +63,7 @@
                                 <div class="dropdown-programs-container" style="max-height: 350px; overflow-y: auto;">
                                     <?php foreach ($allPrograms as $program): ?>
                                         <a class="dropdown-item d-flex align-items-center <?= ($program->id == $currentProgramId) ? 'active' : '' ?>"
-                                           href="<?= site_url('welcome/set_program/' . $program->id) ?>">
+                                           href="<?= site_url('welcome/set-program/' . $program->id) ?>">
                                             <div class="d-flex align-items-center flex-grow-1">
                                                 <?php if (!empty($program->logo_url)): ?>
                                                     <div class="program-logo-wrapper me-2">
