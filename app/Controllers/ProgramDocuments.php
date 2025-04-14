@@ -344,7 +344,7 @@ class ProgramDocuments extends BaseController
             'document' => $document,
             'program' => $program,
             'placeholders' => $placeholders,
-            'loaTemplate' => $template ? $template->body : $this->getDefaultLoaTemplate()
+            'loaTemplate' => $template ? $template->body : '',
         ];
 
         return view('documents/program-documents/loa_template_setting', $data);
@@ -362,7 +362,6 @@ class ProgramDocuments extends BaseController
             'participant_name' => 'Participant Name',
             'program_name' => 'Program Name',
             'program_location' => 'Program Location',
-            'program_tagline' => 'Program Tagline',
             'institution' => 'Institution Name',
             'start_date' => 'Start Date',
             'end_date' => 'End Date',
@@ -496,7 +495,7 @@ class ProgramDocuments extends BaseController
         }
 
         // Generate LOA content with participant data
-        $loaContent = $this->generateLoaContent($template->template_content, $participant, $program, $document);
+        $loaContent = $this->generateLoaContent($template->body, $participant, $program);
 
         $data = [
             'title' => 'Generated LOA',
@@ -509,46 +508,6 @@ class ProgramDocuments extends BaseController
         return view('documents/program-documents/loa_generated', $data);
     }
 
-    /**
-     * Get default LOA template
-     * @return string
-     */
-    private function getDefaultLoaTemplate()
-    {
-        return '<h3 style="text-align: center;">LETTER OF AGREEMENT</h3>
-<p>Reference Number: {{reference_number}}</p>
-<p>Date: {{today_date}}</p>
-<p><br></p>
-<p>Dear {{participant_name}},</p>
-<p><br></p>
-<p>We are pleased to inform you that you have been selected to participate in the {{program_name}} organized by {{institution}}.</p>
-<p><br></p>
-<p>Program Details:</p>
-<ul>
-    <li>Start Date: {{start_date}}</li>
-    <li>End Date: {{end_date}}</li>
-    <li>Location: Youth Break the Boundaries Center</li>
-</ul>
-<p><br></p>
-<p>Please confirm your participation by signing this letter of agreement.</p>
-<p><br></p>
-<p>By signing this agreement, you agree to:</p>
-<ol>
-    <li>Attend all scheduled sessions of the program</li>
-    <li>Follow the rules and guidelines set by the organizers</li>
-    <li>Participate actively in all activities</li>
-    <li>Represent yourself and your institution with the highest level of integrity</li>
-</ol>
-<p><br></p>
-<p>We look forward to your active participation in this program.</p>
-<p><br></p>
-<p>Sincerely,</p>
-<p><br></p>
-<div class="preview-signature-section">
-    {{participant_signature}}
-    {{admin_signature}}
-</div>';
-    }
 
     /**
      * Generate LOA content with participant data
@@ -558,7 +517,7 @@ class ProgramDocuments extends BaseController
      * @param object $document Document object
      * @return string
      */
-    private function generateLoaContent($template, $participant, $program, $document)
+    private function generateLoaContent($template, $participant, $program)
     {
         // Replace variables with actual data
         $content = $template;
@@ -568,15 +527,8 @@ class ProgramDocuments extends BaseController
         $content = str_replace('{{today_date}}', date('F d, Y'), $content);
         $content = str_replace('{{start_date}}', date('F d, Y', strtotime($program->start_date)), $content);
         $content = str_replace('{{end_date}}', date('F d, Y', strtotime($program->end_date)), $content);
-        $content = str_replace('{{participant_address}}', $participant->current_address ?? $participant->origin_address ?? '-', $content);
-        $content = str_replace('{{reference_number}}', 'LOA-' . date('Y') . '-' . $document->id . '-' . $participant->id, $content);
+        $content = str_replace('{{program_location}}', $program->location ?? 'Jakarta, Indonesia', $content);
 
-        // Replace signature placeholders
-        $participantSignature = '<div class="signature-box"><p><strong>Participant:</strong></p><p>' . $participant->full_name . '</p></div>';
-        $adminSignature = '<div class="signature-box"><p><strong>For ' . $program->name . ':</strong></p><p>' . session('name') . '<br>Administrator</p></div>';
-
-        $content = str_replace('{{participant_signature}}', $participantSignature, $content);
-        $content = str_replace('{{admin_signature}}', $adminSignature, $content);
 
         return $content;
     }

@@ -195,7 +195,6 @@
 
     <!-- App js -->
     <script src="/assets/js/app.js"></script>
-
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             var quill = new Quill('#editor-container', {
@@ -214,6 +213,11 @@
                             'list': 'ordered'
                         }, {
                             'list': 'bullet'
+                        }],
+                        [{
+                            'indent': '-1'
+                        }, {
+                            'indent': '+1'
                         }],
                         [{
                             'align': []

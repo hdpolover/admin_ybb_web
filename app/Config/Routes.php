@@ -102,7 +102,8 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->get('program-documents', 'ProgramDocumentsApiController::index');
     $routes->get('program-documents/(:num)', 'ProgramDocumentsApiController::show/$1');
     $routes->get('program-documents/program/(:num)', 'ProgramDocumentsApiController::getByProgram/$1');
-
+    // generate loa /api/program-documents/{documentId}/participant/{participantId}/generate
+    $routes->get('program-documents/(:num)/participants/(:num)/generate', 'ProgramDocumentsApiController::generateLoA/$1/$2');
     // get payments by participant id
 
     // Protected routes with JWT authentication
@@ -215,6 +216,12 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     
     // Maintenance check endpoint - publicly accessible
     $routes->get('maintenance/check', 'Api\MaintenanceApiController::check');
+
+    // loa templates
+    $routes->get('loa-templates', 'LoaTemplatesApiController::index');
+    $routes->get('loa-templates/(:num)', 'LoaTemplatesApiController::show/$1');
+    $routes->get('loa-templates/program-documents/(:num)', 'LoaTemplatesApiController::getByProgramDocumentId/$1');
+    $routes->get('loa-templates/(:num)/program-documents/(:num)', 'LoaTemplatesApiController::getByProgramDocumentIdAndTemplateId/$1/$2');
 });
 
 

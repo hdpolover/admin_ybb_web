@@ -306,8 +306,7 @@ class TransactionController extends BasePaymentController
                     ],
                     'customer_details' => [
                         'first_name' => $participant->full_name ?? 'Customer',
-                        'email' => $user->email ?? '',
-                        'phone' => $participant->country_code . $participant->phone_number ?? ''
+                        'email' => $user->email ?? ''
                     ],
                     'item_details' => [
                         [
@@ -318,6 +317,19 @@ class TransactionController extends BasePaymentController
                         ]
                     ],
                 ];
+
+                // Add phone to customer_details only if it exists
+                if (!empty($participant->phone_number)) {
+                    if (!empty($participant->country_code)) {
+                        $phoneNumber = $participant->country_code . $participant->phone_number;
+                    } else {
+                        $phoneNumber = $participant->phone_number;
+                    }
+
+                    // remove non-numeric characters from phone number
+                    $phoneNumber = preg_replace('/\D/', '', $phoneNumber);
+                    $params['customer_details']['phone'] = $phoneNumber;
+                }
 
                 // Create Snap Token
                 $snapToken = \Midtrans\Snap::getSnapToken($params);
