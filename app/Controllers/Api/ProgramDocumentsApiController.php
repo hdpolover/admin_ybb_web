@@ -323,72 +323,148 @@ class ProgramDocumentsApiController extends ApiBaseController
      * 
      * @param string $programLogoUrl Optional URL for program logo
      * @return string HTML element with optimized image
-     */
-    private function getOptimizedLogoForPdf($programLogoUrl = null)
+     */    private function getOptimizedLogoForPdf($programLogoUrl = null)
     {
-        $defaultLogoPath = FCPATH . 'assets/images/logo-dark.png';
-        $logoHtml = '<h3 style="font-size: 11pt;">Youth Break the Boundaries</h3>'; // Fallback if no logo is available
-
+        // Default text-based fallback
+        $logoHtml = '<h3 style="font-size: 11pt;">Youth Break the Boundaries</h3>';
+        
         try {
-            // Determine which logo to use
-            $logoPath = $programLogoUrl ? null : $defaultLogoPath;
-            $useNetworkImage = !empty($programLogoUrl);
-
-            if ($useNetworkImage) {
-                // For network images, use a local cached copy or download it
-                $cacheDir = FCPATH . 'writable/cache/logos/';
-
-                // Create cache directory if it doesn't exist
-                if (!is_dir($cacheDir)) {
-                    mkdir($cacheDir, 0755, true);
+            // Normalize default logo path - try multiple approaches for better compatibility
+            $defaultLogoPath = FCPATH . 'assets/images/logo-dark.png';
+            $altDefaultLogoPath = dirname(APPPATH) . '/public/assets/images/logo-dark.png';
+            
+            // Create a log entry for debugging in production
+            log_message('info', 'Logo process started. URL: ' . ($programLogoUrl ?? 'none') . 
+                       ', Default path: ' . $defaultLogoPath . 
+                       ', Alt path: ' . $altDefaultLogoPath);
+            
+            // Direct Base64 embedding approach - most reliable for hosting environments
+            if (!empty($programLogoUrl)) {
+                // Handle both absolute and relative URLs
+                if (strpos($programLogoUrl, 'http') !== 0) {
+                    // Convert relative URL to absolute
+                    $base_url = base_url();
+                    $programLogoUrl = rtrim($base_url, '/') . '/' . ltrim($programLogoUrl, '/');
                 }
-
-                // Generate a cache filename based on the URL
-                $cacheFilename = md5($programLogoUrl) . '.png';
-                $cachePath = $cacheDir . $cacheFilename;
-
-                // Check if we have a cached version
-                if (!file_exists($cachePath) || (filemtime($cachePath) < strtotime('-1 day'))) {
-                    // Image isn't cached or cache is older than a day, download it
+                
+                log_message('info', 'Attempting to fetch remote logo: ' . $programLogoUrl);
+                
+                // Try to fetch with cURL first (more reliable on hosting)
+                $logoData = $this->fetchImageWithCurl($programLogoUrl);
+                
+                // If cURL failed, try file_get_contents
+                if ($logoData === false) {
                     $context = stream_context_create([
                         'http' => [
-                            'timeout' => 3, // Short timeout to avoid hanging
+                            'timeout' => 3,
                             'header' => 'User-Agent: YBB-LOA-Generator'
+                        ],
+                        'ssl' => [
+                            'verify_peer' => false,
+                            'verify_peer_name' => false
                         ]
                     ]);
-
-                    $imageData = @file_get_contents($programLogoUrl, false, $context);
-
-                    if ($imageData !== false) {
-                        // Save to cache
-                        file_put_contents($cachePath, $imageData);
-                        $logoPath = $cachePath;
-                    } else {
-                        // Download failed, use default logo
-                        $logoPath = file_exists($defaultLogoPath) ? $defaultLogoPath : null;
+                    
+                    $logoData = @file_get_contents($programLogoUrl, false, $context);
+                    log_message('info', 'file_get_contents result: ' . ($logoData ? 'success' : 'failed'));
+                }
+                
+                // If we got the image data, convert it to base64
+                if ($logoData !== false) {
+                    // Determine image type from content or default to png
+                    $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                    $logoType = $finfo->buffer($logoData);
+                    $logoType = str_replace('image/', '', $logoType);
+                    
+                    // Encode to base64
+                    $logoBase64 = base64_encode($logoData);
+                    $logoHtml = '<img src="data:image/' . $logoType . ';base64,' . $logoBase64 . '" alt="Logo" class="loa-logo">';
+                    
+                    log_message('info', 'Successfully embedded remote logo as base64');
+                    return $logoHtml;
+                }
+                
+                log_message('warning', 'Failed to fetch remote logo, falling back to default');
+            }
+            
+            // Try to use default logo if remote failed or wasn't specified
+            if (file_exists($defaultLogoPath)) {
+                $logoPath = $defaultLogoPath;
+            } elseif (file_exists($altDefaultLogoPath)) {
+                $logoPath = $altDefaultLogoPath;
+            } else {
+                // Last resort - try to find logo in common locations
+                $possiblePaths = [
+                    ROOTPATH . 'public/assets/images/logo-dark.png',
+                    ROOTPATH . 'assets/images/logo-dark.png',
+                    $_SERVER['DOCUMENT_ROOT'] . '/assets/images/logo-dark.png'
+                ];
+                
+                foreach ($possiblePaths as $path) {
+                    if (file_exists($path)) {
+                        $logoPath = $path;
+                        break;
                     }
-                } else {
-                    // Use cached version
-                    $logoPath = $cachePath;
                 }
             }
-
-            // Process the logo if we have a valid path
-            if ($logoPath && file_exists($logoPath)) {
-                // Convert to base64
+            
+            // If we have a local file, use it
+            if (isset($logoPath) && file_exists($logoPath)) {
+                log_message('info', 'Using local logo file: ' . $logoPath);
+                
+                $logoData = file_get_contents($logoPath);
                 $logoType = pathinfo($logoPath, PATHINFO_EXTENSION);
-                $logoData = base64_encode(file_get_contents($logoPath));
-                $logoSrc = 'data:image/' . $logoType . ';base64,' . $logoData;
-
-                // Generate image HTML without styling - let the template handle it
-                $logoHtml = '<img src="' . $logoSrc . '" alt="Logo" class="loa-logo">';
+                $logoBase64 = base64_encode($logoData);
+                
+                $logoHtml = '<img src="data:image/' . $logoType . ';base64,' . $logoBase64 . '" alt="Logo" class="loa-logo">';
+                return $logoHtml;
             }
-
+            
+            log_message('warning', 'All logo attempts failed, using text fallback');
             return $logoHtml;
         } catch (\Exception $e) {
-            // In case of any errors, return the text-based fallback
-            log_message('error', 'Error loading logo for PDF: ' . $e->getMessage());
+            // Detailed error logging for production debugging
+            log_message('error', 'Error loading logo for PDF: ' . $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine());
             return $logoHtml;
+        }
+    }
+    
+    /**
+     * Helper method to fetch an image using cURL
+     * More reliable than file_get_contents in many hosting environments
+     * 
+     * @param string $url The URL to fetch
+     * @return string|false The image data or false on failure
+     */
+    private function fetchImageWithCurl($url)
+    {
+        if (!function_exists('curl_init')) {
+            log_message('info', 'cURL not available for image fetching');
+            return false;
+        }
+        
+        try {
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+            curl_setopt($ch, CURLOPT_USERAGENT, 'YBB-LOA-Generator');
+            
+            $data = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            
+            log_message('info', 'cURL fetch result: HTTP ' . $httpCode);
+            
+            if ($httpCode >= 200 && $httpCode < 300) {
+                return $data;
+            }
+            return false;
+        } catch (\Exception $e) {
+            log_message('error', 'cURL error: ' . $e->getMessage());
+            return false;
         }
     }
 
@@ -398,71 +474,108 @@ class ProgramDocumentsApiController extends ApiBaseController
      * 
      * @param string $customSignatureUrl Optional URL for custom signature
      * @return string HTML element with optimized signature
-     */
-    private function getOptimizedSignatureForPdf($customSignatureUrl = null)
+     */    private function getOptimizedSignatureForPdf($customSignatureUrl = null)
     {
-        $defaultSignaturePath = FCPATH . 'assets/ybb/ttd_aldi.png';
-        $signatureHtml = '<p style="font-style: italic;">Signature not available</p>'; // Fallback if no signature is available
-
+        // Default text-based fallback
+        $signatureHtml = '<p style="font-style: italic;">Signature not available</p>';
+        
         try {
-            // Determine which signature to use
-            $signaturePath = $customSignatureUrl ? null : $defaultSignaturePath;
-            $useNetworkImage = !empty($customSignatureUrl);
-
-            if ($useNetworkImage) {
-                // For network images, use a local cached copy or download it
-                $cacheDir = FCPATH . 'writable/cache/signatures/';
-
-                // Create cache directory if it doesn't exist
-                if (!is_dir($cacheDir)) {
-                    mkdir($cacheDir, 0755, true);
+            // Normalize default signature path - try multiple approaches for better compatibility
+            $defaultSignaturePath = FCPATH . 'assets/ybb/ttd_aldi.png';
+            $altDefaultSignaturePath = dirname(APPPATH) . '/public/assets/ybb/ttd_aldi.png';
+            
+            // Create a log entry for debugging in production
+            log_message('info', 'Signature process started. URL: ' . ($customSignatureUrl ?? 'none') . 
+                       ', Default path: ' . $defaultSignaturePath . 
+                       ', Alt path: ' . $altDefaultSignaturePath);
+            
+            // Direct Base64 embedding approach - most reliable for hosting environments
+            if (!empty($customSignatureUrl)) {
+                // Handle both absolute and relative URLs
+                if (strpos($customSignatureUrl, 'http') !== 0) {
+                    // Convert relative URL to absolute
+                    $base_url = base_url();
+                    $customSignatureUrl = rtrim($base_url, '/') . '/' . ltrim($customSignatureUrl, '/');
                 }
-
-                // Generate a cache filename based on the URL
-                $cacheFilename = md5($customSignatureUrl) . '.png';
-                $cachePath = $cacheDir . $cacheFilename;
-
-                // Check if we have a cached version
-                if (!file_exists($cachePath) || (filemtime($cachePath) < strtotime('-1 day'))) {
-                    // Image isn't cached or cache is older than a day, download it
+                
+                log_message('info', 'Attempting to fetch remote signature: ' . $customSignatureUrl);
+                
+                // Try to fetch with cURL first (more reliable on hosting)
+                $signatureData = $this->fetchImageWithCurl($customSignatureUrl);
+                
+                // If cURL failed, try file_get_contents
+                if ($signatureData === false) {
                     $context = stream_context_create([
                         'http' => [
-                            'timeout' => 3, // Short timeout to avoid hanging
+                            'timeout' => 3,
                             'header' => 'User-Agent: YBB-LOA-Generator'
+                        ],
+                        'ssl' => [
+                            'verify_peer' => false,
+                            'verify_peer_name' => false
                         ]
                     ]);
-
-                    $imageData = @file_get_contents($customSignatureUrl, false, $context);
-
-                    if ($imageData !== false) {
-                        // Save to cache
-                        file_put_contents($cachePath, $imageData);
-                        $signaturePath = $cachePath;
-                    } else {
-                        // Download failed, use default signature
-                        $signaturePath = file_exists($defaultSignaturePath) ? $defaultSignaturePath : null;
+                    
+                    $signatureData = @file_get_contents($customSignatureUrl, false, $context);
+                    log_message('info', 'file_get_contents result: ' . ($signatureData ? 'success' : 'failed'));
+                }
+                
+                // If we got the image data, convert it to base64
+                if ($signatureData !== false) {
+                    // Determine image type from content or default to png
+                    $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                    $signatureType = $finfo->buffer($signatureData);
+                    $signatureType = str_replace('image/', '', $signatureType);
+                    
+                    // Encode to base64
+                    $signatureBase64 = base64_encode($signatureData);
+                    $signatureHtml = '<img src="data:image/' . $signatureType . ';base64,' . $signatureBase64 . '" alt="Signature" class="loa-signature">';
+                    
+                    log_message('info', 'Successfully embedded remote signature as base64');
+                    return $signatureHtml;
+                }
+                
+                log_message('warning', 'Failed to fetch remote signature, falling back to default');
+            }
+            
+            // Try to use default signature if remote failed or wasn't specified
+            if (file_exists($defaultSignaturePath)) {
+                $signaturePath = $defaultSignaturePath;
+            } elseif (file_exists($altDefaultSignaturePath)) {
+                $signaturePath = $altDefaultSignaturePath;
+            } else {
+                // Last resort - try to find signature in common locations
+                $possiblePaths = [
+                    ROOTPATH . 'public/assets/ybb/ttd_aldi.png',
+                    ROOTPATH . 'assets/ybb/ttd_aldi.png',
+                    $_SERVER['DOCUMENT_ROOT'] . '/assets/ybb/ttd_aldi.png'
+                ];
+                
+                foreach ($possiblePaths as $path) {
+                    if (file_exists($path)) {
+                        $signaturePath = $path;
+                        break;
                     }
-                } else {
-                    // Use cached version
-                    $signaturePath = $cachePath;
                 }
             }
-
-            // Process the signature if we have a valid path
-            if ($signaturePath && file_exists($signaturePath)) {
-                // Convert to base64
+            
+            // If we have a local file, use it
+            if (isset($signaturePath) && file_exists($signaturePath)) {
+                log_message('info', 'Using local signature file: ' . $signaturePath);
+                
+                $signatureData = file_get_contents($signaturePath);
                 $signatureType = pathinfo($signaturePath, PATHINFO_EXTENSION);
-                $signatureData = base64_encode(file_get_contents($signaturePath));
-                $signatureSrc = 'data:image/' . $signatureType . ';base64,' . $signatureData;
-
-                // Generate image HTML with class for styling
-                $signatureHtml = '<img src="' . $signatureSrc . '" alt="Signature" class="loa-signature">';
+                $signatureBase64 = base64_encode($signatureData);
+                
+                $signatureHtml = '<img src="data:image/' . $signatureType . ';base64,' . $signatureBase64 . '" alt="Signature" class="loa-signature">';
+                return $signatureHtml;
             }
-
+            
+            log_message('warning', 'All signature attempts failed, using text fallback');
             return $signatureHtml;
         } catch (\Exception $e) {
-            // In case of any errors, return the text-based fallback
-            log_message('error', 'Error loading signature for PDF: ' . $e->getMessage());
+            // Detailed error logging for production debugging
+            log_message('error', 'Error loading signature for PDF: ' . $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine());
             return $signatureHtml;
         }
     }
