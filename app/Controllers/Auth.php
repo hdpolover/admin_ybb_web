@@ -45,12 +45,14 @@ class Auth extends BaseController
         } else {
             return redirect()->back()->with('error', $admin['message'] ?? 'Invalid email or password.');
         }
-    }
-
-    public function signOut()
+    }    public function signOut()
     {
         $session = session();
         $session->remove('isLoggedIn');
+        
+        // Clear the program selection cookie as well
+        $this->response->deleteCookie('has_program_selected');
+        
         return redirect()->to('/');
     }
 

@@ -12,9 +12,7 @@ class Welcome extends BaseController
     {
         $this->programModel = new \App\Models\ProgramModel();
         $this->programCategoryModel = new \App\Models\ProgramCategoryModel();
-    }
-
-    public function index()
+    }    public function index()
     {
         // get program category with programs
         $programs =  $this->programCategoryModel->getAllCategoriesWithPrograms();
@@ -24,16 +22,21 @@ class Welcome extends BaseController
             return strcmp($a->name, $b->name);
         });
 
+        // Set cookie to indicate no program is selected when on welcome page
+        $this->response->deleteCookie('has_program_selected');
+        
         $data = [
             'programs' => $programs,
         ];
 
         return view('welcome/index', $data);
-    }
-
-    public function setProgram($program_id)
+    }    public function setProgram($program_id)
     {
         session()->set('current_program', $program_id);
+        
+        // Set a cookie to indicate a program has been selected (for JavaScript detection)
+        // Set to / path and no specific domain to ensure it's available everywhere
+        $this->response->setCookie('has_program_selected', 'true', 0, '/', '', false, false);
         
         // If coming from another page (like dashboard), redirect back there
         $referer = $this->request->getServer('HTTP_REFERER');

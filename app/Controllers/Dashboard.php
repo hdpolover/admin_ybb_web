@@ -11,12 +11,14 @@ class Dashboard extends BaseController
     {
         $this->dashboardModel = new \App\Models\DashboardModel();
         $this->programModel = new \App\Models\ProgramModel();
-    }
-
-    public function index()
+    }    public function index()
     {
         $programId = session('current_program');
         $program = $this->programModel->find($programId);
+        
+        // Ensure the cookie that indicates a program is selected persists
+        // This ensures proper JS detection across all pages
+        setcookie('has_program_selected', 'true', time() + 86400, '/');
         
         // Get all statistics data
         $data = [

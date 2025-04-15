@@ -29,11 +29,12 @@ class Topbar extends BaseController
         ];
 
         return view('welcome/index', $data);
-    }
-
-    public function setProgram($program_id)
+    }    public function setProgram($program_id)
     {
         session()->set('current_program', $program_id);
+        
+        // Set a cookie to indicate a program has been selected (for JavaScript detection)
+        $this->response->setCookie('has_program_selected', 'true', time() + 86400, '', '/', '', false, true);
         
         // If coming from another page (like dashboard), redirect back there
         $referer = $this->request->getServer('HTTP_REFERER');
