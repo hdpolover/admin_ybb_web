@@ -23,6 +23,12 @@ class WebSettingModel extends Model
         'is_verification_required',
     ];
 
+    // get by program id
+    public function getSettingByProgramId($programId)
+    {
+        return $this->where('program_category_id', $programId)->first();
+    }
+
     /**
      * Get maintenance status by web URL
      * 

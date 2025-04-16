@@ -59,6 +59,36 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->get('configuration', 'Configuration::index');
         $routes->post('configuration/update', 'Configuration::update');
         $routes->get('configuration/getData', 'Configuration::getData');
+    });    // Master Data routes
+    $routes->group('master-data', ['filter' => 'program_selection'], function ($routes) {        // program payment group
+        $routes->group('program-payments', function ($routes) {
+            $routes->get('/', 'ProgramPayments::index');
+            $routes->get('view/(:num)', 'ProgramPayments::view/$1');
+            $routes->get('getData', 'ProgramPayments::getData');
+            $routes->get('getPaymentOption/(:num)', 'ProgramPayments::getPaymentOption/$1');
+            $routes->post('create', 'ProgramPayments::create');
+            $routes->post('update/(:num)', 'ProgramPayments::update/$1');
+            $routes->get('delete/(:num)', 'ProgramPayments::delete/$1');
+        });
+        
+        // program schedule/timeline group
+        $routes->group('timelines', function ($routes) {
+            $routes->get('/', 'ProgramSchedules::index');
+            $routes->get('view/(:num)', 'ProgramSchedules::view/$1');
+            $routes->get('getData', 'ProgramSchedules::getData');
+            $routes->get('getSchedule/(:num)', 'ProgramSchedules::getSchedule/$1');
+            $routes->post('create', 'ProgramSchedules::create');
+            $routes->post('update/(:num)', 'ProgramSchedules::update/$1');
+            $routes->get('delete/(:num)', 'ProgramSchedules::delete/$1');
+        });
+          // FAQs management
+        $routes->group('faqs', function ($routes) {
+            $routes->get('/', 'Faqs::index');
+            $routes->get('get/(:num)', 'Faqs::get/$1');
+            $routes->post('create', 'Faqs::create');
+            $routes->post('update', 'Faqs::update');
+            $routes->post('delete', 'Faqs::delete');
+        });
     });
 });
 

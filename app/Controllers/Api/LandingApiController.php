@@ -239,17 +239,52 @@ class LandingApiController extends ApiBaseController
                 return $this->respondNotFound('Program category not found');
             }
 
+            // get programs
+            $programs = $this->programModel->getActivePrograms($category->id);
+
+            if (!$programs) {
+                return $this->respondNotFound('No active program found for this category');
+            }
+
+            // get latest program for this category from $programs based on end date
+            $latestProgram = null;
+
+            // Check if programs is an array or object and process accordingly
+            if (is_object($programs) && !is_array($programs)) {
+                // Handle single object case
+                $latestProgram = $programs;
+            } else if (is_array($programs)) {
+                // Handle array case
+                if (count($programs) == 1) {
+                    $latestProgram = $programs[0];
+                } else {
+                    // find the latest program based on end date
+                    foreach ($programs as $program) {
+                        if ($latestProgram === null || strtotime($program->end_date) > strtotime($latestProgram->end_date)) {
+                            $latestProgram = $program;
+                        }
+                    }
+                }
+            }
+
+
+
             // get news for this category
-            $news = $this->announcementModel->getAnnouncementsByProgramCategory($category->id);
+            $news = $this->announcementModel->getByProgramId($latestProgram->id);
 
             // get faqs for this category
-            $faqs = $this->faqModel->getActiveFaqsByProgramCategory($category->id);
+            $faqs = $this->faqModel->getActiveFaqsByProgramId($latestProgram->id);
 
-            return $this->respondSuccess([
+            $data = [
                 'category' => $category,
+                'programs' => $programs,
+                'latestProgram' => $latestProgram,
                 'news' => $news,
                 'faqs' => $faqs,
-            ]);
+            ];
+
+            // var_dump($data); // Debugging line to check the data structure
+             return $this->respondSuccess($data, self::HTTP_OK, 'Help and news data retrieved successfully');
         } catch (\Exception $e) {
             return $this->respondError($e->getMessage());
         }

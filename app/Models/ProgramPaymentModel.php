@@ -5,8 +5,8 @@ namespace App\Models;
 use CodeIgniter\Model;
 
 class ProgramPaymentModel extends Model {
-    // `id`, `program_id`, `name`, `description`, `start_date`, `end_date`, `order_number`, `idr_amount`, `usd_amount`, `category`, `is_active`, `is_deleted`, `created_at`, `updated_at`
     protected $table = 'program_payments';
+    // `id`, `program_id`, `name`, `description`, `start_date`, `end_date`, `order_number`, `idr_amount`, `usd_amount`, `category`, `is_active`, `is_deleted`, `created_at`, `updated_at`    protected $table = 'program_payments';
     protected $primaryKey = 'id';
     protected $returnType = 'object';
     // auto increment
@@ -22,15 +22,18 @@ class ProgramPaymentModel extends Model {
         'idr_amount',
         'usd_amount',
         'category',
+        'type',
         'is_active',
         'is_deleted',
         'created_at',
         'updated_at'
     ];
 
-    public $timestamps = true;
+    protected $useSoftDeletes = false;
+    protected $useTimestamps = true;
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
+    protected $dateFormat = 'datetime';
 
     /**
      * Get program payments by program ID

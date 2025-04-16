@@ -51,6 +51,24 @@ class AnnouncementModel extends Model
     protected $skipValidation       = false;
     protected $cleanValidationRules = true;
 
+    // get by program id
+    public function getByProgramId($programId, $activeOnly = true, $includeDeleted = false)
+    {
+        $this->where('program_id', $programId);
+
+        if ($activeOnly) {
+            $this->where('is_active', 1);
+        }
+
+        if (!$includeDeleted) {
+            $this->where('is_deleted', 0);
+        }
+
+        $this->orderBy('created_at', 'DESC');
+
+        return $this->findAll();
+    }
+
     /**
      * Get active announcements for a program
      *

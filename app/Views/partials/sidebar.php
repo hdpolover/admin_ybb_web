@@ -9,19 +9,19 @@
         <!-- Dark Logo-->
         <a href="/" class="logo logo-dark">
             <span class="logo-sm">
-                <img src="/assets/images/logo-sm.png" alt="" height="22">
+                <img src="/assets/ybb/ybb_white.png" alt="YBB Logo" height="60">
             </span>
             <span class="logo-lg">
-                <img src="/assets/images/logo-dark.png" alt="" height="17">
+                <img src="/assets/ybb/ybb_white.png" alt="YBB Logo" height="60">
             </span>
         </a>
         <!-- Light Logo-->
         <a href="/" class="logo logo-light">
             <span class="logo-sm">
-                <img src="/assets/images/logo-sm.png" alt="" height="22">
+                <img src="/assets/ybb/ybb_white.png" alt="YBB Logo" height="60">
             </span>
             <span class="logo-lg">
-                <img src="/assets/images/logo-light.png" alt="" height="17">
+                <img src="/assets/ybb/ybb_white.png" alt="YBB Logo" height="60">
             </span>
         </a>
     </div>
@@ -125,7 +125,7 @@
                                 <a href="<?= base_url("master-data/submission-form") ?>" class="nav-link <?= url_is('master-data/submission-form*') ? 'active' : '' ?>"> <i class="ri-file-list-line"></i> Submission Form </a>
                             </li>
                             <li class="nav-item">
-                                <a href="<?= base_url("master-data/payments") ?>" class="nav-link <?= url_is('master-data/payments*') ? 'active' : '' ?>"> <i class="ri-secure-payment-line"></i> Program Payments </a>
+                                <a href="<?= base_url("master-data/program-payments") ?>" class="nav-link <?= url_is('master-data/program-payments*') ? 'active' : '' ?>"> <i class="ri-secure-payment-line"></i> Program Payments </a>
                             </li>
                             <li class="nav-item">
                                 <a href="<?= base_url("master-data/payment-methods") ?>" class="nav-link <?= url_is('master-data/payment-methods*') ? 'active' : '' ?>"> <i class="ri-bank-card-line"></i> Payment Methods </a>

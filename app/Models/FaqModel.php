@@ -6,109 +6,98 @@ use CodeIgniter\Model;
 
 class FaqModel extends Model
 {
-    protected $table          = 'program_faqs';
-    protected $primaryKey     = 'id';
+    protected $table      = 'program_faqs';
+    protected $primaryKey = 'id';
     protected $useAutoIncrement = true;
-    protected $returnType     = 'object'; // Set to return objects
-    protected $useSoftDeletes = false; // Using is_deleted field manually
-    protected $protectFields  = true;
-    protected $allowedFields  = [
-        'program_id',
-        'question',
-        'answer',
-        'faq_category',
-        'is_active',
-        'is_deleted'
-    ];
+    protected $returnType     = 'object';
 
-    // Dates
+    protected $allowedFields = ['program_id', 'question', 'answer', 'faq_category',  'is_active', 'is_deleted'];
     protected $useTimestamps = true;
-    protected $dateFormat    = 'datetime';
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
-    protected $deletedField  = ''; // Not using soft deletes
 
-    // Validation
-    protected $validationRules      = [
-        'program_id'    => 'required|numeric',
-        'question'      => 'required|min_length[5]',
-        'answer'        => 'required|min_length[5]',
-        'faq_category'  => 'permit_empty',
-        'is_active'     => 'permit_empty|in_list[0,1]',
-        'is_deleted'    => 'permit_empty|in_list[0,1]'
-    ];
-    protected $validationMessages   = [];
-    protected $skipValidation       = false;
-    protected $cleanValidationRules = true;
+    protected $validationRules    = [];
+    protected $validationMessages = [];
+    protected $skipValidation     = false;
 
     /**
-     * Get active FAQs for a program
+     * Get all active FAQs by program ID
      *
-     * @param int $programId
-     * @return object[]
+     * @param int $programId The program ID
+     * @return array The active FAQs
      */
-    public function getActiveFaqs($programId)
+    public function getActiveFaqsByProgramId($programId)
     {
         return $this->where('program_id', $programId)
-                    ->where('is_active', 1)
-                    ->where('is_deleted', 0)
-                    ->findAll();
+            ->where('is_active', 1)
+            ->where('is_deleted', 0)
+            ->orderBy('created_at', 'DESC')
+            ->findAll();
     }
 
     /**
-     * Get active FAQs for a program by category
+     * Get all FAQs by program ID
      *
-     * @param int $programId
-     * @param string $category
-     * @return object[]
+     * @param int $programId The program ID
+     * @return array The FAQs
      */
-    public function getActiveFaqsByCategory($programId, $category)
+    public function getAllFaqsByProgramId($programId)
     {
         return $this->where('program_id', $programId)
-                    ->where('faq_category', $category)
-                    ->where('is_active', 1)
-                    ->where('is_deleted', 0)
-                    ->findAll();
+            ->where('is_deleted', 0)
+            ->orderBy('created_at', 'DESC')
+            ->findAll();
     }
-    
+
     /**
-     * Get active FAQs for a program category (using program_category relationship)
+     * Get all FAQs by program ID and category
      *
-     * @param int $programCategoryId
-     * @return object[]
+     * @param int $programId The program ID
+     * @param string $category The FAQ category
+     * @return array The FAQs
      */
-    public function getActiveFaqsByProgramCategory($programCategoryId)
+    public function getFaqsByProgramIdAndCategory($programId, $category)
     {
-        $builder = $this->builder('program_faqs f');
-        $builder->select('f.*')
-                ->join('programs p', 'p.id = f.program_id')
-                ->where('p.program_category_id', $programCategoryId)
-                ->where('f.is_active', 1)
-                ->where('f.is_deleted', 0);
-                
-        return $builder->get()->getResult();  // Changed to getResult() for objects
+        return $this->where('program_id', $programId)
+            ->where('faq_category', $category)
+            ->where('is_deleted', 0)
+            ->orderBy('created_at', 'DESC')
+            ->findAll();
     }
-    
+
     /**
-     * Get FAQs grouped by category for a program category
+     * Get FAQ by ID
      *
-     * @param int $programCategoryId
-     * @return array
+     * @param int $id The FAQ ID
+     * @return object|null The FAQ object or null if not found
      */
-    public function getGroupedFaqsByProgramCategory($programCategoryId)
+    public function getFaqById($id)
     {
-        $faqs = $this->getActiveFaqsByProgramCategory($programCategoryId);
-        
-        // Group FAQs by category
-        $grouped_faqs = [];
-        foreach ($faqs as $faq) {
-            $category = $faq->faq_category ?: 'General';  // Changed from array access to object property
-            if (!isset($grouped_faqs[$category])) {
-                $grouped_faqs[$category] = [];
-            }
-            $grouped_faqs[$category][] = $faq;
-        }
-        
-        return $grouped_faqs;
+        return $this->where('id', $id)
+            ->where('is_deleted', 0)
+            ->first();
+    }
+
+    /**
+     * Get all FAQs
+     *
+     * @return array All FAQs
+     */
+    public function getAllFaqs()
+    {
+        return $this->where('is_deleted', 0)
+            ->orderBy('created_at', 'DESC')
+            ->findAll();
+    }
+
+    /**
+     * Soft delete FAQ by ID
+     *
+     * @param int $id The FAQ ID
+     * @return bool True on success, false on failure
+     */
+    public function softDeleteFaq($id)
+    {
+        return $this->update($id, ['is_deleted' => 1]);
     }
 }

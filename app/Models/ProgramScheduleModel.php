@@ -22,12 +22,32 @@ class ProgramScheduleModel extends Model
         'is_active',
         'is_deleted',
         'created_at',
-        'updated_at'
-    ];
+        'updated_at'    ];
 
-    public $timestamps = true;
+    protected $useTimestamps = true;
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
+    protected $dateFormat = 'datetime';
+    protected $useSoftDeletes = false; // Using is_deleted field manually
+
+    // get by program id
+    public function getByProgramId($programId, $activeOnly = true, $includeDeleted = false)
+    {
+        $this->where('program_id', $programId);
+
+        if ($activeOnly) {
+            $this->where('is_active', 1);
+        }
+
+        if (!$includeDeleted) {
+            $this->where('is_deleted', 0);
+        }
+
+        $this->orderBy('order_number', 'ASC');
+
+        return $this->findAll();
+    }
+
 
     /**
      * Get program schedules by program ID
