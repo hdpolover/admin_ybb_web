@@ -201,8 +201,7 @@ class LandingApiController extends ApiBaseController
                 'total_countries' => $totalCountries,
                 'countries_data' => $countriesData,
             ];
-
-
+            
             // Get insights for this category
             // Note: You may need to create an InsightsModel to implement this functionality
             $insightsData = [
@@ -223,7 +222,7 @@ class LandingApiController extends ApiBaseController
      * 
      * @return \CodeIgniter\HTTP\ResponseInterface
      */
-    public function helpAndNews()
+    public function announcements()
     {
         try {
             $webUrl = $this->request->getGet('web_url');
@@ -267,24 +266,18 @@ class LandingApiController extends ApiBaseController
                 }
             }
 
-
-
             // get news for this category
             $news = $this->announcementModel->getByProgramId($latestProgram->id);
-
-            // get faqs for this category
-            $faqs = $this->faqModel->getActiveFaqsByProgramId($latestProgram->id);
 
             $data = [
                 'category' => $category,
                 'programs' => $programs,
                 'latestProgram' => $latestProgram,
-                'news' => $news,
-                'faqs' => $faqs,
+                'announcements' => $news,
             ];
 
             // var_dump($data); // Debugging line to check the data structure
-             return $this->respondSuccess($data, self::HTTP_OK, 'Help and news data retrieved successfully');
+             return $this->respondSuccess($data, self::HTTP_OK, 'Announcements data retrieved successfully');
         } catch (\Exception $e) {
             return $this->respondError($e->getMessage());
         }

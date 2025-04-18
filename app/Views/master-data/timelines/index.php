@@ -1,16 +1,20 @@
 <?= $this->include('partials/main') ?>
 
 <head>
-    <?php echo view('partials/title-meta', array('title' => 'Program Timelines')); ?> <!-- DataTables css -->
-    <link href="/assets/libs/datatables/dataTables.bootstrap5.min.css" rel="stylesheet" type="text/css" />
-    <link href="/assets/libs/datatables/responsive.bootstrap5.min.css" rel="stylesheet" type="text/css" />
-    <link href="/assets/libs/datatables/buttons.bootstrap5.min.css" rel="stylesheet" type="text/css" />
+    <?php echo view('partials/title-meta', array('title' => 'Program Timelines')); ?>
+
+    <?= $this->include('partials/head-css') ?>
+
+    <!--datatable css-->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" />
+    <!--datatable responsive css-->
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap.min.css" />
+
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.dataTables.min.css">
 
     <!-- SweetAlert2 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.3/dist/sweetalert2.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.3/dist/sweetalert2.all.min.js"></script>
-
-    <?= $this->include('partials/head-css') ?>
 
     <style>
         .description-cell {
@@ -78,68 +82,69 @@
                                 </div>
 
                                 <div class="card-body">
-                                    <div class="table-responsive table-card">
-                                        <table id="program-schedules-table" class="table table-bordered dt-responsive nowrap table-striped align-middle" style="width:100%">                                            <thead class="table-light">
-                                                <tr>
-                                                    <th scope="col" style="width: 50px;">#</th>
-                                                    <th scope="col">Name</th>
-                                                    <th scope="col">Start Date</th>
-                                                    <th scope="col">End Date</th>
-                                                    <th scope="col">Status</th>
-                                                    <th scope="col">Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <?php if (isset($schedules) && is_array($schedules)) : ?>
-                                                    <?php foreach ($schedules as $index => $schedule) : ?>
-                                                        <tr>
-                                                            <td><?= $index + 1 ?></td>
-                                                            <td><?= esc($schedule->name) ?></td>
-                                                            <td>
-                                                                <?php if ($schedule->start_date): ?>
-                                                                    <?= date('M d, Y', strtotime($schedule->start_date)) ?>
-                                                                <?php else: ?>
-                                                                    N/A
-                                                                <?php endif; ?>
-                                                            </td>
-                                                            <td>
-                                                                <?php if ($schedule->end_date): ?>
-                                                                    <?= date('M d, Y', strtotime($schedule->end_date)) ?>
-                                                                <?php else: ?>
-                                                                    N/A
-                                                                <?php endif; ?>
-                                                            </td>
-                                                            <td>
-                                                                <?php if ($schedule->is_active == 1): ?>
-                                                                    <span class="badge bg-success-subtle text-success">Active</span>
-                                                                <?php else: ?>
-                                                                    <span class="badge bg-danger-subtle text-danger">Inactive</span>
-                                                                <?php endif; ?>
-                                                            </td>                                                            <td>
-                                                                <div class="d-flex gap-2">
-                                                                    <div class="view">
-                                                                        <button type="button" class="btn btn-sm btn-info view-schedule" data-id="<?= $schedule->id ?>" data-bs-toggle="tooltip" data-bs-placement="top" title="View Details">
-                                                                            <i class="ri-eye-fill"></i>
-                                                                        </button>
-                                                                    </div>
-                                                                    <div class="edit">
-                                                                        <button type="button" class="btn btn-sm btn-success edit-schedule" data-id="<?= $schedule->id ?>" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit">
-                                                                            <i class="ri-pencil-fill"></i>
-                                                                        </button>
-                                                                    </div>
-                                                                    <div class="remove">
-                                                                        <button type="button" class="btn btn-sm btn-danger delete-schedule" data-id="<?= $schedule->id ?>" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
-                                                                            <i class="ri-delete-bin-fill"></i>
-                                                                        </button>
-                                                                    </div>
+
+                                    <table id="program-schedules-table" class="table table-bordered dt-responsive nowrap table-striped align-middle" style="width:100%">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th scope="col" style="width: 50px;">#</th>
+                                                <th scope="col">Name</th>
+                                                <th scope="col">Start Date</th>
+                                                <th scope="col">End Date</th>
+                                                <th scope="col">Status</th>
+                                                <th scope="col">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php if (isset($schedules) && is_array($schedules)) : ?>
+                                                <?php foreach ($schedules as $index => $schedule) : ?>
+                                                    <tr>
+                                                        <td><?= $index + 1 ?></td>
+                                                        <td><?= esc($schedule->name) ?></td>
+                                                        <td>
+                                                            <?php if ($schedule->start_date): ?>
+                                                                <?= date('M d, Y', strtotime($schedule->start_date)) ?>
+                                                            <?php else: ?>
+                                                                N/A
+                                                            <?php endif; ?>
+                                                        </td>
+                                                        <td>
+                                                            <?php if ($schedule->end_date): ?>
+                                                                <?= date('M d, Y', strtotime($schedule->end_date)) ?>
+                                                            <?php else: ?>
+                                                                N/A
+                                                            <?php endif; ?>
+                                                        </td>
+                                                        <td>
+                                                            <?php if ($schedule->is_active == 1): ?>
+                                                                <span class="badge bg-success-subtle text-success">Active</span>
+                                                            <?php else: ?>
+                                                                <span class="badge bg-danger-subtle text-danger">Inactive</span>
+                                                            <?php endif; ?>
+                                                        </td>
+                                                        <td>
+                                                            <div class="d-flex gap-2">
+                                                                <div class="view">
+                                                                    <button type="button" class="btn btn-sm btn-info view-schedule" data-id="<?= $schedule->id ?>" data-bs-toggle="tooltip" data-bs-placement="top" title="View Details">
+                                                                        <i class="ri-eye-fill"></i>
+                                                                    </button>
                                                                 </div>
-                                                            </td>
-                                                        </tr>
-                                                    <?php endforeach; ?>
-                                                <?php endif; ?>
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                                                <div class="edit">
+                                                                    <button type="button" class="btn btn-sm btn-success edit-schedule" data-id="<?= $schedule->id ?>" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit">
+                                                                        <i class="ri-pencil-fill"></i>
+                                                                    </button>
+                                                                </div>
+                                                                <div class="remove">
+                                                                    <button type="button" class="btn btn-sm btn-danger delete-schedule" data-id="<?= $schedule->id ?>" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete">
+                                                                        <i class="ri-delete-bin-fill"></i>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                <?php endforeach; ?>
+                                            <?php endif; ?>
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
@@ -152,27 +157,6 @@
         <!-- end main content-->
     </div>
     <!-- END layout-wrapper -->
-
-    <?= $this->include('partials/vendor-scripts') ?>
-
-    <!-- jQuery first (required for DataTables) -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-    <!-- Bootstrap bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>    <!-- DataTables js -->
-    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
-    <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.bootstrap5.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.print.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
-
-    <!-- App js -->
-    <script src="/assets/js/app.js"></script>
 
     <!-- View Schedule Modal -->
     <div class="modal fade" id="view-schedule-modal" tabindex="-1" aria-labelledby="view-schedule-modal-label" aria-hidden="true">
@@ -391,6 +375,26 @@
         </div>
     </div>
 
+    <?= $this->include('partials/vendor-scripts') ?>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+
+    <!--datatable js-->
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.print.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+
+    <script src="/assets/js/pages/datatables.init.js"></script>
+
+    <!-- App js -->
+    <script src="/assets/js/app.js"></script>
+
     <!-- Custom JavaScript -->
     <script type="text/javascript">
         document.addEventListener('DOMContentLoaded', function() {
@@ -424,66 +428,32 @@
             }
         });
 
-        function initializeScheduleFunctions() {            // Initialize DataTable with improved configuration
+        function initializeScheduleFunctions() {
+            // Initialize DataTable with improved configuration
             var scheduleTable = $('#program-schedules-table').DataTable({
                 responsive: true,
-                lengthChange: true,
+                lengthChange: false,
                 pageLength: 10,
                 searching: true,
                 ordering: true,
-                dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end"f>>' +
-                    '<"row"<"col-sm-12"tr>>' +
-                    '<"row mt-3"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
-                buttons: false,
                 columnDefs: [{
                     orderable: false,
-                    targets: [5] // Action column is not sortable (index changed to 5 since we removed description)
-                }, {
-                    targets: 0, // Row number column
-                    orderable: false,
-                    searchable: false,
-                    className: 'text-center',
-                    width: '50px'
+                    targets: [5] // Action column is not sortable
                 }],
-                language: {
-                    search: "_INPUT_",
-                    searchPlaceholder: "Search...",
-                    emptyTable: "No timeline events found",
-                    info: "Showing _START_ to _END_ of _TOTAL_ entries",
-                    paginate: {
-                        previous: "<i class='mdi mdi-chevron-left'>",
-                        next: "<i class='mdi mdi-chevron-right'>"
-                    },
-                    lengthMenu: "_MENU_ entries per page"
-                },
                 drawCallback: function() {
-                    $(".dataTables_paginate > .pagination").addClass("pagination-rounded");
+                    $(".dataTables_paginate > .pagination").addClass("pagination-squared justify-content-end mb-0");
                     // Initialize tooltips
                     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
                     var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
                         return new bootstrap.Tooltip(tooltipTriggerEl)
                     });
-                },
-                language: {
-                    search: "_INPUT_",
-                    searchPlaceholder: "Search...",
-                    emptyTable: "No timeline events found",
-                    info: "Showing _START_ to _END_ of _TOTAL_ entries",
-                    paginate: {
-                        previous: "<i class='ri-arrow-left-s-line'>",
-                        next: "<i class='ri-arrow-right-s-line'>"
-                    },
-                    lengthMenu: "_MENU_ entries per page"
                 }
             });
 
-            // Connect custom search box if exists
-            $('.search').keyup(function() {
-                scheduleTable.search($(this).val()).draw();
-            });            // Use event delegation for view button
+            // Use event delegation for view button
             $(document).on('click', '.view-schedule', function(e) {
                 e.preventDefault();
-                
+
                 var scheduleId = $(this).data('id');
                 console.log("View button clicked for ID:", scheduleId);
 
@@ -499,7 +469,7 @@
                     success: function(response) {
                         console.log("View Ajax response:", response);
                         $('#view-loading').hide();
-                        
+
                         if (response && response.data) {
                             var schedule = response.data;
 
@@ -553,10 +523,12 @@
                         });
                     }
                 });
-            });            // Handle edit button click
+            });
+
+            // Handle edit button click
             $(document).on('click', '.edit-schedule', function(e) {
                 e.preventDefault();
-                
+
                 var scheduleId = $(this).data('id');
                 console.log("Edit button clicked for ID:", scheduleId);
 
@@ -630,7 +602,7 @@
             // Handle delete button click
             $(document).on('click', '.delete-schedule', function(e) {
                 e.preventDefault();
-                
+
                 var scheduleId = $(this).data('id');
                 console.log("Delete button clicked for ID:", scheduleId);
 

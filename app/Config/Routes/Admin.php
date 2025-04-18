@@ -43,7 +43,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->post('update/(:num)', 'ProgramDocuments::update/$1');
             $routes->get('delete/(:num)', 'ProgramDocuments::delete/$1');
             $routes->get('get-document/(:num)', 'ProgramDocuments::getDocument/$1');
-            
+
             // LOA Template routes
             $routes->get('loa-settings/(:num)', 'ProgramDocuments::loaSettings/$1');
             $routes->post('save-loa-template/(:num)', 'ProgramDocuments::saveLoaTemplate/$1');
@@ -59,7 +59,9 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->get('configuration', 'Configuration::index');
         $routes->post('configuration/update', 'Configuration::update');
         $routes->get('configuration/getData', 'Configuration::getData');
-    });    // Master Data routes
+    });
+
+    // Master Data routes
     $routes->group('master-data', ['filter' => 'program_selection'], function ($routes) {        // program payment group
         $routes->group('program-payments', function ($routes) {
             $routes->get('/', 'ProgramPayments::index');
@@ -70,7 +72,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->post('update/(:num)', 'ProgramPayments::update/$1');
             $routes->get('delete/(:num)', 'ProgramPayments::delete/$1');
         });
-        
+
         // program schedule/timeline group
         $routes->group('timelines', function ($routes) {
             $routes->get('/', 'ProgramSchedules::index');
@@ -81,13 +83,36 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->post('update/(:num)', 'ProgramSchedules::update/$1');
             $routes->get('delete/(:num)', 'ProgramSchedules::delete/$1');
         });
-          // FAQs management
+        // FAQs management
         $routes->group('faqs', function ($routes) {
             $routes->get('/', 'Faqs::index');
             $routes->get('get/(:num)', 'Faqs::get/$1');
             $routes->post('create', 'Faqs::create');
             $routes->post('update', 'Faqs::update');
             $routes->post('delete', 'Faqs::delete');
+        });
+
+        // program details group
+        $routes->group('program-details', function ($routes) {
+            $routes->get('/', 'ProgramDetails::index');
+            $routes->get('view/(:num)', 'ProgramDetails::view/$1');
+            $routes->get('getData', 'ProgramDetails::getData');
+            $routes->post('create', 'ProgramDetails::create');
+            $routes->post('category/(:num)/update', 'ProgramDetails::updateCategoryDetails/$1');
+            $routes->get('delete/(:num)', 'ProgramDetails::delete/$1');
+            $routes->post('program/(:num)/update', 'ProgramDetails::updateProgramDetails/$1');
+
+
+        });
+
+        // submission form group
+        $routes->group('submission-form', function ($routes) {
+            $routes->get('/', 'SubmissionForm::index');
+            $routes->get('view/(:num)', 'SubmissionForm::view/$1');
+            $routes->get('getData', 'SubmissionForm::getData');
+            $routes->post('create', 'SubmissionForm::create');
+            $routes->post('update/(:num)', 'SubmissionForm::update/$1');
+            $routes->get('delete/(:num)', 'SubmissionForm::delete/$1');
         });
     });
 });

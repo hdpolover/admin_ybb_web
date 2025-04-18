@@ -237,9 +237,9 @@ $routes->group('api/landing', ['namespace' => 'App\Controllers\Api'], function (
     // partners and sponsors
     $routes->get('partners-sponsors', 'LandingApiController::partnersSponsors');
     $routes->get('partners-sponsors/(:num)', 'LandingApiController::partnerSponsorDetail/$1');
-    // help & news
-    $routes->get('help-news', 'LandingApiController::helpAndNews');
-    $routes->get('help-news/(:num)', 'LandingApiController::helpAndNewsDetail/$1');
+    // announcements
+    $routes->get('announcements', 'LandingApiController::announcements');
+    $routes->get('announcements/(:num)', 'LandingApiController::announcementDetail/$1');
 });
 
 // Include modular route files
