@@ -25,8 +25,6 @@ class Ambassadors extends BaseController
         $programId = session('current_program');
         $program = $this->programModel->find($programId);
 
-
-
         // Get ambassador statistics
         $stats = $this->ambassadorModel->getAmbassadorStats($programId);
 
@@ -270,5 +268,203 @@ class Ambassadors extends BaseController
         ];
 
         return view('users/ambassadors/view', $data);
+    }
+
+    /**
+     * Get ambassador data for editing
+     */
+    public function getAmbassadorData($id)
+    {
+        // Get ambassador data
+        $ambassador = $this->ambassadorModel->find($id);
+        
+        if (!$ambassador) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Ambassador not found'
+            ]);
+        }
+        
+        // Add formatted date
+        $ambassador->created_at_formatted = date('d M Y', strtotime($ambassador->created_at));
+        
+        // Get referral count
+        $programId = session('current_program');
+        $referralCounts = $this->ambassadorModel->getComprehensiveReferralCounts($programId, $id);
+        $ambassador->referral_count = $referralCounts[$ambassador->id] ?? 0;
+        
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $ambassador
+        ]);
+    }
+    
+    /**
+     * Update ambassador data
+     */
+    public function update()
+    {
+        $id = $this->request->getPost('id');
+        
+        // Check if ambassador exists
+        $ambassador = $this->ambassadorModel->find($id);
+        
+        if (!$ambassador) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Ambassador not found'
+            ]);
+        }
+        
+        // Prepare data for update
+        $data = [
+            'name' => $this->request->getPost('name'),
+            'email' => $this->request->getPost('email'),
+            'institution' => $this->request->getPost('institution'),
+            'phone_number' => $this->request->getPost('phone_number'),
+            'is_active' => $this->request->getPost('is_active'),
+            'notes' => $this->request->getPost('notes'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ];
+        
+        // Remove empty values
+        $data = array_filter($data, function($value) {
+            return $value !== null && $value !== '';
+        });
+        
+        // Update ambassador
+        $updated = $this->ambassadorModel->update($id, $data);
+        
+        if ($updated) {
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Ambassador updated successfully'
+            ]);
+        } else {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to update ambassador'
+            ]);
+        }
+    }
+    
+    /**
+     * Create new ambassador
+     */
+    public function create()
+    {
+        // Prepare data
+        $programId = session('current_program');
+        
+        $data = [
+            'name' => $this->request->getPost('name'),
+            'email' => $this->request->getPost('email'),
+            'institution' => $this->request->getPost('institution'),
+            'program_id' => $programId,
+            'notes' => $this->request->getPost('notes'),
+            'gender' => $this->request->getPost('gender'),
+            'phone_number' => $this->request->getPost('phone_number'),
+            'is_active' => 1, // Active by default
+            'is_deleted' => 0,
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ];
+        
+        
+        // Save ambassador
+        $inserted = $this->ambassadorModel->insert($data);
+        
+        if ($inserted) {
+            // Generate ref code based on 4 characters of name and and id of ambassador
+            $name = preg_replace('/[^A-Za-z0-9]/', '', $data['name']); // Remove special characters
+            $name = strtoupper(substr($name, 0, 4)); // Get first 4 characters and convert to uppercase
+            $name = str_pad($name, 4, 'X'); // Pad with X if less than 4 characters
+            $name = substr($name, 0, 4); // Ensure it's exactly 4 characters
+
+            $id = $this->ambassadorModel->insertID(); // Get the inserted ID
+            $ref_code = $name . $id;
+
+            // update ambassador with ref code
+            $this->ambassadorModel->update($inserted, ['ref_code' => $ref_code]);
+            
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Ambassador created successfully',
+                'ambassador_id' => $inserted
+            ]);
+        } else {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to create ambassador'
+            ]);
+        }
+    }
+    
+    /**
+     * Generate unique referral code
+     */
+    private function generateUniqueRefCode()
+    {
+        $characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed similar-looking characters
+        $length = 6;
+        $isUnique = false;
+        $code = '';
+        
+        while (!$isUnique) {
+            $code = '';
+            for ($i = 0; $i < $length; $i++) {
+                $code .= $characters[rand(0, strlen($characters) - 1)];
+            }
+            
+            // Check if code already exists
+            $exists = $this->ambassadorModel->where('ref_code', $code)->countAllResults();
+            
+            if ($exists === 0) {
+                $isUnique = true;
+            }
+        }
+        
+        return $code;
+    }
+
+    /**
+     * Delete ambassador (soft delete)
+     */
+    public function delete($id)
+    {
+        try {
+            // Check if ambassador exists
+            $ambassador = $this->ambassadorModel->find($id);
+
+            if (!$ambassador) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Ambassador not found'
+                ]);
+            }
+
+            // Soft delete by updating is_deleted field
+            $updated = $this->ambassadorModel->update($id, [
+                'is_deleted' => 1,
+                'updated_at' => date('Y-m-d H:i:s')
+            ]);
+
+            if ($updated) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'Ambassador deleted successfully'
+                ]);
+            } else {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Failed to delete ambassador'
+                ]);
+            }
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Error deleting ambassador: ' . $e->getMessage()
+            ]);
+        }
     }
 }

@@ -3,13 +3,19 @@
 <head>
     <?php echo view('partials/title-meta', array('title' => 'Ambassadors')); ?>
 
+    <?= $this->include('partials/head-css') ?>
+
     <!--datatable css-->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" />
     <!--datatable responsive css-->
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap.min.css" />
+
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.dataTables.min.css">
 
-    <?= $this->include('partials/head-css') ?>
+    <!-- SweetAlert2 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.3/dist/sweetalert2.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.3/dist/sweetalert2.all.min.js"></script>
+
 </head>
 
 <body>
@@ -101,9 +107,9 @@
                                 <div class="card-header d-flex align-items-center">
                                     <h5 class="card-title mb-0 flex-grow-1">All Ambassadors</h5>
                                     <div class="flex-shrink-0">
-                                        <a href="<?= site_url('ambassadors/new') ?>" class="btn btn-primary waves-effect waves-light">
+                                        <button type="button" class="btn btn-primary waves-effect waves-light" data-bs-toggle="modal" data-bs-target="#addAmbassadorModal">
                                             <i class="ri-add-line align-middle me-1"></i> Add New Ambassador
-                                        </a>
+                                        </button>
                                     </div>
                                 </div>
                                 <div class="card-body">
@@ -179,24 +185,188 @@
     </div>
     <!-- END layout-wrapper -->
 
-    <?= $this->include('partials/vendor-scripts') ?>
+    <!-- New Ambassador Modal -->
+    <div class="modal fade" id="addAmbassadorModal" tabindex="-1" aria-labelledby="addAmbassadorModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addAmbassadorModalLabel">Add New Ambassador</h5>
+                    <button type="button" class="btn-close btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info" role="alert">
+                        <i class="ri-information-line me-2"></i>
+                        <strong>Note:</strong> Referral code will be generated automatically. You don't need to input it manually.
+                    </div>
+                    <form id="addAmbassadorForm" method="post" action="/users/ambassadors/create">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="name" class="form-label">Full Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="email" class="form-label">Email Address <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" id="email" name="email" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="gender" class="form-label">Gender</label>
+                                <select class="form-select" id="gender" name="gender">
+                                    <option value="">Select Gender</option>
+                                    <option value="male">Male</option>
+                                    <option value="female">Female</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="phone_number" class="form-label">Phone Number</label>
+                                <input type="tel" class="form-control" id="phone_number" name="phone_number">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="institution" class="form-label">Institution/University</label>
+                                <input type="text" class="form-control" id="institution" name="institution">
+                            </div>
+                            <div class="col-12">
+                                <label for="notes" class="form-label">Notes</label>
+                                <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" form="addAmbassadorForm" class="btn btn-primary">Create Ambassador</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
-
-    <!--datatable js-->
-    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
-    <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
-
-    <script src="/assets/js/pages/datatables.init.js"></script>
-
-    <!-- App js -->
-    <script src="/assets/js/app.js"></script>
+    <!-- Edit Ambassador Modal -->
+    <div class="modal fade" id="editAmbassadorModal" tabindex="-1" aria-labelledby="editAmbassadorModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editAmbassadorModalLabel">Edit Ambassador</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editAmbassadorForm" method="post">
+                        <input type="hidden" id="edit_ambassador_id" name="id">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="edit_name" class="form-label">Full Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="edit_name" name="name" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="edit_email" class="form-label">Email Address <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" id="edit_email" name="email" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="edit_gender" class="form-label">Gender</label>
+                                <select class="form-select" id="edit_gender" name="gender">
+                                    <option value="">Select Gender</option>
+                                    <option value="male">Male</option>
+                                    <option value="female">Female</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="edit_phone_number" class="form-label">Phone Number</label>
+                                <input type="tel" class="form-control" id="edit_phone_number" name="phone_number">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="edit_institution" class="form-label">Institution/Company</label>
+                                <input type="text" class="form-control" id="edit_institution" name="institution">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="edit_ref_code" class="form-label">Referral Code</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="edit_ref_code" name="ref_code" readonly>
+                                </div>
+                                <div class="form-text text-muted mt-1">
+                                    <i class="ri-information-line me-1"></i> Referral code cannot be changed
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="edit_status" class="form-label">Status</label>
+                                <select class="form-select" id="edit_status" name="is_active">
+                                    <option value="1">Active</option>
+                                    <option value="0">Inactive</option>
+                                    <option value="2">Suspended</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label for="edit_notes" class="form-label">Notes</label>
+                                <textarea class="form-control" id="edit_notes" name="notes" rows="3"></textarea>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" form="editAmbassadorForm" class="btn btn-primary">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize DataTable
+            // Add event listener to the "Add New Ambassador" button to open the modal
+            document.querySelectorAll('[href="<?= site_url('ambassadors/new') ?>"]').forEach(function(element) {
+                element.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    var modal = new bootstrap.Modal(document.getElementById('addAmbassadorModal'));
+                    modal.show();
+                });
+            });
+
+            // Form submission handling
+            document.getElementById('addAmbassadorForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                const formData = new FormData(this);
+
+                fetch(this.action, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                title: 'Success!',
+                                text: 'Ambassador created successfully',
+                                icon: 'success',
+                                confirmButtonText: 'OK'
+                            }).then(() => {
+                                // Reload the table
+                                $('#ambassadors-datatable').DataTable().ajax.reload();
+                                // Close the modal
+                                bootstrap.Modal.getInstance(document.getElementById('addAmbassadorModal')).hide();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: data.message || 'Failed to create ambassador',
+                                icon: 'error',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'An error occurred while processing your request',
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    });
+            });
+        });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize DataTable            
             var ambassadorsTable = $('#ambassadors-datatable').DataTable({
                 processing: true,
                 serverSide: true,
@@ -219,7 +389,8 @@
 
                         return d;
                     }
-                },                columns: [{
+                },
+                columns: [{
                         data: null,
                         render: function(data, type, row, meta) {
                             // Using DataTables' row counter for sequential numbering
@@ -264,22 +435,22 @@
                         data: 'ref_code',
                         render: function(data, type, row) {
                             return '<div class="d-flex align-items-center">' +
-                                   '<span class="badge bg-info-subtle text-info fs-6 p-2 user-select-all" ' +
-                                   'style="font-weight: 600; letter-spacing: 1px;">' + 
-                                   data + '</span>' +
-                                   '<button class="ms-2 btn btn-sm btn-soft-secondary copy-code" ' +
-                                   'data-code="' + data + '" title="Copy code">' +
-                                   '<i class="ri-file-copy-line"></i></button>' +
-                                   '</div>';
+                                '<span class="badge bg-info-subtle text-info fs-6 p-2 user-select-all" ' +
+                                'style="font-weight: 600; letter-spacing: 1px;">' +
+                                data + '</span>' +
+                                '<button class="ms-2 btn btn-sm btn-soft-secondary copy-code" ' +
+                                'data-code="' + data + '" title="Copy code">' +
+                                '<i class="ri-file-copy-line"></i></button>' +
+                                '</div>';
                         }
-                    },                    {
+                    }, {
                         data: 'referral_count',
                         render: function(data, type, row) {
                             // For sorting, just return the number
                             if (type === 'sort' || type === 'type') {
                                 return data;
                             }
-                            
+
                             // For display, create a visual representation
                             if (data > 0) {
                                 // Create different badge colors based on referral count
@@ -289,11 +460,11 @@
                                 } else if (data >= 5) {
                                     badgeClass = 'bg-primary';
                                 }
-                                
+
                                 // Progress bar representation for visual impact
                                 let maxReferrals = 20; // Consider 20+ referrals as max for visual purposes
                                 let percentage = Math.min(data / maxReferrals * 100, 100);
-                                
+
                                 return '<div class="d-flex align-items-center">' +
                                     '<span class="badge rounded-pill ' + badgeClass + ' fs-6 me-2">' + data + '</span>' +
                                     '<div class="progress flex-grow-1" style="height: 6px;">' +
@@ -310,7 +481,8 @@
                         orderable: false,
                         searchable: false
                     }
-                ],                order: [
+                ],
+                order: [
                     [3, 'desc'] // Sort by referral count (column 3) in descending order
                 ],
                 pageLength: 10,
@@ -373,37 +545,257 @@
                 // Reload the table with reset filters
                 ambassadorsTable.search('').draw(); // Clear the search
                 ambassadorsTable.ajax.reload();
-            });
-
-            // Handle delete ambassador
+            }); // Handle delete ambassador
             $(document).on('click', '.delete-ambassador', function() {
                 var ambassadorId = $(this).data('id');
 
-                if (confirm('Are you sure you want to delete this ambassador?')) {
-                    $.ajax({
-                        url: '<?= base_url('ambassadors/delete/') ?>' + ambassadorId,
-                        type: 'POST',
-                        dataType: 'json',
-                        success: function(response) {
-                            if (response.success) {
-                                alert('Ambassador deleted successfully');
-                                ambassadorsTable.ajax.reload();
-                            } else {
-                                alert('Failed to delete ambassador: ' + (response.message || 'Unknown error'));
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: "This ambassador will be removed from the system. You won't be able to revert this!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonClass: 'btn btn-primary w-xs me-2 mt-2',
+                    cancelButtonClass: 'btn btn-danger w-xs mt-2',
+                    confirmButtonText: 'Yes, delete it!',
+                    buttonsStyling: false,
+                    showCloseButton: true
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: '<?= base_url('users/ambassadors/delete/') ?>' + ambassadorId,
+                            type: 'POST',
+                            dataType: 'json',
+                            success: function(response) {
+                                if (response.success) {
+                                    Swal.fire({
+                                        title: 'Deleted!',
+                                        text: 'Ambassador has been deleted successfully.',
+                                        icon: 'success',
+                                        customClass: {
+                                            confirmButton: 'btn btn-primary w-xs mt-2',
+                                        },
+                                        buttonsStyling: false
+                                    });
+                                    ambassadorsTable.ajax.reload();
+                                } else {
+                                    Swal.fire({
+                                        title: 'Error!',
+                                        text: response.message || 'Failed to delete ambassador',
+                                        icon: 'error',
+                                        customClass: {
+                                            confirmButton: 'btn btn-primary w-xs mt-2',
+                                        },
+                                        buttonsStyling: false
+                                    });
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                console.error('Error:', error);
+                                Swal.fire({
+                                    title: 'Error!',
+                                    text: 'An error occurred while trying to delete the ambassador',
+                                    icon: 'error',
+                                    customClass: {
+                                        confirmButton: 'btn btn-primary w-xs mt-2',
+                                    },
+                                    buttonsStyling: false
+                                });
                             }
-                        },
-                        error: function(xhr, status, error) {
-                            console.error('Error:', error);
-                            alert('An error occurred while trying to delete the ambassador');
+                        });
+                    }
+                });
+            });
+
+            // Handle editing ambassador (initialization from row)
+            $(document).on('click', '.btn-soft-warning', function(e) {
+                e.preventDefault();
+                var url = $(this).attr('href');
+                var ambassadorId = url.substring(url.lastIndexOf('/') + 1);
+
+                // Fetch ambassador data via AJAX
+                $.ajax({
+                    url: '<?= site_url('users/ambassadors/getAmbassadorData') ?>/' + ambassadorId,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            var ambassador = response.data; // Populate the form fields
+                            $('#edit_ambassador_id').val(ambassador.id);
+                            $('#edit_name').val(ambassador.name);
+                            $('#edit_email').val(ambassador.email);
+                            $('#edit_phone_number').val(ambassador.phone_number || '');
+                            $('#edit_institution').val(ambassador.institution || '');
+                            $('#edit_ref_code').val(ambassador.ref_code);
+                            $('#edit_status').val(ambassador.is_active);
+                            $('#edit_gender').val(ambassador.gender || '');
+                            $('#edit_notes').val(ambassador.notes || '');
+
+                            // Show the modal
+                            var editModal = new bootstrap.Modal(document.getElementById('editAmbassadorModal'));
+                            editModal.show();
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: response.message || 'Failed to retrieve ambassador data',
+                                icon: 'error',
+                                confirmButtonText: 'OK'
+                            });
                         }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'An error occurred while retrieving ambassador data',
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                });
+            });
+
+            // Handle edit from view modal
+            $('.edit-from-view').on('click', function() {
+                var ambassadorId = $(this).attr('data-id');
+
+                // Close view modal
+                bootstrap.Modal.getInstance(document.getElementById('viewAmbassadorModal')).hide();
+
+                // Trigger edit action with the same ID
+                $.ajax({
+                    url: '<?= site_url('ambassadors/getAmbassadorData') ?>/' + ambassadorId,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            var ambassador = response.data;
+
+                            // Populate the form fields
+                            $('#edit_ambassador_id').val(ambassador.id);
+                            $('#edit_name').val(ambassador.name);
+                            $('#edit_email').val(ambassador.email);
+                            $('#edit_phone_number').val(ambassador.phone_number || '');
+                            $('#edit_institution').val(ambassador.institution || '');
+                            $('#edit_ref_code').val(ambassador.ref_code);
+                            $('#edit_status').val(ambassador.is_active);
+                            $('#edit_notes').val(ambassador.notes || '');
+
+                            // make the referral code field readonly
+                            $('#edit_ref_code').attr('readonly', true);
+
+                            // Show the edit modal
+                            var editModal = new bootstrap.Modal(document.getElementById('editAmbassadorModal'));
+                            editModal.show();
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: response.message || 'Failed to retrieve ambassador data',
+                                icon: 'error',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    }
+                });
+            });
+
+            // Handle copy referral code
+            $(document).on('click', '.copy-code', function() {
+                var code = $(this).data('code');
+                navigator.clipboard.writeText(code).then(function() {
+                    Swal.fire({
+                        title: 'Success!',
+                        text: 'Referral code copied to clipboard',
+                        icon: 'success',
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000
                     });
-                }
+                }, function() {
+                    // Fallback for older browsers
+                    var textarea = document.createElement('textarea');
+                    textarea.value = code;
+                    textarea.setAttribute('readonly', '');
+                    textarea.style.position = 'absolute';
+                    textarea.style.left = '-9999px';
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+
+                    Swal.fire({
+                        title: 'Success!',
+                        text: 'Referral code copied to clipboard',
+                        icon: 'success',
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000
+                    });
+                });
+            }); // Handle edit ambassador form submission
+            $('#editAmbassadorForm').on('submit', function(e) {
+                e.preventDefault();
+
+                const formData = new FormData(this);
+
+                $.ajax({
+                    url: '<?= site_url('users/ambassadors/update') ?>',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                title: 'Success!',
+                                text: 'Ambassador updated successfully',
+                                icon: 'success',
+                                confirmButtonText: 'OK'
+                            }).then(() => {
+                                // Refresh the table
+                                $('#ambassadors-datatable').DataTable().ajax.reload();
+                                // Close the modal
+                                bootstrap.Modal.getInstance(document.getElementById('editAmbassadorModal')).hide();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: response.message || 'Failed to update ambassador',
+                                icon: 'error',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'An error occurred while processing your request',
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                });
             });
         });
     </script>
 
+    <?= $this->include('partials/vendor-scripts') ?>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+
+    <!--datatable js-->
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.2.9/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
+
+    <script src="/assets/js/pages/datatables.init.js"></script>
+
     <!-- App js -->
-    <script src="<?= base_url('assets/js/app.js') ?>"></script>
+    <script src="/assets/js/app.js"></script>
 </body>
 
 </html>

@@ -2,6 +2,9 @@
 
 namespace App\Controllers;
 
+use App\Models\ProgramModel;
+use App\Models\ProgramCategoryModel;
+
 class Welcome extends BaseController
 {
     protected $programModel;
@@ -10,9 +13,11 @@ class Welcome extends BaseController
 
     public function __construct()
     {
-        $this->programModel = new \App\Models\ProgramModel();
-        $this->programCategoryModel = new \App\Models\ProgramCategoryModel();
-    }    public function index()
+        $this->programModel = new ProgramModel();
+        $this->programCategoryModel = new ProgramCategoryModel();
+    }
+
+    public function index()
     {
         // get program category with programs
         $programs =  $this->programCategoryModel->getAllCategoriesWithPrograms();
@@ -24,26 +29,28 @@ class Welcome extends BaseController
 
         // Set cookie to indicate no program is selected when on welcome page
         $this->response->deleteCookie('has_program_selected');
-        
+
         $data = [
             'programs' => $programs,
         ];
 
-        return view('welcome/index', $data);
-    }    public function setProgram($program_id)
+         return view('welcome/index', $data);
+    }
+
+    public function setProgram($program_id)
     {
         session()->set('current_program', $program_id);
-        
+
         // Set a cookie to indicate a program has been selected (for JavaScript detection)
         // Set to / path and no specific domain to ensure it's available everywhere
         $this->response->setCookie('has_program_selected', 'true', 0, '/', '', false, false);
-        
+
         // If coming from another page (like dashboard), redirect back there
         $referer = $this->request->getServer('HTTP_REFERER');
         if (!empty($referer) && strpos($referer, 'welcome') === false) {
             return redirect()->to($referer);
         }
-        
+
         // Otherwise redirect to dashboard
         return redirect()->to('dashboard');
     }

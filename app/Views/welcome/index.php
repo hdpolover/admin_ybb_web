@@ -32,6 +32,9 @@
                     <?php echo view('partials/page-title', array('pagetitle' => 'Welcome', 'title' => 'Program Selection')); ?>
 
                     <?php foreach ($programs as $categoryProgram): ?>
+                        <?php
+                        $logoUrl = $categoryProgram->logo_url;
+                        ?>
                         <div class="row mb-4">
                             <div class="col-12">
                                 <div class="bg-primary p-3 rounded">
@@ -46,10 +49,15 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="row">
                             <?php if (!empty($categoryProgram->programs)): ?>
                                 <?php foreach ($categoryProgram->programs as $program): ?>
+                                    <?php
+                                    $programLogoUrl = $program->logo_url ?? $logoUrl; // Use category logo if program logo is not available
+
+                                    $program->logo_url = $programLogoUrl; // Set the logo URL for the program
+                                    ?>
                                     <div class="col-xl-4 col-lg-6 col-md-6 mb-4">
                                         <?= view('welcome/components/program-card', ['program' => $program]) ?>
                                     </div>
@@ -96,16 +104,16 @@
     <script src="/assets/js/app.js"></script>
 
     <?php if (session()->has('error_message')): ?>
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: '<?= session('error_message') ?>',
-            confirmButtonText: 'OK'
-        });
-    });
-    </script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: '<?= session('error_message') ?>',
+                    confirmButtonText: 'OK'
+                });
+            });
+        </script>
     <?php endif; ?>
 </body>
 

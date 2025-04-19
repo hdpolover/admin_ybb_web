@@ -19,8 +19,24 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
 
         // ambassadors
         $routes->get('ambassadors', 'Ambassadors::index');
+        $routes->post('ambassadors/create', 'Ambassadors::create');
+        $routes->post('ambassadors/update', 'Ambassadors::update');
+        $routes->post('ambassadors/delete/(:num)', 'Ambassadors::delete/$1');
         $routes->get('ambassadors/view/(:num)', 'Ambassadors::view/$1');
+        $routes->get('ambassadors/edit/(:num)', 'Ambassadors::edit/$1');
         $routes->get('ambassadors/getData', 'Ambassadors::getData');
+        $routes->get('ambassadors/getAmbassadorData/(:num)', 'Ambassadors::getAmbassadorData/$1');
+    });    // announcements group
+    $routes->group('announcements', ['filter' => 'program_selection'], function ($routes) {
+        $routes->get('', 'Announcements::index');
+        $routes->get('view/(:num)', 'Announcements::view/$1');
+        $routes->get('add', 'Announcements::add');
+        $routes->get('edit/(:num)', 'Announcements::edit/$1');
+        $routes->post('create', 'Announcements::create');
+        $routes->post('update/(:num)', 'Announcements::update/$1');
+        $routes->post('delete/(:num)', 'Announcements::delete/$1');
+        // Keep GET method for backward compatibility but will update the app to use POST
+        $routes->get('delete/(:num)', 'Announcements::delete/$1');
     });
 
     // Payment routes
@@ -101,8 +117,6 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->post('category/(:num)/update', 'ProgramDetails::updateCategoryDetails/$1');
             $routes->get('delete/(:num)', 'ProgramDetails::delete/$1');
             $routes->post('program/(:num)/update', 'ProgramDetails::updateProgramDetails/$1');
-
-
         });
 
         // submission form group

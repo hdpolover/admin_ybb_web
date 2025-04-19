@@ -30,6 +30,7 @@ class ProgramSchedules extends BaseController
             'program' => $program,
             'schedules' => $programSchedules
         ];
+        
         return view('master-data/timelines/index', $data);
     }
     

@@ -20,6 +20,8 @@ class AmbassadorModel extends Model
         'program_id',
         'institution',
         'gender',
+        'notes',
+        'phone_number',
         'is_active',
         'is_deleted',
         'created_at',
@@ -29,6 +31,7 @@ class AmbassadorModel extends Model
     public $timestamps = true;
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
+    
 
     protected $useSoftDeletes = false; // Using is_deleted field manually
 

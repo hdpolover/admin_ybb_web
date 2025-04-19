@@ -3,6 +3,8 @@
 <head>
     <?php echo view('partials/title-meta', array('title' => 'Payments')); ?>
 
+    <?= $this->include('partials/head-css') ?>
+
     <!--datatable css-->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" />
     <!--datatable responsive css-->
@@ -10,7 +12,10 @@
 
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.dataTables.min.css">
 
-    <?= $this->include('partials/head-css') ?>
+    <!-- SweetAlert2 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.3/dist/sweetalert2.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.3/dist/sweetalert2.all.min.js"></script>
+
 </head>
 
 <body>
@@ -184,8 +189,8 @@
                                                 <span class="input-group-text bg-light border-end-0">
                                                     <i class="ri-search-line text-muted"></i>
                                                 </span>
-                                                <input type="text" id="search-box" class="form-control border-start-0 ps-0" 
-                                                    placeholder="Search by participant name, email, transaction ID, payment amount..." 
+                                                <input type="text" id="search-box" class="form-control border-start-0 ps-0"
+                                                    placeholder="Search by participant name, email, transaction ID, payment amount..."
                                                     autocomplete="off">
                                                 <button class="btn btn-primary" id="search-button" type="button">
                                                     <i class="ri-search-line me-1"></i> Search
@@ -414,19 +419,19 @@
                 drawCallback: function(settings) {
                     console.log("DataTable draw complete, data:", settings.json);
                 }
-            });                // Implement a better search functionality
+            }); // Implement a better search functionality
             // Hide DataTables default search box
             $('.dataTables_filter').hide();
-            
+
             // Function to perform the search
             function performSearch() {
                 var searchTerm = $('#search-box').val();
                 console.log("Searching for term:", searchTerm);
-                
+
                 // Apply the search and reload the table
                 paymentsTable.ajax.reload();
             }
-            
+
             // Search when Enter is pressed in the search box
             $('#search-box').on('keypress', function(e) {
                 if (e.which === 13) { // Enter key pressed
@@ -434,7 +439,7 @@
                     performSearch();
                 }
             });
-            
+
             // Search when the search button is clicked
             $(document).on('click', '#search-button', function() {
                 performSearch();

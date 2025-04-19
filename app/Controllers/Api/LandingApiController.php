@@ -267,13 +267,21 @@ class LandingApiController extends ApiBaseController
             }
 
             // get news for this category
-            $news = $this->announcementModel->getByProgramId($latestProgram->id);
+            $news = $this->announcementModel->getByProgramId($latestProgram->id, true, false);
+
+            // only return news with visible_to = 1
+            $news = array_filter($news, function ($announcement) {
+                return $announcement->visible_to == 1;
+            });
+            
+            $visibleAnnouncementsCount = count($news);
 
             $data = [
                 'category' => $category,
                 'programs' => $programs,
                 'latestProgram' => $latestProgram,
                 'announcements' => $news,
+                'visible_announcements_count' => $visibleAnnouncementsCount,
             ];
 
             // var_dump($data); // Debugging line to check the data structure

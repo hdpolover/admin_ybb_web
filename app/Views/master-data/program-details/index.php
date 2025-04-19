@@ -573,7 +573,7 @@
                 modules: {
                     toolbar: [
                         ['bold', 'italic', 'underline', 'strike'],
-                        ['blockquote'],
+                        ['blockquote', 'link'],  // Added link here
                         [{
                             'header': 1
                         }, {

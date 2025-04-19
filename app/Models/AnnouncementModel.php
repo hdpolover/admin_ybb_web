@@ -15,7 +15,7 @@ class AnnouncementModel extends Model
     protected $allowedFields  = [
         'program_id',
         'title',
-        'description',
+        'content',
         'img_url',
         'visible_to',
         'is_active',
@@ -37,7 +37,7 @@ class AnnouncementModel extends Model
     protected $validationRules      = [
         'program_id'        => 'required|numeric',
         'title'             => 'required|min_length[3]',
-        'description'       => 'required',
+        'content'           => 'required',
         'img_url'           => 'permit_empty',
         'visible_to'        => 'permit_empty',
         'is_active'         => 'permit_empty|in_list[0,1]',
@@ -47,6 +47,7 @@ class AnnouncementModel extends Model
         'meta_description'  => 'permit_empty',
         'tags'              => 'permit_empty'
     ];
+
     protected $validationMessages   = [];
     protected $skipValidation       = false;
     protected $cleanValidationRules = true;

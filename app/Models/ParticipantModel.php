@@ -42,7 +42,7 @@ class ParticipantModel extends Model
         'emergency_country_code',
         'emergency_phone_flag',
         'contact_relation',
-        'disease_history', 
+        'disease_history',
         'tshirt_size',
         'category',
         'experiences',
@@ -56,19 +56,51 @@ class ParticipantModel extends Model
         'is_deleted'
     ];
 
+    /**
+     * Get random participants for a specific program
+     *
+     * @param int $programId The program ID
+     * @param int $limit Maximum number of participants to return
+     * @return array Array of participant data
+     */
+    public function getRandomParticipantForProgram($web_url)
+    {
+        if (empty($web_url)) {
+            return [];
+        }
+
+        $builder = $this->builder();
+
+        // Join with programs and program_categories to find the program with matching web_url
+        return $builder->select('participants.*')
+            ->join('programs', 'programs.id = participants.program_id', 'inner')
+            ->join('program_categories', 'program_categories.id = programs.program_category_id', 'inner')
+            ->where('program_categories.web_url', $web_url)
+            ->where('participants.is_active', 1)
+            ->where('participants.is_deleted', 0)
+            ->where('participants.full_name IS NOT NULL')
+            ->where('participants.full_name !=', '')
+            ->where('participants.nationality IS NOT NULL')
+            ->where('participants.nationality !=', '')
+            ->orderBy('RAND()') // Random order
+            ->limit(1)
+            ->get()
+            ->getFirstRow();
+    }
+
     // get by id
     public function getById($id)
     {
         // join participant data with user, program, payment, essay, subtheme etc
         $builder = $this->builder();
         $builder->select('participants.*, users.*, programs.*, payments.*, participant_essays.*')
-                ->join('users', 'users.id = participants.user_id', 'left')
-                ->join('programs', 'programs.id = participants.program_id', 'left')
-                ->join('payments', 'payments.participant_id = participants.id', 'left')
-                ->join('participant_essays', 'participant_essays.participant_id = participants.id', 'left')
-                ->where('participants.id', $id)
-                ->where('participants.is_active', 1)
-                ->where('participants.is_deleted', 0);
+            ->join('users', 'users.id = participants.user_id', 'left')
+            ->join('programs', 'programs.id = participants.program_id', 'left')
+            ->join('payments', 'payments.participant_id = participants.id', 'left')
+            ->join('participant_essays', 'participant_essays.participant_id = participants.id', 'left')
+            ->where('participants.id', $id)
+            ->where('participants.is_active', 1)
+            ->where('participants.is_deleted', 0);
 
         $result = $builder->get()->getRow();
 
@@ -91,14 +123,14 @@ class ParticipantModel extends Model
         if (empty($participantIds)) {
             return [];
         }
-        
+
         $builder = $this->builder();
-        
+
         return $builder->whereIn('id', $participantIds)
-                      ->where('is_active', 1)
-                      ->where('is_deleted', 0)
-                      ->get()
-                      ->getResultArray();
+            ->where('is_active', 1)
+            ->where('is_deleted', 0)
+            ->get()
+            ->getResultArray();
     }
 
     /**
@@ -111,18 +143,18 @@ class ParticipantModel extends Model
     public function getProgramParticipantsPhotos($programId, $limit = 5)
     {
         $builder = $this->builder();
-        
+
         $result = $builder->select('picture_url')
-                          ->where('program_id', $programId)
-                          ->where('is_active', 1)
-                          ->where('is_deleted', 0)
-                          ->where('picture_url IS NOT NULL')
-                          ->where('picture_url !=', '')
-                          ->orderBy('RAND()')  // Random order
-                          ->limit($limit)
-                          ->get()
-                          ->getResultArray();
-        
+            ->where('program_id', $programId)
+            ->where('is_active', 1)
+            ->where('is_deleted', 0)
+            ->where('picture_url IS NOT NULL')
+            ->where('picture_url !=', '')
+            ->orderBy('RAND()')  // Random order
+            ->limit($limit)
+            ->get()
+            ->getResultArray();
+
         return array_column($result, 'picture_url');
     }
 
@@ -317,7 +349,7 @@ class ParticipantModel extends Model
 
         // Insert participant data
         $this->save($data);
-        
+
         // Return the complete participant object
         return $this->find($this->insertID());
     }
@@ -350,50 +382,50 @@ class ParticipantModel extends Model
         if (empty($userId)) {
             return [];
         }
-        
+
         // First get all participants entries for this user
         $participants = $this->where('user_id', $userId)
-                             ->where('is_active', 1)
-                             ->where('is_deleted', 0)
-                             ->findAll();
-        
+            ->where('is_active', 1)
+            ->where('is_deleted', 0)
+            ->findAll();
+
         if (empty($participants)) {
             return [];
         }
-        
+
         // Extract program IDs
         $programIds = [];
         foreach ($participants as $participant) {
             $programIds[] = $participant->program_id;
         }
-        
+
         // Get program details
         $programModel = new \App\Models\ProgramModel();
         $programs = $programModel->whereIn('id', $programIds)
-                                ->where('is_active', 1)
-                                ->where('is_deleted', 0)
-                                ->findAll();
-        
+            ->where('is_active', 1)
+            ->where('is_deleted', 0)
+            ->findAll();
+
         return $programs;
     }
 
     public function getTotalParticipants($programId)
     {
         return $this->where('program_id', $programId)
-                    ->where('is_active', 1)
-                    ->where('is_deleted', 0)
-                    ->countAllResults();
+            ->where('is_active', 1)
+            ->where('is_deleted', 0)
+            ->countAllResults();
     }
 
     public function getTotalCountries($programId)
     {
         return $this->select('COUNT(DISTINCT nationality) as total_countries')
-                    ->where('program_id', $programId)
-                    ->where('is_active', 1)
-                    ->where('is_deleted', 0)
-                    ->get()
-                    ->getRow()
-                    ->total_countries;
+            ->where('program_id', $programId)
+            ->where('is_active', 1)
+            ->where('is_deleted', 0)
+            ->get()
+            ->getRow()
+            ->total_countries;
     }
 
     public function getCountriesData($programId)
@@ -404,7 +436,7 @@ class ParticipantModel extends Model
             ->orderBy('participants_count', 'DESC')
             ->findAll();
     }
-    
+
     /**
      * Get participant statistics for a program
      *
@@ -421,13 +453,13 @@ class ParticipantModel extends Model
             ->groupBy('category')
             ->get()
             ->getResult();
-            
+
         // Initialize counts
         $categoryCounts = [
             'fully_funded' => 0,
             'self_funded' => 0
         ];
-        
+
         // Map results to category counts
         foreach ($results as $row) {
             $category = strtolower($row->category);
@@ -435,19 +467,19 @@ class ParticipantModel extends Model
                 $categoryCounts[$category] = $row->count;
             }
         }
-        
+
         // Get total participants
         $totalParticipants = $builder->where('program_id', $programId)
             ->where('is_deleted', 0)
             ->countAllResults();
-            
+
         // Get participants registered in the last 30 days
         $thirtyDaysAgo = date('Y-m-d H:i:s', strtotime('-30 days'));
         $recentParticipants = $builder->where('program_id', $programId)
             ->where('is_deleted', 0)
             ->where('created_at >=', $thirtyDaysAgo)
             ->countAllResults();
-            
+
         return (object) [
             'total' => $totalParticipants,
             'recent' => $recentParticipants,

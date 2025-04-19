@@ -222,9 +222,25 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->get('loa-templates/(:num)', 'LoaTemplatesApiController::show/$1');
     $routes->get('loa-templates/program-documents/(:num)', 'LoaTemplatesApiController::getByProgramDocumentId/$1');
     $routes->get('loa-templates/(:num)/program-documents/(:num)', 'LoaTemplatesApiController::getByProgramDocumentIdAndTemplateId/$1/$2');
+
+    // notifications
+   $routes->get('notifications', 'NotificationsApiController::index');
+   $routes->get('notifications/(:num)', 'NotificationsApiController::show/$1');
+   $routes->get('notifications/random-registration', 'NotificationsApiController::generateRandomRegistrationNotifications');
+
+   $routes->put('notifications/(:num)', 'NotificationsApiController::update/$1');
+   $routes->delete('notifications/(:num)', 'NotificationsApiController::delete/$1');
+
+   // program faqs
+    $routes->get('program-faqs', 'ProgramFaqsApiController::index');
+    $routes->get('program-faqs/(:num)', 'ProgramFaqsApiController::show/$1');
+    $routes->get('program-faqs/program/(:num)', 'ProgramFaqsApiController::getByProgram/$1');
+
+    // program announcements
+    $routes->get('program-announcements', 'ProgramAnnouncementsApiController::index');
+    $routes->get('program-announcements/(:any)', 'ProgramAnnouncementsApiController::show/$1');
+    $routes->get('program-announcements/program/(:num)', 'ProgramAnnouncementsApiController::getByProgram/$1');
 });
-
-
 
 // Landing API Routes
 $routes->group('api/landing', ['namespace' => 'App\Controllers\Api'], function ($routes) {

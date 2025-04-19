@@ -552,6 +552,24 @@ class SubmissionApiController extends ApiBaseController
                 $reponseData['ambassador_id'] = $updatedData['ambassador_id'];
             }
 
+            // update participant status
+            $participantStatusModel = new \App\Models\ParticipantStatusModel();
+            $participantStatus = $participantStatusModel->where('participant_id', $participantId)->first();
+            
+            if ($participantStatus) {
+                $participantStatusModel->update($participantStatus->id, [
+                    'form_status' => 1,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+            } else {
+                $participantStatusModel->insert([
+                    'participant_id' => $participantId,
+                    'form_status' => 1,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+            }
+
             // Return success response with updated data
             return $this->respondSuccess($reponseData, ResponseInterface::HTTP_OK, 'Submission data updated successfully');
         } catch (\Exception $e) {
