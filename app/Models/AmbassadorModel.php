@@ -32,8 +32,26 @@ class AmbassadorModel extends Model
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
     
-
     protected $useSoftDeletes = false; // Using is_deleted field manually
+
+    // sign in ambassador by email and ref_code
+    public function signIn($email, $refCode)
+    {
+        $builder = $this->builder();
+
+        // get data
+        $builder->select('*');
+
+        // Execute the query and get the result as an object
+        $result  = $builder->where('email', $email)->where('ref_code', $refCode)->get()->getRow();
+
+        // check if result is empty
+        if (empty($result)) {
+            return null;
+        } else {
+            return $result;
+        }
+    }
 
     // get ambassador by ref code
     public function getByRefCode($refCode)

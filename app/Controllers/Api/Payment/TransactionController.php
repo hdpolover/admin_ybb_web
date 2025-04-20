@@ -283,7 +283,9 @@ class TransactionController extends BasePaymentController
 
             if (!$user) {
                 return $this->respondError('User not found', 404);
-            }            // For Midtrans payments
+            }            
+            
+            // For Midtrans payments
             try {
                 // Make sure Midtrans is properly configured with server key directly from our config
                 $midtransConfig = new \App\Config\Midtrans\Config();
@@ -365,6 +367,45 @@ class TransactionController extends BasePaymentController
         } catch (\Exception $e) {
             log_message('error', 'Create Transaction Error: ' . $e->getMessage());
             return $this->fail('An unexpected error occurred', 500);
+        }
+    }
+
+    /**
+     * Update participant category to self-funded when applicable
+     *
+     * @param int $participantId The participant ID
+     * @param int $programPaymentId The program payment ID
+     * @return bool Whether the update was successful
+     */
+    private function updateParticipantCategoryIfSelfFunded(int $participantId, int $programPaymentId): bool
+    {
+        try {
+            // Get program payment data
+            $programPayment = $this->programPaymentModel->find($programPaymentId);
+
+            if (!$programPayment) {
+                log_message('error', 'updateParticipantCategoryIfSelfFunded - Program payment not found with ID: ' . $programPaymentId);
+                return false;
+            }
+
+            // Check if payment category is self-funded and category is registration
+            if ($programPayment->type === 'self_funded' && $programPayment->category === 'registraton') {
+                log_message('info', 'Updating participant category to self_funded for participant ID: ' . $participantId);
+
+                // Update participant category
+                $this->participantModel->update($participantId, [
+                    'category' => 'self_funded',
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+
+                log_message('info', 'Participant category updated to self_funded successfully');
+                return true;
+            }
+
+            return false;
+        } catch (\Exception $e) {
+            log_message('error', 'Error updating participant category: ' . $e->getMessage());
+            return false;
         }
     }
 

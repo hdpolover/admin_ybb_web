@@ -129,7 +129,6 @@ class ParticipantAuthController extends BaseAuthController
                 // update user's password
                 $userModel->updatePassword($existingUser->id, $password);
 
-
                 // check if participant already exists
                 if (is_object($existingUser)) {
                     $existingParticipant = $participantModel->getParticipantByParams([

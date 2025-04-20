@@ -143,7 +143,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
 
     // ambassadors
     $routes->get('ambassadors', 'AmbassadorsApiController::index');
-    $routes->get('ambassadors/(:num)', 'AmbassadorsApiController::show/$1');
+    $routes->get('ambassadors/(:num)', 'AmbassadorsApiController::getAmbassador/$1');
     $routes->get('ambassadors/(:any)/referrals', 'AmbassadorsApiController::getAmbassadorReferrals/$1');
     $routes->get('ambassadors/(:num)/generate-link', 'AmbassadorsApiController::generateLink/$1');
     // check query
