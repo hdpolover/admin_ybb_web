@@ -547,7 +547,6 @@
         </div>
     </div>
 
-    <?= $this->include('partials/customizer') ?>
     <?= $this->include('partials/vendor-scripts') ?>
 
     <!-- App js -->

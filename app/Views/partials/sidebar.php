@@ -134,6 +134,12 @@
                                 <a href="<?= base_url("master-data/timelines") ?>" class="nav-link <?= url_is('master-data/timelines*') ? 'active' : '' ?>"> <i class="ri-calendar-todo-line"></i> Timelines </a>
                             </li>
                             <li class="nav-item">
+                                <a href="<?= base_url("master-data/program-testimonies") ?>" class="nav-link <?= url_is('master-data/program-testimonies*') ? 'active' : '' ?>"> <i class="ri-chat-quote-line"></i> Program Testimonies </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url("master-data/program-photos") ?>" class="nav-link <?= url_is('master-data/program-photos*') ? 'active' : '' ?>"> <i class="ri-image-line"></i> Program Photos </a>
+                            </li>
+                            <li class="nav-item">
                                 <a href="<?= base_url("master-data/faqs") ?>" class="nav-link <?= url_is('master-data/faqs*') ? 'active' : '' ?>"> <i class="ri-question-answer-line"></i> FAQs </a>
                             </li>
                         </ul>

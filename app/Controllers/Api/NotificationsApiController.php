@@ -35,6 +35,9 @@ class NotificationsApiController extends ApiBaseController
             return $this->respondValidationErrors("Valid web URL is required.");
         }
 
+        // Normalize the web URL
+        $webUrl = normalize_web_url($webUrl);
+
         try {
             // Get random participant for the program
                 $participant = $this->model->getRandomParticipantForProgram($webUrl);

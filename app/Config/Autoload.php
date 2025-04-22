@@ -99,5 +99,6 @@ class Autoload extends AutoloadConfig
         'url_encryption',
         'maintenance',
         'storage',
+        'web_url',
     ];
 }

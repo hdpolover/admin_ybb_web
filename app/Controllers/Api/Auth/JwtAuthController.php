@@ -47,6 +47,9 @@ class JwtAuthController extends BaseAuthController
         $type = $this->request->getPost('type');
         $web_url = $this->request->getPost('web_url');
 
+        // normalize the web URL
+        $web_url = normalize_web_url($web_url);
+
         // Get user based on type
         $user = null;
         switch ($type) {

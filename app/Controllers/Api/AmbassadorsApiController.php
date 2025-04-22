@@ -125,7 +125,7 @@ class AmbassadorsApiController extends ApiBaseController
             $encryptedQuery = $this->request->getPost('encrypted_query');
 
             if (empty($encryptedQuery)) {
-                return $this->fail('Encrypted query is required', 400);
+                return $this->respondError('Encrypted query is required', 400);
             }
 
             // decode url
@@ -137,7 +137,7 @@ class AmbassadorsApiController extends ApiBaseController
                 $decryptedQuery = url_decrypt($encryptedQuery, false);
 
                 if ($decryptedQuery === false) {
-                    return $this->fail('Decryption failed', 400);
+                    return $this->respondError('Decryption failed: Invalid query', 400);
                 }
 
                 // get ambassador details by ref_code

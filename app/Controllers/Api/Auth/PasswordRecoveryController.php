@@ -28,6 +28,9 @@ class PasswordRecoveryController extends BaseAuthController
             return $this->respondValidationErrors('Email and web_url are required.');
         }
 
+        // Normalize the web URL
+        $web_url = normalize_web_url($web_url);
+
         // Check if user exists
         $userModel = new UserModel();
         $user = $userModel->getUserByEmailAndWebUrl($email, $web_url);

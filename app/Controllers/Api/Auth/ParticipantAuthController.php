@@ -31,6 +31,9 @@ class ParticipantAuthController extends BaseAuthController
             return $this->respondValidationErrors('Email, password, and web_url are required.');
         }
 
+        // Normalize the web URL
+        $web_url = normalize_web_url($web_url);
+
         try {
             // Check credentials
             $model = new UserModel();

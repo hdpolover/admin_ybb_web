@@ -3,6 +3,7 @@
 namespace App\Controllers\Api\Auth;
 
 use App\Models\UserModel;
+use App\Models\ProgramCategoryModel;
 use App\Services\EmailService;
 use CodeIgniter\HTTP\ResponseInterface;
 
@@ -58,6 +59,9 @@ class EmailVerificationController extends BaseAuthController
             return $this->respondValidationErrors(lang('EmailVerification.email_not_found'));
         }
 
+        // Normalize the web URL
+        $web_url = normalize_web_url($web_url);
+
         try {
             $userModel = new UserModel();
             $user = $userModel->getUserByEmailAndWebUrl($email, $web_url);
@@ -77,10 +81,20 @@ class EmailVerificationController extends BaseAuthController
             if (!$user) {
                 return $this->respondError(lang('EmailVerification.resend_failed'));
             }
+            
+            // get program category id from web_url
+            $programCategoryModel = new ProgramCategoryModel();
+            $programData = $programCategoryModel->getProgramCategoryByParams(['web_url' => $web_url]);
+
+            if (!$programData) {
+                return $this->respondError(lang('EmailVerification.resend_failed'));
+            }
+
+            $programCategoryId = $programData->id ?? null;
 
             // Send verification email
             $emailService = new EmailService();
-            $emailSent = $emailService->sendVerificationEmail($email, $user->verification_token, $web_url);
+            $emailSent = $emailService->sendVerificationEmail($email, $user->verification_token, $programCategoryId);
 
             if (!$emailSent) {
                 return $this->respondError(lang('EmailVerification.resend_failed'));

@@ -16,16 +16,16 @@ class PaymentMethodModel extends Model
     protected $updatedField  = 'updated_at';
     protected $returnType     = 'object';
     protected $useAutoIncrement = true;
-    protected $useSoftDeletes = false; // Using is_deleted field manually
-
+    protected $useSoftDeletes = false; // Using is_deleted field manually    
+    
     protected $validationRules = [
         'program_id' => 'required|integer',
         'name' => 'required|string|max_length[255]',
-        'description' => 'string|max_length[255]',
+        'description' => 'string',
         'type' => 'required|string|max_length[50]',
         'img_url' => 'string|max_length[255]',
-        'is_active' => 'boolean',
-        'is_deleted' => 'boolean'
+        'is_active' => 'in_list[0,1]',
+        'is_deleted' => 'in_list[0,1]'
     ];
 
     protected $validationMessages = [
@@ -50,12 +50,11 @@ class PaymentMethodModel extends Model
         'img_url' => [
             'string' => 'Image URL must be a string',
             'max_length' => 'Image URL cannot exceed 255 characters'
-        ],
-        'is_active' => [
-            'boolean' => 'Is Active must be a boolean value'
+        ],        'is_active' => [
+            'in_list' => 'Is Active must be either 0 or 1'
         ],
         'is_deleted' => [
-            'boolean' => 'Is Deleted must be a boolean value'
+            'in_list' => 'Is Deleted must be either 0 or 1'
         ]
     ];
 
@@ -71,6 +70,12 @@ class PaymentMethodModel extends Model
     }
 
     // get all active payment methods for a program
+    public function getActiveByProgramId($programId)
+    {
+        return $this->where('program_id', $programId)
+            ->where('is_active', 1)
+            ->findAll();
+    }
 
     // get payment method by id
     public function getPaymentMethodById($id)

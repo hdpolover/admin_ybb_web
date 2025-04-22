@@ -378,7 +378,8 @@
                                 return 'N/A';
                             }
                             return '<div class="fw-medium">' + (data.name || 'Unknown') + '</div>' +
-                                '<div class="small text-muted">' + (data.email || '') + '</div>';
+                                '<div class="small text-muted">' + (data.email || '') + '</div>' +
+                                '<div class="small">' + (data.nationality || 'N/A') + '</div>';
                         }
                     },
                     {

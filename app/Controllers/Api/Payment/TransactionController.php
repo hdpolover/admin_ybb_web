@@ -270,6 +270,13 @@ class TransactionController extends BasePaymentController
                     return $this->respondError('Payment not found', 404);
                 }
 
+                // update participant category to self-funded if applicable
+                if ($this->updateParticipantCategoryIfSelfFunded($paymentData['participant_id'], $paymentData['program_payment_id'])) {
+                    log_message('info', 'TransactionController::createTransaction - Participant category updated to self_funded successfully');
+                } else {
+                    log_message('info', 'TransactionController::createTransaction - No update needed for participant category');
+                }
+
                 // Return success response with payment details
                 return $this->respondSuccess(
                     $payment,
@@ -278,13 +285,20 @@ class TransactionController extends BasePaymentController
                 );
             }
 
+            // update participant category to self-funded if applicable
+            if ($this->updateParticipantCategoryIfSelfFunded($paymentData['participant_id'], $paymentData['program_payment_id'])) {
+                log_message('info', 'TransactionController::createTransaction - Participant category updated to self_funded successfully');
+            } else {
+                log_message('info', 'TransactionController::createTransaction - No update needed for participant category');
+            }
+
             $userModel = new \App\Models\UserModel();
             $user = $userModel->find($participant->user_id);
 
             if (!$user) {
                 return $this->respondError('User not found', 404);
-            }            
-            
+            }
+
             // For Midtrans payments
             try {
                 // Make sure Midtrans is properly configured with server key directly from our config
@@ -386,10 +400,8 @@ class TransactionController extends BasePaymentController
             if (!$programPayment) {
                 log_message('error', 'updateParticipantCategoryIfSelfFunded - Program payment not found with ID: ' . $programPaymentId);
                 return false;
-            }
-
-            // Check if payment category is self-funded and category is registration
-            if ($programPayment->type === 'self_funded' && $programPayment->category === 'registraton') {
+            }            // Check if payment category is self-funded and category is registration
+            if ($programPayment->type === 'self_funded' && $programPayment->category === 'registration') {
                 log_message('info', 'Updating participant category to self_funded for participant ID: ' . $participantId);
 
                 // Update participant category

@@ -127,6 +127,54 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->post('create', 'SubmissionForm::create');
             $routes->post('update/(:num)', 'SubmissionForm::update/$1');
             $routes->get('delete/(:num)', 'SubmissionForm::delete/$1');
+              // Category Management Routes
+            $routes->post('add-category', 'SubmissionForm::addCategory');
+            $routes->post('update-category/(:num)', 'SubmissionForm::updateCategory/$1');
+            $routes->post('delete-category/(:num)', 'SubmissionForm::deleteCategory/$1');
+            $routes->get('get-category-by-id/(:num)', 'SubmissionForm::getCategoryById/$1');
+            
+            // SubTheme Management Routes
+            $routes->post('add-sub-theme', 'SubmissionForm::addSubTheme');
+            $routes->post('update-sub-theme/(:num)', 'SubmissionForm::updateSubTheme/$1');
+            $routes->post('delete-sub-theme/(:num)', 'SubmissionForm::deleteSubTheme/$1');
+            $routes->get('get-sub-theme-by-id/(:num)', 'SubmissionForm::getSubThemeById/$1');
+            
+            // Essay Management Routes
+            $routes->post('add-essay', 'SubmissionForm::addEssay');
+            $routes->post('update-essay/(:num)', 'SubmissionForm::updateEssay/$1');
+            $routes->post('delete-essay/(:num)', 'SubmissionForm::deleteEssay/$1');
+            $routes->get('get-essay-by-id/(:num)', 'SubmissionForm::getEssayById/$1');
+        });        
+        
+        // payment methods
+        $routes->group('payment-methods', function ($routes) {
+            $routes->get('/', 'PaymentMethods::index');
+            $routes->get('view/(:num)', 'PaymentMethods::view/$1');
+            $routes->get('getData', 'PaymentMethods::getData');
+            $routes->get('getPaymentMethod/(:num)', 'PaymentMethods::getPaymentMethod/$1');
+            $routes->post('create', 'PaymentMethods::create');
+            $routes->post('update/(:num)', 'PaymentMethods::update/$1');
+            $routes->get('delete/(:num)', 'PaymentMethods::delete/$1');
+        });
+
+        // program photos
+        $routes->group('program-photos', function ($routes) {
+            $routes->get('/', 'ProgramPhotos::index');
+            $routes->get('view/(:num)', 'ProgramPhotos::view/$1');
+            $routes->get('getData', 'ProgramPhotos::getData');
+            $routes->post('create', 'ProgramPhotos::create');
+            $routes->post('update/(:num)', 'ProgramPhotos::update/$1');
+            $routes->get('delete/(:num)', 'ProgramPhotos::delete/$1');
+        });
+
+        // program testimonies
+        $routes->group('program-testimonies', function ($routes) {
+            $routes->get('/', 'ProgramTestimonies::index');
+            $routes->get('view/(:num)', 'ProgramTestimonies::view/$1');
+            $routes->get('getData', 'ProgramTestimonies::getData');
+            $routes->post('create', 'ProgramTestimonies::create');
+            $routes->post('update/(:num)', 'ProgramTestimonies::update/$1');
+            $routes->get('delete/(:num)', 'ProgramTestimonies::delete/$1');
         });
     });
 });

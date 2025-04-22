@@ -31,6 +31,11 @@ class WebSettingApiController extends ApiBaseController
     public function index()
     {
         $url = $this->request->getGet('url');
+
+        // normalize the web URL
+        if ($url) {
+            $url = normalize_web_url($url);
+        }
         
         if ($url) {
             $webSetting = $this->model->getSettingByWebUrl($url);

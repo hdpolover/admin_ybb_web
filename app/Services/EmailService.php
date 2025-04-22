@@ -111,8 +111,8 @@ class EmailService
         }
         
         // Create verification URL
-        $baseUrl = base_url();
-        $verificationUrl = $baseUrl . "verify-email?token={$token}&email={$to}";
+        $webUrl = $programData->web_url ?? null;
+        $verificationUrl = $webUrl . "/verify-email?token={$token}&email={$to}";
         
         $data = [
             'verification_token' => $token,

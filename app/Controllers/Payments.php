@@ -88,6 +88,7 @@ class Payments extends BaseController
                 payments.*, 
                 participants.full_name as participant_name, 
                 users.email as participant_email,
+                participants.nationality as participant_nationality,
                 participants.program_id
             ')
             ->join('participants', 'participants.id = payments.participant_id')
@@ -99,6 +100,7 @@ class Payments extends BaseController
             $builder->groupStart()
                 ->like('participants.full_name', $search)
                 ->orLike('users.email', $search)
+                ->orLike('participants.nationality', $search)
                 ->orLike('payments.id', $search)
                 ->orLike('payments.transaction_code', $search)
                 ->orLike('payments.order_id', $search)
@@ -152,7 +154,8 @@ class Payments extends BaseController
                 ],
                 'participant' => [
                     'name' => $row->participant_name,
-                    'email' => $row->participant_email
+                    'email' => $row->participant_email,
+                    'nationality' => $row->participant_nationality ?? 'N/A',
                 ],
                 'payment_details' => [
                     'program_name' => $programPaymentName,

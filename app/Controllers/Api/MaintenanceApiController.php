@@ -15,6 +15,9 @@ class MaintenanceApiController extends ApiBaseController
         if (empty($webUrl)) {
             return $this->respondValidationErrors('Web URL is required');
         }
+
+        // Normalize the web URL
+        $webUrl = normalize_web_url($webUrl);
         
         $maintenanceStatus = is_maintenance_mode($webUrl);
         

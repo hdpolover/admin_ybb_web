@@ -36,13 +36,7 @@ class WebSettingModel extends Model
      * @return object|null Maintenance status and related information
      */
     public function getSettingByWebUrl($webUrl)
-    {
-        // remove the 'https://' or 'http://' from the URL or www
-        $webUrl = preg_replace('/^https?:\/\//', '', $webUrl); // Remove http:// or https://
-        $webUrl = preg_replace('/^www\./', '', $webUrl);
-        $webUrl = rtrim($webUrl, '/'); // Remove trailing slash if any
-        $webUrl = strtolower($webUrl); // Convert to lowercase
-        
+    {   
         // Get the web setting joined with program category
         $webSetting = $this->select('web_settings.*, program_categories.*, program_categories.web_url')
             ->join('program_categories', 'program_categories.id = web_settings.program_category_id')

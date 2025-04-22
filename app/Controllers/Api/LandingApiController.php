@@ -57,8 +57,10 @@ class LandingApiController extends ApiBaseController
                 return $this->respondValidationErrors('web_url parameter is required');
             }
 
+            $normalizedWebUrl = normalize_web_url($webUrl);
+
             // Get program category by web_url
-            $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $webUrl]);
+            $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $normalizedWebUrl]);
 
             if (!$category) {
                 return $this->respondNotFound('Program category not found');
@@ -106,8 +108,10 @@ class LandingApiController extends ApiBaseController
                 return $this->respondValidationErrors('web_url parameter is required');
             }
 
+            $normalizedWebUrl = normalize_web_url($webUrl);
+
             // Get program category by web_url
-            $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $webUrl]);
+            $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $normalizedWebUrl]);
 
             if (!$category) {
                 return $this->respondNotFound('Program category not found');
@@ -143,16 +147,14 @@ class LandingApiController extends ApiBaseController
                 return $this->respondValidationErrors('web_url parameter is required');
             }
 
+            $normalizedWebUrl = normalize_web_url($webUrl);
+
             // Get program category by web_url
-            $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $webUrl]);
+            $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $normalizedWebUrl]);
 
             if (!$category) {
                 return $this->respondNotFound('Program category not found');
             }
-
-            // Get partners and sponsors for this category
-            // Note: You may need to create a PartnersModel to implement this functionality
-            $partners = []; // Replace with actual data retrieval
 
             return $this->respondSuccess([
                 'category' => $category,
@@ -176,8 +178,10 @@ class LandingApiController extends ApiBaseController
                 return $this->respondValidationErrors('web_url parameter is required');
             }
 
+            $normalizedWebUrl = normalize_web_url($webUrl);
+
             // Get program category by web_url
-            $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $webUrl]);
+            $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $normalizedWebUrl]);
 
             if (!$category) {
                 return $this->respondNotFound('Program category not found');
@@ -231,8 +235,10 @@ class LandingApiController extends ApiBaseController
                 return $this->respondValidationErrors('web_url parameter is required');
             }
 
+            $normalizedWebUrl = normalize_web_url($webUrl);
+
             // Get program category by web_url
-            $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $webUrl]);
+            $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $normalizedWebUrl]);
 
             if (!$category) {
                 return $this->respondNotFound('Program category not found');
@@ -312,8 +318,11 @@ class LandingApiController extends ApiBaseController
                 return $this->respondValidationErrors('web_url parameter is required');
             }
 
+            // Normalize web_url
+            $normalizedWebUrl = normalize_web_url($webUrl);
+
             // Get program category by web_url
-            $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $webUrl]);
+            $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $normalizedWebUrl]);
 
             if (!$category) {
                 return $this->respondNotFound('Program category not found');
@@ -354,8 +363,11 @@ class LandingApiController extends ApiBaseController
                 return $this->respondValidationErrors('web_url parameter is required');
             }
 
+        
+            $normalizedWebUrl = normalize_web_url($webUrl);
+
             // Get program category by web_url
-            $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $webUrl]);
+            $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $normalizedWebUrl]);
 
             if (!$category) {
                 return $this->respondNotFound('Program category not found');
@@ -399,8 +411,11 @@ class LandingApiController extends ApiBaseController
                 return $this->respondValidationErrors('web_url parameter is required');
             }
 
+            // Normalize web_url
+            $normalizedWebUrl = normalize_web_url($webUrl);
+
             // Get program category by web_url
-            $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $webUrl]);
+            $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $normalizedWebUrl]);
 
             if (!$category) {
                 return $this->respondNotFound('Program category not found');
@@ -441,8 +456,11 @@ class LandingApiController extends ApiBaseController
                 return $this->respondValidationErrors('web_url parameter is required');
             }
 
+            // Normalize web_url
+            $normalizedWebUrl = normalize_web_url($webUrl);
+
             // Get program category by web_url
-            $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $webUrl]);
+            $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $normalizedWebUrl]);
 
             if (!$category) {
                 return $this->respondNotFound('Program category not found');
@@ -463,6 +481,7 @@ class LandingApiController extends ApiBaseController
             return $this->respondError($e->getMessage());
         }
     }
+
     /**
      * Get detailed help and news data
      * 
@@ -482,8 +501,11 @@ class LandingApiController extends ApiBaseController
                 return $this->respondValidationErrors('web_url parameter is required');
             }
 
+            // Normalize web_url
+            $normalizedWebUrl = normalize_web_url($webUrl);
+
             // Get program category by web_url
-            $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $webUrl]);
+            $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $normalizedWebUrl]);
 
             if (!$category) {
                 return $this->respondNotFound('Program category not found');

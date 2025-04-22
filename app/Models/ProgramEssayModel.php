@@ -16,6 +16,7 @@ class ProgramEssayModel extends Model
     protected $allowedFields = [
         'program_id',
         'questions',
+        'max_word_count',
         'is_active',
         'is_deleted',
         'created_at',
