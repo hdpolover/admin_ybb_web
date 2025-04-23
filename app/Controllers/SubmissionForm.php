@@ -8,7 +8,7 @@ use App\Models\CompetitionCategoryModel;
 // program essays
 use App\Models\ProgramEssayModel;
 // program submtheme
-use App\Models\ProgramSubThemeModel;
+use App\Models\ProgramSubthemeModel;
 
 class SubmissionForm extends BaseController
 {
@@ -22,7 +22,7 @@ class SubmissionForm extends BaseController
         $this->programModel = new ProgramModel();
         $this->competitionCategoryModel = new CompetitionCategoryModel();
         $this->programEssayModel = new ProgramEssayModel();
-        $this->programSubThemeModel = new ProgramSubThemeModel();
+        $this->programSubThemeModel = new ProgramSubthemeModel();
     }
 
     // get data
@@ -37,11 +37,25 @@ class SubmissionForm extends BaseController
         // get competititon categories 
         $competitionCategories = $this->competitionCategoryModel->where('program_id', $programId)->findAll();
 
+        // check if empty
+        if (empty($competitionCategories)) {
+            $competitionCategories = [];
+        }
+
         // get program essays
         $programEssays = $this->programEssayModel->getActiveEssays($programId);
 
+        // check if empty
+        if (empty($programEssays)) {
+            $programEssays = [];
+        }
+
         // get program sub themes
         $programSubThemes = $this->programSubThemeModel->where('program_id', $programId)->findAll();
+
+        if (empty($programSubThemes)) {
+            $programSubThemes = [];
+        }
 
         return [
             'currentProgram' => $currentProgram,

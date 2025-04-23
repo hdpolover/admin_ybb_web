@@ -40,8 +40,9 @@ abstract class BaseController extends Controller
     /**
      * Be sure to declare properties for any property fetch you initialized.
      * The creation of dynamic property is deprecated in PHP 8.2.
-     */
-    protected $session;
+     */    protected $session;
+    protected $programModel;
+    protected $programCategoryModel;
 
     /**
      * Constructor.
@@ -51,5 +52,78 @@ abstract class BaseController extends Controller
         // Do Not Edit This Line
         parent::initController($request, $response, $logger);
         $this->session = \Config\Services::session();
+
+        // Initialize program models for topbar data
+        $this->programModel = new \App\Models\ProgramModel();
+        $this->programCategoryModel = new \App\Models\ProgramCategoryModel();
+
+        // Get program data for the topbar
+        $this->loadTopbarData();
+    }
+
+    /**
+     * Load program data for topbar
+     * This ensures program data is available across all views
+     */
+    protected function loadTopbarData()
+    {
+        // Get program category with categoryWithPrograms
+        $categoryWithPrograms = $this->programCategoryModel->getAllCategoriesWithPrograms();
+
+        // Sort categoryWithPrograms by category name
+        usort($categoryWithPrograms, function ($a, $b) {
+            return strcmp($a->name, $b->name);
+        });        // Group by active and inactive
+        $activePrograms = [];
+        $inactivePrograms = [];
+
+        foreach ($categoryWithPrograms as $category) {
+            $logoUrl = $category->logo_url ?? null;
+
+            // Get categoryWithPrograms from category
+            $currentCategoryPrograms = $category->programs ?? [];
+
+            // Filter active and inactive programs and add them to the respective arrays
+            foreach ($currentCategoryPrograms as $program) {
+                if ($program->is_active == 1) {
+                    // Add logo URL to the program object
+                    $program->logo_url = $logoUrl;
+                    $activePrograms[] = $program;
+                } else {
+                    // Add logo URL to the program object
+                    $program->logo_url = $logoUrl;
+                    $inactivePrograms[] = $program;
+                }
+            }
+        }
+
+        $currentProgramId = session('current_program');
+        $selectedProgram = null;
+
+        // Check if a program is already selected
+        if ($currentProgramId) {
+            // Find the selected program in the list
+            foreach ($categoryWithPrograms as $category) {
+                foreach ($category->programs as $program) {
+                    if ($program->id == $currentProgramId) {
+                        $selectedProgram = $program;
+                        break 2; // Break out of both loops
+                    }
+                }
+            }
+
+            // If the selected program is not found, unset the session variable
+            if (!$selectedProgram) {
+                session()->remove('current_program');
+            }
+        }
+
+        // Share this data with all views
+        $this->session->set('topbar_data', [
+            'selectedProgram' => $selectedProgram,
+            'activePrograms' => $activePrograms,
+            'inactivePrograms' => $inactivePrograms,
+            'categoryWithPrograms' => $categoryWithPrograms,
+        ]);
     }
 }

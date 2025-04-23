@@ -1,4 +1,76 @@
 <header id="page-topbar">
+    <?php 
+    // Get data from session that was loaded by BaseController
+    $topbarData = session('topbar_data');
+    $selectedProgram = $topbarData['selectedProgram'] ?? null;
+    $activePrograms = $topbarData['activePrograms'] ?? [];
+    $inactivePrograms = $topbarData['inactivePrograms'] ?? [];
+    ?>
+    
+    <!-- Custom styles for improved topbar appearance -->
+    <style>
+        #page-topbar {
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+        .program-selector-btn {
+            border-radius: 8px;
+            padding: 8px 12px;
+            transition: all 0.2s;
+            background-color: #f8f9fa;
+            border: 1px solid #f0f0f0;
+        }
+        .program-selector-btn:hover {
+            background-color: #f0f0f0;
+            transform: translateY(-1px);
+        }
+        .program-logo-wrapper img, .program-icon-wrapper i {
+            border: 2px solid #fff;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+        .dropdown-item {
+            border-radius: 6px;
+            margin: 2px 6px;
+            padding: 8px 12px;
+            transition: background-color 0.2s;
+        }        .dropdown-programs-container {
+            padding: 4px;
+            overflow-x: hidden;
+            width: 100%;
+        }
+        .dropdown-item.active {
+            background-color: rgba(var(--bs-primary-rgb), 0.1);
+        }
+        .topbar-badge {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.95); }
+            70% { transform: scale(1); }
+            100% { transform: scale(0.95); }
+        }
+        .navbar-header {
+            padding: 0 12px;
+        }
+        .btn-topbar {
+            border-radius: 8px;
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .btn-topbar:hover {
+            background-color: rgba(var(--bs-primary-rgb), 0.1);
+            transform: translateY(-1px);
+        }
+        .header-profile-user {
+            border: 2px solid #fff;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+    
     <div class="layout-width">
         <div class="navbar-header">
             <div class="d-flex">
@@ -31,48 +103,53 @@
                     </span>
                 </button>
             </div>
-
             <div class="d-flex align-items-center">
-
                 <div class="d-flex align-items-center">
-                    <!-- Program Selector Dropdown -->
-                    <?php if (session()->has('current_program')): ?>
-                        <?php
-                        $programModel = new \App\Models\ProgramModel();
-                        $currentProgramId = session('current_program');
-                        $currentProgram = $programModel->find($currentProgramId);
-                        $allPrograms = $programModel->findAll();
-                        ?>
-                        <div class="dropdown ms-1 topbar-head-dropdown header-item">
-                            <button type="button" class="btn btn-ghost-secondary px-3" id="program-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <div class="d-flex align-items-center">
-                                    <?php if (!empty($currentProgram->logo_url)): ?>
-                                        <img src="<?= esc($currentProgram->logo_url) ?>" alt="Program Logo" class="rounded-circle header-profile-user me-2" style="height: 36px; width: 36px;">
-                                    <?php endif; ?>
-                                    <div class="text-start">
-                                        <span class="fw-medium fs-14"><?= esc($currentProgram->name) ?></span>
-                                        <i class="mdi mdi-chevron-down ms-1"></i>
+                    <!-- Program Selector Dropdown - Always visible -->
+                    <div class="dropdown ms-1 topbar-head-dropdown header-item">
+                        <button type="button" class="btn program-selector-btn" id="program-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <div class="d-flex align-items-center">
+                                <?php if (!empty($selectedProgram) && !empty($selectedProgram->logo_url)): ?>
+                                    <img src="<?= esc($selectedProgram->logo_url) ?>" alt="Program Logo" class="rounded-circle header-profile-user me-2" style="height: 40px; width: 40px; object-fit: cover;">
+                                <?php else: ?>
+                                    <div class="program-icon-wrapper me-2 bg-light rounded-circle d-flex align-items-center justify-content-center" style="height: 40px; width: 40px;">
+                                        <i class="ri-building-line fs-20 text-primary"></i>
                                     </div>
+                                <?php endif; ?>                                <div class="text-start">
+                                    <span class="fw-medium fs-14"><?= !empty($selectedProgram) ? esc($selectedProgram->name) : 'Select Program' ?></span>
+                                    <p class="text-muted mb-0 fs-12">
+                                        <?= !empty($selectedProgram) 
+                                            ? (date('Y-m-d') . ' <i class="ri-time-line ms-1"></i>') 
+                                            : 'Click to select a program' ?>
+                                    </p>
                                 </div>
-                            </button>
-                            <div class="dropdown-menu dropdown-menu-end" aria-labelledby="program-dropdown">
-                                <!-- Program Header -->
-                                <h6 class="dropdown-header">Select Program</h6>
+                                <i class="ri-arrow-down-s-line ms-2 fs-18"></i>
+                            </div>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end" aria-labelledby="program-dropdown" style="width: 320px;">
+                            <!-- Program Header -->
+                            <div class="p-3 border-bottom">
+                                <h6 class="mb-0 fs-15">Select Program</h6>
+                                <p class="text-muted mb-0 fs-12">Choose a program to work with</p>
+                            </div>
 
-                                <!-- List of Programs -->
-                                <div class="dropdown-programs-container" style="max-height: 350px; overflow-y: auto;">
-                                    <?php foreach ($allPrograms as $program): ?>
-                                        <a class="dropdown-item d-flex align-items-center <?= ($program->id == $currentProgramId) ? 'active' : '' ?>"
-                                           href="<?= site_url('welcome/set-program/' . $program->id) ?>">
+                            <!-- List of Programs -->
+                            <div class="dropdown-programs-container" style="max-height: 350px; overflow-y: auto;">
+                                <!-- Active Programs -->
+                                <?php if (!empty($activePrograms)): ?>
+                                    <h6 class="dropdown-header border-bottom bg-light-subtle">Active Programs</h6>
+                                    <?php foreach ($activePrograms as $program): ?>
+                                        <a class="dropdown-item d-flex align-items-center <?= (isset($selectedProgram) && $program->id == $selectedProgram->id) ? 'active' : '' ?>"
+                                            href="<?= site_url('welcome/set-program/' . $program->id) ?>">
                                             <div class="d-flex align-items-center flex-grow-1">
                                                 <?php if (!empty($program->logo_url)): ?>
                                                     <div class="program-logo-wrapper me-2">
-                                                        <img src="<?= esc($program->logo_url) ?>" alt="<?= esc($program->name) ?>" 
-                                                             class="rounded-circle" style="height: 36px; width: 36px; object-fit: cover;">
+                                                        <img src="<?= esc($program->logo_url) ?>" alt="<?= esc($program->name) ?>"
+                                                            class="rounded-circle" style="height: 42px; width: 42px; object-fit: cover;">
                                                     </div>
                                                 <?php else: ?>
-                                                    <div class="program-icon-wrapper me-2">
-                                                        <i class="ri-building-line fs-22" style="height: 36px; width: 36px; display: flex; align-items: center; justify-content: center;"></i>
+                                                    <div class="program-icon-wrapper me-2 bg-light-subtle rounded-circle d-flex align-items-center justify-content-center" style="height: 42px; width: 42px;">
+                                                        <i class="ri-building-line fs-20 text-primary"></i>
                                                     </div>
                                                 <?php endif; ?>
                                                 <div>
@@ -82,336 +159,124 @@
                                                     <?php endif; ?>
                                                 </div>
                                             </div>
-                                            <?php if ($program->id == $currentProgramId): ?>
+                                            <?php if (isset($selectedProgram) && $program->id == $selectedProgram->id): ?>
                                                 <i class="ri-checkbox-circle-fill text-success ms-2 fs-17"></i>
                                             <?php endif; ?>
                                         </a>
                                     <?php endforeach; ?>
-                                </div>
+                                <?php endif; ?>
 
-                                <!-- View All Programs -->
-                                <div class="dropdown-divider"></div>
-                                <a class="dropdown-item text-center" href="<?= site_url('welcome') ?>">
-                                    <i class="ri-apps-2-line me-1"></i> View All Programs
-                                </a>
-                            </div>
-                        </div>
-                    <?php endif; ?>
-
-                    <div class="dropdown topbar-head-dropdown ms-1 header-item" id="notificationDropdown">
-                        <button type="button" class="btn btn-icon btn-topbar btn-ghost-secondary rounded-circle" id="page-header-notifications-dropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-haspopup="true" aria-expanded="false">
-                            <i class='bx bx-bell fs-22'></i>
-                            <span class="position-absolute topbar-badge fs-10 translate-middle badge rounded-pill bg-danger">3<span class="visually-hidden">unread messages</span></span>
-                        </button>
-                        <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end p-0" aria-labelledby="page-header-notifications-dropdown">
-
-                            <div class="dropdown-head bg-primary bg-pattern rounded-top">
-                                <div class="p-3">
-                                    <div class="row align-items-center">
-                                        <div class="col">
-                                            <h6 class="m-0 fs-16 fw-semibold text-white"> Notifications </h6>
-                                        </div>
-                                        <div class="col-auto dropdown-tabs">
-                                            <span class="badge bg-light-subtle text-body fs-13"> 4 New</span>
+                                <!-- Inactive Programs (Collapsible) -->
+                                <?php if (!empty($inactivePrograms)): ?>
+                                    <div class="dropdown-divider"></div>                                    <div class="inactive-programs-section">
+                                        <a class="dropdown-item d-flex align-items-center justify-content-between bg-light-subtle"
+                                            data-bs-toggle="collapse" href="#inactiveProgramsCollapse" role="button"
+                                            aria-expanded="false" aria-controls="inactiveProgramsCollapse"
+                                            onclick="event.stopPropagation();">
+                                            <span class="fw-medium">Inactive Programs</span>
+                                            <i class="ri-arrow-down-s-line fs-18"></i>
+                                        </a>
+                                        <div class="collapse" id="inactiveProgramsCollapse">
+                                            <?php foreach ($inactivePrograms as $program): ?>
+                                                <a class="dropdown-item d-flex align-items-center ps-4 <?= (isset($selectedProgram) && $program->id == $selectedProgram->id) ? 'active' : '' ?>"
+                                                    href="<?= site_url('welcome/set-program/' . $program->id) ?>">
+                                                    <div class="d-flex align-items-center flex-grow-1">
+                                                        <?php if (!empty($program->logo_url)): ?>
+                                                            <div class="program-logo-wrapper me-2">
+                                                                <img src="<?= esc($program->logo_url) ?>" alt="<?= esc($program->name) ?>"
+                                                                    class="rounded-circle" style="height: 42px; width: 42px; object-fit: cover; opacity: 0.8;">
+                                                            </div>
+                                                        <?php else: ?>
+                                                            <div class="program-icon-wrapper me-2 bg-light-subtle rounded-circle d-flex align-items-center justify-content-center" style="height: 42px; width: 42px;">
+                                                                <i class="ri-building-line fs-20 text-muted"></i>
+                                                            </div>
+                                                        <?php endif; ?>
+                                                        <div>
+                                                            <span class="fw-medium text-muted"><?= esc($program->name) ?></span>
+                                                            <?php if (!empty($program->short_description)): ?>
+                                                                <p class="text-muted mb-0 fs-12"><?= esc(substr($program->short_description, 0, 30)) ?><?= (strlen($program->short_description) > 30) ? '...' : '' ?></p>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                    </div>
+                                                    <?php if (isset($selectedProgram) && $program->id == $selectedProgram->id): ?>
+                                                        <i class="ri-checkbox-circle-fill text-success ms-2 fs-17"></i>
+                                                    <?php endif; ?>
+                                                </a>
+                                            <?php endforeach; ?>
                                         </div>
                                     </div>
-                                </div>
-
-                                <div class="px-2 pt-2">
-                                    <ul class="nav nav-tabs dropdown-tabs nav-tabs-custom" data-dropdown-tabs="true" id="notificationItemsTab" role="tablist">
-                                        <li class="nav-item waves-effect waves-light">
-                                            <a class="nav-link active" data-bs-toggle="tab" href="#all-noti-tab" role="tab" aria-selected="true">
-                                                All (4)
-                                            </a>
-                                        </li>
-                                        <li class="nav-item waves-effect waves-light">
-                                            <a class="nav-link" data-bs-toggle="tab" href="#messages-tab" role="tab" aria-selected="false">
-                                                Messages
-                                            </a>
-                                        </li>
-                                        <li class="nav-item waves-effect waves-light">
-                                            <a class="nav-link" data-bs-toggle="tab" href="#alerts-tab" role="tab" aria-selected="false">
-                                                Alerts
-                                            </a>
-                                        </li>
-                                    </ul>
-                                </div>
-
+                                <?php endif; ?>
                             </div>
 
-                            <div class="tab-content position-relative" id="notificationItemsTabContent">
-                                <div class="tab-pane fade show active py-2 ps-2" id="all-noti-tab" role="tabpanel">
-                                    <div data-simplebar style="max-height: 300px;" class="pe-2">
-                                        <div class="text-reset notification-item d-block dropdown-item position-relative">
-                                            <div class="d-flex">
-                                                <div class="avatar-xs me-3 flex-shrink-0">
-                                                    <span class="avatar-title bg-info-subtle text-info rounded-circle fs-16">
-                                                        <i class="bx bx-badge-check"></i>
-                                                    </span>
-                                                </div>
-                                                <div class="flex-grow-1">
-                                                    <a href="#!" class="stretched-link">
-                                                        <h6 class="mt-0 mb-2 lh-base">Your <b>Elite</b> author Graphic
-                                                            Optimization <span class="text-secondary">reward</span> is
-                                                            ready!
-                                                        </h6>
-                                                    </a>
-                                                    <p class="mb-0 fs-11 fw-medium text-uppercase text-muted">
-                                                        <span><i class="mdi mdi-clock-outline"></i> Just 30 sec ago</span>
-                                                    </p>
-                                                </div>
-                                                <div class="px-2 fs-15">
-                                                    <div class="form-check notification-check">
-                                                        <input class="form-check-input" type="checkbox" value="" id="all-notification-check01">
-                                                        <label class="form-check-label" for="all-notification-check01"></label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="text-reset notification-item d-block dropdown-item position-relative">
-                                            <div class="d-flex">
-                                                <img src="/assets/images/users/avatar-2.jpg" class="me-3 rounded-circle avatar-xs flex-shrink-0" alt="user-pic">
-                                                <div class="flex-grow-1">
-                                                    <a href="#!" class="stretched-link">
-                                                        <h6 class="mt-0 mb-1 fs-13 fw-semibold">Angela Bernier</h6>
-                                                    </a>
-                                                    <div class="fs-13 text-muted">
-                                                        <p class="mb-1">Answered to your comment on the cash flow forecast's
-                                                            graph 🔔.</p>
-                                                    </div>
-                                                    <p class="mb-0 fs-11 fw-medium text-uppercase text-muted">
-                                                        <span><i class="mdi mdi-clock-outline"></i> 48 min ago</span>
-                                                    </p>
-                                                </div>
-                                                <div class="px-2 fs-15">
-                                                    <div class="form-check notification-check">
-                                                        <input class="form-check-input" type="checkbox" value="" id="all-notification-check02">
-                                                        <label class="form-check-label" for="all-notification-check02"></label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="text-reset notification-item d-block dropdown-item position-relative">
-                                            <div class="d-flex">
-                                                <div class="avatar-xs me-3 flex-shrink-0">
-                                                    <span class="avatar-title bg-danger-subtle text-danger rounded-circle fs-16">
-                                                        <i class='bx bx-message-square-dots'></i>
-                                                    </span>
-                                                </div>
-                                                <div class="flex-grow-1">
-                                                    <a href="#!" class="stretched-link">
-                                                        <h6 class="mt-0 mb-2 fs-13 lh-base">You have received <b class="text-success">20</b> new messages in the conversation
-                                                        </h6>
-                                                    </a>
-                                                    <p class="mb-0 fs-11 fw-medium text-uppercase text-muted">
-                                                        <span><i class="mdi mdi-clock-outline"></i> 2 hrs ago</span>
-                                                    </p>
-                                                </div>
-                                                <div class="px-2 fs-15">
-                                                    <div class="form-check notification-check">
-                                                        <input class="form-check-input" type="checkbox" value="" id="all-notification-check03">
-                                                        <label class="form-check-label" for="all-notification-check03"></label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="text-reset notification-item d-block dropdown-item position-relative">
-                                            <div class="d-flex">
-                                                <img src="/assets/images/users/avatar-8.jpg" class="me-3 rounded-circle avatar-xs flex-shrink-0" alt="user-pic">
-                                                <div class="flex-grow-1">
-                                                    <a href="#!" class="stretched-link">
-                                                        <h6 class="mt-0 mb-1 fs-13 fw-semibold">Maureen Gibson</h6>
-                                                    </a>
-                                                    <div class="fs-13 text-muted">
-                                                        <p class="mb-1">We talked about a project on linkedin.</p>
-                                                    </div>
-                                                    <p class="mb-0 fs-11 fw-medium text-uppercase text-muted">
-                                                        <span><i class="mdi mdi-clock-outline"></i> 4 hrs ago</span>
-                                                    </p>
-                                                </div>
-                                                <div class="px-2 fs-15">
-                                                    <div class="form-check notification-check">
-                                                        <input class="form-check-input" type="checkbox" value="" id="all-notification-check04">
-                                                        <label class="form-check-label" for="all-notification-check04"></label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="my-3 text-center view-all">
-                                            <button type="button" class="btn btn-soft-success waves-effect waves-light">View
-                                                All Notifications <i class="ri-arrow-right-line align-middle"></i></button>
-                                        </div>
-                                    </div>
-
-                                </div>
-
-                                <div class="tab-pane fade py-2 ps-2" id="messages-tab" role="tabpanel" aria-labelledby="messages-tab">
-                                    <div data-simplebar style="max-height: 300px;" class="pe-2">
-                                        <div class="text-reset notification-item d-block dropdown-item">
-                                            <div class="d-flex">
-                                                <img src="/assets/images/users/avatar-3.jpg" class="me-3 rounded-circle avatar-xs" alt="user-pic">
-                                                <div class="flex-grow-1">
-                                                    <a href="#!" class="stretched-link">
-                                                        <h6 class="mt-0 mb-1 fs-13 fw-semibold">James Lemire</h6>
-                                                    </a>
-                                                    <div class="fs-13 text-muted">
-                                                        <p class="mb-1">We talked about a project on linkedin.</p>
-                                                    </div>
-                                                    <p class="mb-0 fs-11 fw-medium text-uppercase text-muted">
-                                                        <span><i class="mdi mdi-clock-outline"></i> 30 min ago</span>
-                                                    </p>
-                                                </div>
-                                                <div class="px-2 fs-15">
-                                                    <div class="form-check notification-check">
-                                                        <input class="form-check-input" type="checkbox" value="" id="messages-notification-check01">
-                                                        <label class="form-check-label" for="messages-notification-check01"></label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="text-reset notification-item d-block dropdown-item">
-                                            <div class="d-flex">
-                                                <img src="/assets/images/users/avatar-2.jpg" class="me-3 rounded-circle avatar-xs" alt="user-pic">
-                                                <div class="flex-grow-1">
-                                                    <a href="#!" class="stretched-link">
-                                                        <h6 class="mt-0 mb-1 fs-13 fw-semibold">Angela Bernier</h6>
-                                                    </a>
-                                                    <div class="fs-13 text-muted">
-                                                        <p class="mb-1">Answered to your comment on the cash flow forecast's
-                                                            graph 🔔.</p>
-                                                    </div>
-                                                    <p class="mb-0 fs-11 fw-medium text-uppercase text-muted">
-                                                        <span><i class="mdi mdi-clock-outline"></i> 2 hrs ago</span>
-                                                    </p>
-                                                </div>
-                                                <div class="px-2 fs-15">
-                                                    <div class="form-check notification-check">
-                                                        <input class="form-check-input" type="checkbox" value="" id="messages-notification-check02">
-                                                        <label class="form-check-label" for="messages-notification-check02"></label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="text-reset notification-item d-block dropdown-item">
-                                            <div class="d-flex">
-                                                <img src="/assets/images/users/avatar-6.jpg" class="me-3 rounded-circle avatar-xs" alt="user-pic">
-                                                <div class="flex-grow-1">
-                                                    <a href="#!" class="stretched-link">
-                                                        <h6 class="mt-0 mb-1 fs-13 fw-semibold">Kenneth Brown</h6>
-                                                    </a>
-                                                    <div class="fs-13 text-muted">
-                                                        <p class="mb-1">Mentionned you in his comment on 📃 invoice #12501.
-                                                        </p>
-                                                    </div>
-                                                    <p class="mb-0 fs-11 fw-medium text-uppercase text-muted">
-                                                        <span><i class="mdi mdi-clock-outline"></i> 10 hrs ago</span>
-                                                    </p>
-                                                </div>
-                                                <div class="px-2 fs-15">
-                                                    <div class="form-check notification-check">
-                                                        <input class="form-check-input" type="checkbox" value="" id="messages-notification-check03">
-                                                        <label class="form-check-label" for="messages-notification-check03"></label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="text-reset notification-item d-block dropdown-item">
-                                            <div class="d-flex">
-                                                <img src="/assets/images/users/avatar-8.jpg" class="me-3 rounded-circle avatar-xs" alt="user-pic">
-                                                <div class="flex-grow-1">
-                                                    <a href="#!" class="stretched-link">
-                                                        <h6 class="mt-0 mb-1 fs-13 fw-semibold">Maureen Gibson</h6>
-                                                    </a>
-                                                    <div class="fs-13 text-muted">
-                                                        <p class="mb-1">We talked about a project on linkedin.</p>
-                                                    </div>
-                                                    <p class="mb-0 fs-11 fw-medium text-uppercase text-muted">
-                                                        <span><i class="mdi mdi-clock-outline"></i> 3 days ago</span>
-                                                    </p>
-                                                </div>
-                                                <div class="px-2 fs-15">
-                                                    <div class="form-check notification-check">
-                                                        <input class="form-check-input" type="checkbox" value="" id="messages-notification-check04">
-                                                        <label class="form-check-label" for="messages-notification-check04"></label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="my-3 text-center view-all">
-                                            <button type="button" class="btn btn-soft-success waves-effect waves-light">View
-                                                All Messages <i class="ri-arrow-right-line align-middle"></i></button>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="tab-pane fade p-4" id="alerts-tab" role="tabpanel" aria-labelledby="alerts-tab"></div>
-
-                                <div class="notification-actions" id="notification-actions">
-                                    <div class="d-flex text-muted justify-content-center">
-                                        Select <div id="select-content" class="text-body fw-semibold px-1">0</div> Result <button type="button" class="btn btn-link link-danger p-0 ms-3" data-bs-toggle="modal" data-bs-target="#removeNotificationModal">Remove</button>
-                                    </div>
-                                </div>
-                            </div>
+                            <!-- View All Programs -->
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item text-center bg-light-subtle fw-medium py-2" href="<?= site_url('welcome') ?>">
+                                <i class="ri-apps-2-line me-1"></i> View All Programs
+                            </a>
                         </div>
                     </div>
 
                     <div class="dropdown ms-sm-3 header-item topbar-user">
-                        <button type="button" class="btn" id="page-header-user-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <button type="button" class="btn program-selector-btn" id="page-header-user-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                             <span class="d-flex align-items-center">
                                 <img class="rounded-circle header-profile-user" src="/assets/images/users/avatar-1.jpg" alt="Header Avatar">
                                 <span class="text-start ms-xl-2">
                                     <span class="d-none d-xl-inline-block ms-1 fw-medium user-name-text">Anna Adame</span>
-                                    <span class="d-none d-xl-block ms-1 fs-12 user-name-sub-text">Founder</span>
+                                    <span class="d-none d-xl-block ms-1 fs-12 user-name-sub-text text-muted">Founder</span>
                                 </span>
+                                <i class="ri-arrow-down-s-line d-none d-xl-inline-block ms-2 fs-16"></i>
                             </span>
                         </button>
-                        <div class="dropdown-menu dropdown-menu-end">
+                        <div class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="width: 250px">
                             <!-- item-->
-                            <h6 class="dropdown-header">Welcome Anna!</h6>
-                            <a class="dropdown-item" href="pages-profile"><i class="mdi mdi-account-circle text-muted fs-16 align-middle me-1"></i> <span class="align-middle">Profile</span></a>
-                            <a class="dropdown-item" href="apps-chat"><i class="mdi mdi-message-text-outline text-muted fs-16 align-middle me-1"></i> <span class="align-middle">Messages</span></a>
-                            <a class="dropdown-item" href="apps-tasks-kanban"><i class="mdi mdi-calendar-check-outline text-muted fs-16 align-middle me-1"></i> <span class="align-middle">Taskboard</span></a>
-                            <a class="dropdown-item" href="pages-faqs"><i class="mdi mdi-lifebuoy text-muted fs-16 align-middle me-1"></i> <span class="align-middle">Help</span></a>
-                            <div class="dropdown-divider"></div>
-                            <a class="dropdown-item" href="pages-profile"><i class="mdi mdi-wallet text-muted fs-16 align-middle me-1"></i> <span class="align-middle">Balance : <b>$5971.67</b></span></a>
-                            <a class="dropdown-item" href="pages-profile-settings"><span class="badge bg-success-subtle text-success mt-1 float-end">New</span><i class="mdi mdi-cog-outline text-muted fs-16 align-middle me-1"></i> <span class="align-middle">Settings</span></a>
-                            <a class="dropdown-item" href="auth-lockscreen-basic"><i class="mdi mdi-lock text-muted fs-16 align-middle me-1"></i> <span class="align-middle">Lock screen</span></a>
-                            <a class="dropdown-item" href="<?= base_url('logout') ?>"><i class="mdi mdi-logout text-muted fs-16 align-middle me-1"></i> <span class="align-middle" data-key="t-logout">Logout</span></a>
+                            <div class="p-3 border-bottom">
+                                <div class="d-flex align-items-center">
+                                    <img class="rounded-circle me-3" src="/assets/images/users/avatar-1.jpg" alt="Header Avatar" width="50">
+                                    <div>
+                                        <h6 class="mb-0 fs-15">Anna Adame</h6>
+                                        <p class="mb-0 text-muted fs-13">Founder</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="p-2">
+                                <a class="dropdown-item d-flex align-items-center" href="pages-profile">
+                                    <i class="ri-user-line text-muted fs-16 align-middle me-2"></i> 
+                                    <span class="align-middle">Profile</span>
+                                </a>
+                                <a class="dropdown-item d-flex align-items-center" href="apps-chat">
+                                    <i class="ri-message-2-line text-muted fs-16 align-middle me-2"></i> 
+                                    <span class="align-middle">Messages</span>
+                                </a>
+                                <a class="dropdown-item d-flex align-items-center" href="apps-tasks-kanban">
+                                    <i class="ri-task-line text-muted fs-16 align-middle me-2"></i> 
+                                    <span class="align-middle">Taskboard</span>
+                                </a>
+                                <a class="dropdown-item d-flex align-items-center" href="pages-faqs">
+                                    <i class="ri-question-line text-muted fs-16 align-middle me-2"></i> 
+                                    <span class="align-middle">Help</span>
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item d-flex align-items-center" href="pages-profile">
+                                    <i class="ri-wallet-line text-muted fs-16 align-middle me-2"></i> 
+                                    <span class="align-middle">Balance : <b>$5971.67</b></span>
+                                </a>
+                                <a class="dropdown-item d-flex align-items-center" href="pages-profile-settings">
+                                    <i class="ri-settings-3-line text-muted fs-16 align-middle me-2"></i> 
+                                    <span class="align-middle">Settings</span>
+                                    <span class="badge bg-success-subtle text-success ms-auto">New</span>
+                                </a>
+                                <a class="dropdown-item d-flex align-items-center" href="auth-lockscreen-basic">
+                                    <i class="ri-lock-line text-muted fs-16 align-middle me-2"></i> 
+                                    <span class="align-middle">Lock screen</span>
+                                </a>
+                                <a class="dropdown-item d-flex align-items-center" href="<?= base_url('sign-out') ?>">
+                                    <i class="ri-logout-box-line text-muted fs-16 align-middle me-2"></i> 
+                                    <span class="align-middle" data-key="t-logout">Logout</span>
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 </header>
-
-<!-- removeNotificationModal -->
-<div id="removeNotificationModal" class="modal fade zoomIn" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="NotificationModalbtn-close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mt-2 text-center">
-                    <lord-icon src="https://cdn.lordicon.com/gsqxdxog.json" trigger="loop" colors="primary:#f7b84b,secondary:#f06548" style="width:100px;height:100px"></lord-icon>
-                    <div class="mt-4 pt-2 fs-15 mx-4 mx-sm-5">
-                        <h4>Are you sure ?</h4>
-                        <p class="text-muted mx-4 mb-0">Are you sure you want to remove this Notification ?</p>
-                    </div>
-                </div>
-                <div class="d-flex gap-2 justify-content-center mt-4 mb-2">
-                    <button type="button" class="btn w-sm btn-light" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn w-sm btn-danger" id="delete-notification">Yes, Delete It!</button>
-                </div>
-            </div>
-
-        </div><!-- /.modal-content -->
-    </div><!-- /.modal-dialog -->
-</div><!-- /.modal -->

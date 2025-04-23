@@ -69,6 +69,7 @@ class ProgramDocumentsApiController extends ApiBaseController
 
         return $this->respondSuccess($documents);
     }
+    
     /**
      * 📄 Generate LOA by Program Document ID and Participant ID
      * GET /api/program-documents/{documentId}/participants/{participantId}/generate
@@ -76,79 +77,106 @@ class ProgramDocumentsApiController extends ApiBaseController
      */
     public function generateLOA($documentId = null, $participantId = null)
     {
+        // Start logging the LOA generation process
+        log_message('info', "[LOA Generation] Starting LOA generation process for document ID: {$documentId}, participant ID: {$participantId}");
+        
         // Increase execution time limit for PDF generation
         ini_set('max_execution_time', 300); // 5 minutes
         set_time_limit(300); // Backup approach
+        log_message('info', "[LOA Generation] Execution time limit increased to 300 seconds");
 
         // Validate required parameters
         if ($documentId === null || $participantId === null) {
+            log_message('error', "[LOA Generation] Missing required parameters. Document ID: {$documentId}, Participant ID: {$participantId}");
             return $this->failValidationErrors('Document ID and Participant ID are required');
         }
 
         // Get the document
+        log_message('info', "[LOA Generation] Fetching program document with ID: {$documentId}");
         $document = $this->model->find($documentId);
         if (!$document) {
+            log_message('error', "[LOA Generation] Program document not found with ID: {$documentId}");
             return $this->failNotFound('Program document not found');
         }
+        log_message('info', "[LOA Generation] Program document found: " . json_encode($document));
 
         try {
             // Load participant data
+            log_message('info', "[LOA Generation] Fetching participant data with ID: {$participantId}");
             $participantModel = new \App\Models\ParticipantModel();
             $participant = $participantModel->find($participantId);
 
             if (!$participant) {
+                log_message('error', "[LOA Generation] Participant not found with ID: {$participantId}");
                 return $this->failNotFound('Participant not found');
             }
+            log_message('info', "[LOA Generation] Participant found: " . json_encode($participant));
 
             // Get program data
+            log_message('info', "[LOA Generation] Fetching program data with ID: {$participant->program_id}");
             $programModel = new \App\Models\ProgramModel();
             $program = (object)$programModel->find($participant->program_id);
 
             if (!$program) {
+                log_message('error', "[LOA Generation] Program not found with ID: {$participant->program_id}");
                 return $this->failNotFound('Program not found');
             }
+            log_message('info', "[LOA Generation] Program found: " . json_encode($program));
 
             // get program category
+            log_message('info', "[LOA Generation] Fetching program category with ID: {$program->program_category_id}");
             $programCategoryModel = new \App\Models\ProgramCategoryModel();
             $programCategory = $programCategoryModel->find($program->program_category_id);
 
             if (!$programCategory) {
+                log_message('error', "[LOA Generation] Program category not found with ID: {$program->program_category_id}");
                 return $this->failNotFound('Program category not found');
             }
+            log_message('info', "[LOA Generation] Program category found: " . json_encode($programCategory));
 
             $programData = [
                 'name' => $program->name,
                 'location' => $programCategory->location,
                 'start_date' => $program->start_date,
                 'end_date' => $program->end_date,
-                'logo_url' => $program->logo_url,
+                'logo_url' => $programCategory->logo_url,
                 'web_url' => $programCategory->web_url,
                 'email' => $programCategory->email,
                 'tagline' => $programCategory->tagline,
                 'contact' => $programCategory->contact,
                 'main_name' => $programCategory->name,
             ];
+            log_message('info', "[LOA Generation] Program data prepared: " . json_encode($programData));
 
             // Get the LOA template
+            log_message('info', "[LOA Generation] Fetching LOA template for document ID: {$documentId}");
             $loaTemplateModel = new \App\Models\LoaTemplateModel();
             $template = $loaTemplateModel->getLoaTemplateByProgramDocumentId($documentId);
 
             if (!$template) {
+                log_message('error', "[LOA Generation] LOA template not found for document ID: {$documentId}");
                 return $this->failNotFound('LOA template not found for this document');
             }
+            log_message('info', "[LOA Generation] LOA template found with ID: {$template->id}");
 
             // Generate the LOA content with template and participant data
+            log_message('info', "[LOA Generation] Generating LOA content from template");
             $loaContent = $this->generateLoaContent($template->body, $participant, $programData);
-
+            log_message('info', "[LOA Generation] LOA content generated successfully");
 
             // Generate PDF
             $filename = 'LOA-' . $participant->full_name . '-' . date('Ymd') . '.pdf';
+            log_message('info', "[LOA Generation] Starting PDF generation with filename: {$filename}");
             $pdfContent = $this->generateLoaPdf($loaContent, $programData);
+            log_message('info', "[LOA Generation] PDF generated successfully, size: " . strlen($pdfContent) . " bytes");
 
             // Encode the PDF as base64 for sending in the JSON response
+            log_message('info', "[LOA Generation] Encoding PDF as base64");
             $encodedPdf = base64_encode($pdfContent);
+            log_message('info', "[LOA Generation] PDF encoded successfully, encoded size: " . strlen($encodedPdf) . " bytes");
             
             // Return success response with the file information
+            log_message('info', "[LOA Generation] LOA generation completed successfully for participant: {$participant->full_name}");
             return $this->respondSuccess([  
                 'file_name' => $filename,
                 'mime_type' => 'application/pdf',
@@ -156,6 +184,9 @@ class ProgramDocumentsApiController extends ApiBaseController
                 'message' => 'LOA generated successfully'
             ]);
         } catch (\Exception $e) {
+            log_message('error', "[LOA Generation] Error generating LOA: " . $e->getMessage());
+            log_message('error', "[LOA Generation] Error details - File: " . $e->getFile() . ", Line: " . $e->getLine());
+            log_message('error', "[LOA Generation] Stack trace: " . $e->getTraceAsString());
             return $this->fail($e->getMessage(), 500);
         }
     }
@@ -170,16 +201,35 @@ class ProgramDocumentsApiController extends ApiBaseController
      */
     private function generateLoaContent($template, $participant, $programData)
     {
+        log_message('info', "[LOA Generation] Starting content generation with template length: " . strlen($template));
+        
         // Replace variables with actual data
         $content = $template;
+        log_message('debug', "[LOA Generation] Processing template variables for participant: " . $participant->full_name);
+        
         $content = str_replace('{{participant_name}}', strtoupper($participant->full_name), $content);
         $content = str_replace('{{program_name}}', $programData['name'], $content);
-        $content = str_replace('{{institution}}', strtoupper($participant->institution ?? 'Youth Break the Boundaries'), $content);
+        
+        $institution = $participant->institution ?? 'Youth Break the Boundaries';
+        log_message('debug', "[LOA Generation] Using institution: " . $institution);
+        $content = str_replace('{{institution}}', strtoupper($institution), $content);
+        
         $content = str_replace('{{today_date}}', date('F d, Y'), $content);
-        $content = str_replace('{{start_date}}', isset($programData['start_date']) ? date("F d, Y", strtotime($programData['start_date'])) : "April 30, 2025", $content);
-        $content = str_replace('{{end_date}}', isset($programData['end_date']) ? date("F d, Y", strtotime($programData['end_date'])) : "December 31, 2025", $content);
+        
+        $startDate = isset($programData['start_date']) ? date("F d, Y", strtotime($programData['start_date'])) : "April 30, 2025";
+        log_message('debug', "[LOA Generation] Using start date: " . $startDate);
+        $content = str_replace('{{start_date}}', $startDate, $content);
+        
+        $endDate = isset($programData['end_date']) ? date("F d, Y", strtotime($programData['end_date'])) : "December 31, 2025";
+        log_message('debug', "[LOA Generation] Using end date: " . $endDate);
+        $content = str_replace('{{end_date}}', $endDate, $content);
+        
         // program location
-        $content = str_replace('{{program_location}}', isset($programData['location']) ? $programData['location'] : 'Youth Break the Boundaries', $content);
+        $location = isset($programData['location']) ? $programData['location'] : 'Youth Break the Boundaries';
+        log_message('debug', "[LOA Generation] Using program location: " . $location);
+        $content = str_replace('{{program_location}}', $location, $content);
+        
+        log_message('info', "[LOA Generation] Content generation completed, final content length: " . strlen($content));
         return $content;
     }
     /**
@@ -191,34 +241,57 @@ class ProgramDocumentsApiController extends ApiBaseController
      */
     private function generateLoaPdf($loaContent, $programData)
     {
-        // Generate HTML content with header and footer
-        $htmlContent = $this->getLoaPdfTemplate($loaContent, $programData);
+        log_message('info', "[LOA Generation] Starting PDF generation with content length: " . strlen($loaContent));
 
-        // Create PDF using Dompdf with optimized settings
-        $dompdf = new \Dompdf\Dompdf();
-        $options = $dompdf->getOptions();
-        $options->set('isHtml5ParserEnabled', true);
-        $options->set('isRemoteEnabled', true);
-        $options->set('isFontSubsettingEnabled', true);
-        $options->set('defaultMediaType', 'print');
-        $options->set('debugKeepTemp', false);
-        $options->set('debugCss', false);
-        $options->set('debugLayout', false);
-        $options->set('debugLayoutLines', false);
-        $options->set('debugLayoutBlocks', false);
-        $options->set('debugLayoutInline', false);
-        $options->set('debugLayoutPaddingBox', false);
-        $dompdf->setOptions($options);
+        try {
+            // Generate HTML content with header and footer
+            log_message('info', "[LOA Generation] Getting PDF template with header and footer");
+            $htmlContent = $this->getLoaPdfTemplate($loaContent, $programData);
+            log_message('debug', "[LOA Generation] Full HTML template length: " . strlen($htmlContent));
 
-        // Load HTML content
-        $dompdf->loadHtml($htmlContent);
-        $dompdf->setPaper('A4', 'portrait');
+            // Create PDF using Dompdf with optimized settings
+            log_message('info', "[LOA Generation] Initializing Dompdf");
+            $dompdf = new \Dompdf\Dompdf();
+            $options = $dompdf->getOptions();
+            
+            // Configure Dompdf options
+            log_message('debug', "[LOA Generation] Setting Dompdf options");
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isRemoteEnabled', true);
+            $options->set('isFontSubsettingEnabled', true);
+            $options->set('defaultMediaType', 'print');
+            $options->set('debugKeepTemp', false);
+            $options->set('debugCss', false);
+            $options->set('debugLayout', false);
+            $options->set('debugLayoutLines', false);
+            $options->set('debugLayoutBlocks', false);
+            $options->set('debugLayoutInline', false);
+            $options->set('debugLayoutPaddingBox', false);
+            $dompdf->setOptions($options);
 
-        // Render PDF (with memory optimization)
-        $dompdf->render();
+            // Load HTML content
+            log_message('info', "[LOA Generation] Loading HTML content into Dompdf");
+            $dompdf->loadHtml($htmlContent);
+            log_message('debug', "[LOA Generation] Setting paper size to A4 portrait");
+            $dompdf->setPaper('A4', 'portrait');
 
-        // Return the PDF content
-        return $dompdf->output();
+            // Render PDF (with memory optimization)
+            log_message('info', "[LOA Generation] Starting PDF rendering process");
+            $dompdf->render();
+            log_message('info', "[LOA Generation] PDF rendering completed successfully");
+
+            // Get the PDF content
+            log_message('info', "[LOA Generation] Retrieving PDF output");
+            $output = $dompdf->output();
+            log_message('info', "[LOA Generation] PDF generation completed successfully, output size: " . strlen($output) . " bytes");
+            
+            return $output;
+        } catch (\Exception $e) {
+            log_message('error', "[LOA Generation] Error in PDF generation: " . $e->getMessage());
+            log_message('error', "[LOA Generation] Error location: " . $e->getFile() . " on line " . $e->getLine());
+            log_message('error', "[LOA Generation] Stack trace: " . $e->getTraceAsString());
+            throw $e; // Re-throw to be caught by the main try-catch block
+        }
     }
     /**
      * Get full HTML template for LOA PDF
@@ -227,95 +300,122 @@ class ProgramDocumentsApiController extends ApiBaseController
      * @return string Complete HTML structure for PDF
      */
     private function getLoaPdfTemplate($bodyContent, $programData)
-    {        // Get program logo with an efficient approach that supports network images
-        $logoImg = $this->getOptimizedLogoForPdf($programData['logo_url']);
+    {
+        log_message('info', "[LOA Generation] Starting HTML template generation for PDF");
+        try {
+            // Get program logo with an efficient approach that supports network images
+            log_message('info', "[LOA Generation] Getting optimized logo, URL: " . ($programData['logo_url'] ?? 'none'));
+            $logoImg = $this->getOptimizedLogoForPdf($programData['logo_url']);
+            log_message('debug', "[LOA Generation] Logo HTML generated, length: " . strlen($logoImg));
 
-        // Get optimized signature image
-        $signatureImg = $this->getOptimizedSignatureForPdf();
+            // Get optimized signature image
+            log_message('info', "[LOA Generation] Getting optimized signature image");
+            $signatureImg = $this->getOptimizedSignatureForPdf();
+            log_message('debug', "[LOA Generation] Signature HTML generated, length: " . strlen($signatureImg));
 
-        // Add Quill editor styles to preserve formatting
-        $quillStyles = '
-        /* Quill Editor Styles */
-        .ql-align-center {
-            text-align: center !important;
-        }
-        .ql-align-right {
-            text-align: right !important;
-        }
-        .ql-align-justify {
-            text-align: justify !important;
-        }        /* Indentation classes - complete rewrite for better tab handling */
-        p.ql-indent-1, .ql-indent-1 {
-            padding-left: 3em !important;
-            text-indent: 0 !important;
-        }
-        p.ql-indent-2, .ql-indent-2 {
-            padding-left: 6em !important;
-            text-indent: 0 !important;
-        }
-        p.ql-indent-3, .ql-indent-3 {
-            padding-left: 9em !important;
-            text-indent: 0 !important;
-        }
-        p.ql-indent-4, .ql-indent-4 {
-            padding-left: 12em !important;
-            text-indent: 0 !important;
-        }
-        p.ql-indent-5, .ql-indent-5 {
-            padding-left: 15em !important;
-            text-indent: 0 !important;
-        }
-        p.ql-indent-6, .ql-indent-6 {
-            padding-left: 18em !important;
-            text-indent: 0 !important;
-        }
-        p.ql-indent-7, .ql-indent-7 {
-            padding-left: 21em !important;
-            text-indent: 0 !important;
-        }
-        p.ql-indent-8, .ql-indent-8 {
-            padding-left: 24em !important;
-            text-indent: 0 !important;
-        }
-        /* Tab handling */
-        .tab-indent {
-            display: inline-block;
-            width: 2em;
-        }
-        /* List styling */
-        ul {
-            padding-left: 1.5em !important;
-            list-style-type: disc !important;
-        }
-        ol {
-            padding-left: 1.5em !important;
-            list-style-type: decimal !important;
-        }
-        li {
-            padding-left: 0.5em !important;
-        }        /* Additional spacing and structure */
-        p {
-            margin-bottom: 0.5em !important;
-            margin-top: 0.5em !important;
-        }
-        
-        /* Default tab for paragraphs */
-        p:not(.ql-align-center):not(.ql-align-right):not(.ql-align-justify) {
-            text-indent: 2em !important;
-        }
-        /* For aligned paragraphs, still add tab but adjust for alignment */
-        p.ql-align-justify {
-            text-indent: 2em !important;
-        }';
+            // Add Quill editor styles to preserve formatting
+            log_message('debug', "[LOA Generation] Adding CSS styles for proper formatting");
+            $quillStyles = '
+            /* Quill Editor Styles */
+            .ql-align-center {
+                text-align: center !important;
+            }
+            .ql-align-right {
+                text-align: right !important;
+            }
+            .ql-align-justify {
+                text-align: justify !important;
+            }        /* Indentation classes - complete rewrite for better tab handling */
+            p.ql-indent-1, .ql-indent-1 {
+                padding-left: 3em !important;
+                text-indent: 0 !important;
+            }
+            p.ql-indent-2, .ql-indent-2 {
+                padding-left: 6em !important;
+                text-indent: 0 !important;
+            }
+            p.ql-indent-3, .ql-indent-3 {
+                padding-left: 9em !important;
+                text-indent: 0 !important;
+            }
+            p.ql-indent-4, .ql-indent-4 {
+                padding-left: 12em !important;
+                text-indent: 0 !important;
+            }
+            p.ql-indent-5, .ql-indent-5 {
+                padding-left: 15em !important;
+                text-indent: 0 !important;
+            }
+            p.ql-indent-6, .ql-indent-6 {
+                padding-left: 18em !important;
+                text-indent: 0 !important;
+            }
+            p.ql-indent-7, .ql-indent-7 {
+                padding-left: 21em !important;
+                text-indent: 0 !important;
+            }
+            p.ql-indent-8, .ql-indent-8 {
+                padding-left: 24em !important;
+                text-indent: 0 !important;
+            }
+            /* Tab handling */
+            .tab-indent {
+                display: inline-block;
+                width: 2em;
+            }
+            /* List styling */
+            ul {
+                padding-left: 1.5em !important;
+                list-style-type: disc !important;
+            }
+            ol {
+                padding-left: 1.5em !important;
+                list-style-type: decimal !important;
+            }
+            li {
+                padding-left: 0.5em !important;
+            }        /* Additional spacing and structure */
+            p {
+                margin-bottom: 0.5em !important;
+                margin-top: 0.5em !important;
+            }
+            
+            /* Default tab for paragraphs */
+            p:not(.ql-align-center):not(.ql-align-right):not(.ql-align-justify) {
+                text-indent: 2em !important;
+            }
+            /* For aligned paragraphs, still add tab but adjust for alignment */
+            p.ql-align-justify {
+                text-indent: 2em !important;
+            }';
 
-        // Load the template file and pass the variables
-        $view = \Config\Services::renderer();
-        return $view->setVar('logoImg', $logoImg)
-            ->setVar('signatureImg', $signatureImg)
-            ->setVar('bodyContent', $bodyContent)
-            ->setVar('quillStyles', $quillStyles)
-            ->setVar('programData', $programData)
-            ->render('documents/program-documents/main_loa_template');
+            // Load the template file and pass the variables
+            log_message('info', "[LOA Generation] Loading view template for PDF rendering");
+            $view = \Config\Services::renderer();
+            log_message('debug', "[LOA Generation] Setting view variables: logo, signature, body content, and styles");
+            
+            // Render the view template with all necessary variables
+            try {
+                log_message('debug', "[LOA Generation] Rendering view template with body content length: " . strlen($bodyContent));
+                $renderedTemplate = $view->setVar('logoImg', $logoImg)
+                    ->setVar('signatureImg', $signatureImg)
+                    ->setVar('bodyContent', $bodyContent)
+                    ->setVar('quillStyles', $quillStyles)
+                    ->setVar('programData', $programData)
+                    ->render('documents/program-documents/main_loa_template');
+                
+                log_message('info', "[LOA Generation] View template rendered successfully, length: " . strlen($renderedTemplate));
+                return $renderedTemplate;
+            } catch (\Exception $e) {
+                log_message('error', "[LOA Generation] Error rendering view template: " . $e->getMessage());
+                log_message('error', "[LOA Generation] Error location: " . $e->getFile() . " on line " . $e->getLine());
+                throw $e;
+            }
+        } catch (\Exception $e) {
+            log_message('error', "[LOA Generation] Error generating HTML template: " . $e->getMessage());
+            log_message('error', "[LOA Generation] Error location: " . $e->getFile() . " on line " . $e->getLine());
+            throw $e;
+        }
     }
     /**
      * Get optimized logo for PDF generation

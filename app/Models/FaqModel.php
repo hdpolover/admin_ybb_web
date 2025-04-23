@@ -11,7 +11,7 @@ class FaqModel extends Model
     protected $useAutoIncrement = true;
     protected $returnType     = 'object';
 
-    protected $allowedFields = ['program_id', 'question', 'answer', 'faq_category',  'is_active', 'is_deleted'];
+    protected $allowedFields = ['program_id', 'question', 'answer', 'faq_category', 'order_number',  'is_active', 'is_deleted'];
     protected $useTimestamps = true;
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
@@ -25,12 +25,12 @@ class FaqModel extends Model
      *
      * @param int $programId The program ID
      * @return array The active FAQs
-     */
-    public function getActiveFaqsByProgramId($programId)
+     */    public function getActiveFaqsByProgramId($programId)
     {
         return $this->where('program_id', $programId)
             ->where('is_active', 1)
             ->where('is_deleted', 0)
+            ->orderBy('order_number', 'ASC')
             ->orderBy('created_at', 'DESC')
             ->findAll();
     }
@@ -40,11 +40,12 @@ class FaqModel extends Model
      *
      * @param int $programId The program ID
      * @return array The FAQs
-     */
-    public function getAllFaqsByProgramId($programId)
+     */    public function getAllFaqsByProgramId($programId)
     {
         return $this->where('program_id', $programId)
             ->where('is_deleted', 0)
+            ->where('is_active', 1)
+            ->orderBy('order_number', 'ASC')
             ->orderBy('created_at', 'DESC')
             ->findAll();
     }
@@ -55,12 +56,12 @@ class FaqModel extends Model
      * @param int $programId The program ID
      * @param string $category The FAQ category
      * @return array The FAQs
-     */
-    public function getFaqsByProgramIdAndCategory($programId, $category)
+     */    public function getFaqsByProgramIdAndCategory($programId, $category)
     {
         return $this->where('program_id', $programId)
             ->where('faq_category', $category)
             ->where('is_deleted', 0)
+            ->orderBy('order_number', 'ASC')
             ->orderBy('created_at', 'DESC')
             ->findAll();
     }

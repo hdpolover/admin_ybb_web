@@ -19,7 +19,7 @@ class Welcome extends BaseController
 
     public function index()
     {
-        // get program category with programs
+       // get program category with programs
         $programs =  $this->programCategoryModel->getAllCategoriesWithPrograms();
 
         // sort programs by category name
@@ -27,14 +27,47 @@ class Welcome extends BaseController
             return strcmp($a->name, $b->name);
         });
 
-        // Set cookie to indicate no program is selected when on welcome page
-        $this->response->deleteCookie('has_program_selected');
+        // group by active and inactive
+        $activePrograms = array_filter($programs, function ($program) {
+            return $program->is_active == 1;
+        });
+
+        $inactivePrograms = array_filter($programs, function ($program) {
+            return $program->is_active == 0;
+        });
+
+        $currentProgramId = session('current_program');
+        
+        // Check if a program is already selected
+        if ($currentProgramId) {
+            // Find the selected program in the list
+            $selectedProgram = null;
+            foreach ($programs as $category) {
+                foreach ($category->programs as $program) {
+                    if ($program->id == $currentProgramId) {
+                        $selectedProgram = $program;
+                        break 2; // Break out of both loops
+                    }
+                }
+            }
+
+            // If the selected program is not found, unset the session variable
+            if (!$selectedProgram) {
+                session()->remove('current_program');
+            }
+        } else {
+            $selectedProgram = null; // Initialize as null if no program is selected
+        }
 
         $data = [
+            'title' => 'Welcome',
+            'selectedProgram' => $selectedProgram,
+            'activePrograms' => $activePrograms,
+            'inactivePrograms' => $inactivePrograms,
             'programs' => $programs,
         ];
 
-         return view('welcome/index', $data);
+        return view('welcome/index', $data);
     }
 
     public function setProgram($program_id)

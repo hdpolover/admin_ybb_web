@@ -274,7 +274,7 @@ class PaymentMethods extends BaseController
         }
 
         // Soft delete the payment method
-        if ($this->paymentMethodModel->update($id, ['is_deleted' => 1])) {
+        if ($this->paymentMethodModel->update($id, ['is_deleted' => 1, 'is_active' => 0])) {
             return redirect()->to('/master-data/payment-methods')
                 ->with('success', 'Payment method deleted successfully');
         } else {

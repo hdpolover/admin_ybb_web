@@ -104,7 +104,6 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->get('program-documents/program/(:num)', 'ProgramDocumentsApiController::getByProgram/$1');
     // generate loa /api/program-documents/{documentId}/participant/{participantId}/generate
     $routes->get('program-documents/(:num)/participants/(:num)/generate', 'ProgramDocumentsApiController::generateLoA/$1/$2');
-    // get payments by participant id
 
     // Protected routes with JWT authentication
     $routes->group('', ['filter' => 'jwt'], function ($routes) {

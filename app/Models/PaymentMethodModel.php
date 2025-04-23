@@ -17,7 +17,7 @@ class PaymentMethodModel extends Model
     protected $returnType     = 'object';
     protected $useAutoIncrement = true;
     protected $useSoftDeletes = false; // Using is_deleted field manually    
-    
+
     protected $validationRules = [
         'program_id' => 'required|integer',
         'name' => 'required|string|max_length[255]',
@@ -50,7 +50,8 @@ class PaymentMethodModel extends Model
         'img_url' => [
             'string' => 'Image URL must be a string',
             'max_length' => 'Image URL cannot exceed 255 characters'
-        ],        'is_active' => [
+        ],
+        'is_active' => [
             'in_list' => 'Is Active must be either 0 or 1'
         ],
         'is_deleted' => [
@@ -66,6 +67,7 @@ class PaymentMethodModel extends Model
     public function getByProgramId($programId)
     {
         return $this->where('program_id', $programId)
+            ->where('is_deleted', 0)
             ->findAll();
     }
 
@@ -74,6 +76,7 @@ class PaymentMethodModel extends Model
     {
         return $this->where('program_id', $programId)
             ->where('is_active', 1)
+            ->where('is_deleted', 0)
             ->findAll();
     }
 
@@ -83,5 +86,4 @@ class PaymentMethodModel extends Model
         return $this->where('id', $id)
             ->first();
     }
-    
 }

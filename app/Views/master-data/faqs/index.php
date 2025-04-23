@@ -15,8 +15,8 @@
     <!-- SweetAlert2 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.3/dist/sweetalert2.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.3/dist/sweetalert2.all.min.js"></script>
-   
-   <style>
+
+    <style>
         .description-cell {
             max-width: 250px;
             white-space: nowrap;
@@ -98,6 +98,7 @@
                                         <thead class="table-light">
                                             <tr>
                                                 <th scope="col" style="width: 50px;">#</th>
+                                                <th scope="col">Order</th>
                                                 <th scope="col">Question</th>
                                                 <th scope="col">Answer</th>
                                                 <th scope="col">Category</th>
@@ -110,6 +111,7 @@
                                                 <?php foreach ($faqs as $index => $faq) : ?>
                                                     <tr data-category="<?= $faq->faq_category ?>">
                                                         <td><?= $index + 1 ?></td>
+                                                        <td class="text-center"><?= $faq->order_number ?? 0 ?></td>
                                                         <td class="description-cell" data-bs-toggle="tooltip" title="<?= htmlspecialchars($faq->question) ?>">
                                                             <?= mb_strimwidth(strip_tags($faq->question), 0, 50, "...") ?>
                                                         </td>
@@ -199,9 +201,8 @@
                             <textarea class="form-control" id="answer" name="answer" rows="3" required></textarea>
                             <div class="invalid-feedback">Please provide an answer.</div>
                         </div>
-
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="mb-3">
                                     <label for="faq_category" class="form-label">Category*</label>
                                     <select class="form-select" id="faq_category" name="faq_category" required>
@@ -213,7 +214,14 @@
                                     <div class="invalid-feedback">Please select a category.</div>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="order_number" class="form-label">Display Order</label>
+                                    <input type="number" class="form-control" id="order_number" name="order_number" min="0" value="0">
+                                    <div class="invalid-feedback">Please enter a valid order number.</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
                                 <div class="mb-3">
                                     <label for="is_active" class="form-label">Status*</label>
                                     <select class="form-select" id="is_active" name="is_active" required>
@@ -233,7 +241,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Edit FAQ Modal -->
     <div class="modal fade" id="edit-faq-modal" tabindex="-1" aria-labelledby="edit-faq-modal-label" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -268,9 +276,8 @@
                             <textarea class="form-control" id="edit_answer" name="answer" rows="5" required></textarea>
                             <div class="invalid-feedback">Please provide an answer.</div>
                         </div>
-
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="mb-3">
                                     <label for="edit_faq_category" class="form-label">Category*</label>
                                     <select class="form-select" id="edit_faq_category" name="faq_category" required>
@@ -282,7 +289,14 @@
                                     <div class="invalid-feedback">Please select a category.</div>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="edit_order_number" class="form-label">Display Order</label>
+                                    <input type="number" class="form-control" id="edit_order_number" name="order_number" min="0" value="0">
+                                    <div class="invalid-feedback">Please enter a valid order number.</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
                                 <div class="mb-3">
                                     <label for="edit_is_active" class="form-label">Status*</label>
                                     <select class="form-select" id="edit_is_active" name="is_active" required>
@@ -302,7 +316,8 @@
             </div>
         </div>
     </div>
-    
+
+
     <!-- View FAQ Modal -->
     <div class="modal fade" id="view-faq-modal" tabindex="-1" aria-labelledby="view-faq-modal-label" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -326,13 +341,19 @@
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <div class="mb-3">
                                 <h6 class="fw-semibold">Category</h6>
                                 <p id="view_category">Loading...</p>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <h6 class="fw-semibold">Display Order</h6>
+                                <p id="view_order_number">Loading...</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
                             <div class="mb-3">
                                 <h6 class="fw-semibold">Status</h6>
                                 <p id="view_status">Loading...</p>
@@ -354,8 +375,8 @@
                 </div>
             </div>
         </div>
-    </div> 
-    
+    </div>
+
     <!-- Delete FAQ Modal -->
     <div class="modal fade" id="delete-faq-modal" tabindex="-1" aria-labelledby="delete-faq-modal-label" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -366,7 +387,8 @@
                 </div>
                 <div class="modal-body">
                     <p>Are you sure you want to delete this FAQ? This action cannot be undone.</p>
-                </div>                <div class="modal-footer">
+                </div>
+                <div class="modal-footer">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
                     <form id="delete-faq-form" action="/master-data/faqs/delete" method="post" style="display: inline;">
                         <input type="hidden" id="delete_faq_id" name="id">
@@ -395,8 +417,8 @@
     <script src="/assets/js/pages/datatables.init.js"></script>
 
     <!-- App js -->
-    <script src="/assets/js/app.js"></script> 
-    
+    <script src="/assets/js/app.js"></script>
+
     <!-- Custom JavaScript -->
     <script type="text/javascript">
         document.addEventListener('DOMContentLoaded', function() {
@@ -483,9 +505,7 @@
                         $('#view-loading').hide();
 
                         if (response && response.success) {
-                            var faq = response.data;
-
-                            // Populate modal
+                            var faq = response.data; // Populate modal
                             $('#view_question').text(faq.question || 'N/A');
 
                             // Get category name from the categories dropdown
@@ -497,6 +517,9 @@
                                 }
                             }
                             $('#view_category').text(categoryName);
+
+                            // Display order number
+                            $('#view_order_number').text(faq.order_number || '0');
 
                             $('#view_answer').html(faq.answer || 'No answer provided');
 
@@ -552,14 +575,13 @@
                         $('#edit-loading').hide();
 
                         if (response && response.success) {
-                            var faq = response.data;                            // Set form action URL (without FAQ ID in the path)
-                            $('#edit-faq-form').attr('action', '/master-data/faqs/update');
-
-                            // Populate form
+                            var faq = response.data; // Set form action URL (without FAQ ID in the path)
+                            $('#edit-faq-form').attr('action', '/master-data/faqs/update'); // Populate form
                             $('#edit_faq_id').val(faq.id);
                             $('#edit_question').val(faq.question);
                             $('#edit_answer').val(faq.answer);
                             $('#edit_faq_category').val(faq.faq_category);
+                            $('#edit_order_number').val(faq.order_number || 0);
                             $('#edit_is_active').val(faq.is_active);
                         } else {
                             console.error("Invalid response:", response);
@@ -584,7 +606,7 @@
                         $('#edit-faq-modal').modal('hide');
                     }
                 });
-            });            // Handle delete button click
+            }); // Handle delete button click
             $(document).on('click', '.remove-faq', function(e) {
                 e.preventDefault();
 
