@@ -15,6 +15,7 @@ class ParticipantModel extends Model
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
 
+
     // `id`, `user_id`, `account_id`, `full_name`, `birthdate`, `ref_code_ambassador`, `program_id`, `gender`, `origin_address`, `current_address`, `nationality`, `occupation`, `institution`, `organizations`, `country_code`, `phone_number`, `picture_url`, `instagram_account`, `emergency_account`, `contact_relation`, `disease_history`, `tshirt_size`, `category`, `experiences`, `achievements`, `resume_url`, `knowledge_source`, `source_account_name`, `twibbon_link`, `requirement_link`, `is_active`, `is_deleted`, `created_at`, `updated_at
     protected $allowedFields = [
         'user_id',
@@ -93,6 +94,7 @@ class ParticipantModel extends Model
     {
         // join participant data with user, program, payment, essay, subtheme etc
         $builder = $this->builder();
+
         $builder->select('participants.*, users.*, programs.*, payments.*, participant_essays.*')
             ->join('users', 'users.id = participants.user_id', 'left')
             ->join('programs', 'programs.id = participants.program_id', 'left')
@@ -100,16 +102,10 @@ class ParticipantModel extends Model
             ->join('participant_essays', 'participant_essays.participant_id = participants.id', 'left')
             ->where('participants.id', $id)
             ->where('participants.is_active', 1)
-            ->where('participants.is_deleted', 0);
+            ->where('participants.is_deleted', 0)
+            ->orderBy('participants.created_at', 'DESC');
 
-        $result = $builder->get()->getRow();
-
-        if ($result) {
-            // Convert to array and return
-            return (array)$result;
-        } else {
-            return null; // No result found
-        }
+        return $builder->get()->getRow();
     }
 
     /**

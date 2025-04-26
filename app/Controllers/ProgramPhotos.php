@@ -46,8 +46,7 @@ class ProgramPhotos extends BaseController
         ];
 
         return view('master-data/program-photos/index', $data);
-    }
-    public function create()
+    }    public function create()
     {
         // Get current program ID from session
         $programId = session('current_program');
@@ -66,6 +65,7 @@ class ProgramPhotos extends BaseController
         // Validate form input
         $rules = [
             'title' => 'required|min_length[3]',
+            'year' => 'required|numeric',
         ];
 
         if (!$this->validate($rules)) {
@@ -104,17 +104,16 @@ class ProgramPhotos extends BaseController
 
         if (!$uploadResult['status']) {
             return redirect()->back()->withInput()->with('error', 'File upload failed: ' . $uploadResult['message']);
-        }
-
-        // Prepare data for insertion
+        }        // Prepare data for insertion
         $data = [
             'program_category_id' => $program->program_category_id,
             'title' => $this->request->getPost('title'),
+            'year' => $this->request->getPost('year'),
             'description' => $this->request->getPost('description'),
             'img_url' => $uploadResult['url'],
             'is_active' => $this->request->getPost('is_active') ? 1 : 0,
             'is_deleted' => 0
-        ];        // Insert data
+        ];// Insert data
         try {
             $this->programPhotoModel->insert($data);
             return redirect()->to('master-data/program-photos')->with('success', 'Photo "' . $this->request->getPost('title') . '" has been added successfully!');
@@ -138,8 +137,7 @@ class ProgramPhotos extends BaseController
         ];
 
         return view('master-data/program-photos/view', $data);
-    }
-    public function update($id)
+    }    public function update($id)
     {
         // Check if photo exists
         $photo = $this->programPhotoModel->find($id);
@@ -151,15 +149,15 @@ class ProgramPhotos extends BaseController
         // Validate form input
         $rules = [
             'title' => 'required|min_length[3]',
+            'year' => 'required|numeric',
         ];
 
         if (!$this->validate($rules)) {
             return redirect()->back()->withInput()->with('error', $this->validator->getErrors());
-        }
-
-        // Prepare data for update - start with existing values
+        }        // Prepare data for update - start with existing values
         $data = [
             'title' => $this->request->getPost('title'),
+            'year' => $this->request->getPost('year'),
             'description' => $this->request->getPost('description'),
             'img_url' => $this->request->getPost('img_url'), // Will be overwritten if new file is uploaded
             'is_active' => $this->request->getPost('is_active') ? 1 : 0
@@ -199,6 +197,7 @@ class ProgramPhotos extends BaseController
                 $filename,
                 ['image/jpeg', 'image/png', 'image/gif', 'image/jpg', 'image/webp']
             );
+
 
             if (!$uploadResult['status']) {
                 return redirect()->back()->withInput()->with('error', 'File upload failed: ' . $uploadResult['message']);

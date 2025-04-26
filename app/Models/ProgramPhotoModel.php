@@ -17,6 +17,7 @@ class ProgramPhotoModel extends Model
     protected $allowedFields  = [
         'program_category_id',
         'title',
+        'year',
         'description',
         'img_url',
         'is_active',
@@ -33,6 +34,7 @@ class ProgramPhotoModel extends Model
     // Validation
     protected $validationRules      = [
         'program_category_id' => 'required|numeric',
+        'year'                => 'required|numeric',
         'title'               => 'required|min_length[3]',
         'description'         => 'permit_empty',
         'img_url'             => 'required|valid_url',
@@ -52,9 +54,9 @@ class ProgramPhotoModel extends Model
     public function getActivePhotos($programCategoryId)
     {
         return $this->where('program_category_id', $programCategoryId)
-                    ->where('is_active', 1)
-                    ->where('is_deleted', 0)
-                    ->findAll();
+            ->where('is_active', 1)
+            ->where('is_deleted', 0)
+            ->findAll();
     }
 
     /**
@@ -66,11 +68,11 @@ class ProgramPhotoModel extends Model
     public function getAllPhotos($programCategoryId = null)
     {
         $query = $this->where('is_deleted', 0);
-        
+
         if ($programCategoryId !== null) {
             $query->where('program_category_id', $programCategoryId);
         }
-        
+
         return $query->findAll();
     }
 }

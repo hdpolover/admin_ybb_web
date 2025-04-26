@@ -10,11 +10,12 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
     $routes->get('welcome/set-program/(:num)', 'Welcome::setProgram/$1');
     $routes->get('sign-out', 'Auth::signOut');
 
-    // Users group
+    // Users group    
     $routes->group('users', ['filter' => 'program_selection'], function ($routes) {
         // participants
         $routes->get('participants', 'Participants::index');
         $routes->get('participants/view/(:num)', 'Participants::view/$1');
+        $routes->get('participants/edit/(:num)', 'Participants::edit/$1');
         $routes->get('participants/getData', 'Participants::getData');
 
         // ambassadors
@@ -26,7 +27,9 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->get('ambassadors/edit/(:num)', 'Ambassadors::edit/$1');
         $routes->get('ambassadors/getData', 'Ambassadors::getData');
         $routes->get('ambassadors/getAmbassadorData/(:num)', 'Ambassadors::getAmbassadorData/$1');
-    });    // announcements group
+    });    
+    
+    // announcements group
     $routes->group('announcements', ['filter' => 'program_selection'], function ($routes) {
         $routes->get('', 'Announcements::index');
         $routes->get('view/(:num)', 'Announcements::view/$1');
@@ -99,6 +102,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->post('update/(:num)', 'ProgramSchedules::update/$1');
             $routes->get('delete/(:num)', 'ProgramSchedules::delete/$1');
         });
+
         // FAQs management
         $routes->group('faqs', function ($routes) {
             $routes->get('/', 'Faqs::index');
@@ -127,25 +131,25 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->post('create', 'SubmissionForm::create');
             $routes->post('update/(:num)', 'SubmissionForm::update/$1');
             $routes->get('delete/(:num)', 'SubmissionForm::delete/$1');
-              // Category Management Routes
+            // Category Management Routes
             $routes->post('add-category', 'SubmissionForm::addCategory');
             $routes->post('update-category/(:num)', 'SubmissionForm::updateCategory/$1');
             $routes->post('delete-category/(:num)', 'SubmissionForm::deleteCategory/$1');
             $routes->get('get-category-by-id/(:num)', 'SubmissionForm::getCategoryById/$1');
-            
+
             // SubTheme Management Routes
             $routes->post('add-sub-theme', 'SubmissionForm::addSubTheme');
             $routes->post('update-sub-theme/(:num)', 'SubmissionForm::updateSubTheme/$1');
             $routes->post('delete-sub-theme/(:num)', 'SubmissionForm::deleteSubTheme/$1');
             $routes->get('get-sub-theme-by-id/(:num)', 'SubmissionForm::getSubThemeById/$1');
-            
+
             // Essay Management Routes
             $routes->post('add-essay', 'SubmissionForm::addEssay');
             $routes->post('update-essay/(:num)', 'SubmissionForm::updateEssay/$1');
             $routes->post('delete-essay/(:num)', 'SubmissionForm::deleteEssay/$1');
             $routes->get('get-essay-by-id/(:num)', 'SubmissionForm::getEssayById/$1');
-        });        
-        
+        });
+
         // payment methods
         $routes->group('payment-methods', function ($routes) {
             $routes->get('/', 'PaymentMethods::index');

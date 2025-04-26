@@ -57,12 +57,12 @@
                                                         <div class="d-flex align-items-center mt-1">
                                                             <div class="flex-grow-1 text-muted"><?= $photo->description ?></div>
                                                             <div class="flex-shrink-0">
-                                                                <div class="d-flex gap-3">
-                                                                    <a href="#" class="text-primary edit-photo" 
+                                                                <div class="d-flex gap-3">                                                                    <a href="#" class="text-primary edit-photo" 
                                                                        data-bs-toggle="modal" 
                                                                        data-bs-target="#editPhotoModal"
                                                                        data-id="<?= $photo->id ?>"
                                                                        data-title="<?= $photo->title ?>"
+                                                                       data-year="<?= $photo->year ?>"
                                                                        data-description="<?= $photo->description ?>"
                                                                        data-img_url="<?= $photo->img_url ?>"
                                                                        data-is_active="<?= $photo->is_active ?>">
@@ -112,6 +112,10 @@
                             <input type="text" class="form-control" id="title" name="title" required>
                         </div>
                         <div class="mb-3">
+                            <label for="year" class="form-label">Year</label>
+                            <input type="number" class="form-control" id="year" name="year" required>
+                        </div>
+                        <div class="mb-3">
                             <label for="description" class="form-label">Description</label>
                             <textarea class="form-control" id="description" name="description" rows="3"></textarea>
                         </div>                        <div class="mb-3">
@@ -146,6 +150,10 @@
                         <div class="mb-3">
                             <label for="edit_title" class="form-label">Title</label>
                             <input type="text" class="form-control" id="edit_title" name="title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_year" class="form-label">Year</label>
+                            <input type="number" class="form-control" id="edit_year" name="year" required>
                         </div>
                         <div class="mb-3">
                             <label for="edit_description" class="form-label">Description</label>
@@ -223,15 +231,16 @@
 
             // Edit photo modal
             document.querySelectorAll('.edit-photo').forEach(function(btn) {
-                btn.addEventListener('click', function() {
-                    const id = this.getAttribute('data-id');
+                btn.addEventListener('click', function() {                    const id = this.getAttribute('data-id');
                     const title = this.getAttribute('data-title');
+                    const year = this.getAttribute('data-year');
                     const description = this.getAttribute('data-description');
                     const imgUrl = this.getAttribute('data-img_url');
                     const isActive = this.getAttribute('data-is_active');
                     
                     document.getElementById('edit_id').value = id;
                     document.getElementById('edit_title').value = title;
+                    document.getElementById('edit_year').value = year;
                     document.getElementById('edit_description').value = description;
                     document.getElementById('edit_img_url').value = imgUrl;
                     document.getElementById('edit_is_active').checked = (isActive === '1');

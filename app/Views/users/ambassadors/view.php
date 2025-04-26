@@ -284,9 +284,8 @@
                                                                     <button class="btn btn-soft-secondary btn-sm dropdown" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                                                         <i class="ri-more-fill align-middle"></i>
                                                                     </button>
-                                                                    <ul class="dropdown-menu dropdown-menu-end">
-                                                                        <li>
-                                                                            <a href="<?= base_url('participants/view/' . $referral->participant_id) ?>" class="dropdown-item">
+                                                                    <ul class="dropdown-menu dropdown-menu-end">                                                                        <li>
+                                                                            <a href="<?= base_url('users/participants/view/' . $referral->participant_id) ?>" class="dropdown-item">
                                                                                 <i class="ri-eye-fill align-bottom me-2 text-muted"></i> View Details
                                                                             </a>
                                                                         </li>

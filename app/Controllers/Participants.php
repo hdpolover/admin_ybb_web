@@ -63,27 +63,30 @@ class Participants extends BaseController
         $order = isset($request['order'][0]) ? [
             'column' => $request['order'][0]['column'],
             'dir' => $request['order'][0]['dir']
-        ] : ['column' => 0, 'dir' => 'desc'];
+        ] : ['column' => 4, 'dir' => 'desc'];
 
         // Column names
         $columns = [
-            'created_at',
-            'full_name',
-            'email',
-            'phone_number',
-            'category',
+            'created_at',               // Order number
+            'participants.account_id',  // Account ID
+            'full_name',               // Participant Details
+            'participant_statuses.form_status', // Submission Status
+            'created_at',              // Registered On
         ];
 
         $orderColumn = $columns[$order['column']] ?? 'created_at';
+        $programId = session('current_program');
 
         // Get data from database
         $builder = $this->participantModel->select('
                 participants.*, 
                 users.email,
                 participants.phone_number,
+                participant_statuses.form_status
             ')
             ->join('users', 'users.id = participants.user_id')
-            ->where('participants.program_id', session('current_program'))
+            ->join('participant_statuses', 'participant_statuses.participant_id = participants.id', 'left')
+            ->where('participants.program_id', $programId)
             ->where('participants.is_deleted', 0)
             ->limit($length, $start);
 
@@ -93,13 +96,19 @@ class Participants extends BaseController
                 ->like('participants.full_name', $search)
                 ->orLike('users.email', $search)
                 ->orLike('participants.phone_number', $search)
+                ->orLike('participants.account_id', $search)
+                ->orLike('participants.nationality', $search)
                 ->groupEnd();
-        }
-
-        // Apply filters
+        }        // Apply filters
         $category = $this->request->getGet('category');
         if ($category !== '' && $category !== null) {
             $builder->where('participants.category', $category);
+        }
+
+        // Apply form status filter
+        $form_status = $this->request->getGet('form_status');
+        if ($form_status !== '' && $form_status !== null) {
+            $builder->where('participant_statuses.form_status', $form_status);
         }
 
         // Get total count
@@ -109,25 +118,27 @@ class Participants extends BaseController
         $result = $builder->orderBy($orderColumn, $order['dir'])
             ->limit($length, $start)
             ->get()->getResult();
-
         // Format data for DataTable
         $data = [];
-        foreach ($result as $row) {
-            $categoryBadge = $this->getCategoryBadge($row->category);
+        $counter = $start + 1;
 
+        foreach ($result as $row) {
+            // Get submission status based only on form_status
+            $submissionStatus = $this->getFormStatusBadge($row->form_status ?? 0);
             $data[] = [
-                'id' => $row->id,
-                'name' => [
+                'order_number' => $counter++,
+                'account_id' => $row->account_id,
+                'participant_details' => [
                     'full_name' => $row->full_name,
-                    'first_letter' => strtoupper(substr($row->full_name, 0, 1))
+                    'picture_url' => $row->picture_url,
+                    'email' => $row->email,
+                    'nationality' => $row->nationality ?? 'N/A'
                 ],
-                'email' => $row->email,
-                'phone' => $row->phone_number,
-                'registration_date' => date('M d, Y', strtotime($row->created_at)),
-                'category' => $categoryBadge ,
+                'submission_status' => $submissionStatus,
+                'registered_on' => date('M d, Y', strtotime($row->created_at)),
                 'actions' => '
                     <div class="d-flex gap-2">
-                        <a href="' . base_url('participants/view/' . $row->id) . '" class="btn btn-sm btn-soft-primary">
+                        <a href="' . base_url('users/participants/view/' . $row->id) . '" class="btn btn-sm btn-soft-primary">
                             <i class="ri-eye-fill align-bottom"></i>
                         </a>
                         <a href="' . base_url('participants/edit/' . $row->id) . '" class="btn btn-sm btn-soft-warning">
@@ -161,7 +172,7 @@ class Participants extends BaseController
             'fully_funded' => '<span class="badge bg-success-subtle text-success">Fully Funded</span>',
             'self_funded' => '<span class="badge bg-warning-subtle text-warning">Self Funded</span>',
         ];
-        
+
         return $badges[$category] ?? '<span class="badge bg-secondary-subtle text-secondary">Unknown</span>';
     }
 
@@ -169,30 +180,31 @@ class Participants extends BaseController
     {
         try {
             // Get participant data directly from model
-            $participant = $this->participantModel->getById($id);
+            $participant = $this->participantModel->find($id);
 
             if (!$participant) {
-                return redirect()->to('/participants')->with('error', 'Participant not found');
+                // debug
+                log_message('error', 'Failed to retrieve participant: ' . $id);
+                return redirect()->to('/users/participants')->with('error', 'Participant not found');
             }
 
             // Get related data
-            $userId = $participant['user_id'];
+            $userId = $participant->user_id;
 
             // Get user data
             $user = $this->userModel->find($userId);
-            $participant['user'] = $user;
+            $participant->user = $user;
 
             // Get participant essays
             $essays = $this->participantEssayModel->getParticipantEssayByParticipantId($id);
-            $participant['essays'] = $essays;
-
-            // Get payment information
-            $payments = $this->paymentModel->getPayments($id);
-            $participant['payments'] = $payments;
+            $participant->essays = $essays;            // Get payment information
+            $payments = $this->paymentModel->getPaymentsByParticipantId($id);
+            $participant->payments = $payments;
 
             return view('users/participants/view', ['participant' => $participant]);
         } catch (\Exception $e) {
-            return redirect()->to('/participants')->with('error', 'Failed to retrieve participant: ' . $e->getMessage());
+            log_message('error', 'Failed to retrieve participant: ' . $id);
+            return redirect()->to('/users/participants')->with('error', 'Failed to retrieve participant: ' . $e->getMessage());
         }
     }
 
@@ -326,6 +338,7 @@ class Participants extends BaseController
             // Soft delete by updating is_deleted field
             $this->participantModel->update($id, [
                 'is_deleted' => 1,
+                'is_active' => 0,
                 'updated_at' => date('Y-m-d H:i:s')
             ]);
 
@@ -373,5 +386,66 @@ class Participants extends BaseController
             return redirect()->to('/participants')
                 ->with('error', 'Failed to fetch program participants: ' . $e->getMessage());
         }
+    }
+    /**
+     * Get HTML for submission status badge
+     */
+    private function getSubmissionStatusBadge($generalStatus, $formStatus, $documentStatus)
+    {
+        // Status values: 0 = not started, 1 = on progress, 2 = submitted
+
+        $generalStatusMap = [
+            0 => ['Not Started', 'secondary'],
+            1 => ['In Progress', 'warning'],
+            2 => ['Completed', 'success']
+        ];
+
+        $formStatusMap = [
+            0 => ['Not Started', 'secondary'],
+            1 => ['On Progress', 'warning'],
+            2 => ['Submitted', 'success']
+        ];
+
+        $documentStatusMap = [
+            0 => ['Not Started', 'secondary'],
+            1 => ['In Progress', 'warning'],
+            2 => ['Submitted', 'success']
+        ];
+
+        $generalStatusInfo = $generalStatusMap[$generalStatus] ?? $generalStatusMap[0];
+        $formStatusInfo = $formStatusMap[$formStatus] ?? $formStatusMap[0];
+        $documentStatusInfo = $documentStatusMap[$documentStatus] ?? $documentStatusMap[0];
+
+        $output = '';
+
+        // General status badge
+        $output .= '<div class="mb-1"><span class="fw-medium">General:</span> ';
+        $output .= '<span class="badge bg-' . $generalStatusInfo[1] . '-subtle text-' . $generalStatusInfo[1] . '">' . $generalStatusInfo[0] . '</span></div>';
+
+        // Form status badge
+        $output .= '<div class="mb-1"><span class="fw-medium">Form:</span> ';
+        $output .= '<span class="badge bg-' . $formStatusInfo[1] . '-subtle text-' . $formStatusInfo[1] . '">' . $formStatusInfo[0] . '</span></div>';
+
+        // Document status badge
+        $output .= '<div class="mb-1"><span class="fw-medium">Documents:</span> ';
+        $output .= '<span class="badge bg-' . $documentStatusInfo[1] . '-subtle text-' . $documentStatusInfo[1] . '">' . $documentStatusInfo[0] . '</span></div>';
+
+        return $output;
+    }
+    /**
+     * Get HTML badge for form status only
+     */
+    private function getFormStatusBadge($formStatus)
+    {
+        // Status values: 0 = not started, 1 = on progress, 2 = submitted
+        $statusInfo = [
+            0 => ['Not Started', 'secondary'],
+            1 => ['On Progress', 'warning'],
+            2 => ['Submitted', 'success']
+        ];
+
+        $status = $statusInfo[$formStatus] ?? $statusInfo[0];
+
+        return '<span class="badge bg-' . $status[1] . '-subtle text-' . $status[1] . '">' . $status[0] . '</span>';
     }
 }

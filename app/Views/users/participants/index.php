@@ -3,13 +3,35 @@
 <head>
     <?php echo view('partials/title-meta', array('title' => 'Participants')); ?>
 
+    <?= $this->include('partials/head-css') ?>
+
     <!--datatable css-->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" />
     <!--datatable responsive css-->
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" /> <!-- Added missing link -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap.min.css" /> <!-- Added missing link -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.dataTables.min.css">
 
-    <?= $this->include('partials/head-css') ?>
+    <!-- Custom CSS for participant table -->
+    <style>
+        .payment-status-container,
+        .submission-status-container {
+            max-width: 200px;
+            font-size: 0.85rem;
+        }
+
+        .payment-status-container .badge,
+        .submission-status-container .badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+
+        #participants-datatable td {
+            vertical-align: middle;
+        }
+    </style>
 </head>
 
 <body>
@@ -119,9 +141,8 @@
                                             <div class="input-group search-box">
                                                 <span class="input-group-text bg-light border-end-0">
                                                     <i class="ri-search-line text-muted"></i>
-                                                </span>
-                                                <input type="text" id="search-box" class="form-control border-start-0 ps-0"
-                                                    placeholder="Search by name, email, phone..."
+                                                </span> <input type="text" id="search-box" class="form-control border-start-0 ps-0"
+                                                    placeholder="Search by name, email, account ID, nationality..."
                                                     autocomplete="off">
                                                 <button class="btn btn-primary" id="search-button" type="button">
                                                     <i class="ri-search-line me-1"></i> Search
@@ -139,20 +160,28 @@
                                                 <option value="self_funded">Self Funded</option>
                                             </select>
                                         </div>
+                                        <div class="col-md-3 mb-2">
+                                            <label class="form-label">Form Status</label>
+                                            <select id="filter-form-status" class="form-select">
+                                                <option value="">All Statuses</option>
+                                                <option value="0">Not Started</option>
+                                                <option value="1">On Progress</option>
+                                                <option value="2">Submitted</option>
+                                            </select>
+                                        </div>
                                         <div class="col-md-3 d-flex align-items-end mb-2">
                                             <button id="apply-filters" class="btn btn-primary me-2">Apply Filters</button>
                                             <button id="reset-filters" class="btn btn-light">Reset</button>
                                         </div>
                                     </div>
-
                                     <table id="participants-datatable" class="table table-bordered dt-responsive nowrap table-striped align-middle" style="width:100%">
                                         <thead>
                                             <tr>
-                                                <th>Name</th>
-                                                <th>Email</th>
-                                                <th>Phone</th>
-                                                <th>Registration Date</th>
-                                                <th>Status</th>
+                                                <th>#</th>
+                                                <th>Account ID</th>
+                                                <th>Participant Details</th>
+                                                <th>Submission Status</th>
+                                                <th>Registered On</th>
                                                 <th>Actions</th>
                                             </tr>
                                         </thead>
@@ -191,7 +220,7 @@
     <script src="/assets/js/app.js"></script>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function() { 
             // Initialize DataTable
             var participantsTable = $('#participants-datatable').DataTable({
                 processing: true,
@@ -201,45 +230,68 @@
                     type: 'GET',
                     data: function(d) {
                         // Add filter parameters
-                        // d.category = $('#filter-category').val();
+                        d.category = $('#filter-category').val();
+                        d.form_status = $('#filter-form-status').val();
                         d.search.value = $('#search-box').val(); // Add search term
                         return d;
                     }
                 },
                 columns: [{
-                        data: 'name',
+                        data: 'order_number',
+                        width: "5%"
+                    }, {
+                        data: 'account_id',
+                        width: "10%",
+                        render: function(data, type, row) {
+                            if (!data || type === 'sort' || type === 'type') return data;
+                            return '<div class="text-truncate" style="max-width: 120px;" title="' + data + '">' + data + '</div>';
+                        }
+                    }, {
+                        data: 'participant_details',
+                        width: "35%",
                         render: function(data, type, row) {
                             if (!data) return 'N/A';
-                            return '<div class="d-flex align-items-center">' +
-                                '<div class="avatar-xs me-2">' +
-                                '<span class="avatar-title rounded-circle bg-soft-primary text-primary">' +
-                                data.first_letter +
-                                '</span>' +
-                                '</div>' +
-                                data.full_name +
-                                '</div>';
+                            let html = '<div class="d-flex align-items-center">';
+
+                            // Avatar display - either picture or placeholder
+                            html += '<div class="avatar-xs me-2">';
+                            if (data.picture_url && data.picture_url !== '' && data.picture_url !== 'null') {
+                                html += '<img src="' + data.picture_url + '" alt="' + data.full_name + '" class="avatar-xs rounded-circle" />';
+                            } else {
+                                html += '<span class="avatar-title rounded-circle bg-soft-primary text-primary">' +
+                                    (data.full_name ? data.full_name.charAt(0).toUpperCase() : '?') + '</span>';
+                            }
+                            html += '</div>';
+
+                            // Participant info
+                            html += '<div>';
+                            html += '<h5 class="fs-14 mb-1">' + data.full_name + '</h5>';
+                            html += '<p class="text-muted mb-0">' + data.email + '</p>';
+                            if (data.nationality && data.nationality !== 'N/A') {
+                                html += '<span class="badge bg-light text-dark">' + data.nationality + '</span>';
+                            }
+                            html += '</div>';
+                            html += '</div>';
+                            return html;
                         }
                     },
                     {
-                        data: 'email'
+                        data: 'submission_status',
+                        width: "20%"
                     },
                     {
-                        data: 'phone'
-                    },
-                    {
-                        data: 'registration_date'
-                    },
-                    {
-                        data: 'category'
+                        data: 'registered_on',
+                        width: "15%"
                     },
                     {
                         data: 'actions',
+                        width: "15%",
                         orderable: false,
                         searchable: false
                     }
                 ],
                 order: [
-                    [3, 'desc'] // Order by registration date
+                    [4, 'desc'] // Order by registration date (descending)
                 ],
                 pageLength: 10,
                 lengthMenu: [
@@ -275,10 +327,11 @@
             document.getElementById('apply-filters').addEventListener('click', function() {
                 participantsTable.ajax.reload();
             });
-
+            
             document.getElementById('reset-filters').addEventListener('click', function() {
                 // Reset all filter select values
-                document.getElementById('filter-status').value = '';
+                document.getElementById('filter-category').value = '';
+                document.getElementById('filter-form-status').value = '';
                 document.getElementById('search-box').value = '';
 
                 // Reload the table with reset filters
