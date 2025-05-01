@@ -32,6 +32,9 @@ $routes->setAutoRoute(false);
 $routes->group('', ['namespace' => 'App\Controllers'], function ($routes) {
     $routes->get('/', 'Auth::index');
     $routes->post('sign-in', 'Auth::signIn');
+      // Simple Excel export routes
+    $routes->get('simpleexport', 'SimpleExportController::index');
+    $routes->get('simpleexport/exportSimple', 'SimpleExportController::exportSimple');
 });
 
 // We get a performance increase by specifying the default
@@ -239,6 +242,11 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->get('program-announcements', 'ProgramAnnouncementsApiController::index');
     $routes->get('program-announcements/(:any)', 'ProgramAnnouncementsApiController::show/$1');
     $routes->get('program-announcements/program/(:num)', 'ProgramAnnouncementsApiController::getByProgram/$1');
+
+    // program rundowns
+    $routes->get('program-rundowns', 'ProgramRundownsApiController::index');
+    $routes->get('program-rundowns/(:num)', 'ProgramRundownsApiController::show/$1');
+    $routes->get('program-rundowns/program/(:num)', 'ProgramRundownsApiController::getByProgramId/$1');
 });
 
 // Landing API Routes

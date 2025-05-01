@@ -235,17 +235,15 @@
                                             <button id="apply-filters" class="btn btn-primary me-2">Apply Filters</button>
                                             <button id="reset-filters" class="btn btn-light">Reset</button>
                                         </div>
-                                    </div>
-
-                                    <table id="payments-datatable" class="table table-bordered dt-responsive nowrap table-striped align-middle" style="width:100%">
+                                    </div>                                    <table id="payments-datatable" class="table table-bordered dt-responsive nowrap table-striped align-middle" style="width:100%">
                                         <thead>
                                             <tr>
-                                                <th>Date</th>
-                                                <th>Transaction Codes</th>
-                                                <th>Participant</th>
-                                                <th>Payment Details</th>
-                                                <th>Status</th>
-                                                <th>Actions</th>
+                                                <th class="sorting">Date</th>
+                                                <th class="sorting">Transaction Codes</th>
+                                                <th class="sorting">Participant</th>
+                                                <th class="sorting">Payment Details</th>
+                                                <th class="sorting">Status</th>
+                                                <th class="sorting_disabled">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -334,8 +332,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize DataTable
-            var paymentsTable = $('#payments-datatable').DataTable({
-                processing: true,
+            var paymentsTable = $('#payments-datatable').DataTable({                processing: true,
                 serverSide: true,
                 ajax: {
                     url: '<?= site_url('payments/getData') ?>',
@@ -346,6 +343,9 @@
                         d.program_payment_id = $('#filter-program-payment').val();
                         d.payment_method_id = $('#filter-payment-method').val();
                         d.search.value = $('#search-box').val(); // Add search term
+
+                        // Ensure sort information is preserved and properly passed to server
+                        console.log("Sending sort data to server:", d.order);
                         return d;
                     },
                     dataSrc: function(json) {
@@ -355,16 +355,23 @@
                     error: function(xhr, error, thrown) {
                         console.error("DataTable AJAX error:", error, thrown, xhr);
                     }
-                },
-                columns: [{
+                },columns: [{
                         data: 'payment_date',
+                        name: 'payments.created_at', // Map to database column for server-side sorting
                         render: function(data, type, row) {
                             return data || '';
                         }
                     },
                     {
                         data: 'transaction_codes',
+                        name: 'payments.id', // Map to database column for server-side sorting
+                        orderable: true,
                         render: function(data, type, row) {
+                            // For sorting and filtering, return plain text version
+                            if (type === 'sort' || type === 'filter') {
+                                return data?.payment_id || '';
+                            }
+
                             if (!data) return 'N/A';
                             return '<div><strong>Payment ID:</strong> ' + (data.payment_id || 'N/A') + '</div>' +
                                 '<div><strong>Transaction Code:</strong> ' + (data.transaction_code || 'N/A') + '</div>' +
@@ -373,7 +380,14 @@
                     },
                     {
                         data: 'participant',
+                        name: 'participants.full_name', // Map to database column for server-side sorting
+                        orderable: true,
                         render: function(data, type, row) {
+                            // For sorting and filtering, return plain text
+                            if (type === 'sort' || type === 'filter') {
+                                return data?.name || '';
+                            }
+
                             if (!data) {
                                 return 'N/A';
                             }
@@ -384,7 +398,14 @@
                     },
                     {
                         data: 'payment_details',
+                        name: 'payments.amount', // Map to database column for server-side sorting
+                        orderable: true,
                         render: function(data, type, row) {
+                            // For sorting and filtering, return amount for consistent sorting
+                            if (type === 'sort' || type === 'filter') {
+                                return data?.amount_raw || '';
+                            }
+
                             if (!data) return 'N/A';
 
                             // Assuming data contains program_name, amount, and method
@@ -400,7 +421,9 @@
                         }
                     },
                     {
-                        data: 'status'
+                        data: 'status',
+                        name: 'payments.status', // Map to database column for server-side sorting
+                        orderable: true
                     },
                     {
                         data: 'actions',
@@ -409,18 +432,25 @@
                     }
                 ],
                 order: [
-                    [0, 'desc']
+                    [0, 'desc'] // Default order is first column (date) descending
                 ],
                 pageLength: 10,
                 lengthMenu: [
                     [10, 25, 50, -1],
                     [10, 25, 50, "All"]
-                ],
-                responsive: true,
+                ],                responsive: true,
+                orderCellsTop: true, // Needed for header sorting
+                stateSave: true, // Remember sort state between page refreshes
+                ordering: true, // Enable sorting
+                serverSide: true, // Confirm server-side processing
                 drawCallback: function(settings) {
                     console.log("DataTable draw complete, data:", settings.json);
+                    // Log the current order state
+                    console.log("Current sort order:", paymentsTable.order());
                 }
-            }); // Implement a better search functionality
+            });
+
+            // Implement a better search functionality
             // Hide DataTables default search box
             $('.dataTables_filter').hide();
 

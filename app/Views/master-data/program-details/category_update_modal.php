@@ -1,4 +1,4 @@
-  <!-- Modal for updating program category information -->
+<!-- Modal for updating program category information -->
   <div class="modal fade" id="updateCategoryModal" tabindex="-1" aria-labelledby="updateCategoryModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered modal-xl">
           <div class="modal-content">
@@ -74,6 +74,13 @@
                                               <input type="hidden" name="current_main_banner" value="<?= $currentProgramCategory->main_banner_url ?>">
                                           </div>
                                       <?php endif; ?>
+                                  </div>
+                              </div>
+                              <div class="col-md-12">
+                                  <div class="mb-3">
+                                      <label for="edit_main_video_url" class="form-label">Main Video URL</label>
+                                      <input type="text" class="form-control" id="edit_main_video_url" name="main_video_url" value="<?= $currentProgramCategory->main_video_url ?? '' ?>" placeholder="Enter YouTube or video embed URL">
+                                      <small class="text-muted">Enter a YouTube video URL or any video embed URL</small>
                                   </div>
                               </div>
                           </div>

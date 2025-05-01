@@ -175,9 +175,7 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-
-                                        <!-- Media Section -->
+                                        </div>                                        <!-- Media Section -->
                                         <div class="info-section">
                                             <h5>Media Assets</h5>
                                             <div class="row">
@@ -206,6 +204,19 @@
                                                         <?php else : ?>
                                                             <div class="info-content">No main banner image available</div>
                                                         <?php endif; ?>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="col-lg-12 col-md-12">
+                                                    <div class="info-card">
+                                                        <span class="info-label">Main Video URL</span>
+                                                        <div class="info-content">
+                                                            <?php if (!empty($currentProgramCategory->main_video_url)) : ?>
+                                                                <a href="<?= $currentProgramCategory->main_video_url ?>" target="_blank"><?= $currentProgramCategory->main_video_url ?></a>
+                                                            <?php else : ?>
+                                                                No main video URL available
+                                                            <?php endif; ?>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>

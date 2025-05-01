@@ -4,19 +4,35 @@ namespace Config\Routes;
 
 $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], function ($routes) {
     $routes->get('dashboard', 'Dashboard::index');
-
     // welcome
     $routes->get('welcome', 'Welcome::index');
     $routes->get('welcome/set-program/(:num)', 'Welcome::setProgram/$1');
     $routes->get('sign-out', 'Auth::signOut');
 
-    // Users group    
+    // Excel Export routes
+    $routes->group('exports', function ($routes) {
+        $routes->get('/', 'ExportController::index');
+        $routes->get('participants', 'ExportController::exportParticipants');
+        $routes->post('participants/filtered', 'ExportController::exportFilteredParticipants');
+        $routes->get('participants/filtered', 'ExportController::exportFilteredParticipants');
+        $routes->post('participants/by-payment', 'ExportController::exportParticipantsByPaymentStatus');
+        $routes->get('payments', 'ExportController::exportPayments');
+        $routes->get('custom', 'ExportController::exportCustomData');
+    });
+
+    // Explicitly add POST routes outside the group to ensure they're registered
+    $routes->post('exports/participants/filtered', 'ExportController::exportFilteredParticipants');
+    $routes->post('exports/participants/by-payment', 'ExportController::exportParticipantsByPaymentStatus');    // Users group    
+
     $routes->group('users', ['filter' => 'program_selection'], function ($routes) {
         // participants
         $routes->get('participants', 'Participants::index');
         $routes->get('participants/view/(:num)', 'Participants::view/$1');
         $routes->get('participants/edit/(:num)', 'Participants::edit/$1');
         $routes->get('participants/getData', 'Participants::getData');
+        $routes->post('participants/export', 'Participants::export');
+        $routes->get('participants/export/(:num)', 'Participants::export/$1');
+        $routes->get('participants/export_batch', 'Participants::export_batch');
 
         // ambassadors
         $routes->get('ambassadors', 'Ambassadors::index');
@@ -27,8 +43,8 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->get('ambassadors/edit/(:num)', 'Ambassadors::edit/$1');
         $routes->get('ambassadors/getData', 'Ambassadors::getData');
         $routes->get('ambassadors/getAmbassadorData/(:num)', 'Ambassadors::getAmbassadorData/$1');
-    });    
-    
+    });
+
     // announcements group
     $routes->group('announcements', ['filter' => 'program_selection'], function ($routes) {
         $routes->get('', 'Announcements::index');
@@ -166,9 +182,14 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->get('/', 'ProgramPhotos::index');
             $routes->get('view/(:num)', 'ProgramPhotos::view/$1');
             $routes->get('getData', 'ProgramPhotos::getData');
+            // Regular form submit routes (kept for backward compatibility)
             $routes->post('create', 'ProgramPhotos::create');
             $routes->post('update/(:num)', 'ProgramPhotos::update/$1');
             $routes->get('delete/(:num)', 'ProgramPhotos::delete/$1');
+            // AJAX routes
+            $routes->post('ajax-create', 'ProgramPhotos::ajaxCreate');
+            $routes->post('ajax-update/(:num)', 'ProgramPhotos::ajaxUpdate/$1');
+            $routes->post('ajax-delete/(:num)', 'ProgramPhotos::ajaxDelete/$1');
         });
 
         // program testimonies
@@ -179,6 +200,41 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->post('create', 'ProgramTestimonies::create');
             $routes->post('update/(:num)', 'ProgramTestimonies::update/$1');
             $routes->get('delete/(:num)', 'ProgramTestimonies::delete/$1');
+        });
+
+        // program rundowns        
+        $routes->group('program-rundowns', function ($routes) {
+            $routes->get('/', 'ProgramRundowns::index');
+            $routes->get('view/(:num)', 'ProgramRundowns::view/$1');
+            $routes->get('getData', 'ProgramRundowns::getData');
+            $routes->post('create', 'ProgramRundowns::create');
+            $routes->post('update/(:num)', 'ProgramRundowns::update/$1');
+            $routes->get('delete/(:num)', 'ProgramRundowns::delete/$1');
+            $routes->get('getRundown/(:num)', 'ProgramRundowns::getRundown/$1');
+        });
+    });
+
+    // settings group
+
+    $routes->group('settings', function ($routes) {
+        // main config group
+        $routes->group('main-config', function ($routes) {
+            $routes->get('/', 'MainConfig::index');
+            $routes->get('view/(:num)', 'MainConfig::view/$1');
+            $routes->get('edit/(:num)', 'MainConfig::edit/$1');
+            $routes->post('create', 'MainConfig::create');
+            $routes->post('update/(:num)', 'MainConfig::update/$1');
+            $routes->get('delete/(:num)', 'MainConfig::delete/$1');
+        });
+
+        // admin group
+        $routes->group('admin', function ($routes) {
+            $routes->get('/', 'Admin::index');
+            $routes->get('view/(:num)', 'Admin::view/$1');
+            $routes->get('edit/(:num)', 'Admin::edit/$1');
+            $routes->post('create', 'Admin::create');
+            $routes->post('update/(:num)', 'Admin::update/$1');
+            $routes->get('delete/(:num)', 'Admin::delete/$1');
         });
     });
 });

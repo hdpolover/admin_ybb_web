@@ -8,3 +8,5 @@
 <link href="/assets/css/app.min.css" rel="stylesheet" type="text/css" />
 <!-- custom Css-->
 <link href="/assets/css/custom.min.css" rel="stylesheet" type="text/css" />
+<!-- Mobile sidebar fix Css -->
+<link href="/assets/css/mobile-sidebar-fix.css" rel="stylesheet" type="text/css" />

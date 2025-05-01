@@ -48,6 +48,9 @@
                                                     <a href="<?= site_url('users/participants/edit/' . $participant->id) ?>" class="btn btn-primary">
                                                         <i class="ri-pencil-line align-bottom"></i> Edit Profile
                                                     </a>
+                                                    <a href="<?= site_url('users/participants/export/' . $participant->id) ?>" class="btn btn-success">
+                                                        <i class="ri-file-excel-2-line align-bottom"></i> Export Data
+                                                    </a>
                                                 </div>
                                             </div>
                                         </div>

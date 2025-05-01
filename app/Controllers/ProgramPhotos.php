@@ -60,15 +60,22 @@ class ProgramPhotos extends BaseController
 
         if (!$program) {
             return redirect()->to('/welcome')->with('error', 'Program not found');
-        }
-
-        // Validate form input
+        }        // Validate form input
         $rules = [
             'title' => 'required|min_length[3]',
             'year' => 'required|numeric',
+            'photo_file' => 'uploaded[photo_file]|is_image[photo_file]|max_size[photo_file,2048]', // 2MB limit (2048KB)
         ];
 
-        if (!$this->validate($rules)) {
+        $messages = [
+            'photo_file' => [
+                'uploaded' => 'Please select an image file to upload',
+                'is_image' => 'The selected file is not a valid image',
+                'max_size' => 'The image file is too large. Maximum allowed size is 2MB'
+            ]
+        ];
+
+        if (!$this->validate($rules, $messages)) {
             return redirect()->back()->withInput()->with('error', $this->validator->getErrors());
         }
 
@@ -144,26 +151,34 @@ class ProgramPhotos extends BaseController
 
         if (!$photo) {
             return redirect()->to('master-data/program-photos')->with('error', 'Photo not found');
-        }
-
-        // Validate form input
+        }        // Validate form input
         $rules = [
             'title' => 'required|min_length[3]',
             'year' => 'required|numeric',
         ];
+        
+        $messages = [];
+        
+        // Add validation rule for photo_file only if a new file is uploaded
+        $file = $this->request->getFile('photo_file');
+        if ($file && $file->isValid() && !$file->hasMoved()) {
+            $rules['photo_file'] = 'is_image[photo_file]|max_size[photo_file,2048]'; // 2MB limit (2048KB)
+            $messages['photo_file'] = [
+                'is_image' => 'The selected file is not a valid image',
+                'max_size' => 'The image file is too large. Maximum allowed size is 2MB'
+            ];
+        }
 
-        if (!$this->validate($rules)) {
+        if (!$this->validate($rules, $messages)) {
             return redirect()->back()->withInput()->with('error', $this->validator->getErrors());
-        }        // Prepare data for update - start with existing values
+        }// Prepare data for update - start with existing values
         $data = [
             'title' => $this->request->getPost('title'),
             'year' => $this->request->getPost('year'),
             'description' => $this->request->getPost('description'),
             'img_url' => $this->request->getPost('img_url'), // Will be overwritten if new file is uploaded
             'is_active' => $this->request->getPost('is_active') ? 1 : 0
-        ];
-
-        // Check if a new file has been uploaded
+        ];        // Check if a new file has been uploaded (we already validated it above)
         $file = $this->request->getFile('photo_file');
 
         if ($file && $file->isValid() && !$file->hasMoved()) {
@@ -231,9 +246,7 @@ class ProgramPhotos extends BaseController
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Failed to delete photo: ' . $e->getMessage());
         }
-    }
-
-    public function getData()
+    }    public function getData()
     {
         // Get current program ID from session
         $programId = session('current_program');
@@ -253,6 +266,265 @@ class ProgramPhotos extends BaseController
         $photos = $this->programPhotoModel->getAllPhotos($program->program_category_id);
 
         return $this->response->setJSON($photos);
+    }
+    
+    /**
+     * AJAX Create Photo
+     */
+    public function ajaxCreate()
+    {
+        // Get current program ID from session
+        $programId = session('current_program');
+
+        if (!$programId) {
+            return $this->response->setJSON([
+                'status' => false,
+                'message' => 'No program selected'
+            ]);
+        }
+
+        // Get program data to get category ID
+        $program = $this->programModel->find($programId);
+
+        if (!$program) {
+            return $this->response->setJSON([
+                'status' => false,
+                'message' => 'Program not found'
+            ]);
+        }
+
+        // Validate form input
+        $rules = [
+            'title' => 'required|min_length[3]',
+            'year' => 'required|numeric',
+            'photo_file' => 'uploaded[photo_file]|is_image[photo_file]|max_size[photo_file,2048]', // 2MB limit (2048KB)
+        ];
+
+        $messages = [
+            'photo_file' => [
+                'uploaded' => 'Please select an image file to upload',
+                'is_image' => 'The selected file is not a valid image',
+                'max_size' => 'The image file is too large. Maximum allowed size is 2MB'
+            ]
+        ];
+
+        if (!$this->validate($rules, $messages)) {
+            return $this->response->setJSON([
+                'status' => false,
+                'message' => $this->validator->getErrors()
+            ]);
+        }
+
+        // Check if file is uploaded
+        $file = $this->request->getFile('photo_file');
+
+        if (!$file->isValid() || $file->hasMoved()) {
+            return $this->response->setJSON([
+                'status' => false,
+                'message' => 'Invalid file or no file uploaded'
+            ]);
+        }
+
+        // Prepare file for upload_file_to_storage
+        $fileData = [
+            'name' => $file->getName(),
+            'type' => $file->getClientMimeType(),
+            'tmp_name' => $file->getTempName(),
+            'error' => $file->getError(),
+            'size' => $file->getSize()
+        ];
+
+        // Set the destination folder based on program category
+        $destination = 'program-photos/' . $program->program_category_id;
+
+        // Generate a unique filename using timestamp
+        $filename = time() . '.' . $file->getExtension();
+
+        // Upload the file to storage
+        $uploadResult = upload_file_to_storage(
+            $fileData,
+            $destination,
+            $filename,
+            ['image/jpeg', 'image/png', 'image/gif', 'image/jpg', 'image/webp']
+        );
+
+        if (!$uploadResult['status']) {
+            return $this->response->setJSON([
+                'status' => false,
+                'message' => 'File upload failed: ' . $uploadResult['message']
+            ]);
+        }
+
+        // Prepare data for insertion
+        $data = [
+            'program_category_id' => $program->program_category_id,
+            'title' => $this->request->getPost('title'),
+            'year' => $this->request->getPost('year'),
+            'description' => $this->request->getPost('description'),
+            'img_url' => $uploadResult['url'],
+            'is_active' => $this->request->getPost('is_active') ? 1 : 0,
+            'is_deleted' => 0
+        ];
+
+        // Insert data
+        try {
+            $this->programPhotoModel->insert($data);
+            return $this->response->setJSON([
+                'status' => true,
+                'message' => 'Photo "' . $this->request->getPost('title') . '" has been added successfully!',
+                'data' => $data
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'status' => false,
+                'message' => 'Failed to add photo: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * AJAX Update Photo
+     */
+    public function ajaxUpdate($id)
+    {
+        // Check if photo exists
+        $photo = $this->programPhotoModel->find($id);
+
+        if (!$photo) {
+            return $this->response->setJSON([
+                'status' => false,
+                'message' => 'Photo not found'
+            ]);
+        }
+
+        // Validate form input
+        $rules = [
+            'title' => 'required|min_length[3]',
+            'year' => 'required|numeric',
+        ];
+        
+        $messages = [];
+        
+        // Add validation rule for photo_file only if a new file is uploaded
+        $file = $this->request->getFile('photo_file');
+        if ($file && $file->isValid() && !$file->hasMoved()) {
+            $rules['photo_file'] = 'is_image[photo_file]|max_size[photo_file,2048]'; // 2MB limit (2048KB)
+            $messages['photo_file'] = [
+                'is_image' => 'The selected file is not a valid image',
+                'max_size' => 'The image file is too large. Maximum allowed size is 2MB'
+            ];
+        }
+
+        if (!$this->validate($rules, $messages)) {
+            return $this->response->setJSON([
+                'status' => false,
+                'message' => $this->validator->getErrors()
+            ]);
+        }
+
+        // Prepare data for update
+        $data = [
+            'title' => $this->request->getPost('title'),
+            'year' => $this->request->getPost('year'),
+            'description' => $this->request->getPost('description'),
+            'img_url' => $this->request->getPost('img_url'), // Will be overwritten if new file is uploaded
+            'is_active' => $this->request->getPost('is_active') ? 1 : 0
+        ];
+
+        // If a new file has been uploaded
+        if ($file && $file->isValid() && !$file->hasMoved()) {
+            // Get the program data to know where to store the photo
+            $programId = session('current_program');
+            $program = $this->programModel->find($programId);
+
+            if (!$program) {
+                return $this->response->setJSON([
+                    'status' => false,
+                    'message' => 'Program not found'
+                ]);
+            }
+
+            // Prepare file for upload_file_to_storage
+            $fileData = [
+                'name' => $file->getName(),
+                'type' => $file->getClientMimeType(),
+                'tmp_name' => $file->getTempName(),
+                'error' => $file->getError(),
+                'size' => $file->getSize()
+            ];
+
+            // Set the destination folder based on program category
+            $destination = 'program-photos/' . $program->program_category_id;
+
+            // Generate a unique filename using timestamp
+            $filename = time() . '.' . $file->getExtension();
+
+            // Upload the file to storage
+            $uploadResult = upload_file_to_storage(
+                $fileData,
+                $destination,
+                $filename,
+                ['image/jpeg', 'image/png', 'image/gif', 'image/jpg', 'image/webp']
+            );
+
+            if (!$uploadResult['status']) {
+                return $this->response->setJSON([
+                    'status' => false,
+                    'message' => 'File upload failed: ' . $uploadResult['message']
+                ]);
+            }
+
+            // Update the image URL with the newly uploaded file URL
+            $data['img_url'] = $uploadResult['url'];
+        }
+
+        // Update data
+        try {
+            $this->programPhotoModel->update($id, $data);
+            return $this->response->setJSON([
+                'status' => true,
+                'message' => 'Photo "' . $this->request->getPost('title') . '" has been updated successfully!',
+                'data' => array_merge(['id' => $id], $data)
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'status' => false,
+                'message' => 'Failed to update photo: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * AJAX Delete Photo
+     */
+    public function ajaxDelete($id)
+    {
+        // Check if photo exists
+        $photo = $this->programPhotoModel->find($id);
+
+        if (!$photo) {
+            return $this->response->setJSON([
+                'status' => false,
+                'message' => 'Photo not found'
+            ]);
+        }
+
+        // Store the photo title for the success message
+        $photoTitle = $photo->title;
+
+        // Perform soft delete by setting is_deleted to 1
+        try {
+            $this->programPhotoModel->update($id, ['is_deleted' => 1, 'is_active' => 0]);
+            return $this->response->setJSON([
+                'status' => true,
+                'message' => 'Photo "' . $photoTitle . '" has been deleted successfully!'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'status' => false,
+                'message' => 'Failed to delete photo: ' . $e->getMessage()
+            ]);
+        }
     }
 
     public function root($path = '')

@@ -26,6 +26,7 @@ class ProgramCategoryModel extends Model
         'benefits',
         'sponsor_url',
         'main_banner_url',
+        'main_video_url',
         'tagline',
         'contact',
         'location',

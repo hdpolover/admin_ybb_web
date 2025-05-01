@@ -24,6 +24,10 @@
                 <img src="/assets/ybb/ybb_white.png" alt="YBB Logo" height="60">
             </span>
         </a>
+        <!-- Mobile Menu Toggle Button -->
+        <button type="button" class="btn btn-sm p-0 fs-20 header-item float-end btn-vertical-sm-hover" id="vertical-hover">
+            <i class="ri-record-circle-line"></i>
+        </button>
     </div>
 
     <div id="scrollbar">
@@ -99,14 +103,11 @@
                             </li>
                         </ul>
                     </div>
-                </li>
-
-                <li class="nav-item">
+                </li>                <li class="nav-item">
                     <a class="nav-link menu-link <?= url_is('announcements*') ? 'active' : '' ?>" href="<?= base_url("announcements") ?>">
                         <i class="ri-megaphone-line"></i> <span>Announcements</span>
                     </a>
                 </li>
-
 
 
                 <li class="menu-title"><i class="ri-settings-line"></i> <span data-key="t-configuration">Configuration</span></li>
@@ -140,6 +141,9 @@
                                 <a href="<?= base_url("master-data/program-photos") ?>" class="nav-link <?= url_is('master-data/program-photos*') ? 'active' : '' ?>"> <i class="ri-image-line"></i> Program Photos </a>
                             </li>
                             <li class="nav-item">
+                                <a href="<?= base_url("master-data/program-rundowns") ?>" class="nav-link <?= url_is('master-data/program-rundowns*') ? 'active' : '' ?>"> <i class="ri-calendar-event-line"></i> Program Rundowns </a>
+                            </li>
+                            <li class="nav-item">
                                 <a href="<?= base_url("master-data/faqs") ?>" class="nav-link <?= url_is('master-data/faqs*') ? 'active' : '' ?>"> <i class="ri-question-answer-line"></i> FAQs </a>
                             </li>
                         </ul>
@@ -154,7 +158,10 @@
                     <div class="collapse menu-dropdown <?= url_is('settings*') ? 'show' : '' ?>" id="sidebarSettings">
                         <ul class="nav nav-sm flex-column">
                             <li class="nav-item">
-                                <a href="<?= base_url("settings/landing-page") ?>" class="nav-link <?= url_is('settings/landing-page*') ? 'active' : '' ?>"> <i class="ri-layout-line"></i> Landing Page </a>
+                                <a href="<?= base_url("settings/main-config") ?>" class="nav-link <?= url_is('settings/main-config*') ? 'active' : '' ?>"> <i class="ri-settings-4-line"></i> Main Configuration </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url("settings/admin") ?>" class="nav-link <?= url_is('settings/admin*') ? 'active' : '' ?>"> <i class="ri-admin-line"></i> Admin Settings </a>
                             </li>
                         </ul>
                     </div>

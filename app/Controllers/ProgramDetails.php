@@ -58,22 +58,24 @@ class ProgramDetails extends BaseController
         ];
 
         return view('master-data/program-details/edit', $data);
-    }    
-    
-    // update program category details
+    }    // update program category details
     public function updateCategoryDetails($id)
     {
         // Check if this is an AJAX request
         if ($this->request->isAJAX()) {
+            // Log the received data for debugging
+            log_message('debug', 'Updating category details for ID ' . $id);
+            log_message('debug', 'POST data: ' . json_encode($this->request->getPost()));
+            
             // Load the storage helper
             helper(['storage']);
-            
+
             // Validate request - only require the name field, all others are optional
             $rules = [
                 'name' => 'required',
                 'email' => 'permit_empty|valid_email',
             ];
-            
+
             // No URL validation - accept any user input for URLs
 
             if (!$this->validate($rules)) {
@@ -81,9 +83,7 @@ class ProgramDetails extends BaseController
                     'success' => false,
                     'errors' => $this->validator->getErrors()
                 ]);
-            }
-
-            // Get program category
+            }            // Get program category
             $programCategory = $this->programCategoryModel->find($id);
 
             if (!$programCategory) {
@@ -92,7 +92,7 @@ class ProgramDetails extends BaseController
                     'message' => 'Program category not found'
                 ]);
             }
-
+            
             // Update data - collect all fields from the form
             $data = [
                 'name' => $this->request->getPost('name'),
@@ -112,9 +112,10 @@ class ProgramDetails extends BaseController
                 'youtube' => $this->request->getPost('youtube'),
                 'telegram' => $this->request->getPost('telegram'),
                 'sponsor_url' => $this->request->getPost('sponsor_url'),
+                'main_video_url' => $this->request->getPost('main_video_url'),
                 'updated_at' => date('Y-m-d H:i:s'),
             ];
-            
+
             // Handle logo image upload if present
             $logoFile = $this->request->getFile('logo');
             if ($logoFile && $logoFile->isValid() && !$logoFile->hasMoved()) {
@@ -126,20 +127,20 @@ class ProgramDetails extends BaseController
                     'size' => $logoFile->getSize(),
                     'error' => 0
                 ];
-                
+
                 // Upload to storage server
                 $uploadResult = upload_file_to_storage(
-                    $fileData, 
-                    'program-categories/' . $id . '/images', 
+                    $fileData,
+                    'program-categories/' . $id . '/images',
                     'logo_' . time() . '.' . $logoFile->getExtension(),
                     [] // No restriction on MIME types
                 );
-                
+
                 if ($uploadResult['status']) {
                     $data['logo_url'] = $uploadResult['url'];
                 }
             }
-            
+
             // Handle main banner image upload if present
             $bannerFile = $this->request->getFile('main_banner');
             if ($bannerFile && $bannerFile->isValid() && !$bannerFile->hasMoved()) {
@@ -151,27 +152,27 @@ class ProgramDetails extends BaseController
                     'size' => $bannerFile->getSize(),
                     'error' => 0
                 ];
-                
+
                 // Upload to storage server
                 $uploadResult = upload_file_to_storage(
-                    $fileData, 
-                    'program-categories/' . $id . '/images', 
+                    $fileData,
+                    'program-categories/' . $id . '/images',
                     'banner_' . time() . '.' . $bannerFile->getExtension(),
                     [] // No restriction on MIME types
                 );
-                
+
                 if ($uploadResult['status']) {
                     $data['main_banner_url'] = $uploadResult['url'];
                 }
-            }
-
-            // Save data
+            }            // Save data
             if ($this->programCategoryModel->update($id, $data)) {
                 return $this->response->setJSON([
                     'success' => true,
                     'message' => 'Program category updated successfully'
                 ]);
             } else {
+                // Log the errors for debugging
+                log_message('error', 'Failed to update program category with errors: ' . json_encode($this->programCategoryModel->errors()));
                 return $this->response->setJSON([
                     'success' => false,
                     'message' => 'Failed to update program category',
@@ -182,14 +183,16 @@ class ProgramDetails extends BaseController
 
         // If not AJAX request, redirect with message
         return redirect()->to('/program-details')->with('message', 'Invalid request method');
-    }    // Update specific program details via AJAX
+    }
+
+    // Update specific program details via AJAX
     public function updateProgramDetails($id)
     {
         // Check if this is an AJAX request
         if ($this->request->isAJAX()) {
             // Load the storage helper
             helper(['storage']);
-            
+
             // Validate request
             $rules = [
                 'name' => 'required',
@@ -199,7 +202,7 @@ class ProgramDetails extends BaseController
                 'end_date' => 'permit_empty|valid_date[Y-m-d]',
                 'email' => 'permit_empty|valid_email',
             ];
-            
+
             if (!$this->validate($rules)) {
                 return $this->response->setJSON([
                     'success' => false,
@@ -237,7 +240,8 @@ class ProgramDetails extends BaseController
                 'is_registration_open' => $this->request->getPost('is_registration_open') !== null ? $this->request->getPost('is_registration_open') : 0,
                 'updated_at' => date('Y-m-d H:i:s'),
             ];
-              // Handle program image upload if present
+
+            // Handle program image upload if present
             $imageFile = $this->request->getFile('banner');
             if ($imageFile && $imageFile->isValid() && !$imageFile->hasMoved()) {
                 $fileData = [
@@ -247,17 +251,17 @@ class ProgramDetails extends BaseController
                     'size' => $imageFile->getSize(),
                     'error' => 0
                 ];
-                
+
                 $uploadResult = upload_file_to_storage(
-                    $fileData, 
-                    'programs/' . $id . '/images', 
+                    $fileData,
+                    'programs/' . $id . '/images',
                     'banner_' . time() . '.' . $imageFile->getExtension(),
                     []
                 );
-                
+
                 // Debug upload result
                 log_message('debug', 'Banner upload result: ' . json_encode($uploadResult));
-                
+
                 if ($uploadResult['status']) {
                     $data['banner_url'] = $uploadResult['url'];
                     log_message('debug', 'Setting banner_url to: ' . $uploadResult['url']);
@@ -272,13 +276,13 @@ class ProgramDetails extends BaseController
                 }
             }            // Debug the data being saved
             log_message('debug', 'Data to be updated for program ID ' . $id . ': ' . json_encode($data));
-            
+
             // Save data
             if ($this->programModel->update($id, $data)) {
                 // Verify the update by retrieving the updated record
                 $updatedProgram = $this->programModel->find($id);
                 log_message('debug', 'Updated program data: ' . json_encode($updatedProgram));
-                
+
                 return $this->response->setJSON([
                     'success' => true,
                     'message' => 'Program details updated successfully'

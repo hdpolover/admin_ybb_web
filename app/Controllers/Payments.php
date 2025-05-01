@@ -70,18 +70,16 @@ class Payments extends BaseController
         $order = isset($request['order'][0]) ? [
             'column' => $request['order'][0]['column'],
             'dir' => $request['order'][0]['dir']
-        ] : ['column' => 0, 'dir' => 'desc'];
-
-        // Column names', 
+        ] : ['column' => 0, 'dir' => 'desc'];        // Column names and their corresponding database fields for sorting
         $columns = [
-            'payment_date',
-            'transaction_codes',
-            'participant',
-            'payment_details',
-            'status'
+            'payments.created_at', // payment_date comes from created_at
+            'payments.id', // transaction_codes sorting using payment ID
+            'participants.full_name', // participant column
+            'payments.amount', // payment_details sorted by amount
+            'payments.status' // status
         ];
 
-        $orderColumn = $columns[$order['column']] ?? 'payment_date';
+        $orderColumn = $columns[$order['column']] ?? 'payments.created_at';
 
         // Get data from database
         $builder = $this->paymentModel->select('
@@ -156,10 +154,10 @@ class Payments extends BaseController
                     'name' => $row->participant_name,
                     'email' => $row->participant_email,
                     'nationality' => $row->participant_nationality ?? 'N/A',
-                ],
-                'payment_details' => [
+                ],                'payment_details' => [
                     'program_name' => $programPaymentName,
                     'amount' => $this->formatCurrency($row->amount, $row->currency ?? 'IDR'),
+                    'amount_raw' => (float) $row->amount, // Add raw amount for sorting
                     'method' => $paymentMethod
                 ],
                 'status' => $statusBadge,

@@ -15,13 +15,20 @@ class WebSettingModel extends Model
     protected $returnType     = 'object'; // Set to return objects
     protected $useAutoIncrement = true;
     protected $useSoftDeletes = false; // Using is_deleted field manually
-    protected $protectFields  = true;
+    protected $protectFields  = true; 
+    
     protected $allowedFields  = [
         'program_category_id',
         'is_maintenance_mode',
         'usd_in_idr',
         'is_verification_required',
     ];
+
+    // get by program category id
+    public function getSettingByProgramCategoryId($programCategoryId)
+    {
+        return $this->where('program_category_id', $programCategoryId)->first();
+    }
 
     // get by program id
     public function getSettingByProgramId($programId)
