@@ -140,10 +140,12 @@ class ProgramModel extends Model
     {
         $builder = $this->builder();
         
-        $builder->select('programs.*')
+        $builder->select('programs.*, program_categories.web_url AS web_url, program_categories.logo_url AS logo_url')
                ->join('program_categories', 'program_categories.id = programs.program_category_id')
                ->where('programs.program_category_id !=', $categoryId)
-               ->where('programs.is_deleted', 0);
+               ->where('programs.is_deleted', 0)
+               ->where('programs.is_registration_open', 1)
+               ;
         
         if ($activeOnly) {
             $builder->where('programs.is_active', 1);

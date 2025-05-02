@@ -269,24 +269,34 @@ class SubmissionApiController extends ApiBaseController
     public function updateSubmission($participantId = null)
     {
         try {
+            log_message('info', 'Starting updateSubmission for participant ID: ' . $participantId);
+            
             if (!$participantId) {
+                log_message('error', 'No participant ID provided');
                 return $this->respondError('Participant ID is required', self::HTTP_BAD_REQUEST);
             }
 
             // Get participant data to confirm it exists
             $participant = $this->participantModel->find($participantId);
             if (!$participant) {
+                log_message('error', 'Participant not found: ' . $participantId);
                 return $this->respondError('Participant not found', self::HTTP_NOT_FOUND);
             }
+            
+            log_message('info', 'Found participant: ' . $participant->id . ' - ' . ($participant->full_name ?? 'unknown'));
 
             // Get input data (support both JSON and form inputs)
             $input = $this->getInput();
             if (empty($input)) {
+                log_message('error', 'No data provided for update');
                 return $this->respondError('No data provided for update', self::HTTP_BAD_REQUEST);
             }
+            
+            log_message('debug', 'Received input data: ' . json_encode($input));
 
             $db = \Config\Database::connect();
             $db->transStart();
+            log_message('info', 'Started database transaction');
 
             $updatedData = [
                 'participant' => null,
@@ -300,22 +310,29 @@ class SubmissionApiController extends ApiBaseController
             // Process profile picture update (if any)
             // Check for profile_image at root level, inside participant object, or in $_FILES
             if (isset($input['profile_image']) || (isset($input['participant']['profile_image']) && !empty($input['participant']['profile_image'])) || isset($_FILES['profile_image'])) {
+                log_message('info', 'Processing profile image update');
+                
                 if (isset($input['profile_image'])) {
+                    log_message('debug', 'Found profile_image in root input');
                     $profileImage = $input['profile_image'];
                 } elseif (isset($input['participant']['profile_image'])) {
+                    log_message('debug', 'Found profile_image in participant data');
                     $profileImage = $input['participant']['profile_image'];
                 } else {
+                    log_message('debug', 'Found profile_image in $_FILES');
                     $profileImage = $_FILES['profile_image'];
                 }
 
                 // Validate and process the profile image
+                log_message('debug', 'Attempting to save profile image: ' . (is_string($profileImage) ? 'string data' : 'file data'));
                 $pictureUrl = $this->saveProfileImage($profileImage, $participantId, $participant->program_id);
 
-                log_message('debug', 'Profile image upload result: ' . print_r($pictureUrl, true));
+                log_message('debug', 'Profile image upload result: ' . ($pictureUrl ?: 'failed'));
                 
                 if ($pictureUrl) {
                     $updatedData['picture_url'] = $pictureUrl;
-
+                    log_message('info', 'Updating participant with new picture URL: ' . $pictureUrl);
+                    
                     // Update participant's picture_url field
                     $this->participantModel->update($participantId, ['picture_url' => $pictureUrl]);
 
@@ -324,17 +341,22 @@ class SubmissionApiController extends ApiBaseController
                         // Extract the path from the full URL
                         $oldPath = parse_url($participant->picture_url, PHP_URL_PATH);
                         if ($oldPath) {
+                            log_message('debug', 'Deleting old profile picture: ' . $oldPath);
                             delete_storage_file($oldPath);
                         }
                     }
                 } else {
+                    log_message('error', 'Failed to upload profile picture');
                     return $this->respondError('Failed to upload profile picture', self::HTTP_BAD_REQUEST);
                 }
             }
 
             // Process participant data updates (if any)
             if (isset($input['participant'])) {
+                log_message('info', 'Processing participant data updates');
                 $participantData = $input['participant'];
+                
+                log_message('debug', 'Received participant data: ' . json_encode($participantData));
 
                 // Only update allowed fields
                 $allowedFields = [
@@ -372,26 +394,38 @@ class SubmissionApiController extends ApiBaseController
                 ];
 
                 $filteredData = array_intersect_key($participantData, array_flip($allowedFields));
+                log_message('debug', 'Filtered participant data: ' . json_encode($filteredData));
 
                 if (!empty($filteredData)) {
+                    log_message('info', 'Updating participant data');
                     if ($this->participantModel->update($participantId, $filteredData)) {
+                        log_message('info', 'Participant data updated successfully');
                         $updatedData['participant'] = $filteredData;
                     } else {
+                        log_message('error', 'Failed to update participant data: ' . implode(', ', $this->participantModel->errors()));
                         $db->transRollback();
                         return $this->respondError('Failed to update participant data: ' . implode(', ', $this->participantModel->errors()), self::HTTP_BAD_REQUEST);
                     }
+                } else {
+                    log_message('debug', 'No valid participant data fields to update');
                 }
             }
 
             // Process essay updates (if any)
             if (isset($input['essays']) && is_array($input['essays'])) {
-                foreach ($input['essays'] as $essayData) {
-                    // Essay data should contain id and answer at minimum
-                    if (!isset($essayData['id']) || !isset($essayData['answer'])) {
+                log_message('info', 'Processing essays updates, count: ' . count($input['essays']));
+                
+                foreach ($input['essays'] as $index => $essayData) {
+                    // Essay data should contain program_essay_id and answer at minimum
+                    if (!isset($essayData['program_essay_id']) || !isset($essayData['answer'])) {
+                        log_message('warning', 'Skipping essay at index ' . $index . ', missing required fields');
                         continue;
                     }
 
-                    $essayId = $essayData['id'];
+                    $essayId = $essayData['program_essay_id'];
+                    $answer = $essayData['answer'];
+                    log_message('debug', 'Processing essay for program_essay_id: ' . $essayId);
+
                     // Check if this is an existing essay or a new one
                     $existingEssay = $this->participantEssayModel->where([
                         'participant_id' => $participantId,
@@ -401,20 +435,28 @@ class SubmissionApiController extends ApiBaseController
                     $saveData = [
                         'participant_id' => $participantId,
                         'program_essay_id' => $essayId,
-                        'answer' => $essayData['answer'],
+                        'answer' => $answer,
                         'updated_at' => date('Y-m-d H:i:s')
                     ];
 
                     if ($existingEssay) {
                         // Update existing
+                        log_message('debug', 'Updating existing essay, ID: ' . $existingEssay->id);
                         if ($this->participantEssayModel->update($existingEssay->id, $saveData)) {
+                            log_message('info', 'Essay updated successfully, ID: ' . $existingEssay->id);
                             $updatedData['essays'][] = array_merge(['id' => $existingEssay->id], $saveData);
+                        } else {
+                            log_message('error', 'Failed to update essay: ' . implode(', ', $this->participantEssayModel->errors()));
                         }
                     } else {
                         // Create new
+                        log_message('debug', 'Creating new essay');
                         $saveData['created_at'] = date('Y-m-d H:i:s');
                         if ($newId = $this->participantEssayModel->insert($saveData)) {
+                            log_message('info', 'New essay created successfully, ID: ' . $newId);
                             $updatedData['essays'][] = array_merge(['id' => $newId], $saveData);
+                        } else {
+                            log_message('error', 'Failed to create new essay: ' . implode(', ', $this->participantEssayModel->errors()));
                         }
                     }
                 }
@@ -422,8 +464,10 @@ class SubmissionApiController extends ApiBaseController
 
             // Process subtheme selections (if any)
             if (isset($input['program_subtheme_id'])) {
+                log_message('info', 'Processing subtheme selection');
                 // Get the subtheme ID 
                 $subthemeId = $input['program_subtheme_id'];
+                log_message('debug', 'Subtheme ID: ' . $subthemeId);
 
                 if ($subthemeId) {
                     // Check if participant already has a subtheme
@@ -437,14 +481,22 @@ class SubmissionApiController extends ApiBaseController
 
                     if ($existingSelection) {
                         // Update existing selection
+                        log_message('debug', 'Updating existing subtheme selection, ID: ' . $existingSelection->id);
                         if ($this->participantSubthemeModel->update($existingSelection->id, $subthemeData)) {
+                            log_message('info', 'Subtheme selection updated successfully');
                             $updatedData['program_subtheme_id'] = array_merge(['id' => $existingSelection->id], $subthemeData);
+                        } else {
+                            log_message('error', 'Failed to update subtheme: ' . implode(', ', $this->participantSubthemeModel->errors()));
                         }
                     } else {
                         // Create new selection
+                        log_message('debug', 'Creating new subtheme selection');
                         $subthemeData['created_at'] = date('Y-m-d H:i:s');
                         if ($newId = $this->participantSubthemeModel->insert($subthemeData)) {
+                            log_message('info', 'New subtheme selection created successfully, ID: ' . $newId);
                             $updatedData['program_subtheme_id'] = array_merge(['id' => $newId], $subthemeData);
+                        } else {
+                            log_message('error', 'Failed to create subtheme: ' . implode(', ', $this->participantSubthemeModel->errors()));
                         }
                     }
                 }
@@ -452,8 +504,10 @@ class SubmissionApiController extends ApiBaseController
 
             // Process competition category (if any)
             if (isset($input['competition_category_id'])) {
+                log_message('info', 'Processing competition category');
                 // Update the competition category directly in the participants table
                 $competitionCategoryId = $input['competition_category_id'];
+                log_message('debug', 'Competition category ID: ' . $competitionCategoryId);
 
                 if ($competitionCategoryId) {
                     // Check if participant already has a competition category
@@ -467,14 +521,22 @@ class SubmissionApiController extends ApiBaseController
 
                     if ($existingCategory) {
                         // Update existing selection
+                        log_message('debug', 'Updating existing competition category, ID: ' . $existingCategory->id);
                         if ($this->participantCompetitionCategoryModel->update($existingCategory->id, $categoryData)) {
+                            log_message('info', 'Competition category updated successfully');
                             $updatedData['competition_category_id'] = array_merge(['id' => $existingCategory->id], $categoryData);
+                        } else {
+                            log_message('error', 'Failed to update competition category: ' . implode(', ', $this->participantCompetitionCategoryModel->errors()));
                         }
                     } else {
                         // Create new selection
+                        log_message('debug', 'Creating new competition category');
                         $categoryData['created_at'] = date('Y-m-d H:i:s');
                         if ($newId = $this->participantCompetitionCategoryModel->insert($categoryData)) {
+                            log_message('info', 'New competition category created successfully, ID: ' . $newId);
                             $updatedData['competition_category_id'] = array_merge(['id' => $newId], $categoryData);
+                        } else {
+                            log_message('error', 'Failed to create competition category: ' . implode(', ', $this->participantCompetitionCategoryModel->errors()));
                         }
                     }
                 }
@@ -482,7 +544,9 @@ class SubmissionApiController extends ApiBaseController
 
             // ambassador referral check
             if (isset($input['ambassador_id'])) {
+                log_message('info', 'Processing ambassador referral');
                 $ambassadorId = $input['ambassador_id'];
+                log_message('debug', 'Ambassador ID: ' . $ambassadorId);
 
                 if ($ambassadorId) {
                     // check if participant already has a referral
@@ -490,11 +554,16 @@ class SubmissionApiController extends ApiBaseController
 
                     if ($existingReferral) {
                         // Update existing referral
+                        log_message('debug', 'Updating existing ambassador referral, ID: ' . $existingReferral->id);
                         if ($this->ambassadorParticipantReferralModel->update($existingReferral->id, ['ambassador_id' => $ambassadorId])) {
+                            log_message('info', 'Ambassador referral updated successfully');
                             $updatedData['ambassador_id'] = $ambassadorId;
+                        } else {
+                            log_message('error', 'Failed to update ambassador referral: ' . implode(', ', $this->ambassadorParticipantReferralModel->errors()));
                         }
                     } else {
                         // Create new referral
+                        log_message('debug', 'Creating new ambassador referral');
                         $referralData = [
                             'participant_id' => $participantId,
                             'ambassador_id' => $ambassadorId,
@@ -503,7 +572,10 @@ class SubmissionApiController extends ApiBaseController
                         ];
 
                         if ($newId = $this->ambassadorParticipantReferralModel->insert($referralData)) {
+                            log_message('info', 'New ambassador referral created successfully, ID: ' . $newId);
                             $updatedData['ambassador_id'] = array_merge(['id' => $newId], $referralData);
+                        } else {
+                            log_message('error', 'Failed to create ambassador referral: ' . implode(', ', $this->ambassadorParticipantReferralModel->errors()));
                         }
                     }
                 }
@@ -518,13 +590,17 @@ class SubmissionApiController extends ApiBaseController
                 empty($updatedData['competition_category_id']) &&
                 empty($updatedData['ambassador_id'])
             ) {
+                log_message('warning', 'No valid data provided for update');
                 return $this->respondError('No valid data provided for update', self::HTTP_BAD_REQUEST);
             }
 
             $db->transComplete();
             if ($db->transStatus() === false) {
+                log_message('error', 'Transaction failed, rolling back changes');
                 return $this->respondError('Failed to save submission data', self::HTTP_INTERNAL_ERROR);
             }
+            
+            log_message('info', 'Transaction completed successfully');
 
             $reponseData = [];
 
@@ -553,15 +629,18 @@ class SubmissionApiController extends ApiBaseController
             }
 
             // update participant status
+            log_message('info', 'Updating participant status');
             $participantStatusModel = new \App\Models\ParticipantStatusModel();
             $participantStatus = $participantStatusModel->where('participant_id', $participantId)->first();
             
             if ($participantStatus) {
+                log_message('debug', 'Updating existing participant status, ID: ' . $participantStatus->id);
                 $participantStatusModel->update($participantStatus->id, [
                     'form_status' => 1,
                     'updated_at' => date('Y-m-d H:i:s')
                 ]);
             } else {
+                log_message('debug', 'Creating new participant status record');
                 $participantStatusModel->insert([
                     'participant_id' => $participantId,
                     'form_status' => 1,
@@ -569,10 +648,15 @@ class SubmissionApiController extends ApiBaseController
                     'updated_at' => date('Y-m-d H:i:s')
                 ]);
             }
+            
+            log_message('info', 'Participant status updated successfully');
+            log_message('info', 'Update submission completed successfully for participant ID: ' . $participantId);
 
             // Return success response with updated data
             return $this->respondSuccess($reponseData, ResponseInterface::HTTP_OK, 'Submission data updated successfully');
         } catch (\Exception $e) {
+            log_message('error', 'Exception in updateSubmission: ' . $e->getMessage());
+            log_message('error', 'Exception trace: ' . $e->getTraceAsString());
             return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
         }
     }
