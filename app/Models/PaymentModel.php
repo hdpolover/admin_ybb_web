@@ -39,6 +39,22 @@ class PaymentModel extends Model
     protected $useTimestamps = true;
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
+    
+    // Validation rules
+    protected $validationRules = [
+        'participant_id' => 'required|integer',
+        'program_payment_id' => 'required|integer',
+        'payment_method_id' => 'required|integer',
+        'amount' => 'required|numeric|greater_than[0]'
+    ];
+    
+    protected $validationMessages = [
+        'amount' => [
+            'required' => 'Payment amount is required',
+            'numeric' => 'Payment amount must be a valid number',
+            'greater_than' => 'Payment amount must be greater than zero'
+        ]
+    ];
 
     /**
      * Get payments with participant details

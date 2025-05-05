@@ -41,14 +41,13 @@
                                                 <?php endforeach; ?>
                                             </select>
                                         </div>
-                                        
-                                        <div class="mb-3">
+                                          <div class="mb-3">
                                             <label for="amount" class="form-label">Amount</label>
                                             <div class="input-group">
                                                 <span class="input-group-text currency-symbol">Rp</span>
-                                                <input type="text" class="form-control" id="amount" name="amount" required placeholder="Enter amount">
+                                                <input type="text" class="form-control" id="amount" name="amount" required placeholder="Enter amount" min="1" data-msg-required="Amount is required" data-msg-min="Amount must be greater than zero">
                                             </div>
-                                            <small class="form-text text-muted">Enter the amount without commas or dots.</small>
+                                            <small class="form-text text-muted">Enter the amount without commas or dots. Amount must be greater than zero.</small>
                                         </div>
                                         
                                         <div class="mb-3">
@@ -203,10 +202,24 @@
                     const currency = document.getElementById('currency').value;
                     const description = document.getElementById('description').value;
                     const paymentType = document.getElementById('paymentType').value;
-                    
-                    // Parse amount (remove formatting)
+                      // Parse amount (remove formatting)
                     let amount = document.getElementById('amount').value;
                     amount = parseFloat(amount.replace(/[^\d]/g, ''));
+                    
+                    // Validate amount is greater than zero
+                    if (!amount || amount <= 0) {
+                        statusEl.className = 'alert alert-danger';
+                        statusEl.textContent = 'Payment amount must be greater than zero';
+                        
+                        // Reset button state
+                        payButton.disabled = false;
+                        if (paymentType === 'manual') {
+                            payButton.innerHTML = '<i class="ri-secure-payment-line align-bottom me-1"></i> Submit Payment';
+                        } else {
+                            payButton.innerHTML = '<i class="ri-secure-payment-line align-bottom me-1"></i> Pay Now';
+                        }
+                        return;
+                    }
                     
                     // Create payment data
                     const paymentData = {

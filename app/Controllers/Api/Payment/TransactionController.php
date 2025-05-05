@@ -76,6 +76,7 @@ class TransactionController extends BasePaymentController
                 'source_name' => 'permit_empty|string',
                 'notes' => 'permit_empty|string',
                 'payment_date' => 'permit_empty|valid_date[Y-m-d]',
+                'amount' => 'permit_empty|numeric|greater_than[0]',
             ]);
 
             if (!$validation->run($data)) {
@@ -144,8 +145,8 @@ class TransactionController extends BasePaymentController
 
             $amount = 0;
             $usdAmount = 0;
-            $currency = 'IDR';
-
+            $currency = 'IDR';            
+            
             // Calculate amount in IDR and USD
             if ($paymentMethodType === self::PAYMENT_METHOD_MIDTRANS) {
                 $amount = $programPayment->idr_amount ?? 0;
@@ -159,6 +160,12 @@ class TransactionController extends BasePaymentController
                 // For manual payments, use the IDR amount directly
                 $amount = $programPayment->idr_amount ?? 0;
                 $usdAmount = $programPayment->usd_amount ?? 0;
+            }
+
+            // Ensure amount is greater than zero
+            if ($amount <= 0) {
+                log_message('error', 'TransactionController::createTransaction - Payment amount must be greater than zero. Amount: ' . $amount);
+                return $this->respondError('Payment amount must be greater than zero', 400);
             }
 
             $currency = $programPayment->currency ?? 'IDR';
