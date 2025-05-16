@@ -20,20 +20,19 @@ class DashboardModel extends Model
      * @param string $period Period (day, week, month)
      * @param int $limit Number of periods to fetch
      * @return array
-     */
-    public function getParticipantRegistrationStats($programId, $period = 'day', $limit = 30)
+     */    public function getParticipantRegistrationStats($programId, $period = 'day', $limit = 30)
     {
         $groupFormat = '';
         switch ($period) {
             case 'week':
                 $groupFormat = 'YEARWEEK(created_at)';
-                $dateFormat = 'DATE_FORMAT(created_at, "%Y-%u")';
-                $labelFormat = 'DATE_FORMAT(MIN(created_at), "%b %d") - DATE_FORMAT(MAX(created_at), "%b %d, %Y")';
+                $dateFormat = 'YEARWEEK(created_at)';
+                $labelFormat = 'CONCAT(DATE_FORMAT(MIN(created_at), "%b %d"), " - ", DATE_FORMAT(MAX(created_at), "%b %d, %Y"))';
                 break;
             case 'month':
                 $groupFormat = 'YEAR(created_at), MONTH(created_at)';
                 $dateFormat = 'DATE_FORMAT(created_at, "%Y-%m")';
-                $labelFormat = 'DATE_FORMAT(created_at, "%b %Y")';
+                $labelFormat = 'DATE_FORMAT(MIN(created_at), "%b %Y")';
                 break;
             default: // day
                 $groupFormat = 'DATE(created_at)';
@@ -41,21 +40,34 @@ class DashboardModel extends Model
                 $labelFormat = 'DATE_FORMAT(created_at, "%b %d, %Y")';
                 break;
         }
-
-        $query = $this->db->query("
-            SELECT 
-                {$dateFormat} AS date,
-                {$labelFormat} AS label,
-                COUNT(*) AS total
-            FROM participants
-            WHERE program_id = ?
-            GROUP BY {$groupFormat}
-            ORDER BY date DESC
-            LIMIT ?
-        ", [$programId, $limit]);
+        if ($period === 'week' || $period === 'month') {
+            $query = $this->db->query("
+                SELECT 
+                    {$dateFormat} AS date,
+                    {$labelFormat} AS label,
+                    COUNT(*) AS total
+                FROM participants
+                WHERE program_id = ?
+                GROUP BY {$groupFormat}
+                ORDER BY MIN(created_at) DESC
+                LIMIT ?
+            ", [$programId, $limit]);
+        } else {
+            $query = $this->db->query("
+                SELECT 
+                    {$dateFormat} AS date,
+                    {$labelFormat} AS label,
+                    COUNT(*) AS total
+                FROM participants
+                WHERE program_id = ?
+                GROUP BY {$groupFormat}
+                ORDER BY date DESC
+                LIMIT ?
+            ", [$programId, $limit]);
+        }
 
         $result = $query->getResult();
-        
+
         // Reverse to show oldest first for timeline charts
         return array_reverse($result);
     }
@@ -178,39 +190,38 @@ class DashboardModel extends Model
     public function getProgramSummary($programId)
     {
         $stats = new \stdClass();
-        
+
         // Total participants
         $query = $this->db->query("
             SELECT COUNT(*) as total FROM participants WHERE program_id = ?
         ", [$programId]);
         $stats->total_participants = $query->getRow()->total;
-        
+
         // Participants added today
         $query = $this->db->query("
             SELECT COUNT(*) as total FROM participants 
             WHERE program_id = ? AND DATE(created_at) = CURDATE()
         ", [$programId]);
         $stats->participants_today = $query->getRow()->total;
-        
+
         // Total ambassadors
         $query = $this->db->query("
             SELECT COUNT(*) as total FROM ambassadors WHERE program_id = ?
         ", [$programId]);
         $stats->total_ambassadors = $query->getRow()->total;
-        
+
         // Total with referral codes
         $query = $this->db->query("
             SELECT COUNT(*) as total FROM participants 
             WHERE program_id = ? AND ref_code_ambassador IS NOT NULL AND ref_code_ambassador != ''
         ", [$programId]);
         $stats->total_referred = $query->getRow()->total;
-        
+
         // Referral percentage
-        $stats->referral_percentage = ($stats->total_participants > 0) 
+        $stats->referral_percentage = ($stats->total_participants > 0)
             ? round(($stats->total_referred / $stats->total_participants) * 100, 1)
             : 0;
-            
+
         return $stats;
     }
 }
-?>

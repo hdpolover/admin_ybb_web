@@ -113,4 +113,83 @@ class Dashboard extends BaseController
             'values' => array_map(function($item) { return (int)$item->total; }, $stats),
         ]);
     }
+    
+    public function ajaxGenderStats()
+    {
+        $programId = session('current_program');
+        $stats = $this->dashboardModel->getGenderDistribution($programId);
+        
+        // Format gender data - handle empty values and nulls
+        $genderLabels = [];
+        $genderValues = [];
+        
+        foreach ($stats as $item) {
+            $genderLabels[] = empty($item->gender) ? 'Not Specified' : $item->gender;
+            $genderValues[] = (int)$item->total;
+        }
+        
+        // If no gender data, provide default
+        if (empty($genderLabels)) {
+            $genderLabels = ['No Data'];
+            $genderValues = [0];
+        }
+        
+        return $this->response->setJSON([
+            'labels' => $genderLabels,
+            'values' => $genderValues,
+        ]);
+    }
+    
+    public function ajaxAgeStats()
+    {
+        $programId = session('current_program');
+        $stats = $this->dashboardModel->getAgeDistribution($programId);
+        
+        // Format age data
+        $ageLabels = [];
+        $ageValues = [];
+        
+        foreach ($stats as $item) {
+            $ageLabels[] = $item->age_group;
+            $ageValues[] = (int)$item->total;
+        }
+        
+        // If no age data, provide default
+        if (empty($ageLabels)) {
+            $ageLabels = ['No Data'];
+            $ageValues = [0];
+        }
+        
+        return $this->response->setJSON([
+            'labels' => $ageLabels,
+            'values' => $ageValues,
+        ]);
+    }
+    
+    public function ajaxNationalityStats()
+    {
+        $programId = session('current_program');
+        $limit = (int)($this->request->getGet('limit') ?? 10);
+        $stats = $this->dashboardModel->getNationalityDistribution($programId, $limit);
+        
+        // Format nationality data - handle empty values and nulls
+        $nationalityLabels = [];
+        $nationalityValues = [];
+        
+        foreach ($stats as $item) {
+            $nationalityLabels[] = empty($item->nationality) ? 'Not Specified' : $item->nationality;
+            $nationalityValues[] = (int)$item->total;
+        }
+        
+        // If no nationality data, provide default
+        if (empty($nationalityLabels)) {
+            $nationalityLabels = ['No Data'];
+            $nationalityValues = [0];
+        }
+        
+        return $this->response->setJSON([
+            'labels' => $nationalityLabels,
+            'values' => $nationalityValues,
+        ]);
+    }
 }

@@ -4,6 +4,10 @@ namespace Config\Routes;
 
 $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], function ($routes) {
     $routes->get('dashboard', 'Dashboard::index');
+    $routes->get('dashboard/ajaxRegistrationStats', 'Dashboard::ajaxRegistrationStats');
+    $routes->get('dashboard/ajaxGenderStats', 'Dashboard::ajaxGenderStats');
+    $routes->get('dashboard/ajaxAgeStats', 'Dashboard::ajaxAgeStats');
+    $routes->get('dashboard/ajaxNationalityStats', 'Dashboard::ajaxNationalityStats');
     // welcome
     $routes->get('welcome', 'Welcome::index');
     $routes->get('welcome/set-program/(:num)', 'Welcome::setProgram/$1');
