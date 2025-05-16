@@ -370,14 +370,11 @@ class TransactionController extends BasePaymentController
                     'Midtrans transaction created successfully'
                 );
             } catch (\Exception $e) {
-                // If Midtrans fails, update payment status to cancelled and log error
-                $this->paymentModel->update($paymentId, [
-                    'status' => self::STATUS_CANCELLED,
-                    'notes' => 'Failed to create Midtrans transaction: ' . $e->getMessage()
-                ]);
-
+                // Delete the payment record if Midtrans transaction fails
+                $this->paymentModel->delete($paymentId);
+                
                 log_message('error', 'Midtrans API Error: ' . $e->getMessage());
-                return $this->fail('Payment gateway error: ' . $e->getMessage(), 500);
+                return $this->fail('Payment failed. Please try again later. Error: ' . $e->getMessage(), 500);
             }
         } catch (\Exception $e) {
             log_message('error', 'Create Transaction Error: ' . $e->getMessage());
