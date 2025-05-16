@@ -23,6 +23,7 @@ class PaymentModel extends Model
         'rejection_reason',
         'program_payment_id',
         'payment_method_id',
+        'payment_url',
         'status',
         'proof_url',
         'account_name',

@@ -350,17 +350,23 @@ class TransactionController extends BasePaymentController
 
                 // Create Snap Token
                 $snapToken = \Midtrans\Snap::getSnapToken($params);
+                
+                // Generate redirect URL based on environment
+                $redirectUrl = \Midtrans\Config::$isProduction
+                    ? "https://app.midtrans.com/snap/v2/vtweb/{$snapToken}"
+                    : "https://app.sandbox.midtrans.com/snap/v2/vtweb/{$snapToken}";
 
-                // Update payment status to 'pending'
-                $this->paymentModel->update($paymentId, ['status' => self::STATUS_PENDING]);
+                // Update payment status to 'pending' and save the redirect URL
+                $this->paymentModel->update($paymentId, [
+                    'status' => self::STATUS_PENDING,
+                    'payment_url' => $redirectUrl
+                ]);
 
                 $returnData = [
                     'order_id' => $orderId,
                     'payment_id' => $paymentId,
                     'token' => $snapToken,
-                    'redirect_url' => \Midtrans\Config::$isProduction
-                        ? "https://app.midtrans.com/snap/v2/vtweb/{$snapToken}"
-                        : "https://app.sandbox.midtrans.com/snap/v2/vtweb/{$snapToken}",
+                    'redirect_url' => $redirectUrl,
                 ];
 
                 // Return success response with token
