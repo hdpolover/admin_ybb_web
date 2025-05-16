@@ -145,21 +145,15 @@ class TransactionController extends BasePaymentController
 
             $amount = 0;
             $usdAmount = 0;
-            $currency = 'IDR';            
-            
-            // Calculate amount in IDR and USD
-            if ($paymentMethodType === self::PAYMENT_METHOD_MIDTRANS) {
-                $amount = $programPayment->idr_amount ?? 0;
-                $usdAmount = $programPayment->usd_amount ?? 0;
+            $currency = 'IDR';
 
-                // Convert USD amount to IDR
-                if ($usdAmount > 0) {
-                    $amount = $usdAmount * $usdInIdr;
-                }
-            } else {
-                // For manual payments, use the IDR amount directly
-                $amount = $programPayment->idr_amount ?? 0;
-                $usdAmount = $programPayment->usd_amount ?? 0;
+            // Calculate amount in IDR and USD
+            $amount = $programPayment->idr_amount ?? 0;
+            $usdAmount = $programPayment->usd_amount ?? 0;
+
+            // Convert USD amount to IDR
+            if ($usdAmount > 0) {
+                $amount = $usdAmount * $usdInIdr;
             }
 
             // Ensure amount is greater than zero
