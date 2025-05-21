@@ -215,9 +215,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->post('create', 'ProgramTestimonies::create');
             $routes->post('update/(:num)', 'ProgramTestimonies::update/$1');
             $routes->get('delete/(:num)', 'ProgramTestimonies::delete/$1');
-        });
-
-        // program rundowns        
+        });        // program rundowns        
         $routes->group('program-rundowns', function ($routes) {
             $routes->get('/', 'ProgramRundowns::index');
             $routes->get('view/(:num)', 'ProgramRundowns::view/$1');
@@ -226,6 +224,15 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->post('update/(:num)', 'ProgramRundowns::update/$1');
             $routes->get('delete/(:num)', 'ProgramRundowns::delete/$1');
             $routes->get('getRundown/(:num)', 'ProgramRundowns::getRundown/$1');
+        });        // abstract topics
+        $routes->group('abstract-topics', function ($routes) {
+            $routes->get('/', 'AbstractTopics::index');
+            $routes->get('view/(:num)', 'AbstractTopics::view/$1');
+            $routes->get('getAbstractTopic/(:num)', 'AbstractTopics::getAbstractTopic/$1');
+            $routes->post('create', 'AbstractTopics::create');
+            $routes->post('update/(:num)', 'AbstractTopics::update/$1');
+            $routes->get('delete/(:num)', 'AbstractTopics::delete/$1');  // Keep for backward compatibility
+            $routes->post('delete/(:num)', 'AbstractTopics::delete/$1');  // Add POST endpoint for AJAX
         });
     });
 

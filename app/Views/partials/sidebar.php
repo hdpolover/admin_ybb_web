@@ -143,9 +143,11 @@
                             </li>
                             <li class="nav-item">
                                 <a href="<?= base_url("master-data/program-photos") ?>" class="nav-link <?= url_is('master-data/program-photos*') ? 'active' : '' ?>"> <i class="ri-image-line"></i> Program Photos </a>
+                            </li>                            <li class="nav-item">
+                                <a href="<?= base_url("master-data/program-rundowns") ?>" class="nav-link <?= url_is('master-data/program-rundowns*') ? 'active' : '' ?>"> <i class="ri-calendar-event-line"></i> Program Rundowns </a>
                             </li>
                             <li class="nav-item">
-                                <a href="<?= base_url("master-data/program-rundowns") ?>" class="nav-link <?= url_is('master-data/program-rundowns*') ? 'active' : '' ?>"> <i class="ri-calendar-event-line"></i> Program Rundowns </a>
+                                <a href="<?= base_url("master-data/abstract-topics") ?>" class="nav-link <?= url_is('master-data/abstract-topics*') ? 'active' : '' ?>"> <i class="ri-list-check"></i> Abstract Topics </a>
                             </li>
                             <li class="nav-item">
                                 <a href="<?= base_url("master-data/faqs") ?>" class="nav-link <?= url_is('master-data/faqs*') ? 'active' : '' ?>"> <i class="ri-question-answer-line"></i> FAQs </a>
