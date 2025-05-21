@@ -165,11 +165,11 @@ class Dashboard extends BaseController
             'values' => $ageValues,
         ]);
     }
-    
-    public function ajaxNationalityStats()
+      public function ajaxNationalityStats()
     {
         $programId = session('current_program');
-        $limit = (int)($this->request->getGet('limit') ?? 10);
+        $fullData = $this->request->getGet('fullData') === '1';
+        $limit = $fullData ? 1000 : (int)($this->request->getGet('limit') ?? 10);
         $stats = $this->dashboardModel->getNationalityDistribution($programId, $limit);
         
         // Format nationality data - handle empty values and nulls

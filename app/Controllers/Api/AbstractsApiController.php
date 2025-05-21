@@ -1,0 +1,890 @@
+<?php
+
+namespace App\Controllers\Api;
+
+use App\Models\AbstractModel;
+use App\Models\AbstractVersionModel;
+use App\Models\AbstractAuthorModel;
+use App\Models\ProgramModel;
+use App\Models\ParticipantModel;
+
+
+use App\Controllers\Api\ApiBaseController;
+use CodeIgniter\HTTP\ResponseInterface;
+use CodeIgniter\HTTP\RequestInterface;
+use Psr\Log\LoggerInterface;
+
+class AbstractsApiController extends ApiBaseController
+{
+    protected $abstractModel;
+    protected $abstractVersionModel;
+    protected $abstractAuthorModel;
+    protected $programModel;
+    protected $participantModel;
+
+    /**
+     * Initialize controller, set models
+     */
+    public function initController(
+        \CodeIgniter\HTTP\RequestInterface $request,
+        \CodeIgniter\HTTP\ResponseInterface $response,
+        \Psr\Log\LoggerInterface $logger
+    ) {
+        // Call parent initializer
+        parent::initController($request, $response, $logger);
+
+        // Initialize models
+        $this->abstractModel = new AbstractModel();
+        $this->abstractVersionModel = new AbstractVersionModel();
+        $this->abstractAuthorModel = new AbstractAuthorModel();
+        $this->programModel = new ProgramModel();   
+        $this->participantModel = new ParticipantModel();
+    }
+
+    /**
+     * Get abstract by id
+     * GET /api/abstracts/{id}
+     */
+    public function getAbstractById($id)
+    {
+        // Check if abstract exists
+        $abstract = $this->abstractModel->find($id);
+
+        if (!$abstract) {
+            return $this->failNotFound('Abstract not found');
+        }
+
+        try {
+            // Get abstract by id
+            $abstractDetails = $this->abstractModel->getAbstractById($id);
+
+            return $this->respondSuccess([
+                'abstract' => $abstractDetails
+            ]);
+        } catch (\Exception $e) {
+            return $this->failServerError('Failed to retrieve abstract: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get all abstracts by program id
+     * GET /api/abstracts/program/{program_id}
+     */
+    public function getAllAbstractsByProgramId($program_id)
+    {
+        // Check if program exists
+        $program = $this->programModel->find($program_id);
+
+        if (!$program) {
+            return $this->failNotFound('Program not found');
+        }
+
+        try {
+            // Get all abstracts by program id
+            $abstracts = $this->abstractModel->getAllAbstractsByProgramId($program_id);
+
+            return $this->respondSuccess([
+                'abstracts' => $abstracts,
+                'total' => count($abstracts)
+            ]);
+        } catch (\Exception $e) {
+            return $this->failServerError('Failed to retrieve abstracts: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get all abstracts by participant id
+     * GET /api/abstracts/participant/{participant_id}
+     */
+    public function getAllAbstractsByParticipantId($participant_id)
+    {
+        // Check if participant exists
+        $participant = $this->participantModel->find($participant_id);
+
+        if (!$participant) {
+            return $this->failNotFound('Participant not found');
+        }
+
+        try {
+            // Get all abstracts by participant id
+            $abstracts = $this->abstractModel->getAllAbstractsByParticipantId($participant_id);
+
+            return $this->respondSuccess([
+                'abstracts' => $abstracts,
+                'total' => count($abstracts)
+            ]);
+        } catch (\Exception $e) {
+            return $this->failServerError('Failed to retrieve abstracts: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get abstract version by id
+     * GET /api/abstracts/version/{id}
+     */
+    public function getAbstractVersionById($id)
+    {
+        // Check if abstract version exists
+        $abstractVersion = $this->abstractVersionModel->find($id);
+
+        if (!$abstractVersion) {
+            return $this->failNotFound('Abstract version not found');
+        }
+
+        try {
+            // Get abstract version by id
+            $abstractVersionDetails = $this->abstractVersionModel->getAbstractVersionById($id);
+
+            return $this->respondSuccess([
+                'abstract_version' => $abstractVersionDetails
+            ]);
+        } catch (\Exception $e) {
+            return $this->failServerError('Failed to retrieve abstract version: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get all abstract versions by abstract id
+     * GET /api/abstracts/{abstract_id}/versions
+     */
+    public function getAllAbstractVersionsByAbstractId($abstract_id)
+    {
+        // Check if abstract exists
+        $abstract = $this->abstractModel->find($abstract_id);
+
+        if (!$abstract) {
+            return $this->failNotFound('Abstract not found');
+        }
+
+        try {
+            // Get all abstract versions by abstract id
+            $abstractVersions = $this->abstractVersionModel->getAllAbstractVersionsByAbstractId($abstract_id);
+
+            return $this->respondSuccess([
+                'abstract_versions' => $abstractVersions,
+                'total' => count($abstractVersions)
+            ]);
+        } catch (\Exception $e) {
+            return $this->failServerError('Failed to retrieve abstract versions: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get abstract details by participant id
+     * GET /api/abstracts/participant/{participant_id}/details
+     */
+    public function getAbstractDetailsByParticipantId($participant_id)
+    {
+        // Check if participant exists
+        $participant = $this->participantModel->find($participant_id);
+
+        if (!$participant) {
+            return $this->failNotFound('Participant not found');
+        }
+
+        try {
+            // Get abstract where participant is primary author
+            $abstract = $this->abstractModel->getAbstractByParticipantId($participant_id);
+            
+            if (!$abstract) {
+            // Check if participant is listed as an author on any abstract
+            $abstractAsAuthor = $this->abstractAuthorModel->getAbstractByAuthorParticipantId($participant_id);
+            
+            if ($abstractAsAuthor) {
+                // Get the full abstract details
+                $abstract = $this->abstractModel->find($abstractAsAuthor->abstract_id);
+            }
+            }
+            
+            if (!$abstract) {
+            return $this->failNotFound('No abstract found for this participant');
+            }
+
+            // Get additional details for the abstract
+            $abstractVersions = $this->abstractVersionModel->getAllAbstractVersionsByAbstractId($abstract->id);
+            $abstractAuthors = $this->abstractAuthorModel->getAllAbstractAuthorsByAbstractId($abstract->id);
+
+            return $this->respondSuccess([
+            'abstract' => $abstract,
+            'abstract_versions' => $abstractVersions,
+            'abstract_authors' => $abstractAuthors
+            ]);
+        } catch (\Exception $e) {
+            return $this->failServerError('Failed to retrieve abstract details: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get all abstract authors by abstract id
+     * GET /api/abstracts/{abstract_id}/authors
+     */
+    public function getAllAbstractAuthorsByAbstractId($abstract_id)
+    {
+        // Check if abstract exists
+        $abstract = $this->abstractModel->find($abstract_id);
+
+        if (!$abstract) {
+            return $this->failNotFound('Abstract not found');
+        }
+
+        try {
+            // Get all abstract authors by abstract id
+            $abstractAuthors = $this->abstractAuthorModel->getAllAbstractAuthorsByAbstractId($abstract_id);
+
+            return $this->respondSuccess([
+                'abstract_authors' => $abstractAuthors,
+                'total' => count($abstractAuthors)
+            ]);
+        } catch (\Exception $e) {
+            return $this->failServerError('Failed to retrieve abstract authors: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Add a new abstract author
+     * POST /api/abstracts/{abstract_id}/authors
+     */
+    public function addAbstractAuthor($abstract_id)
+    {
+        // Check if abstract exists
+        $abstract = $this->abstractModel->find($abstract_id);
+
+        if (!$abstract) {
+            return $this->failNotFound('Abstract not found');
+        }        // Get is_participant value first to determine validation rules
+        $is_participant = (int)$this->request->getPost('is_participant');
+        
+        // Set validation rules based on is_participant value
+        $rules = [
+            'full_name' => 'required|string',
+            'institution' => 'string',
+            'email' => 'required|valid_email',
+            'is_participant' => 'required|in:0,1'
+        ];
+        
+        // participant_id is required only if is_participant is 1
+        if ($is_participant === 1) {
+            $rules['participant_id'] = 'required|numeric';
+        }
+
+        if (!$this->validate($rules)) {
+            return $this->failValidationErrors($this->validator->getErrors());
+        }        // Process participant_id based on is_participant value
+        $participant_id = $this->request->getPost('participant_id');
+        
+        // Check if participant exists only if is_participant is 1
+        if ($is_participant === 1) {
+            if (empty($participant_id)) {
+                return $this->fail('Participant ID is required when is_participant is true', 400);
+            }
+            
+            $participant = $this->participantModel->find($participant_id);
+            if (!$participant) {
+                return $this->failNotFound('Participant not found');
+            }
+        }        // Check if author already exists for this abstract (only if participant_id is provided)
+        if (!empty($participant_id)) {
+            $existingAuthor = $this->abstractAuthorModel->where('abstract_id', $abstract_id)
+                ->where('participant_id', $participant_id)
+                ->first();
+                
+            if ($existingAuthor) {
+                return $this->failResourceExists('This participant is already an author of this abstract');
+            }
+        } else {
+            // If no participant_id, check by email since that's unique
+            $existingAuthor = $this->abstractAuthorModel->where('abstract_id', $abstract_id)
+                ->where('email', $this->request->getPost('email'))
+                ->first();
+                
+            if ($existingAuthor) {
+                return $this->failResourceExists('An author with this email is already associated with this abstract');
+            }
+        }        // Additional checks only if is_participant is true and participant_id is provided
+        if ($is_participant === 1 && !empty($participant_id)) {
+            // Check if participant is already associated with any abstract as a primary submitter
+            $existingAbstract = $this->abstractModel->where('participant_id', $participant_id)->first();
+            
+            if ($existingAbstract) {
+                return $this->fail('This participant is already a primary submitter for another abstract', 409);
+            }
+            
+            // Check if participant is already an author in other abstracts
+            $existingAsAuthor = $this->abstractAuthorModel->where('participant_id', $participant_id)
+                ->where('abstract_id !=', $abstract_id)
+                ->first();
+                
+            if ($existingAsAuthor) {
+                return $this->fail('This participant is already an author for another abstract', 409);
+            }
+        }
+        // If not a participant, no additional checks are needed as they can be associated with multiple abstracts
+
+        try {            $authorData = [
+                'abstract_id' => $abstract_id,
+                'full_name' => $this->request->getPost('full_name'),
+                'institution' => $this->request->getPost('institution'),
+                'email' => $this->request->getPost('email'),
+                'is_participant' => $is_participant,
+                'is_active' => 1,
+                'is_deleted' => 0
+            ];
+            
+            // Add participant_id only if it's provided
+            if (!empty($participant_id)) {
+                $authorData['participant_id'] = $participant_id;
+            }
+
+            // Add new abstract author
+            $this->abstractAuthorModel->insert($authorData);
+            $authorId = $this->abstractAuthorModel->getInsertID();
+
+            // Get the newly created author
+            $newAuthor = $this->abstractAuthorModel->find($authorId);
+
+            return $this->respondCreated([
+                'message' => 'Abstract author created successfully',
+                'author' => $newAuthor
+            ]);
+        } catch (\Exception $e) {
+            return $this->failServerError('Failed to add abstract author: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Create a new abstract and set the creator as primary participant and author
+     * POST /api/abstracts
+     */
+    public function createAbstract()
+    {
+        // Validate request
+        $rules = [
+            'program_id' => 'required|numeric',
+            'title' => 'required|string',
+            'participant_id' => 'required|numeric',
+            'full_name' => 'required|string',
+            'institution' => 'string',
+            'email' => 'required|valid_email',
+            'abstract_content' => 'required|string',
+            'keywords' => 'permit_empty|string'
+        ];
+
+        if (!$this->validate($rules)) {
+            return $this->failValidationErrors($this->validator->getErrors());
+        }
+
+        // Check if program exists
+        $program_id = $this->request->getPost('program_id');
+        $program = $this->programModel->find($program_id);
+
+        if (!$program) {
+            return $this->failNotFound('Program not found');
+        }
+
+        // Check if participant exists
+        $participant_id = $this->request->getPost('participant_id');
+        $participant = $this->participantModel->find($participant_id);
+
+        if (!$participant) {
+            return $this->failNotFound('Participant not found');
+        }
+
+        // Check if participant is already a primary submitter for any abstract
+        $existingAbstract = $this->abstractModel->where('primary_participant_id', $participant_id)->first();
+        
+        if ($existingAbstract) {
+            return $this->fail('This participant is already a primary submitter for another abstract', 409);
+        }
+        
+        // Check if participant is already an author in any abstract
+        $existingAsAuthor = $this->abstractAuthorModel->where('participant_id', $participant_id)->first();
+        
+        if ($existingAsAuthor) {
+            return $this->fail('This participant is already an author for another abstract', 409);
+        }
+
+        try {
+            // Begin transaction
+            $this->abstractModel->db->transBegin();
+            
+            // Create abstract data
+            $abstractData = [
+                'program_id' => $program_id,
+                'primary_participant_id' => $participant_id, // Set participant as primary submitter
+                'status' => 'submitted',
+                'is_active' => 1,
+                'is_deleted' => 0
+            ];
+            
+            // Insert abstract
+            $this->abstractModel->insert($abstractData);
+            $abstract_id = $this->abstractModel->getInsertID();
+            
+            // Create first version of abstract
+            $versionData = [
+                'abstract_id' => $abstract_id,
+                'version_number' => 1,
+                'title' => $this->request->getPost('title'),
+                'content' => $this->request->getPost('abstract_content'),
+                'keywords' => $this->request->getPost('keywords') ?? '',
+                'is_active' => 1,
+                'is_deleted' => 0
+            ];
+            
+            // Insert abstract version
+            $this->abstractVersionModel->insert($versionData);
+            
+            // Add the participant as an author
+            $authorData = [
+                'abstract_id' => $abstract_id,
+                'participant_id' => $participant_id,
+                'full_name' => $this->request->getPost('full_name'),
+                'institution' => $this->request->getPost('institution'),
+                'email' => $this->request->getPost('email'),
+                'is_participant' => 1, // Mark as a participant
+                'is_active' => 1,
+                'is_deleted' => 0
+            ];
+            
+            // Insert author
+            $this->abstractAuthorModel->insert($authorData);
+            
+            // Commit transaction if all operations are successful
+            if ($this->abstractModel->db->transStatus() === false) {
+                $this->abstractModel->db->transRollback();
+                return $this->failServerError('Failed to create abstract');
+            } else {
+                $this->abstractModel->db->transCommit();
+            }
+            
+            // Get the newly created abstract with its details
+            $newAbstract = $this->abstractModel->getAbstractById($abstract_id);
+            
+            return $this->respondCreated([
+                'message' => 'Abstract created successfully',
+                'abstract' => $newAbstract
+            ]);
+        } catch (\Exception $e) {
+            // Rollback transaction if an error occurs
+            $this->abstractModel->db->transRollback();
+            return $this->failServerError('Failed to create abstract: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Update an existing abstract
+     * PUT /api/abstracts/{abstract_id}
+     */
+    public function updateAbstract($abstract_id)
+    {
+        // Check if abstract exists
+        $abstract = $this->abstractModel->find($abstract_id);
+
+        if (!$abstract) {
+            return $this->failNotFound('Abstract not found');
+        }
+
+        // Validate request
+        $rules = [
+            'title' => 'permit_empty|string',
+            'status' => 'permit_empty|string',
+            'program_id' => 'permit_empty|numeric'
+        ];
+
+        if (!$this->validate($rules)) {
+            return $this->failValidationErrors($this->validator->getErrors());
+        }
+
+        try {
+            // Build update data
+            $updateData = [];
+            
+            // Only update fields that were provided
+            if ($this->request->getVar('program_id') !== null) {
+                $program_id = $this->request->getVar('program_id');
+                
+                // Check if program exists
+                $program = $this->programModel->find($program_id);
+                if (!$program) {
+                    return $this->failNotFound('Program not found');
+                }
+                
+                $updateData['program_id'] = $program_id;
+            }
+            
+            if ($this->request->getVar('status') !== null) {
+                $updateData['status'] = $this->request->getVar('status');
+            }
+
+            // Only update if there's data to update
+            if (!empty($updateData)) {
+                // Begin transaction
+                $this->abstractModel->db->transBegin();
+                
+                // Update abstract
+                $this->abstractModel->update($abstract_id, $updateData);
+                
+                // If title is provided, create a new abstract version
+                if ($this->request->getVar('title') !== null) {
+                    // Get the latest version
+                    $latestVersion = $this->abstractVersionModel->where('abstract_id', $abstract_id)
+                        ->orderBy('version_number', 'DESC')
+                        ->first();
+                    
+                    $newVersionNumber = $latestVersion ? $latestVersion->version_number + 1 : 1;
+                    
+                    $versionData = [
+                        'abstract_id' => $abstract_id,
+                        'title' => $this->request->getVar('title'),
+                        'content' => $this->request->getVar('content') ?? $latestVersion->content ?? '',
+                        'keywords' => $this->request->getVar('keywords') ?? $latestVersion->keywords ?? '',
+                        'version_number' => $newVersionNumber,
+                        'is_active' => 1,
+                        'is_deleted' => 0
+                    ];
+                    
+                    $this->abstractVersionModel->insert($versionData);
+                }
+                
+                // Commit transaction if successful
+                if ($this->abstractModel->db->transStatus() === false) {
+                    $this->abstractModel->db->transRollback();
+                    return $this->failServerError('Failed to update abstract');
+                } else {
+                    $this->abstractModel->db->transCommit();
+                }
+            }
+            
+            // Get the updated abstract
+            $updatedAbstract = $this->abstractModel->getAbstractById($abstract_id);
+            
+            return $this->respondUpdated([
+                'message' => 'Abstract updated successfully',
+                'abstract' => $updatedAbstract
+            ]);
+        } catch (\Exception $e) {
+            // Rollback transaction if an error occurs
+            if (isset($this->abstractModel->db) && $this->abstractModel->db->transStatus() !== false) {
+                $this->abstractModel->db->transRollback();
+            }
+            return $this->failServerError('Failed to update abstract: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Delete an abstract (soft delete)
+     * DELETE /api/abstracts/{abstract_id}
+     */
+    public function deleteAbstract($abstract_id)
+    {
+        // Check if abstract exists
+        $abstract = $this->abstractModel->find($abstract_id);
+
+        if (!$abstract) {
+            return $this->failNotFound('Abstract not found');
+        }
+
+        try {
+            // Begin transaction
+            $this->abstractModel->db->transBegin();
+            
+            // Soft delete by setting is_deleted to 1
+            $this->abstractModel->update($abstract_id, ['is_deleted' => 1]);
+            
+            // Also mark all versions as deleted
+            $this->abstractVersionModel->where('abstract_id', $abstract_id)
+                ->set(['is_deleted' => 1])
+                ->update();
+                
+            // Also mark all authors as deleted
+            $this->abstractAuthorModel->where('abstract_id', $abstract_id)
+                ->set(['is_deleted' => 1])
+                ->update();
+            
+            // Commit transaction if successful
+            if ($this->abstractModel->db->transStatus() === false) {
+                $this->abstractModel->db->transRollback();
+                return $this->failServerError('Failed to delete abstract');
+            } else {
+                $this->abstractModel->db->transCommit();
+            }
+            
+            return $this->respondDeleted([
+                'message' => 'Abstract deleted successfully',
+                'id' => $abstract_id
+            ]);
+        } catch (\Exception $e) {
+            // Rollback transaction if an error occurs
+            $this->abstractModel->db->transRollback();
+            return $this->failServerError('Failed to delete abstract: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Update an existing abstract author
+     * PUT /api/abstracts/authors/{author_id}
+     */
+    public function updateAbstractAuthor($author_id)
+    {
+        // Check if author exists
+        $author = $this->abstractAuthorModel->find($author_id);
+
+        if (!$author) {
+            return $this->failNotFound('Abstract author not found');
+        }
+
+        // Get is_participant value
+        $is_participant = $this->request->getVar('is_participant') !== null 
+            ? (int)$this->request->getVar('is_participant') 
+            : $author->is_participant;
+        
+        // Set validation rules based on is_participant value
+        $rules = [
+            'full_name' => 'permit_empty|string',
+            'institution' => 'permit_empty|string',
+            'email' => 'permit_empty|valid_email',
+            'is_participant' => 'permit_empty|in:0,1',
+            'is_active' => 'permit_empty|in:0,1'
+        ];
+        
+        // participant_id can only be updated if is_participant is 1
+        if ($is_participant === 1 && $this->request->getVar('participant_id') !== null) {
+            $rules['participant_id'] = 'numeric';
+        }
+
+        if (!$this->validate($rules)) {
+            return $this->failValidationErrors($this->validator->getErrors());
+        }
+
+        try {
+            // Build update data
+            $updateData = [];
+            
+            // Only update fields that were provided
+            foreach (['full_name', 'institution', 'email', 'is_participant', 'is_active'] as $field) {
+                if ($this->request->getVar($field) !== null) {
+                    $updateData[$field] = $this->request->getVar($field);
+                }
+            }
+            
+            // Process participant_id if provided and is_participant is 1
+            $participant_id = $this->request->getVar('participant_id');
+            if ($is_participant === 1 && $participant_id !== null) {
+                // Check if participant exists
+                $participant = $this->participantModel->find($participant_id);
+                if (!$participant) {
+                    return $this->failNotFound('Participant not found');
+                }
+                
+                // Only if participant_id is changing
+                if ($author->participant_id != $participant_id) {
+                    // Check if participant is already an author for this abstract
+                    $existingAuthor = $this->abstractAuthorModel
+                        ->where('abstract_id', $author->abstract_id)
+                        ->where('participant_id', $participant_id)
+                        ->where('id !=', $author_id)
+                        ->first();
+                        
+                    if ($existingAuthor) {
+                        return $this->failResourceExists('This participant is already an author of this abstract');
+                    }
+                    
+                    // Check if participant is already associated with any abstract as a primary submitter
+                    $existingAbstract = $this->abstractModel->where('primary_participant_id', $participant_id)->first();
+                    
+                    if ($existingAbstract && $existingAbstract->id != $author->abstract_id) {
+                        return $this->fail('This participant is already a primary submitter for another abstract', 409);
+                    }
+                    
+                    // Check if participant is already an author in other abstracts
+                    $existingAsAuthor = $this->abstractAuthorModel
+                        ->where('participant_id', $participant_id)
+                        ->where('abstract_id !=', $author->abstract_id)
+                        ->first();
+                        
+                    if ($existingAsAuthor) {
+                        return $this->fail('This participant is already an author for another abstract', 409);
+                    }
+                    
+                    $updateData['participant_id'] = $participant_id;
+                }
+            } else if ($is_participant === 0 && $this->request->getVar('participant_id') === '') {
+                // If is_participant is 0 and participant_id is explicitly set to empty string, set to null
+                $updateData['participant_id'] = null;
+            }
+            
+            // Only update if there's data to update
+            if (!empty($updateData)) {
+                $this->abstractAuthorModel->update($author_id, $updateData);
+            }
+            
+            // Get the updated author
+            $updatedAuthor = $this->abstractAuthorModel->find($author_id);
+            
+            return $this->respondUpdated([
+                'message' => 'Abstract author updated successfully',
+                'author' => $updatedAuthor
+            ]);
+        } catch (\Exception $e) {
+            return $this->failServerError('Failed to update abstract author: ' . $e->getMessage());
+        }
+    }
+      /**
+     * Delete an abstract author (soft delete)
+     * DELETE /api/abstracts/authors/{author_id}
+     */
+    public function deleteAbstractAuthor($author_id)
+    {
+        // Check if author exists
+        $author = $this->abstractAuthorModel->find($author_id);
+
+        if (!$author) {
+            return $this->failNotFound('Abstract author not found');
+        }
+        
+        // Get the abstract to check primary participant
+        $abstract = $this->abstractModel->find($author->abstract_id);
+        
+        // Don't allow deletion if the author is the primary participant
+        if ($abstract && !empty($author->participant_id) && $author->participant_id == $abstract->primary_participant_id) {
+            return $this->fail('Cannot delete the primary participant author', 409);
+        }
+        
+        // Count remaining authors for this abstract
+        $authorCount = $this->abstractAuthorModel->where('abstract_id', $author->abstract_id)
+            ->where('is_deleted', 0)
+            ->countAllResults();
+            
+        // Don't allow deletion if this is the last author
+        if ($authorCount <= 1) {
+            return $this->fail('Cannot delete the only author of an abstract', 409);
+        }
+
+        try {
+            // Soft delete by setting is_deleted to 1
+            $this->abstractAuthorModel->update($author_id, ['is_deleted' => 1]);
+            
+            return $this->respondDeleted([
+                'message' => 'Abstract author deleted successfully',
+                'id' => $author_id
+            ]);
+        } catch (\Exception $e) {
+            return $this->failServerError('Failed to delete abstract author: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Create a new abstract version
+     * POST /api/abstracts/{abstract_id}/versions
+     */
+    public function createAbstractVersion($abstract_id)
+    {
+        // Check if abstract exists
+        $abstract = $this->abstractModel->find($abstract_id);
+
+        if (!$abstract) {
+            return $this->failNotFound('Abstract not found');
+        }
+
+        // Validate request
+        $rules = [
+            'title' => 'required|string',
+            'content' => 'required|string',
+            'keywords' => 'permit_empty|string'
+        ];
+
+        if (!$this->validate($rules)) {
+            return $this->failValidationErrors($this->validator->getErrors());
+        }
+
+        try {
+            // Get the latest version
+            $latestVersion = $this->abstractVersionModel->where('abstract_id', $abstract_id)
+                ->orderBy('version_number', 'DESC')
+                ->first();
+            
+            $newVersionNumber = $latestVersion ? $latestVersion->version_number + 1 : 1;
+            
+            // Create new version data
+            $versionData = [
+                'abstract_id' => $abstract_id,
+                'title' => $this->request->getPost('title'),
+                'content' => $this->request->getPost('content'),
+                'keywords' => $this->request->getPost('keywords') ?? '',
+                'version_number' => $newVersionNumber,
+                'is_active' => 1,
+                'is_deleted' => 0
+            ];
+            
+            // Insert new version
+            $this->abstractVersionModel->insert($versionData);
+            $versionId = $this->abstractVersionModel->getInsertID();
+            
+            // Get the newly created version
+            $newVersion = $this->abstractVersionModel->getAbstractVersionById($versionId);
+            
+            return $this->respondCreated([
+                'message' => 'Abstract version created successfully',
+                'abstract_version' => $newVersion
+            ]);
+        } catch (\Exception $e) {
+            return $this->failServerError('Failed to create abstract version: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get all abstracts with optional pagination and filtering
+     * GET /api/abstracts
+     */
+    public function getAllAbstracts()
+    {
+        // Get pagination params
+        $page = $this->request->getGet('page') ? (int)$this->request->getGet('page') : 1;
+        $limit = $this->request->getGet('limit') ? (int)$this->request->getGet('limit') : 10;
+        
+        // Get filter params
+        $status = $this->request->getGet('status');
+        $program_id = $this->request->getGet('program_id');
+        
+        // Start building query
+        $builder = $this->abstractModel->builder();
+        $builder->select('*');
+        
+        // Apply filters
+        if ($status) {
+            $builder->where('status', $status);
+        }
+        
+        if ($program_id) {
+            $builder->where('program_id', $program_id);
+        }
+        
+        // By default, only show active and not deleted abstracts
+        $builder->where('is_active', 1);
+        $builder->where('is_deleted', 0);
+        
+        try {
+            // Count total before pagination
+            $total = $builder->countAllResults(false);
+            
+            // Apply pagination
+            $offset = ($page - 1) * $limit;
+            $builder->limit($limit, $offset);
+            
+            // Get results
+            $abstracts = $builder->get()->getResult();
+            
+            return $this->respondSuccess([
+                'abstracts' => $abstracts,
+                'pagination' => [
+                    'page' => $page,
+                    'limit' => $limit,
+                    'total' => $total,
+                    'total_pages' => ceil($total / $limit)
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return $this->failServerError('Failed to retrieve abstracts: ' . $e->getMessage());
+        }
+    }
+}

@@ -1,0 +1,179 @@
+/* Improved DataTable styling for modals */
+.modal .dataTables_wrapper .dataTables_filter {
+    margin-bottom: 15px;
+    text-align: right;
+    float: right;
+    width: 50%;
+    clear: right;
+}
+
+.modal .dataTables_wrapper .dataTables_filter input {
+    margin-left: 8px;
+    padding: 6px 10px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    width: 220px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+}
+
+.modal .dataTables_wrapper .dataTables_filter input:focus {
+    border-color: #556ee6;
+    box-shadow: 0 0 0 0.2rem rgba(85, 110, 230, 0.25);
+    outline: none;
+}
+
+.modal .dataTables_wrapper .dataTables_length {
+    margin-bottom: 15px;
+    float: left;
+    width: 40%;
+    clear: left;
+}
+
+.modal .dataTables_wrapper .dataTables_length select {
+    padding: 6px 10px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    background-color: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+}
+
+.modal .dataTables_wrapper .dataTables_length select:focus {
+    border-color: #556ee6;
+    outline: none;
+}
+
+/* Add more space between buttons and filter */
+.modal .dataTables_wrapper .dt-buttons {
+    margin-bottom: 15px;
+    float: left;
+    width: 100%;
+    text-align: left;
+    clear: both;
+}
+
+/* Improved button styling */
+.modal .dataTables_wrapper .dt-buttons .btn {
+    margin-right: 6px;
+    margin-bottom: 6px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    padding: 5px 10px;
+    transition: all 0.2s ease;
+}
+
+.modal .dataTables_wrapper .dt-buttons .btn:hover {
+    background-color: #e9ecef;
+    border-color: #dee2e6;
+}
+
+/* Ensure pagination is visible and properly styled */
+.modal .dataTables_wrapper .dataTables_paginate {
+    margin-top: 15px;
+    text-align: right;
+    clear: both;
+    padding-top: 10px;
+}
+
+.modal .dataTables_wrapper .dataTables_paginate .paginate_button {
+    padding: 5px 10px;
+    margin: 0 2px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    transition: all 0.2s ease;
+}
+
+.modal .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background: #f8f9fa;
+    border-color: #ced4da;
+    color: #495057 !important;
+}
+
+.modal .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: #556ee6;
+    color: white !important;
+    border-color: #556ee6;
+    font-weight: 500;
+}
+
+.modal .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+    background: #4458ca;
+}
+
+.modal .dataTables_wrapper .dataTables_info {
+    clear: both;
+    padding-top: 15px;
+    color: #6c757d;
+}
+
+/* Improved table styling */
+.modal .dataTables_wrapper .table {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.modal .dataTables_wrapper .table thead th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    padding: 10px 8px;
+    font-weight: 600;
+    color: #495057;
+    position: relative;
+}
+
+.modal .dataTables_wrapper .table tbody td {
+    padding: 8px;
+    vertical-align: middle;
+    border-top: 1px solid #dee2e6;
+}
+
+.modal .dataTables_wrapper .table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.modal .dataTables_wrapper .table-hover tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+}
+
+/* Clear floats for proper layout */
+.modal .dataTables_wrapper::after {
+    content: "";
+    display: block;
+    clear: both;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 767px) {
+    .modal .dataTables_wrapper .dataTables_length,
+    .modal .dataTables_wrapper .dataTables_filter {
+        float: none;
+        width: 100%;
+        text-align: left;
+    }
+    
+    .modal .dataTables_wrapper .dataTables_filter {
+        margin-top: 10px;
+    }
+    
+    .modal .dataTables_wrapper .dataTables_filter input {
+        width: calc(100% - 70px);
+    }
+    
+    .modal .dataTables_wrapper .dataTables_paginate {
+        text-align: center;
+    }
+}
+
+/* Sort icons styling */
+.modal .dataTables_wrapper .dataTable thead .sorting:after,
+.modal .dataTables_wrapper .dataTable thead .sorting_asc:after,
+.modal .dataTables_wrapper .dataTable thead .sorting_desc:after {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+}

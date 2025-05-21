@@ -70,9 +70,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->post('update-status/(:num)', 'Payments::updateStatus/$1');
         $routes->post('export', 'Payments::export');
         $routes->get('make', 'Payments::makePayment');
-    });
-
-    // document routes
+    });    // document routes
     $routes->group('documents', ['filter' => 'program_selection'], function ($routes) {        // Program Documents routes
         $routes->group('program-documents', ['filter' => 'auth'], function ($routes) {
             $routes->get('/', 'ProgramDocuments::index');
@@ -87,6 +85,19 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->get('loa-settings/(:num)', 'ProgramDocuments::loaSettings/$1');
             $routes->post('save-loa-template/(:num)', 'ProgramDocuments::saveLoaTemplate/$1');
             $routes->get('generate-loa/(:num)/(:num)', 'ProgramDocuments::generateLoa/$1/$2');
+        });
+
+        // Abstract Papers routes
+        $routes->group('abstracts-papers', function ($routes) {
+            $routes->get('/', 'AbstractPapers::index');
+            $routes->get('view/(:num)', 'AbstractPapers::view/$1');
+            $routes->get('edit/(:num)', 'AbstractPapers::edit/$1');
+            $routes->post('store', 'AbstractPapers::store');
+            $routes->post('update/(:num)', 'AbstractPapers::update/$1');
+            $routes->get('delete/(:num)', 'AbstractPapers::delete/$1');
+            $routes->get('getAbstractData/(:num)', 'AbstractPapers::getAbstractData/$1');
+            $routes->get('getAbstractsByProgram', 'AbstractPapers::getAbstractsByProgram');
+            $routes->get('getAbstractsByProgram/(:num)', 'AbstractPapers::getAbstractsByProgram/$1');
         });
 
         // certificates

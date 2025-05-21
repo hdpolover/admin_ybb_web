@@ -82,6 +82,9 @@
                                 <a href="<?= base_url("submissions/essays") ?>" class="nav-link <?= url_is('submissions/essays*') ? 'active' : '' ?>"> <i class="ri-draft-line"></i> Essays </a>
                             </li>
                             <li class="nav-item">
+                                <a href="<?= base_url("documents/abstracts-papers") ?>" class="nav-link <?= url_is('documents/abstracts-papers*') ? 'active' : '' ?>"> <i class="ri-file-paper-2-line"></i> Abstracts and Papers </a>
+                            </li>
+                            <li class="nav-item">
                                 <a href="<?= base_url("submissions/agreements") ?>" class="nav-link <?= url_is('submissions/agreements*') ? 'active' : '' ?>"> <i class="ri-file-text-line"></i> Agreement Letters </a>
                             </li>
                         </ul>
@@ -98,6 +101,7 @@
                             <li class="nav-item">
                                 <a href="<?= base_url("documents/program-documents") ?>" class="nav-link <?= url_is('documents/program-documents*') ? 'active' : '' ?>"> <i class="ri-file-paper-2-line"></i> Program Documents </a>
                             </li>
+                           
                             <li class="nav-item">
                                 <a href="<?= base_url("documents/certificates") ?>" class="nav-link <?= url_is('documents/certificates*') ? 'active' : '' ?>"> <i class="ri-award-line"></i> Certificates </a>
                             </li>

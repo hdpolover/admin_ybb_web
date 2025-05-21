@@ -7,12 +7,12 @@
     <link href="<?= base_url('assets/libs/jsvectormap/jsvectormap.min.css') ?>" rel="stylesheet" type="text/css" />
 
     <!-- apexcharts -->
-    <link href="<?= base_url('assets/libs/apexcharts/apexcharts.min.css') ?>" rel="stylesheet" type="text/css" />
-
-    <!-- DataTables -->
+    <link href="<?= base_url('assets/libs/apexcharts/apexcharts.min.css') ?>" rel="stylesheet" type="text/css" /> <!-- DataTables -->
     <link href="<?= base_url('assets/libs/datatables.net-bs4/css/dataTables.bootstrap4.min.css') ?>" rel="stylesheet" type="text/css" />
     <link href="<?= base_url('assets/libs/datatables.net-responsive-bs4/css/responsive.bootstrap4.min.css') ?>" rel="stylesheet" type="text/css" />
     <link href="<?= base_url('assets/libs/datatables.net-buttons-bs4/css/buttons.bootstrap4.min.css') ?>" rel="stylesheet" type="text/css" />
+    <!-- Custom DataTables styling -->
+    <link href="<?= base_url('assets/css/datatables-custom.css') ?>" rel="stylesheet" type="text/css" />
 
     <style>
         .opacity-50 {
@@ -25,21 +25,21 @@
             position: absolute;
             top: 0;
             left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(255, 255, 255, 0.6);
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
             display: flex;
-            align-items: center;
             justify-content: center;
-            z-index: 10;
-            visibility: hidden;
+            align-items: center;
+            z-index: 1000;
             opacity: 0;
+            visibility: hidden;
             transition: all 0.3s ease;
         }
 
         .chart-loading-overlay.active {
-            visibility: visible;
             opacity: 1;
+            visibility: visible;
         }
 
         .chart-container {
@@ -69,6 +69,39 @@
         .modal-body {
             max-height: 70vh;
             overflow-y: auto;
+        }
+
+        /* Improved DataTable styling for modals */
+        .modal .dataTables_wrapper .dataTables_filter {
+            margin-bottom: 15px;
+            text-align: right;
+        }
+
+        .modal .dataTables_wrapper .dataTables_filter input {
+            margin-left: 5px;
+            padding: 5px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            width: 220px;
+        }
+
+        .modal .dataTables_wrapper .dataTables_length {
+            margin-bottom: 15px;
+        }
+
+        .modal .dataTables_wrapper .dataTables_length select {
+            padding: 5px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+        }
+
+        /* Ensure pagination is visible and properly styled */
+        .modal .dataTables_wrapper .dataTables_paginate .paginate_button {
+            padding: 5px 10px;
+            margin: 0 2px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            cursor: pointer;
         }
     </style>
 
@@ -336,10 +369,66 @@
         </div>
         <!-- end main content-->
     </div>
-    <!-- END layout-wrapper --> <?= $this->include('partials/vendor-scripts') ?>
+
+    <!-- END layout-wrapper -->
+    <?= $this->include('partials/vendor-scripts') ?>
 
     <!-- jQuery (ensure it's loaded) -->
     <script src="<?= base_url('assets/libs/jquery/jquery.min.js') ?>"></script>
+    <script>
+        // Ensure jQuery is properly loaded and not in conflict
+        if (typeof jQuery !== 'undefined') {
+            console.log('jQuery version:', jQuery.fn.jquery);
+
+            // Save jQuery reference to ensure no conflicts
+            window.$YBB = jQuery;
+
+            // Check if DataTables is available
+            if (typeof jQuery.fn.DataTable === 'undefined') {
+                console.warn('DataTables not detected! Attempting to fix...');
+
+                // Try to reload DataTables core
+                var dtScript = document.createElement('script');
+                dtScript.src = '<?= base_url('assets/libs/datatables.net/js/jquery.dataTables.min.js') ?>?v=' + new Date().getTime();
+                dtScript.onload = function() {
+                    console.log('DataTables core reloaded successfully');
+
+                    // Reload buttons extension
+                    var btnScript = document.createElement('script');
+                    btnScript.src = '<?= base_url('assets/libs/datatables.net-buttons/js/dataTables.buttons.min.js') ?>?v=' + new Date().getTime();
+                    btnScript.onload = function() {
+                        console.log('DataTables buttons reloaded successfully');
+                        // Reload other extensions
+                        var extensions = ['html5', 'print', 'colVis'];
+                        for (var i = 0; i < extensions.length; i++) {
+                            var extScript = document.createElement('script');
+                            extScript.src = '<?= base_url('assets/libs/datatables.net-buttons/js/buttons.') ?>' + extensions[i] + '.min.js?v=' + new Date().getTime();
+                            document.head.appendChild(extScript);
+                        }
+                    };
+                    document.head.appendChild(btnScript);
+                };
+                document.head.appendChild(dtScript);
+            }
+
+            // Ensure jQuery is globally available
+            window.$ = window.$YBB;
+            window.jQuery = window.$YBB;
+
+            console.log('jQuery configured for YBB dashboard');
+        } else {
+            console.error('jQuery not loaded properly!');
+
+            // Critical failure - try to load jQuery
+            var script = document.createElement('script');
+            script.src = '<?= base_url('assets/libs/jquery/jquery.min.js') ?>?v=' + new Date().getTime();
+            script.onload = function() {
+                console.log('jQuery loaded dynamically');
+                window.location.reload(); // Reload the page to initialize everything properly
+            };
+            document.head.appendChild(script);
+        }
+    </script>
 
     <!-- apexcharts -->
     <script src="<?= base_url('assets/libs/apexcharts/apexcharts.min.js') ?>"></script>
@@ -358,6 +447,155 @@
     <script src="<?= base_url('assets/libs/pdfmake/build/pdfmake.min.js') ?>"></script>
     <script src="<?= base_url('assets/libs/pdfmake/build/vfs_fonts.js') ?>"></script>
 
+    <!-- Verify DataTables loading -->
+    <script>
+        (function() {
+            // Check if all required DataTables libraries are loaded
+            console.group('DataTables Loading Check');
+
+            var requiredLibraries = [{
+                    name: 'jQuery',
+                    check: function() {
+                        return typeof jQuery !== 'undefined';
+                    }
+                },
+                {
+                    name: 'DataTables Core',
+                    check: function() {
+                        return typeof jQuery !== 'undefined' && typeof jQuery.fn.dataTable !== 'undefined';
+                    }
+                },
+                {
+                    name: 'DataTables Buttons',
+                    check: function() {
+                        return typeof jQuery !== 'undefined' && typeof jQuery.fn.dataTable !== 'undefined' && typeof jQuery.fn.dataTable.Buttons !== 'undefined';
+                    }
+                },
+                {
+                    name: 'JSZip',
+                    check: function() {
+                        return typeof JSZip !== 'undefined';
+                    }
+                },
+                {
+                    name: 'pdfmake',
+                    check: function() {
+                        return typeof pdfMake !== 'undefined';
+                    }
+                }
+            ];
+
+            var allLoaded = true;
+            requiredLibraries.forEach(function(lib) {
+                var isLoaded = lib.check();
+                console.log(lib.name + ':', isLoaded ? 'Loaded' : 'NOT LOADED');
+                if (!isLoaded) {
+                    allLoaded = false;
+                }
+            });
+
+            if (!allLoaded) {
+                console.error('Some DataTables dependencies are missing!');
+                // Fix DataTables if jQuery is available but DataTables isn't
+                if (typeof jQuery !== 'undefined' && (typeof jQuery.fn.dataTable === 'undefined' || typeof jQuery.fn.DataTable === 'undefined')) {
+                    console.warn('Attempting to reload DataTables');
+                    var script = document.createElement('script');
+                    script.src = '<?= base_url('assets/libs/datatables.net/js/jquery.dataTables.min.js') ?>?v=' + new Date().getTime();
+                    script.onload = function() {
+                        console.log('DataTables core reloaded');
+                        // Now reload buttons
+                        var buttonsScript = document.createElement('script');
+                        buttonsScript.src = '<?= base_url('assets/libs/datatables.net-buttons/js/dataTables.buttons.min.js') ?>?v=' + new Date().getTime();
+                        document.head.appendChild(buttonsScript);
+                    };
+                    document.head.appendChild(script);
+                }
+            } else {
+                console.log('All DataTables dependencies successfully loaded!');
+            }
+
+            console.groupEnd();
+        })();
+    </script> <!-- Custom CSS for chart loading overlay -->
+    <style>
+        .chart-loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .chart-loading-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Make buttons more visible */
+        .dt-buttons .btn {
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+
+        /* Fix for DataTables header alignment */
+        .dataTables_wrapper .dataTables_info,
+        .dataTables_wrapper .dataTables_paginate {
+            margin-top: 10px;
+        }
+
+        /* Improved DataTable styling for modals */
+        .modal .dataTables_wrapper .dataTables_filter {
+            margin-bottom: 15px;
+            text-align: right;
+        }
+
+        .modal .dataTables_wrapper .dataTables_filter input {
+            margin-left: 5px;
+            padding: 5px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            width: 220px;
+        }
+
+        .modal .dataTables_wrapper .dataTables_length {
+            margin-bottom: 15px;
+        }
+
+        .modal .dataTables_wrapper .dataTables_length select {
+            padding: 5px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+        }
+
+        /* Add more space between buttons and filter */
+        .modal .dataTables_wrapper .dt-buttons {
+            margin-right: 15px;
+        }
+
+        /* Ensure pagination is visible and properly styled */
+        .modal .dataTables_wrapper .dataTables_paginate .paginate_button {
+            padding: 5px 10px;
+            margin: 0 2px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .modal .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+            background: #556ee6;
+            color: white !important;
+            border-color: #556ee6;
+        }
+    </style>
+
     <!-- Dashboard charts js -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -367,6 +605,38 @@
 
             // Testing modal availability
             console.log('jQuery availability:', typeof jQuery !== 'undefined' ? 'Available' : 'Not available');
+
+            // Force check DataTables availability
+            if (typeof jQuery !== 'undefined') {
+                console.log('DataTables Core available:', typeof jQuery.fn.dataTable !== 'undefined' ? 'YES' : 'NO');
+                console.log('DataTables Shorthand available:', typeof jQuery.fn.DataTable !== 'undefined' ? 'YES' : 'NO');
+
+                // Attempt to ensure DataTables is available
+                if (typeof jQuery.fn.dataTable === 'undefined' || typeof jQuery.fn.DataTable === 'undefined') {
+                    console.warn('DataTables not available. Attempting to reload.');
+                    var script = document.createElement('script');
+                    script.src = '<?= base_url('assets/libs/datatables.net/js/jquery.dataTables.min.js') ?>?v=' + new Date().getTime();
+                    document.head.appendChild(script);
+                }
+            }
+
+            // Add event listeners for View All buttons
+            document.querySelectorAll('.view-all-btn').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    var chartType = this.getAttribute('data-chart-type');
+                    console.log('View All clicked for:', chartType);
+
+                    if (chartType === 'nationality') {
+                        // Show the nationality modal
+                        var nationalityModal = new bootstrap.Modal(document.getElementById('nationalityModal'));
+                        nationalityModal.show();
+
+                        // Load or reload nationality data
+                        window.loadNationalityData();
+                    }
+                    // Other chart types can be handled similarly
+                });
+            });
 
             // Registration Chart        
             var registrationOptions = {
@@ -683,125 +953,15 @@
             var defaultButton = document.querySelector('button[data-period="day"]');
             defaultButton.classList.add('active', 'btn-secondary');
             defaultButton.classList.remove('btn-soft-secondary');
-            document.getElementById('registration-title').textContent = defaultButton.getAttribute('data-title');
-
-            // Initialize DataTables objects with enhanced configurations - using window to make them globally accessible
-            window.genderTable = $('#gender-datatable').DataTable({
-                dom: 'Bfrtip',
-                buttons: [{
-                        extend: 'copy',
-                        className: 'btn btn-sm btn-light'
-                    },
-                    {
-                        extend: 'csv',
-                        className: 'btn btn-sm btn-light',
-                        title: 'Gender Distribution - ' + new Date().toLocaleDateString()
-                    },
-                    {
-                        extend: 'excel',
-                        className: 'btn btn-sm btn-light',
-                        title: 'Gender Distribution - ' + new Date().toLocaleDateString()
-                    },
-                    {
-                        extend: 'pdf',
-                        className: 'btn btn-sm btn-light',
-                        title: 'Gender Distribution - ' + new Date().toLocaleDateString()
-                    },
-                    {
-                        extend: 'print',
-                        className: 'btn btn-sm btn-light'
-                    }
-                ],
-                lengthChange: false,
-                pageLength: 10,
-                language: {
-                    paginate: {
-                        previous: "<i class='mdi mdi-chevron-left'>",
-                        next: "<i class='mdi mdi-chevron-right'>"
-                    }
-                },
-                drawCallback: function() {
-                    document.querySelector('.dataTables_paginate > .pagination').classList.add('pagination-rounded');
-                }
-            });
-
-            window.ageTable = $('#age-datatable').DataTable({
-                dom: 'Bfrtip',
-                buttons: [{
-                        extend: 'copy',
-                        className: 'btn btn-sm btn-light'
-                    },
-                    {
-                        extend: 'csv',
-                        className: 'btn btn-sm btn-light',
-                        title: 'Age Distribution - ' + new Date().toLocaleDateString()
-                    },
-                    {
-                        extend: 'excel',
-                        className: 'btn btn-sm btn-light',
-                        title: 'Age Distribution - ' + new Date().toLocaleDateString()
-                    },
-                    {
-                        extend: 'pdf',
-                        className: 'btn btn-sm btn-light',
-                        title: 'Age Distribution - ' + new Date().toLocaleDateString()
-                    },
-                    {
-                        extend: 'print',
-                        className: 'btn btn-sm btn-light'
-                    }
-                ],
-                lengthChange: false,
-                pageLength: 10,
-                language: {
-                    paginate: {
-                        previous: "<i class='mdi mdi-chevron-left'>",
-                        next: "<i class='mdi mdi-chevron-right'>"
-                    }
-                },
-                drawCallback: function() {
-                    document.querySelector('.dataTables_paginate > .pagination').classList.add('pagination-rounded');
-                }
-            });
-
-            window.nationalityTable = $('#nationality-datatable').DataTable({
-                dom: 'Bfrtip',
-                buttons: [{
-                        extend: 'copy',
-                        className: 'btn btn-sm btn-light'
-                    },
-                    {
-                        extend: 'csv',
-                        className: 'btn btn-sm btn-light',
-                        title: 'Nationality Distribution - ' + new Date().toLocaleDateString()
-                    },
-                    {
-                        extend: 'excel',
-                        className: 'btn btn-sm btn-light',
-                        title: 'Nationality Distribution - ' + new Date().toLocaleDateString()
-                    },
-                    {
-                        extend: 'pdf',
-                        className: 'btn btn-sm btn-light',
-                        title: 'Nationality Distribution - ' + new Date().toLocaleDateString()
-                    },
-                    {
-                        extend: 'print',
-                        className: 'btn btn-sm btn-light'
-                    }
-                ],
-                lengthChange: false,
-                pageLength: 10,
-                language: {
-                    paginate: {
-                        previous: "<i class='mdi mdi-chevron-left'>",
-                        next: "<i class='mdi mdi-chevron-right'>"
-                    }
-                },
-                drawCallback: function() {
-                    document.querySelector('.dataTables_paginate > .pagination').classList.add('pagination-rounded');
-                }
-            }); // Gender data loading function
+            document.getElementById('registration-title').textContent = defaultButton.getAttribute('data-title'); // Just initialize the dataTable selectors without actual initialization
+            // Tables will be properly initialized when data is loaded
+            window.genderTable = null;
+            window.ageTable = null;
+            window.nationalityTable = null;
+            // Pre-configure the tables with empty data to ensure they're visible
+            // We'll reinitialize them with real data in the load functions
+            // Make sure the functions are correctly defined in window scope
+            console.log("Initializing data tables and global functions"); // Gender data loading function
             window.loadGenderData = function() {
                 // Show loading indicator
                 document.getElementById('gender-loading').classList.add('active');
@@ -817,25 +977,81 @@
                     })
                     .then(data => {
                         console.log('Gender data received:', data);
-                        if (window.genderTable) {
-                            window.genderTable.clear();
 
-                            var total = data.values.reduce((a, b) => a + b, 0);
-
-                            // Populate the gender table
-                            for (var i = 0; i < data.labels.length; i++) {
-                                var percentage = ((data.values[i] / total) * 100).toFixed(1) + '%';
-                                window.genderTable.row.add([
-                                    data.labels[i],
-                                    data.values[i].toLocaleString(),
-                                    percentage
-                                ]);
-                            }
-                            window.genderTable.draw();
-                            console.log('Gender table updated');
-                        } else {
-                            console.error('Gender table not initialized');
+                        // Verify data structure
+                        if (!data || !data.labels || !data.values) {
+                            console.error('Invalid gender data structure:', data);
+                            showError('Invalid data received from server');
+                            document.getElementById('gender-loading').classList.remove('active');
+                            return;
                         }
+
+                        // Calculate total for percentages
+                        var total = data.values.reduce((a, b) => a + b, 0);
+
+                        // Clear existing table body directly
+                        $('#gender-datatable tbody').empty();
+
+                        // Manually add rows to the table body
+                        var tableBody = '';
+                        for (var i = 0; i < data.labels.length; i++) {
+                            var percentage = ((data.values[i] / total) * 100).toFixed(1) + '%';
+                            tableBody += '<tr>' +
+                                '<td>' + data.labels[i] + '</td>' +
+                                '<td>' + data.values[i].toLocaleString() + '</td>' +
+                                '<td>' + percentage + '</td>' +
+                                '</tr>';
+                        }
+                        $('#gender-datatable tbody').html(tableBody); // Initialize or redraw the table
+                        try {
+                            console.log('Initializing gender DataTable');
+                            // First check if table exists and if DataTables is available
+                            if (!$.fn.dataTable || !$.fn.DataTable) {
+                                throw new Error('DataTables plugin not available');
+                            }
+
+                            // Safe destroy if already initialized
+                            if ($.fn.DataTable.isDataTable('#gender-datatable')) {
+                                console.log('Destroying existing gender DataTable');
+                                $('#gender-datatable').DataTable().destroy();
+                            }
+
+                            console.log('Creating new gender DataTable');
+                            window.genderTable = $('#gender-datatable').DataTable({
+                                dom: 'Bfrtip',
+                                buttons: [{
+                                        extend: 'copy',
+                                        className: 'btn btn-sm btn-light'
+                                    },
+                                    {
+                                        extend: 'csv',
+                                        className: 'btn btn-sm btn-light'
+                                    },
+                                    {
+                                        extend: 'excel',
+                                        className: 'btn btn-sm btn-light'
+                                    },
+                                    {
+                                        extend: 'pdf',
+                                        className: 'btn btn-sm btn-light'
+                                    },
+                                    {
+                                        extend: 'print',
+                                        className: 'btn btn-sm btn-light'
+                                    }
+                                ],
+                                lengthChange: false,
+                                pageLength: 10,
+                                drawCallback: function() {
+                                    $('.dataTables_paginate > .pagination').addClass('pagination-rounded');
+                                }
+                            });
+                            console.log('Gender DataTable successfully initialized');
+                        } catch (err) {
+                            console.error('Failed to initialize gender DataTable:', err);
+                            alert('Error initializing data table: ' + err.message);
+                        }
+                        console.log('Gender table initialized or updated');
 
                         // Remove loading state
                         document.getElementById('gender-loading').classList.remove('active');
@@ -845,7 +1061,7 @@
                         document.getElementById('gender-loading').classList.remove('active');
                         showError('Failed to load gender statistics');
                     });
-            } // Age data loading function
+            }; // Age data loading function
             window.loadAgeData = function() {
                 // Show loading indicator
                 document.getElementById('age-loading').classList.add('active');
@@ -861,25 +1077,81 @@
                     })
                     .then(data => {
                         console.log('Age data received:', data);
-                        if (window.ageTable) {
-                            window.ageTable.clear();
 
-                            var total = data.values.reduce((a, b) => a + b, 0);
-
-                            // Populate the age table
-                            for (var i = 0; i < data.labels.length; i++) {
-                                var percentage = ((data.values[i] / total) * 100).toFixed(1) + '%';
-                                window.ageTable.row.add([
-                                    data.labels[i],
-                                    data.values[i].toLocaleString(),
-                                    percentage
-                                ]);
-                            }
-                            window.ageTable.draw();
-                            console.log('Age table updated');
-                        } else {
-                            console.error('Age table not initialized');
+                        // Verify data structure
+                        if (!data || !data.labels || !data.values) {
+                            console.error('Invalid age data structure:', data);
+                            showError('Invalid data received from server');
+                            document.getElementById('age-loading').classList.remove('active');
+                            return;
                         }
+
+                        // Calculate total for percentages
+                        var total = data.values.reduce((a, b) => a + b, 0);
+
+                        // Clear existing table body directly
+                        $('#age-datatable tbody').empty();
+
+                        // Manually add rows to the table body
+                        var tableBody = '';
+                        for (var i = 0; i < data.labels.length; i++) {
+                            var percentage = ((data.values[i] / total) * 100).toFixed(1) + '%';
+                            tableBody += '<tr>' +
+                                '<td>' + data.labels[i] + '</td>' +
+                                '<td>' + data.values[i].toLocaleString() + '</td>' +
+                                '<td>' + percentage + '</td>' +
+                                '</tr>';
+                        }
+                        $('#age-datatable tbody').html(tableBody); // Initialize or redraw the table
+                        try {
+                            console.log('Initializing age DataTable');
+                            // First check if table exists and if DataTables is available
+                            if (!$.fn.dataTable || !$.fn.DataTable) {
+                                throw new Error('DataTables plugin not available');
+                            }
+
+                            // Safe destroy if already initialized
+                            if ($.fn.DataTable.isDataTable('#age-datatable')) {
+                                console.log('Destroying existing age DataTable');
+                                $('#age-datatable').DataTable().destroy();
+                            }
+
+                            console.log('Creating new age DataTable');
+                            window.ageTable = $('#age-datatable').DataTable({
+                                dom: 'Bfrtip',
+                                buttons: [{
+                                        extend: 'copy',
+                                        className: 'btn btn-sm btn-light'
+                                    },
+                                    {
+                                        extend: 'csv',
+                                        className: 'btn btn-sm btn-light'
+                                    },
+                                    {
+                                        extend: 'excel',
+                                        className: 'btn btn-sm btn-light'
+                                    },
+                                    {
+                                        extend: 'pdf',
+                                        className: 'btn btn-sm btn-light'
+                                    },
+                                    {
+                                        extend: 'print',
+                                        className: 'btn btn-sm btn-light'
+                                    }
+                                ],
+                                lengthChange: false,
+                                pageLength: 10,
+                                drawCallback: function() {
+                                    $('.dataTables_paginate > .pagination').addClass('pagination-rounded');
+                                }
+                            });
+                            console.log('Age DataTable successfully initialized');
+                        } catch (err) {
+                            console.error('Failed to initialize age DataTable:', err);
+                            alert('Error initializing data table: ' + err.message);
+                        }
+                        console.log('Age table initialized or updated');
 
                         // Remove loading state
                         document.getElementById('age-loading').classList.remove('active');
@@ -889,14 +1161,15 @@
                         document.getElementById('age-loading').classList.remove('active');
                         showError('Failed to load age statistics');
                     });
-            } // Nationality data loading function
+            }; // Nationality data loading function            
             window.loadNationalityData = function() {
                 // Show loading indicator
                 document.getElementById('nationality-loading').classList.add('active');
                 console.log('Loading nationality data...');
 
                 // Fetch fresh nationality data from server
-                fetch('<?= site_url('dashboard/ajaxNationalityStats') ?>')
+                // Use fullData=1 to get ALL nationalities, not just the top ones
+                fetch('<?= site_url('dashboard/ajaxNationalityStats') ?>?fullData=1')
                     .then(response => {
                         if (!response.ok) {
                             throw new Error('Network response was not ok');
@@ -905,25 +1178,94 @@
                     })
                     .then(data => {
                         console.log('Nationality data received:', data);
-                        if (window.nationalityTable) {
-                            window.nationalityTable.clear();
 
-                            var total = data.values.reduce((a, b) => a + b, 0);
-
-                            // Populate the nationality table
-                            for (var i = 0; i < data.labels.length; i++) {
-                                var percentage = ((data.values[i] / total) * 100).toFixed(1) + '%';
-                                window.nationalityTable.row.add([
-                                    data.labels[i],
-                                    data.values[i].toLocaleString(),
-                                    percentage
-                                ]);
-                            }
-                            window.nationalityTable.draw();
-                            console.log('Nationality table updated');
-                        } else {
-                            console.error('Nationality table not initialized');
+                        // Verify data structure
+                        if (!data || !data.labels || !data.values) {
+                            console.error('Invalid nationality data structure:', data);
+                            showError('Invalid data received from server');
+                            document.getElementById('nationality-loading').classList.remove('active');
+                            return;
                         }
+
+                        // Calculate total for percentages
+                        var total = data.values.reduce((a, b) => a + b, 0);
+
+                        // Clear existing table body directly
+                        $('#nationality-datatable tbody').empty();
+
+                        // Manually add rows to the table body
+                        var tableBody = '';
+                        for (var i = 0; i < data.labels.length; i++) {
+                            var percentage = ((data.values[i] / total) * 100).toFixed(1) + '%';
+                            tableBody += '<tr>' +
+                                '<td>' + data.labels[i] + '</td>' +
+                                '<td>' + data.values[i].toLocaleString() + '</td>' +
+                                '<td>' + percentage + '</td>' +
+                                '</tr>';
+                        }
+                        $('#nationality-datatable tbody').html(tableBody); // Initialize or redraw the table
+                        try {
+                            console.log('Initializing nationality DataTable');
+                            // First check if table exists and if DataTables is available
+                            if (!$.fn.dataTable || !$.fn.DataTable) {
+                                throw new Error('DataTables plugin not available');
+                            }
+
+                            // Safe destroy if already initialized
+                            if ($.fn.DataTable.isDataTable('#nationality-datatable')) {
+                                console.log('Destroying existing nationality DataTable');
+                                $('#nationality-datatable').DataTable().destroy();
+                            }
+                            console.log('Creating new nationality DataTable');
+                            window.nationalityTable = $('#nationality-datatable').DataTable({
+                                dom: 'Blfrtip', // Added 'l' for length changing input and 'f' for filtering input
+                                buttons: [{
+                                        extend: 'copy',
+                                        className: 'btn btn-sm btn-light'
+                                    },
+                                    {
+                                        extend: 'csv',
+                                        className: 'btn btn-sm btn-light'
+                                    },
+                                    {
+                                        extend: 'excel',
+                                        className: 'btn btn-sm btn-light'
+                                    },
+                                    {
+                                        extend: 'pdf',
+                                        className: 'btn btn-sm btn-light'
+                                    },
+                                    {
+                                        extend: 'print',
+                                        className: 'btn btn-sm btn-light'
+                                    }
+                                ],
+                                lengthChange: true, // Enable length changing
+                                lengthMenu: [
+                                    [10, 25, 50, -1],
+                                    [10, 25, 50, "All"]
+                                ], // Add length options
+                                pageLength: 10,
+                                searching: true, // Enable search
+                                ordering: true, // Enable sorting
+                                language: {
+                                    search: "Search nationalities:",
+                                    lengthMenu: "Show _MENU_ nationalities"
+                                },
+                                lengthChange: true, // Allow changing the number of records shown
+                                pageLength: 10,
+                                searching: true, // Enable search
+                                ordering: true, // Enable column sorting
+                                drawCallback: function() {
+                                    $('.dataTables_paginate > .pagination').addClass('pagination-rounded');
+                                }
+                            });
+                            console.log('Nationality DataTable successfully initialized');
+                        } catch (err) {
+                            console.error('Failed to initialize nationality DataTable:', err);
+                            alert('Error initializing data table: ' + err.message);
+                        }
+                        console.log('Nationality table initialized or updated');
 
                         // Remove loading state
                         document.getElementById('nationality-loading').classList.remove('active');
@@ -933,7 +1275,7 @@
                         document.getElementById('nationality-loading').classList.remove('active');
                         showError('Failed to load nationality statistics');
                     });
-            }
+            };
 
             // Helper function to show errors
             function showError(message) {
@@ -948,14 +1290,350 @@
                     alert(message);
                 }
             }
+
+            // Debug helper function
+            function debugDataTableState(tableId, message) {
+                console.group('DataTable Debug: ' + message);
+                console.log('Table Element Exists:', document.getElementById(tableId) !== null);
+                console.log('Table jQuery Object:', $('#' + tableId).length);
+                console.log('Table HTML:', $('#' + tableId).parent().html());
+                console.log('DataTables Initialized:', $.fn.dataTable.isDataTable('#' + tableId));
+                console.groupEnd();
+            }
+
+            // Check if tables are initialized on page load
+            debugDataTableState('nationality-datatable', 'Initial State');
         });
     </script>
 
     <!-- App js -->
-    <script src="<?= base_url('assets/js/app.js') ?>"></script> <!-- Modal initialization script -->
+    <script src="<?= base_url('assets/js/app.js') ?>"></script> <!-- Modals for chart details -->
+
+    <!-- Modal initialization script -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // No need to re-assign these as they're already defined with window scope above
+            // Define data loading functions early to ensure availability
+            window.loadGenderData = function() {
+                console.log('Loading gender data...');
+                var loadingElement = document.getElementById('gender-loading');
+                if (loadingElement) loadingElement.classList.add('active');
+
+                fetch('<?= site_url('dashboard/ajaxGenderStats') ?>')
+                    .then(function(response) {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok: ' + response.status);
+                        }
+                        return response.json();
+                    })
+                    .then(function(data) {
+                        console.log('Gender data received:', data);
+
+                        if (!data || !data.labels || !data.values) {
+                            throw new Error('Invalid data structure received from server');
+                        }
+
+                        // Calculate total for percentages
+                        var total = data.values.reduce(function(a, b) {
+                            return a + b;
+                        }, 0);
+
+                        // Clear existing table data
+                        var tableBody = document.querySelector('#gender-datatable tbody');
+                        if (!tableBody) {
+                            throw new Error('Table body element not found');
+                        }
+
+                        // Create new table content
+                        var html = '';
+                        for (var i = 0; i < data.labels.length; i++) {
+                            var percentage = total > 0 ? ((data.values[i] / total) * 100).toFixed(1) + '%' : '0%';
+                            html += '<tr>' +
+                                '<td>' + data.labels[i] + '</td>' +
+                                '<td>' + data.values[i].toLocaleString() + '</td>' +
+                                '<td>' + percentage + '</td>' +
+                                '</tr>';
+                        }
+                        tableBody.innerHTML = html;
+
+                        // Initialize DataTable with a safety check
+                        setTimeout(function() {
+                            try {
+                                if (typeof jQuery === 'undefined') {
+                                    throw new Error('jQuery not available');
+                                }
+
+                                if (typeof jQuery.fn.DataTable === 'undefined') {
+                                    throw new Error('DataTables plugin not available');
+                                }
+
+                                // Destroy existing table if already initialized
+                                if (jQuery.fn.DataTable.isDataTable('#gender-datatable')) {
+                                    jQuery('#gender-datatable').DataTable().destroy();
+                                }
+
+                                // Initialize new DataTable
+                                window.genderTable = jQuery('#gender-datatable').DataTable({
+                                    dom: 'Bfrtip',
+                                    buttons: [{
+                                            extend: 'copy',
+                                            className: 'btn btn-sm btn-light'
+                                        },
+                                        {
+                                            extend: 'csv',
+                                            className: 'btn btn-sm btn-light'
+                                        },
+                                        {
+                                            extend: 'excel',
+                                            className: 'btn btn-sm btn-light'
+                                        },
+                                        {
+                                            extend: 'pdf',
+                                            className: 'btn btn-sm btn-light'
+                                        },
+                                        {
+                                            extend: 'print',
+                                            className: 'btn btn-sm btn-light'
+                                        }
+                                    ],
+                                    lengthChange: false,
+                                    pageLength: 10
+                                });
+
+                                console.log('Gender DataTable initialized successfully');
+                            } catch (err) {
+                                console.error('Failed to initialize gender DataTable:', err);
+                                // Fallback to basic table if DataTables fails
+                                console.log('Using fallback table display without DataTables');
+                            } finally {
+                                // Hide loading indicator in all cases
+                                if (loadingElement) loadingElement.classList.remove('active');
+                            }
+                        }, 300); // Short delay to ensure DOM is ready
+                    })
+                    .catch(function(error) {
+                        console.error('Error loading gender data:', error);
+                        alert('Failed to load gender data: ' + error.message);
+                        if (loadingElement) loadingElement.classList.remove('active');
+                    });
+            };
+
+            window.loadAgeData = function() {
+                console.log('Loading age data...');
+                var loadingElement = document.getElementById('age-loading');
+                if (loadingElement) loadingElement.classList.add('active');
+
+                fetch('<?= site_url('dashboard/ajaxAgeStats') ?>')
+                    .then(function(response) {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok: ' + response.status);
+                        }
+                        return response.json();
+                    })
+                    .then(function(data) {
+                        console.log('Age data received:', data);
+
+                        if (!data || !data.labels || !data.values) {
+                            throw new Error('Invalid data structure received from server');
+                        }
+
+                        // Calculate total for percentages
+                        var total = data.values.reduce(function(a, b) {
+                            return a + b;
+                        }, 0);
+
+                        // Clear existing table data
+                        var tableBody = document.querySelector('#age-datatable tbody');
+                        if (!tableBody) {
+                            throw new Error('Table body element not found');
+                        }
+
+                        // Create new table content
+                        var html = '';
+                        for (var i = 0; i < data.labels.length; i++) {
+                            var percentage = total > 0 ? ((data.values[i] / total) * 100).toFixed(1) + '%' : '0%';
+                            html += '<tr>' +
+                                '<td>' + data.labels[i] + '</td>' +
+                                '<td>' + data.values[i].toLocaleString() + '</td>' +
+                                '<td>' + percentage + '</td>' +
+                                '</tr>';
+                        }
+                        tableBody.innerHTML = html;
+
+                        // Initialize DataTable with a safety check
+                        setTimeout(function() {
+                            try {
+                                if (typeof jQuery === 'undefined') {
+                                    throw new Error('jQuery not available');
+                                }
+
+                                if (typeof jQuery.fn.DataTable === 'undefined') {
+                                    throw new Error('DataTables plugin not available');
+                                }
+
+                                // Destroy existing table if already initialized
+                                if (jQuery.fn.DataTable.isDataTable('#age-datatable')) {
+                                    jQuery('#age-datatable').DataTable().destroy();
+                                }
+
+                                // Initialize new DataTable
+                                window.ageTable = jQuery('#age-datatable').DataTable({
+                                    dom: 'Bfrtip',
+                                    buttons: [{
+                                            extend: 'copy',
+                                            className: 'btn btn-sm btn-light'
+                                        },
+                                        {
+                                            extend: 'csv',
+                                            className: 'btn btn-sm btn-light'
+                                        },
+                                        {
+                                            extend: 'excel',
+                                            className: 'btn btn-sm btn-light'
+                                        },
+                                        {
+                                            extend: 'pdf',
+                                            className: 'btn btn-sm btn-light'
+                                        },
+                                        {
+                                            extend: 'print',
+                                            className: 'btn btn-sm btn-light'
+                                        }
+                                    ],
+                                    lengthChange: false,
+                                    pageLength: 10
+                                });
+
+                                console.log('Age DataTable initialized successfully');
+                            } catch (err) {
+                                console.error('Failed to initialize age DataTable:', err);
+                                // Fallback to basic table if DataTables fails
+                                console.log('Using fallback table display without DataTables');
+                            } finally {
+                                // Hide loading indicator in all cases
+                                if (loadingElement) loadingElement.classList.remove('active');
+                            }
+                        }, 300); // Short delay to ensure DOM is ready
+                    })
+                    .catch(function(error) {
+                        console.error('Error loading age data:', error);
+                        alert('Failed to load age data: ' + error.message);
+                        if (loadingElement) loadingElement.classList.remove('active');
+                    });
+            };
+            window.loadNationalityData = function() {
+                console.log('Loading nationality data...');
+                var loadingElement = document.getElementById('nationality-loading');
+                if (loadingElement) loadingElement.classList.add('active');
+
+                fetch('<?= site_url('dashboard/ajaxNationalityStats') ?>?fullData=1')
+                    .then(function(response) {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok: ' + response.status);
+                        }
+                        return response.json();
+                    })
+                    .then(function(data) {
+                        console.log('Nationality data received:', data);
+
+                        if (!data || !data.labels || !data.values) {
+                            throw new Error('Invalid data structure received from server');
+                        }
+
+                        // Calculate total for percentages
+                        var total = data.values.reduce(function(a, b) {
+                            return a + b;
+                        }, 0);
+
+                        // Clear existing table data
+                        var tableBody = document.querySelector('#nationality-datatable tbody');
+                        if (!tableBody) {
+                            throw new Error('Table body element not found');
+                        }
+
+                        // Create new table content
+                        var html = '';
+                        for (var i = 0; i < data.labels.length; i++) {
+                            var percentage = total > 0 ? ((data.values[i] / total) * 100).toFixed(1) + '%' : '0%';
+                            html += '<tr>' +
+                                '<td>' + data.labels[i] + '</td>' +
+                                '<td>' + data.values[i].toLocaleString() + '</td>' +
+                                '<td>' + percentage + '</td>' +
+                                '</tr>';
+                        }
+                        tableBody.innerHTML = html;
+
+                        // Initialize DataTable with a safety check
+                        setTimeout(function() {
+                            try {
+                                if (typeof jQuery === 'undefined') {
+                                    throw new Error('jQuery not available');
+                                }
+
+                                if (typeof jQuery.fn.DataTable === 'undefined') {
+                                    throw new Error('DataTables plugin not available');
+                                }
+
+                                // Destroy existing table if already initialized
+                                if (jQuery.fn.DataTable.isDataTable('#nationality-datatable')) {
+                                    jQuery('#nationality-datatable').DataTable().destroy();
+                                }
+
+                                // Initialize new DataTable                                
+                                window.nationalityTable = jQuery('#nationality-datatable').DataTable({
+                                    dom: 'Blfrtip', // Added length menu and filter input
+                                    buttons: [{
+                                            extend: 'copy',
+                                            className: 'btn btn-sm btn-light'
+                                        },
+                                        {
+                                            extend: 'csv',
+                                            className: 'btn btn-sm btn-light'
+                                        },
+                                        {
+                                            extend: 'excel',
+                                            className: 'btn btn-sm btn-light'
+                                        },
+                                        {
+                                            extend: 'pdf',
+                                            className: 'btn btn-sm btn-light'
+                                        },
+                                        {
+                                            extend: 'print',
+                                            className: 'btn btn-sm btn-light'
+                                        }
+                                    ],
+                                    lengthChange: true, // Enable length changing
+                                    lengthMenu: [
+                                        [10, 25, 50, -1],
+                                        [10, 25, 50, "All"]
+                                    ], // Add length options
+                                    pageLength: 10,
+                                    searching: true, // Enable search box
+                                    ordering: true, // Enable column sorting
+                                    language: {
+                                        search: "Search nationalities:",
+                                        lengthMenu: "Show _MENU_ nationalities"
+                                    }
+                                });
+
+                                console.log('Nationality DataTable initialized successfully');
+                            } catch (err) {
+                                console.error('Failed to initialize nationality DataTable:', err);
+                                // Fallback to basic table if DataTables fails
+                                console.log('Using fallback table display without DataTables');
+                            } finally {
+                                // Hide loading indicator in all cases
+                                if (loadingElement) loadingElement.classList.remove('active');
+                            }
+                        }, 300); // Short delay to ensure DOM is ready
+                    })
+                    .catch(function(error) {
+                        console.error('Error loading nationality data:', error);
+                        alert('Failed to load nationality data: ' + error.message);
+                        if (loadingElement) loadingElement.classList.remove('active');
+                    });
+            };
+
             // Initialize modal triggers using vanilla JS
             document.querySelectorAll('.view-all-btn').forEach(function(button) {
                 button.addEventListener('click', function() {
@@ -967,33 +1645,74 @@
                             console.log('Opening gender modal');
                             var modalElement = document.getElementById('genderModal');
                             console.log('Modal element:', modalElement);
+
+                            if (!modalElement) {
+                                throw new Error('Gender modal element not found');
+                            }
+
+                            // Create a new modal instance to ensure it's fresh
                             var modal = new bootstrap.Modal(modalElement);
                             modal.show();
-                            // Call the loading function in window scope to ensure it's found
-                            setTimeout(function() {
+
+                            // Load data once modal is shown using the event
+                            modalElement.addEventListener('shown.bs.modal', function onceShown() {
+                                console.log('Gender modal shown, loading data');
                                 window.loadGenderData();
-                            }, 500); // Slight delay to let modal open first
+                                // Remove event listener to prevent multiple calls
+                                modalElement.removeEventListener('shown.bs.modal', onceShown);
+                            }, {
+                                once: true
+                            });
+
                         } else if (chartType === 'age') {
                             console.log('Opening age modal');
                             var modalElement = document.getElementById('ageModal');
                             console.log('Modal element:', modalElement);
+
+                            if (!modalElement) {
+                                throw new Error('Age modal element not found');
+                            }
+
+                            // Create a new modal instance to ensure it's fresh
                             var modal = new bootstrap.Modal(modalElement);
                             modal.show();
-                            setTimeout(function() {
+
+                            // Load data once modal is shown using the event
+                            modalElement.addEventListener('shown.bs.modal', function onceShown() {
+                                console.log('Age modal shown, loading data');
                                 window.loadAgeData();
-                            }, 500); // Slight delay to let modal open first
+                                // Remove event listener to prevent multiple calls
+                                modalElement.removeEventListener('shown.bs.modal', onceShown);
+                            }, {
+                                once: true
+                            });
+
                         } else if (chartType === 'nationality') {
                             console.log('Opening nationality modal');
                             var modalElement = document.getElementById('nationalityModal');
                             console.log('Modal element:', modalElement);
+
+                            if (!modalElement) {
+                                throw new Error('Nationality modal element not found');
+                            }
+
+                            // Create a new modal instance to ensure it's fresh
                             var modal = new bootstrap.Modal(modalElement);
                             modal.show();
-                            setTimeout(function() {
+
+                            // Load data once modal is shown using the event
+                            modalElement.addEventListener('shown.bs.modal', function onceShown() {
+                                console.log('Nationality modal shown, loading data');
                                 window.loadNationalityData();
-                            }, 500); // Slight delay to let modal open first
+                                // Remove event listener to prevent multiple calls
+                                modalElement.removeEventListener('shown.bs.modal', onceShown);
+                            }, {
+                                once: true
+                            });
                         }
                     } catch (error) {
                         console.error('Error showing modal:', error);
+                        alert('Error showing data: ' + error.message);
                     }
                 });
             });
@@ -1036,7 +1755,9 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <!-- Will be populated dynamically -->
+                                <tr>
+                                    <td colspan="3" class="text-center">Loading data...</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -1072,7 +1793,9 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <!-- Will be populated dynamically -->
+                                <tr>
+                                    <td colspan="3" class="text-center">Loading data...</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -1087,7 +1810,7 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="nationalityModalLabel">Nationality Distribution Details</h5>
+                    <h5 class="modal-title" id="nationalityModalLabel">All Nationality Distribution</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body position-relative">
@@ -1097,28 +1820,364 @@
                             <span class="visually-hidden">Loading...</span>
                         </div>
                     </div>
-
                     <div class="table-responsive">
-                        <table id="nationality-datatable" class="table table-bordered dt-responsive nowrap w-100">
+                        <table id="nationality-datatable" class="table table-bordered table-striped dt-responsive nowrap w-100">
                             <thead>
                                 <tr>
                                     <th>Nationality</th>
-                                    <th>Number of Participants</th>
+                                    <th>Count</th>
                                     <th>Percentage</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <!-- Will be populated dynamically -->
+                                <!-- Data will be loaded dynamically -->
                             </tbody>
                         </table>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
     </div>
 </body>
 
-</html>
+<!-- Final script fix to ensure window functions are available -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Pre-initialize DataTables to ensure they're set up correctly
+        // This step helps prevent "DataTable is not a function" errors
+        function initializeDatatables() {
+            console.log('Running fallback DataTables initialization');
+
+            try {
+                // Check if DataTables is available
+                if (typeof $ === 'undefined' || typeof $.fn === 'undefined' || typeof $.fn.DataTable === 'undefined') {
+                    console.error('DataTables not available in fallback initialization');
+
+                    // Try to reload the DataTables library
+                    var script = document.createElement('script');
+                    script.src = '<?= base_url('assets/libs/datatables.net/js/jquery.dataTables.min.js') ?>?nocache=' + new Date().getTime();
+                    script.onload = function() {
+                        console.log('DataTables reloaded successfully');
+                        setTimeout(initializeDatatables, 500); // Try again after script loads
+                    };
+                    document.head.appendChild(script);
+                    return;
+                }
+
+                // Initialize gender table
+                if (!$.fn.DataTable.isDataTable('#gender-datatable')) {
+                    console.log('Initializing gender table from fallback');
+                    window.genderTable = $('#gender-datatable').DataTable({
+                        dom: 'Bfrtip',
+                        buttons: [{
+                                extend: 'copy',
+                                className: 'btn btn-sm btn-light'
+                            },
+                            {
+                                extend: 'csv',
+                                className: 'btn btn-sm btn-light'
+                            },
+                            {
+                                extend: 'excel',
+                                className: 'btn btn-sm btn-light'
+                            },
+                            {
+                                extend: 'pdf',
+                                className: 'btn btn-sm btn-light'
+                            },
+                            {
+                                extend: 'print',
+                                className: 'btn btn-sm btn-light'
+                            }
+                        ],
+                        lengthChange: false,
+                        pageLength: 10
+                    });
+                    console.log('Gender DataTable initialized from fallback');
+                }
+
+                // Initialize age table
+                if (!$.fn.DataTable.isDataTable('#age-datatable')) {
+                    console.log('Initializing age table from fallback');
+                    window.ageTable = $('#age-datatable').DataTable({
+                        dom: 'Bfrtip',
+                        buttons: [{
+                                extend: 'copy',
+                                className: 'btn btn-sm btn-light'
+                            },
+                            {
+                                extend: 'csv',
+                                className: 'btn btn-sm btn-light'
+                            },
+                            {
+                                extend: 'excel',
+                                className: 'btn btn-sm btn-light'
+                            },
+                            {
+                                extend: 'pdf',
+                                className: 'btn btn-sm btn-light'
+                            },
+                            {
+                                extend: 'print',
+                                className: 'btn btn-sm btn-light'
+                            }
+                        ],
+                        lengthChange: false,
+                        pageLength: 10
+                    });
+                    console.log('Age DataTable initialized from fallback');
+                }
+
+                // Initialize nationality table
+                if (!$.fn.DataTable.isDataTable('#nationality-datatable')) {
+                    console.log('Initializing nationality table from fallback');
+                    window.nationalityTable = $('#nationality-datatable').DataTable({
+                        dom: 'Blfrtip', // Added length menu and filter input
+                        buttons: [{
+                                extend: 'copy',
+                                className: 'btn btn-sm btn-light'
+                            },
+                            {
+                                extend: 'csv',
+                                className: 'btn btn-sm btn-light'
+                            },
+                            {
+                                extend: 'excel',
+                                className: 'btn btn-sm btn-light'
+                            },
+                            {
+                                extend: 'pdf',
+                                className: 'btn btn-sm btn-light'
+                            },
+                            {
+                                extend: 'print',
+                                className: 'btn btn-sm btn-light'
+                            }
+                        ],
+                        lengthChange: true, // Enable length changing
+                        lengthMenu: [
+                            [10, 25, 50, -1],
+                            [10, 25, 50, "All"]
+                        ], // Add length options
+                        pageLength: 10,
+                        searching: true, // Enable search
+                        ordering: true // Enable sorting
+                    });
+                    console.log('Nationality DataTable initialized from fallback');
+                }
+
+                console.log('DataTables fallback initialization complete');
+            } catch (error) {
+                console.error('Error during DataTables fallback initialization:', error);
+            }
+        }
+
+        // Call the initialization function with a slight delay to ensure all scripts are loaded
+        setTimeout(initializeDatatables, 1000);
+    });
+
+    // Ensure the window functions are properly defined
+    if (typeof window.loadGenderData !== 'function') {
+        console.log('Redefining loadGenderData function');
+        window.loadGenderData = function() {
+            console.log('Gender data loading function called');
+            document.getElementById('gender-loading').classList.add('active');
+
+            fetch('<?= site_url('dashboard/ajaxGenderStats') ?>')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Gender data received from fallback:', data);
+                    var tableBody = '';
+                    var total = data.values.reduce((a, b) => a + b, 0);
+
+                    for (var i = 0; i < data.labels.length; i++) {
+                        var percentage = ((data.values[i] / total) * 100).toFixed(1) + '%';
+                        tableBody += '<tr><td>' + data.labels[i] + '</td><td>' + data.values[i] + '</td><td>' + percentage + '</td></tr>';
+                    }
+
+                    document.querySelector('#gender-datatable tbody').innerHTML = tableBody;
+
+                    // Always destroy and recreate the table to ensure it works
+                    if ($.fn.DataTable.isDataTable('#gender-datatable')) {
+                        $('#gender-datatable').DataTable().destroy();
+                    }
+
+                    window.genderTable = $('#gender-datatable').DataTable({
+                        dom: 'Bfrtip',
+                        buttons: [{
+                                extend: 'copy',
+                                className: 'btn btn-sm btn-light'
+                            },
+                            {
+                                extend: 'csv',
+                                className: 'btn btn-sm btn-light'
+                            },
+                            {
+                                extend: 'excel',
+                                className: 'btn btn-sm btn-light'
+                            },
+                            {
+                                extend: 'pdf',
+                                className: 'btn btn-sm btn-light'
+                            },
+                            {
+                                extend: 'print',
+                                className: 'btn btn-sm btn-light'
+                            }
+                        ],
+                        lengthChange: false,
+                        pageLength: 10
+                    });
+
+                    document.getElementById('gender-loading').classList.remove('active');
+                })
+                .catch(error => {
+                    console.error('Error in fallback gender function:', error);
+                    document.getElementById('gender-loading').classList.remove('active');
+                    alert('Failed to load gender data: ' + error.message);
+                });
+        }
+    }
+
+    if (typeof window.loadAgeData !== 'function') {
+        console.log('Redefining loadAgeData function');
+        window.loadAgeData = function() {
+            console.log('Age data loading function called');
+            document.getElementById('age-loading').classList.add('active');
+
+            fetch('<?= site_url('dashboard/ajaxAgeStats') ?>')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Age data received from fallback:', data);
+                    var tableBody = '';
+                    var total = data.values.reduce((a, b) => a + b, 0);
+
+                    for (var i = 0; i < data.labels.length; i++) {
+                        var percentage = ((data.values[i] / total) * 100).toFixed(1) + '%';
+                        tableBody += '<tr><td>' + data.labels[i] + '</td><td>' + data.values[i] + '</td><td>' + percentage + '</td></tr>';
+                    }
+
+                    document.querySelector('#age-datatable tbody').innerHTML = tableBody;
+
+                    // Always destroy and recreate the table to ensure it works
+                    if ($.fn.DataTable.isDataTable('#age-datatable')) {
+                        $('#age-datatable').DataTable().destroy();
+                    }
+
+                    window.ageTable = $('#age-datatable').DataTable({
+                        dom: 'Bfrtip',
+                        buttons: [{
+                                extend: 'copy',
+                                className: 'btn btn-sm btn-light'
+                            },
+                            {
+                                extend: 'csv',
+                                className: 'btn btn-sm btn-light'
+                            },
+                            {
+                                extend: 'excel',
+                                className: 'btn btn-sm btn-light'
+                            },
+                            {
+                                extend: 'pdf',
+                                className: 'btn btn-sm btn-light'
+                            },
+                            {
+                                extend: 'print',
+                                className: 'btn btn-sm btn-light'
+                            }
+                        ],
+                        lengthChange: false,
+                        pageLength: 10
+                    });
+
+                    document.getElementById('age-loading').classList.remove('active');
+                })
+                .catch(error => {
+                    console.error('Error in fallback age function:', error);
+                    document.getElementById('age-loading').classList.remove('active');
+                    alert('Failed to load age data: ' + error.message);
+                });
+        }
+    }
+    if (typeof window.loadNationalityData !== 'function') {
+        console.log('Redefining loadNationalityData function');
+        window.loadNationalityData = function() {
+            console.log('Nationality data loading function called');
+            document.getElementById('nationality-loading').classList.add('active');
+
+            fetch('<?= site_url('dashboard/ajaxNationalityStats') ?>?fullData=1')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Nationality data received from fallback:', data);
+                    var tableBody = '';
+                    var total = data.values.reduce((a, b) => a + b, 0);
+
+                    for (var i = 0; i < data.labels.length; i++) {
+                        var percentage = ((data.values[i] / total) * 100).toFixed(1) + '%';
+                        tableBody += '<tr><td>' + data.labels[i] + '</td><td>' + data.values[i] + '</td><td>' + percentage + '</td></tr>';
+                    }
+
+                    document.querySelector('#nationality-datatable tbody').innerHTML = tableBody;
+
+                    // Always destroy and recreate the table to ensure it works
+                    if ($.fn.DataTable.isDataTable('#nationality-datatable')) {
+                        $('#nationality-datatable').DataTable().destroy();
+                    }
+
+                    window.nationalityTable = $('#nationality-datatable').DataTable({
+                        dom: 'Blfrtip', // Added 'l' for length menu and 'f' for filter/search
+                        buttons: [{
+                                extend: 'copy',
+                                className: 'btn btn-sm btn-light'
+                            },
+                            {
+                                extend: 'csv',
+                                className: 'btn btn-sm btn-light'
+                            },
+                            {
+                                extend: 'excel',
+                                className: 'btn btn-sm btn-light'
+                            },
+                            {
+                                extend: 'pdf',
+                                className: 'btn btn-sm btn-light'
+                            },
+                            {
+                                extend: 'print',
+                                className: 'btn btn-sm btn-light'
+                            }
+                        ],
+                        lengthChange: true, // Enable length changing
+                        lengthMenu: [
+                            [10, 25, 50, -1],
+                            [10, 25, 50, "All"]
+                        ], // Add length options
+                        pageLength: 10,
+                        searching: true, // Enable search
+                        ordering: true, // Enable sorting
+                        language: {
+                            search: "Search nationalities:"
+                        }
+                    });
+
+                    document.getElementById('nationality-loading').classList.remove('active');
+                })
+                .catch(error => {
+                    console.error('Error in fallback nationality function:', error);
+                    document.getElementById('nationality-loading').classList.remove('active');
+                    alert('Failed to load nationality data: ' + error.message);
+                });
+        }
+
+        // Console log to verify functions are available
+        console.log('Gender function available:', typeof window.loadGenderData === 'function');
+        console.log('Age function available:', typeof window.loadAgeData === 'function');
+        console.log('Nationality function available:', typeof window.loadNationalityData === 'function');
+
+    }
+</script>
+</body>
