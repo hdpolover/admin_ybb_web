@@ -144,7 +144,6 @@ class ProgramModel extends Model
                ->join('program_categories', 'program_categories.id = programs.program_category_id')
                ->where('programs.program_category_id !=', $categoryId)
                ->where('programs.is_deleted', 0)
-               ->where('programs.is_registration_open', 1)
                ;
         
         if ($activeOnly) {

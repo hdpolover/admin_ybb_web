@@ -13,9 +13,7 @@ class AbstractModel extends Model
     protected $useAutoIncrement = true;
     public $timestamps = true;
     protected $createdField = 'created_at';
-    protected $updatedField = 'updated_at';
-
-    protected $fillable = [
+    protected $updatedField = 'updated_at';    protected $fillable = [
         'id',
         'primary_participant_id',
         'program_id',
@@ -52,9 +50,7 @@ class AbstractModel extends Model
         $builder->select('*')
             ->where('program_id', $program_id);
         return $builder->get()->getResult();
-    }
-
-    // get all abstracts by participant id
+    }    // get all abstracts by participant id
     public function getAllAbstractsByParticipantId($participant_id)
     {
         $builder = $this->builder();

@@ -624,15 +624,25 @@
             document.querySelectorAll('.view-all-btn').forEach(function(button) {
                 button.addEventListener('click', function() {
                     var chartType = this.getAttribute('data-chart-type');
-                    console.log('View All clicked for:', chartType);
-
-                    if (chartType === 'nationality') {
-                        // Show the nationality modal
-                        var nationalityModal = new bootstrap.Modal(document.getElementById('nationalityModal'));
+                    console.log('View All clicked for:', chartType);                    if (chartType === 'nationality') {
+                        // Show the nationality modal with proper backdrop options
+                        var modalElement = document.getElementById('nationalityModal');
+                        var nationalityModal = new bootstrap.Modal(modalElement, {
+                            backdrop: true,
+                            keyboard: true,
+                            focus: true
+                        });
                         nationalityModal.show();
 
                         // Load or reload nationality data
                         window.loadNationalityData();
+                        
+                        // Ensure cleanup when modal is hidden
+                        $(modalElement).on('hidden.bs.modal', function () {
+                            $('.modal-backdrop').remove();
+                            $('body').removeClass('modal-open');
+                            $('body').css('padding-right', '');
+                        });
                     }
                     // Other chart types can be handled similarly
                 });
@@ -1349,7 +1359,7 @@
                             var percentage = total > 0 ? ((data.values[i] / total) * 100).toFixed(1) + '%' : '0%';
                             html += '<tr>' +
                                 '<td>' + data.labels[i] + '</td>' +
-                                '<td>' + data.values[i].toLocaleString() + '</td>' +
+                                '<td>' + data.values[i] + '</td>' +
                                 '<td>' + percentage + '</td>' +
                                 '</tr>';
                         }
@@ -1453,7 +1463,7 @@
                             var percentage = total > 0 ? ((data.values[i] / total) * 100).toFixed(1) + '%' : '0%';
                             html += '<tr>' +
                                 '<td>' + data.labels[i] + '</td>' +
-                                '<td>' + data.values[i].toLocaleString() + '</td>' +
+                                '<td>' + data.values[i] + '</td>' +
                                 '<td>' + percentage + '</td>' +
                                 '</tr>';
                         }
@@ -1527,10 +1537,11 @@
 
                 fetch('<?= site_url('dashboard/ajaxNationalityStats') ?>?fullData=1')
                     .then(function(response) {
-                        if (!response.ok) {
+                        if (response.ok) {
+                            return response.json();
+                        } else {
                             throw new Error('Network response was not ok: ' + response.status);
                         }
-                        return response.json();
                     })
                     .then(function(data) {
                         console.log('Nationality data received:', data);
@@ -1556,7 +1567,7 @@
                             var percentage = total > 0 ? ((data.values[i] / total) * 100).toFixed(1) + '%' : '0%';
                             html += '<tr>' +
                                 '<td>' + data.labels[i] + '</td>' +
-                                '<td>' + data.values[i].toLocaleString() + '</td>' +
+                                '<td>' + data.values[i] + '</td>' +
                                 '<td>' + percentage + '</td>' +
                                 '</tr>';
                         }
@@ -1841,6 +1852,25 @@
             </div>
         </div>
     </div>
+
+    <!-- Final script fix for modals -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Global fix for modal backdrop issues
+            $(document).on('hidden.bs.modal', '.modal', function () {
+                console.log('Modal hidden event triggered (global handler)');
+                
+                // Check if any other modals are still open
+                if ($('.modal.show').length === 0) {
+                    // No other modals are open, remove all backdrops and modal classes
+                    $('.modal-backdrop').remove();
+                    $('body').removeClass('modal-open');
+                    $('body').css('padding-right', '');
+                    console.log('Modal backdrops and classes cleaned up (global handler)');
+                }
+            });
+        });
+    </script>
 </body>
 
 <!-- Final script fix to ensure window functions are available -->
@@ -1866,6 +1896,27 @@
                     document.head.appendChild(script);
                     return;
                 }
+
+                // Fix for modal backdrop issue - add event listeners to ensure backdrop is removed on modal close
+                $('#nationalityModal').on('hidden.bs.modal', function () {
+                    console.log('Nationality modal hidden event triggered');
+                    
+                    // Remove any leftover backdrop
+                    $('.modal-backdrop').remove();
+                    
+                    // Ensure body doesn't retain modal classes
+                    $('body').removeClass('modal-open');
+                    $('body').css('padding-right', '');
+                    
+                    console.log('Modal backdrop and classes cleaned up');
+                });
+                
+                // Do the same for other modals to ensure consistency
+                $('#genderModal, #ageModal').on('hidden.bs.modal', function () {
+                    $('.modal-backdrop').remove();
+                    $('body').removeClass('modal-open');
+                    $('body').css('padding-right', '');
+                });
 
                 // Initialize gender table
                 if (!$.fn.DataTable.isDataTable('#gender-datatable')) {
@@ -2110,66 +2161,113 @@
             document.getElementById('nationality-loading').classList.add('active');
 
             fetch('<?= site_url('dashboard/ajaxNationalityStats') ?>?fullData=1')
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Nationality data received from fallback:', data);
-                    var tableBody = '';
-                    var total = data.values.reduce((a, b) => a + b, 0);
-
-                    for (var i = 0; i < data.labels.length; i++) {
-                        var percentage = ((data.values[i] / total) * 100).toFixed(1) + '%';
-                        tableBody += '<tr><td>' + data.labels[i] + '</td><td>' + data.values[i] + '</td><td>' + percentage + '</td></tr>';
+                .then(function(response) {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        throw new Error('Network response was not ok: ' + response.status);
                     }
-
-                    document.querySelector('#nationality-datatable tbody').innerHTML = tableBody;
-
-                    // Always destroy and recreate the table to ensure it works
-                    if ($.fn.DataTable.isDataTable('#nationality-datatable')) {
-                        $('#nationality-datatable').DataTable().destroy();
-                    }
-
-                    window.nationalityTable = $('#nationality-datatable').DataTable({
-                        dom: 'Blfrtip', // Added 'l' for length menu and 'f' for filter/search
-                        buttons: [{
-                                extend: 'copy',
-                                className: 'btn btn-sm btn-light'
-                            },
-                            {
-                                extend: 'csv',
-                                className: 'btn btn-sm btn-light'
-                            },
-                            {
-                                extend: 'excel',
-                                className: 'btn btn-sm btn-light'
-                            },
-                            {
-                                extend: 'pdf',
-                                className: 'btn btn-sm btn-light'
-                            },
-                            {
-                                extend: 'print',
-                                className: 'btn btn-sm btn-light'
-                            }
-                        ],
-                        lengthChange: true, // Enable length changing
-                        lengthMenu: [
-                            [10, 25, 50, -1],
-                            [10, 25, 50, "All"]
-                        ], // Add length options
-                        pageLength: 10,
-                        searching: true, // Enable search
-                        ordering: true, // Enable sorting
-                        language: {
-                            search: "Search nationalities:"
-                        }
-                    });
-
-                    document.getElementById('nationality-loading').classList.remove('active');
                 })
-                .catch(error => {
-                    console.error('Error in fallback nationality function:', error);
-                    document.getElementById('nationality-loading').classList.remove('active');
+                .then(function(data) {
+                    console.log('Nationality data received:', data);
+
+                    if (!data || !data.labels || !data.values) {
+                        throw new Error('Invalid data structure received from server');
+                    }
+
+                    // Calculate total for percentages
+                    var total = data.values.reduce(function(a, b) {
+                        return a + b;
+                    }, 0);
+
+                    // Clear existing table data
+                    var tableBody = document.querySelector('#nationality-datatable tbody');
+                    if (!tableBody) {
+                        throw new Error('Table body element not found');
+                    }
+
+                    // Create new table content
+                    var html = '';
+                    for (var i = 0; i < data.labels.length; i++) {
+                        var percentage = total > 0 ? ((data.values[i] / total) * 100).toFixed(1) + '%' : '0%';
+                        html += '<tr>' +
+                            '<td>' + data.labels[i] + '</td>' +
+                            '<td>' + data.values[i] + '</td>' +
+                            '<td>' + percentage + '</td>' +
+                            '</tr>';
+                    }
+                    tableBody.innerHTML = html;
+
+                    // Initialize DataTable with a safety check
+                    setTimeout(function() {
+                        try {
+                            if (typeof jQuery === 'undefined') {
+                                throw new Error('jQuery not available');
+                            }
+
+                            if (typeof jQuery.fn.DataTable === 'undefined') {
+                                throw new Error('DataTables plugin not available');
+                            }
+
+                            // Destroy existing table if already initialized
+                            if (jQuery.fn.DataTable.isDataTable('#nationality-datatable')) {
+                                jQuery('#nationality-datatable').DataTable().destroy();
+                            }
+
+                            // Initialize new DataTable                                
+                            window.nationalityTable = jQuery('#nationality-datatable').DataTable({
+                                dom: 'Blfrtip', // Added length menu and filter input
+                                buttons: [{
+                                        extend: 'copy',
+                                        className: 'btn btn-sm btn-light'
+                                    },
+                                    {
+                                        extend: 'csv',
+                                        className: 'btn btn-sm btn-light'
+                                    },
+                                    {
+                                        extend: 'excel',
+                                        className: 'btn btn-sm btn-light'
+                                    },
+                                    {
+                                        extend: 'pdf',
+                                        className: 'btn btn-sm btn-light'
+                                    },
+                                    {
+                                        extend: 'print',
+                                        className: 'btn btn-sm btn-light'
+                                    }
+                                ],
+                                lengthChange: true, // Enable length changing
+                                lengthMenu: [
+                                    [10, 25, 50, -1],
+                                    [10, 25, 50, "All"]
+                                ], // Add length options
+                                pageLength: 10,
+                                searching: true, // Enable search box
+                                ordering: true, // Enable column sorting
+                                language: {
+                                    search: "Search nationalities:",
+                                    lengthMenu: "Show _MENU_ nationalities"
+                                }
+                            });
+
+                            document.getElementById('nationality-loading').classList.remove('active');
+                            console.log('Nationality DataTable initialized successfully');
+                        } catch (err) {
+                            console.error('Failed to initialize nationality DataTable:', err);
+                            // Fallback to basic table if DataTables fails
+                            console.log('Using fallback table display without DataTables');
+                        } finally {
+                            // Hide loading indicator in all cases
+                            if (loadingElement) loadingElement.classList.remove('active');
+                        }
+                    }, 300); // Short delay to ensure DOM is ready
+                })
+                .catch(function(error) {
+                    console.error('Error loading nationality data:', error);
                     alert('Failed to load nationality data: ' + error.message);
+                    if (loadingElement) loadingElement.classList.remove('active');
                 });
         }
 

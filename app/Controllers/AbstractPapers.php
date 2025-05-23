@@ -11,55 +11,56 @@ class AbstractPapers extends BaseController
     protected $abstractModel;
     protected $programModel;
     protected $participantModel;
+    protected $abstractVersionModel;
+    protected $abstractAuthorModel;
 
     public function __construct()
     {
         $this->abstractModel = new AbstractModel();
         $this->programModel = new ProgramModel();
         $this->participantModel = new ParticipantModel();
-    }
-
-    public function index()
+        $this->abstractVersionModel = new \App\Models\AbstractVersionModel();
+        $this->abstractAuthorModel = new \App\Models\AbstractAuthorModel();
+    }    public function index()
     {
         // Get current program ID from session
         $programId = session('current_program');
-        
+
+        // Check if program ID exists
+        if (!$programId) {
+            return redirect()->to('/dashboard')->with('error', 'Please select a program first');
+        }
+
         // Get program data
         $program = $this->programModel->find($programId);
-        
-        // Get abstracts for the current program
-        $abstracts = $this->abstractModel->where('program_id', $programId)
-                                         ->where('is_deleted', 0)
-                                         ->findAll();
-        
+
+        if (!$program) {
+            return redirect()->to('/dashboard')->with('error', 'Program not found');
+        }
+
         $data = [
             'title' => 'Abstract Papers',
-            'abstracts' => $abstracts,
             'program' => $program
         ];
-        
-        return view('documents/abstract-paper/index', $data);
-    }
 
-    public function getAbstractsByProgram($programId = null)
+        return view('submissions/abstract-paper/index', $data);
+    }public function getAbstractsByProgram($programId = null)
     {
         if (!$programId) {
             $programId = session('current_program');
         }
-        
+
         $abstracts = $this->abstractModel->where('program_id', $programId)
-                                        ->where('is_deleted', 0)
-                                        ->findAll();
-                                        
-        // Get participant details for each abstract
+            ->where('is_deleted', 0)
+            ->findAll();        // Get participant details for each abstract
         foreach ($abstracts as &$abstract) {
-            $participant = $this->participantModel->find($abstract->participant_id);
+            $participant = $this->participantModel->find($abstract->primary_participant_id);
             $abstract->participant_name = $participant ? $participant->full_name : 'N/A';
             $abstract->institution = $participant ? $participant->institution : 'N/A';
         }
-        
+
         return $this->response->setJSON([
-            'status' => true,
+            'success' => true,
             'data' => $abstracts
         ]);
     }
@@ -67,31 +68,31 @@ class AbstractPapers extends BaseController
     public function view($id = null)
     {
         if (!$id) {
-            return redirect()->to('/documents/abstracts-papers')->with('error', 'Abstract ID is required');
+            return redirect()->to('/submissions/abstracts-papers')->with('error', 'Abstract ID is required');
         }
-        
+
         $abstract = $this->abstractModel->find($id);
-        
+
         if (!$abstract) {
-            return redirect()->to('/documents/abstracts-papers')->with('error', 'Abstract not found');
+            return redirect()->to('/submissions/abstracts-papers')->with('error', 'Abstract not found');
         }
-        
+
         $programId = session('current_program');
-        
+
         if ($abstract->program_id != $programId) {
-            return redirect()->to('/documents/abstracts-papers')->with('error', 'You do not have access to this abstract');
+            return redirect()->to('/submissions/abstracts-papers')->with('error', 'You do not have access to this abstract');
         }
-        
+
         // Get participant details
         $participant = $this->participantModel->find($abstract->participant_id);
-        
+
         $data = [
             'title' => 'View Abstract',
             'abstract' => $abstract,
             'participant' => $participant
         ];
-        
-        return view('documents/abstract-paper/view', $data);
+
+        return view('submissions/abstract-paper/view', $data);
     }
 
     public function create()
@@ -100,135 +101,448 @@ class AbstractPapers extends BaseController
             'title' => 'Create New Abstract',
             'programs' => $this->programModel->findAll()
         ];
-        return view('documents/abstract-paper/create', $data);
-    }
-
-    public function store()
+        return view('submissions/abstract-paper/create', $data);
+    }    public function store()
     {
         // Validate form input
-        $validation = \Config\Services::validation();
-        
-        $rules = [
+        $validation = \Config\Services::validation();        $rules = [
             'participant_id' => 'required',
-            'title' => 'required|min_length[5]',
+            'title' => 'required',
             'content' => 'required'
         ];
-        
+
         if (!$this->validate($rules)) {
-            return redirect()->back()->withInput()->with('errors', $validation->getErrors());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validation->getErrors()
+            ]);
         }
-        
-        $programId = session('current_program');
-        
-        $data = [
+
+        $programId = session('current_program');        $data = [
             'program_id' => $programId,
-            'participant_id' => $this->request->getPost('participant_id'),
-            'title' => $this->request->getPost('title'),
-            'content' => $this->request->getPost('content'),
-            'status' => $this->request->getPost('status') ?? 0,
-            'submitted_at' => date('Y-m-d H:i:s'),
+            'primary_participant_id' => $this->request->getPost('participant_id'),
+            'status' => $this->request->getPost('status') ?? 'draft',
+            'is_active' => 1,
             'is_deleted' => 0
         ];
-        
-        if ($this->abstractModel->insert($data)) {
-            return redirect()->to('/documents/abstracts-papers')->with('success', 'Abstract has been added successfully');
-        } else {
-            return redirect()->back()->withInput()->with('error', 'Failed to add abstract');
+
+        // Start a transaction
+        $this->abstractModel->db->transBegin();
+
+        // Insert the abstract
+        $abstract_id = $this->abstractModel->insert($data);
+
+        if (!$abstract_id) {
+            $this->abstractModel->db->transRollback();
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to add abstract'
+            ]);
         }
+
+        // Add abstract version
+        $versionData = [
+            'abstract_id' => $abstract_id,
+            'title' => $this->request->getPost('title'),
+            'content' => $this->request->getPost('content'),
+            'keywords' => $this->request->getPost('keywords'),
+            'version_number' => 1,
+            'is_active' => 1,
+            'is_deleted' => 0
+        ];
+
+        if (!$this->abstractVersionModel->insert($versionData)) {
+            $this->abstractModel->db->transRollback();
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to add abstract version'
+            ]);
+        }
+
+        // Add abstract authors
+        $authorNames = $this->request->getPost('author_name');
+        $authorInstitutions = $this->request->getPost('author_institution');
+        $authorEmails = $this->request->getPost('author_email');
+        $isParticipantFlags = $this->request->getPost('is_participant') ?? [];
+
+        if (!empty($authorNames)) {
+            foreach ($authorNames as $index => $name) {
+                $authorData = [
+                    'abstract_id' => $abstract_id,
+                    'full_name' => $name,
+                    'institution' => isset($authorInstitutions[$index]) ? $authorInstitutions[$index] : null,
+                    'email' => isset($authorEmails[$index]) ? $authorEmails[$index] : null,
+                    'is_participant' => in_array(($index + 1), $isParticipantFlags) ? 1 : 0,
+                    'participant_id' => in_array(($index + 1), $isParticipantFlags) ? $this->request->getPost('participant_id') : null,
+                    'is_active' => 1,
+                    'is_deleted' => 0
+                ];
+
+                if (!$this->abstractAuthorModel->insert($authorData)) {
+                    $this->abstractModel->db->transRollback();
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Failed to add abstract author'
+                    ]);
+                }
+            }
+        }
+
+        // Commit the transaction
+        $this->abstractModel->db->transCommit();
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Abstract has been added successfully'
+        ]);
     }
-    
+
     public function edit($id = null)
     {
         if (!$id) {
-            return redirect()->to('/documents/abstracts-papers')->with('error', 'Abstract ID is required');
+            return redirect()->to('/submissions/abstracts-papers')->with('error', 'Abstract ID is required');
         }
-        
+
         $abstract = $this->abstractModel->find($id);
-        
+
         if (!$abstract) {
-            return redirect()->to('/documents/abstracts-papers')->with('error', 'Abstract not found');
+            return redirect()->to('/submissions/abstracts-papers')->with('error', 'Abstract not found');
         }
-        
+
         $programId = session('current_program');
-        
+
         if ($abstract->program_id != $programId) {
-            return redirect()->to('/documents/abstracts-papers')->with('error', 'You do not have access to this abstract');
+            return redirect()->to('/submissions/abstracts-papers')->with('error', 'You do not have access to this abstract');
         }
-        
+
         $data = [
             'title' => 'Edit Abstract',
             'abstract' => $abstract,
             'participants' => $this->participantModel->where('program_id', $programId)->findAll()
         ];
-        
-        return view('documents/abstract-paper/edit', $data);
-    }
-    
-    public function update($id = null)
+
+        return view('submissions/abstract-paper/edit', $data);
+    }    public function update($id = null)
     {
         if (!$id) {
-            return redirect()->to('/documents/abstracts-papers')->with('error', 'Abstract ID is required');
+            return $this->response->setJSON([
+                'success' => false, 
+                'message' => 'Abstract ID is required'
+            ]);
         }
-        
+
         // Validate form input
-        $validation = \Config\Services::validation();
-        
-        $rules = [
-            'title' => 'required|min_length[5]',
+        $validation = \Config\Services::validation();        $rules = [
+            'participant_id' => 'permit_empty',
+            'title' => 'required',
             'content' => 'required'
         ];
-        
+
         if (!$this->validate($rules)) {
-            return redirect()->back()->withInput()->with('errors', $validation->getErrors());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validation->getErrors()
+            ]);
         }
-        
+
+        // Start a transaction
+        $this->abstractModel->db->transBegin();
+
         $data = [
-            'title' => $this->request->getPost('title'),
-            'content' => $this->request->getPost('content'),
-            'status' => $this->request->getPost('status') ?? 0,
+            'status' => $this->request->getPost('status') ?? 'draft',
             'updated_at' => date('Y-m-d H:i:s')
         ];
         
-        if ($this->abstractModel->update($id, $data)) {
-            return redirect()->to('/documents/abstracts-papers')->with('success', 'Abstract has been updated successfully');
-        } else {
-            return redirect()->back()->withInput()->with('error', 'Failed to update abstract');
+        // Only update primary_participant_id if it's provided
+        if ($this->request->getPost('participant_id')) {
+            $data['primary_participant_id'] = $this->request->getPost('participant_id');
         }
-    }
-    
-    public function delete($id = null)
+
+        if (!$this->abstractModel->update($id, $data)) {
+            $this->abstractModel->db->transRollback();
+            return $this->response->setJSON([
+                'success' => false, 
+                'message' => 'Failed to update abstract'
+            ]);
+        }
+
+        // Update the abstract version
+        $versionId = $this->request->getPost('version_id');
+        
+        if ($versionId) {
+            $versionData = [
+                'title' => $this->request->getPost('title'),
+                'content' => $this->request->getPost('content'),
+                'keywords' => $this->request->getPost('keywords'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+            
+            if (!$this->abstractVersionModel->update($versionId, $versionData)) {
+                $this->abstractModel->db->transRollback();
+                return $this->response->setJSON([
+                    'success' => false, 
+                    'message' => 'Failed to update abstract version'
+                ]);
+            }
+        }
+
+        // Update authors
+        $authorIds = $this->request->getPost('author_id') ?? [];
+        $authorNames = $this->request->getPost('author_name') ?? [];
+        $authorInstitutions = $this->request->getPost('author_institution') ?? [];
+        $authorEmails = $this->request->getPost('author_email') ?? [];
+        $isParticipantFlags = $this->request->getPost('is_participant') ?? [];
+
+        if (!empty($authorNames)) {
+            foreach ($authorNames as $index => $name) {
+                // Prepare author data
+                $authorData = [
+                    'abstract_id' => $id,
+                    'full_name' => $name,
+                    'institution' => isset($authorInstitutions[$index]) ? $authorInstitutions[$index] : null,
+                    'email' => isset($authorEmails[$index]) ? $authorEmails[$index] : null,
+                    'is_participant' => in_array(($index + 1), $isParticipantFlags) ? 1 : 0,
+                    'participant_id' => in_array(($index + 1), $isParticipantFlags) ? $this->request->getPost('participant_id') : null,
+                    'is_active' => 1,
+                    'is_deleted' => 0
+                ];
+
+                // If author ID exists, update it
+                if (isset($authorIds[$index]) && !empty($authorIds[$index])) {
+                    if (!$this->abstractAuthorModel->update($authorIds[$index], $authorData)) {
+                        $this->abstractModel->db->transRollback();
+                        return $this->response->setJSON([
+                            'success' => false, 
+                            'message' => 'Failed to update abstract author'
+                        ]);
+                    }
+                } else {
+                    // Otherwise, insert a new author
+                    if (!$this->abstractAuthorModel->insert($authorData)) {
+                        $this->abstractModel->db->transRollback();
+                        return $this->response->setJSON([
+                            'success' => false, 
+                            'message' => 'Failed to add new abstract author'
+                        ]);
+                    }
+                }
+            }
+        }
+
+        // Commit the transaction
+        $this->abstractModel->db->transCommit();
+
+        return $this->response->setJSON([
+            'success' => true, 
+            'message' => 'Abstract has been updated successfully'
+        ]);
+    }public function delete($id = null)
     {
         if (!$id) {
-            return redirect()->to('/documents/abstracts-papers')->with('error', 'Abstract ID is required');
+            return $this->response->setJSON([
+                'success' => false, 
+                'message' => 'Abstract ID is required'
+            ]);
         }
-        
+
         $abstract = $this->abstractModel->find($id);
-        
+
         if (!$abstract) {
-            return redirect()->to('/documents/abstracts-papers')->with('error', 'Abstract not found');
+            return $this->response->setJSON([
+                'success' => false, 
+                'message' => 'Abstract not found'
+            ]);
         }
-        
+
         $programId = session('current_program');
-        
+
         if ($abstract->program_id != $programId) {
-            return redirect()->to('/documents/abstracts-papers')->with('error', 'You do not have access to this abstract');
+            return $this->response->setJSON([
+                'success' => false, 
+                'message' => 'You do not have access to this abstract'
+            ]);
         }
-        
+
         // Soft delete
         if ($this->abstractModel->update($id, ['is_deleted' => 1])) {
-            return redirect()->to('/documents/abstracts-papers')->with('success', 'Abstract has been deleted successfully');
+            return $this->response->setJSON([
+                'success' => true, 
+                'message' => 'Abstract has been deleted successfully'
+            ]);
         } else {
-            return redirect()->to('/documents/abstracts-papers')->with('error', 'Failed to delete abstract');
+            return $this->response->setJSON([
+                'success' => false, 
+                'message' => 'Failed to delete abstract'
+            ]);
         }
-    }
-    
-    public function getAbstractData($id = null)
+    }    public function getAbstractData($id = null)
     {
         if (!$id) {
             return $this->response->setJSON(['success' => false, 'message' => 'Abstract ID is required']);
         }
-        
+
         $abstract = $this->abstractModel->find($id);
+
+        if (!$abstract) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Abstract not found']);
+        }
+
+        $programId = session('current_program');
+
+        if ($abstract->program_id != $programId) {
+            return $this->response->setJSON(['success' => false, 'message' => 'You do not have access to this abstract']);
+        }        
+        
+        // Get participant details
+        $participant = $this->participantModel->find($abstract->primary_participant_id);
+        $abstract->participant_name = $participant ? $participant->full_name : 'N/A';
+        $abstract->institution = $participant ? $participant->institution : 'N/A';
+        
+        // Get latest abstract version
+        $versions = $this->abstractVersionModel->getAllAbstractVersionsByAbstractId($id);
+        if (!empty($versions)) {
+            // Sort versions by version number in descending order
+            usort($versions, function($a, $b) {
+                return $b->version_number - $a->version_number;
+            });
+            
+            $abstract->latest_version = $versions[0];
+        }
+        
+        // Get abstract authors
+        $authors = $this->abstractAuthorModel->getAllAbstractAuthorsByAbstractId($id);
+        $abstract->authors = $authors;
+
+        return $this->response->setJSON(['success' => true, 'data' => $abstract]);
+    }
+
+    // Get abstract versions by abstract ID
+    public function getAbstractVersions($abstract_id = null)
+    {
+        if (!$abstract_id) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Abstract ID is required']);
+        }
+
+        $abstract = $this->abstractModel->find($abstract_id);
+
+        if (!$abstract) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Abstract not found']);
+        }
+
+        $programId = session('current_program');
+
+        if ($abstract->program_id != $programId) {
+            return $this->response->setJSON(['success' => false, 'message' => 'You do not have access to this abstract']);
+        }
+
+        $versions = $this->abstractVersionModel->getAllAbstractVersionsByAbstractId($abstract_id);
+        
+        // Sort by version number in descending order
+        usort($versions, function($a, $b) {
+            return $b->version_number - $a->version_number;
+        });
+
+        return $this->response->setJSON(['success' => true, 'data' => $versions]);
+    }
+
+    // Get abstract authors by abstract ID
+    public function getAbstractAuthors($abstract_id = null)
+    {
+        if (!$abstract_id) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Abstract ID is required']);
+        }
+
+        $abstract = $this->abstractModel->find($abstract_id);
+
+        if (!$abstract) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Abstract not found']);
+        }
+
+        $programId = session('current_program');
+
+        if ($abstract->program_id != $programId) {
+            return $this->response->setJSON(['success' => false, 'message' => 'You do not have access to this abstract']);
+        }
+
+        $authors = $this->abstractAuthorModel->getAllAbstractAuthorsByAbstractId($abstract_id);
+
+        return $this->response->setJSON(['success' => true, 'data' => $authors]);
+    }
+
+    // Create a new version of an abstract
+    public function createNewVersion()
+    {
+        $abstract_id = $this->request->getPost('abstract_id');
+        
+        if (!$abstract_id) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Abstract ID is required']);
+        }
+
+        $abstract = $this->abstractModel->find($abstract_id);
+
+        if (!$abstract) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Abstract not found']);
+        }
+
+        $programId = session('current_program');
+
+        if ($abstract->program_id != $programId) {
+            return $this->response->setJSON(['success' => false, 'message' => 'You do not have access to this abstract']);
+        }
+
+        // Get the latest version number
+        $versions = $this->abstractVersionModel->getAllAbstractVersionsByAbstractId($abstract_id);
+        $latestVersionNumber = 0;
+        
+        if (!empty($versions)) {
+            foreach ($versions as $version) {
+                if ($version->version_number > $latestVersionNumber) {
+                    $latestVersionNumber = $version->version_number;
+                }
+            }
+        }
+        
+        $newVersionNumber = $latestVersionNumber + 1;
+        
+        $data = [
+            'abstract_id' => $abstract_id,
+            'title' => $this->request->getPost('title'),
+            'content' => $this->request->getPost('content'),
+            'keywords' => $this->request->getPost('keywords'),
+            'version_number' => $newVersionNumber,
+            'is_active' => 1,
+            'is_deleted' => 0
+        ];
+        
+        if ($this->abstractVersionModel->insert($data)) {
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'New abstract version created successfully'
+            ]);
+        } else {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to create new abstract version'
+            ]);
+        }
+    }
+    
+    // Remove an author from an abstract
+    public function removeAuthor($author_id = null)
+    {
+        if (!$author_id) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Author ID is required']);
+        }
+        
+        $author = $this->abstractAuthorModel->find($author_id);
+        
+        if (!$author) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Author not found']);
+        }
+        
+        $abstract = $this->abstractModel->find($author->abstract_id);
         
         if (!$abstract) {
             return $this->response->setJSON(['success' => false, 'message' => 'Abstract not found']);
@@ -240,11 +554,17 @@ class AbstractPapers extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'You do not have access to this abstract']);
         }
         
-        // Get participant details
-        $participant = $this->participantModel->find($abstract->participant_id);
-        $abstract->participant_name = $participant ? $participant->full_name : 'N/A';
-        $abstract->institution = $participant ? $participant->institution : 'N/A';
-        
-        return $this->response->setJSON(['success' => true, 'data' => $abstract]);
+        // Soft delete
+        if ($this->abstractAuthorModel->update($author_id, ['is_deleted' => 1])) {
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Author removed successfully'
+            ]);
+        } else {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to remove author'
+            ]);
+        }
     }
 }

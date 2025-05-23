@@ -70,7 +70,26 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->post('update-status/(:num)', 'Payments::updateStatus/$1');
         $routes->post('export', 'Payments::export');
         $routes->get('make', 'Payments::makePayment');
-    });    // document routes
+    });    
+
+    // submissions group
+    $routes->group('submissions', ['filter' => 'program_selection'], function ($routes) {
+        
+        // Abstract Papers routes
+        $routes->group('abstracts-papers', function ($routes) {
+            $routes->get('/', 'AbstractPapers::index');
+            $routes->get('view/(:num)', 'AbstractPapers::view/$1');
+            $routes->get('edit/(:num)', 'AbstractPapers::edit/$1');
+            $routes->post('store', 'AbstractPapers::store');
+            $routes->post('update/(:num)', 'AbstractPapers::update/$1');
+            $routes->post('delete/(:num)', 'AbstractPapers::delete/$1');
+            $routes->get('getAbstractsByProgram/(:num)', 'AbstractPapers::getAbstractsByProgram/$1');
+            $routes->get('getAbstractsByProgram', 'AbstractPapers::getAbstractsByProgram');
+            $routes->get('getAbstractData/(:num)', 'AbstractPapers::getAbstractData/$1');
+        });
+    });
+    
+    // document routes
     $routes->group('documents', ['filter' => 'program_selection'], function ($routes) {        // Program Documents routes
         $routes->group('program-documents', ['filter' => 'auth'], function ($routes) {
             $routes->get('/', 'ProgramDocuments::index');
@@ -85,19 +104,6 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->get('loa-settings/(:num)', 'ProgramDocuments::loaSettings/$1');
             $routes->post('save-loa-template/(:num)', 'ProgramDocuments::saveLoaTemplate/$1');
             $routes->get('generate-loa/(:num)/(:num)', 'ProgramDocuments::generateLoa/$1/$2');
-        });
-
-        // Abstract Papers routes
-        $routes->group('abstracts-papers', function ($routes) {
-            $routes->get('/', 'AbstractPapers::index');
-            $routes->get('view/(:num)', 'AbstractPapers::view/$1');
-            $routes->get('edit/(:num)', 'AbstractPapers::edit/$1');
-            $routes->post('store', 'AbstractPapers::store');
-            $routes->post('update/(:num)', 'AbstractPapers::update/$1');
-            $routes->get('delete/(:num)', 'AbstractPapers::delete/$1');
-            $routes->get('getAbstractData/(:num)', 'AbstractPapers::getAbstractData/$1');
-            $routes->get('getAbstractsByProgram', 'AbstractPapers::getAbstractsByProgram');
-            $routes->get('getAbstractsByProgram/(:num)', 'AbstractPapers::getAbstractsByProgram/$1');
         });
 
         // certificates
@@ -215,7 +221,9 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->post('create', 'ProgramTestimonies::create');
             $routes->post('update/(:num)', 'ProgramTestimonies::update/$1');
             $routes->get('delete/(:num)', 'ProgramTestimonies::delete/$1');
-        });        // program rundowns        
+        });        
+        
+        // program rundowns        
         $routes->group('program-rundowns', function ($routes) {
             $routes->get('/', 'ProgramRundowns::index');
             $routes->get('view/(:num)', 'ProgramRundowns::view/$1');
@@ -224,7 +232,9 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->post('update/(:num)', 'ProgramRundowns::update/$1');
             $routes->get('delete/(:num)', 'ProgramRundowns::delete/$1');
             $routes->get('getRundown/(:num)', 'ProgramRundowns::getRundown/$1');
-        });        // abstract topics
+        });        
+        
+        // abstract topics
         $routes->group('abstract-topics', function ($routes) {
             $routes->get('/', 'AbstractTopics::index');
             $routes->get('view/(:num)', 'AbstractTopics::view/$1');

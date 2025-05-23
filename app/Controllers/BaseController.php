@@ -73,16 +73,15 @@ abstract class BaseController extends Controller
         // Sort categoryWithPrograms by category name
         usort($categoryWithPrograms, function ($a, $b) {
             return strcmp($a->name, $b->name);
-        });        // Group by active and inactive
+        });       
+        
+        // Group by active and inactive
         $activePrograms = [];
-        $inactivePrograms = [];
-
-        foreach ($categoryWithPrograms as $category) {
+        $inactivePrograms = [];        foreach ($categoryWithPrograms as $category) {
             $logoUrl = $category->logo_url ?? null;
 
             // Get categoryWithPrograms from category
-            $currentCategoryPrograms = $category->programs ?? [];
-
+            $currentCategoryPrograms = $category->programs ?? [];            
             // Filter active and inactive programs and add them to the respective arrays
             foreach ($currentCategoryPrograms as $program) {
                 if ($program->is_active == 1) {
@@ -116,6 +115,18 @@ abstract class BaseController extends Controller
             if (!$selectedProgram) {
                 session()->remove('current_program');
             }
+        }        
+          // Check if selected program is of type journal (id: 3)
+        $isJournalType = false;
+        if ($selectedProgram) {
+            // Get directly from database to ensure fresh data
+            $category = $this->programCategoryModel->find($selectedProgram->program_category_id);
+            if ($category) {
+                $isJournalType = ((int)$category->program_type_id === 3);
+                log_message('debug', 'BaseController - Category ID: ' . $category->id);
+                log_message('debug', 'BaseController - Program Type ID: ' . $category->program_type_id);
+                log_message('debug', 'BaseController - Is Journal Type: ' . ($isJournalType ? 'true' : 'false'));
+            }
         }
 
         // Share this data with all views
@@ -124,6 +135,7 @@ abstract class BaseController extends Controller
             'activePrograms' => $activePrograms,
             'inactivePrograms' => $inactivePrograms,
             'categoryWithPrograms' => $categoryWithPrograms,
+            'isJournalType' => $isJournalType,
         ]);
     }
 }

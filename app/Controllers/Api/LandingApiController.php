@@ -75,17 +75,36 @@ class LandingApiController extends ApiBaseController
             // Get active photos for this category
             $photos = $this->photoModel->getActivePhotos($category->id);
 
+            $hasPhotos = !empty($photos);
+
             // If photos are empty, get photos from other programs
             if (empty($photos)) {
                 $photos = $this->photoModel->getAllPhotos();
             }
+
+            // Group photos by year from year field
+            $groupedPhotos = [];
+
+            foreach ($photos as $photo) {
+                $year = $photo->year ?? 'Unknown';
+
+                if (!isset($groupedPhotos[$year])) {
+                    $groupedPhotos[$year] = [];
+                }
+
+                $groupedPhotos[$year][] = $photo;
+            }
+
+            // Sort the years in descending order (newest first)
+            krsort($groupedPhotos);
 
             // Compile home data
             $data = [
                 'category' => $category,
                 'programs' => $allPrograms,
                 'testimonies' => $testimonies,
-                'photos' => $photos,
+                'hasPhotos' => $hasPhotos,
+                'photos' => $groupedPhotos,
             ];
 
             return $this->respondSuccess($data);
@@ -127,6 +146,88 @@ class LandingApiController extends ApiBaseController
                 'category' => $category,
                 'programs' => $programs,
                 'otherPrograms' => $otherPrograms
+            ]);
+        } catch (\Exception $e) {
+            return $this->respondError($e->getMessage());
+        }
+    }
+
+    /**
+     * Get gallery data
+     * 
+     * @return \CodeIgniter\HTTP\ResponseInterface
+     */
+    public function gallery()
+    {
+        try {
+            $webUrl = $this->request->getGet('web_url');
+
+            if (empty($webUrl)) {
+                return $this->respondValidationErrors('web_url parameter is required');
+            }
+
+            $normalizedWebUrl = normalize_web_url($webUrl);
+
+            // Get program category by web_url
+            $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $normalizedWebUrl]);
+
+            if (!$category) {
+                return $this->respondNotFound('Program category not found');
+            }
+
+            // Get active photos for this category
+            $photos = $this->photoModel->getActivePhotos($category->id);
+
+            $hasPhotos = !empty($photos);
+
+            // If photos are empty, get photos from other programs
+            if (empty($photos)) {
+                $photos = $this->photoModel->getAllPhotos();
+            }
+
+            // Group photos by year from year field
+            $groupedPhotos = [];
+
+            foreach ($photos as $photo) {
+                $year = $photo->year ?? 'Unknown';
+
+                if (!isset($groupedPhotos[$year])) {
+                    $groupedPhotos[$year] = [];
+                }
+
+                $groupedPhotos[$year][] = $photo;
+            }
+
+            // Sort the years in descending order (newest first)
+            krsort($groupedPhotos);
+
+            // Get other programs for this category
+            $otherPrograms = $this->programModel->getOtherPrograms($category->id);
+
+            // Structure other program photos
+            $otherProgramPhotos = [];
+
+            foreach ($otherPrograms as $program) {
+                $programCategoryId = $program->program_category_id;
+                $programPhotos = $this->photoModel->getActivePhotos($programCategoryId);
+
+                // just get 4 photos
+                $programPhotos = array_slice($programPhotos, 0, 4);
+
+                if (!empty($programPhotos)) {
+                    $otherProgramPhotos[] = [
+                        'name' => $program->name,
+                        'web_url' => $program->web_url,
+                        'photos' => $programPhotos
+                    ];
+                }
+            }
+
+            return $this->respondSuccess([
+                'category' => $category,
+                'hasPhotos' => $hasPhotos,
+                'photos' => $groupedPhotos,
+                'otherProgramPhotos' => $otherProgramPhotos
             ]);
         } catch (\Exception $e) {
             return $this->respondError($e->getMessage());
@@ -201,11 +302,11 @@ class LandingApiController extends ApiBaseController
 
             $activeProgramInsights = [
                 'program' => $activeProgram,
-                'total_registered_participants' =>$totalParticipants,
+                'total_registered_participants' => $totalParticipants,
                 'total_countries' => $totalCountries,
                 'countries_data' => $countriesData,
             ];
-            
+
             // Get insights for this category
             // Note: You may need to create an InsightsModel to implement this functionality
             $insightsData = [
@@ -279,7 +380,7 @@ class LandingApiController extends ApiBaseController
             $news = array_filter($news, function ($announcement) {
                 return $announcement->visible_to == 1;
             });
-            
+
             $visibleAnnouncementsCount = count($news);
 
             $data = [
@@ -291,7 +392,7 @@ class LandingApiController extends ApiBaseController
             ];
 
             // var_dump($data); // Debugging line to check the data structure
-             return $this->respondSuccess($data, self::HTTP_OK, 'Announcements data retrieved successfully');
+            return $this->respondSuccess($data, self::HTTP_OK, 'Announcements data retrieved successfully');
         } catch (\Exception $e) {
             return $this->respondError($e->getMessage());
         }
@@ -363,7 +464,7 @@ class LandingApiController extends ApiBaseController
                 return $this->respondValidationErrors('web_url parameter is required');
             }
 
-        
+
             $normalizedWebUrl = normalize_web_url($webUrl);
 
             // Get program category by web_url

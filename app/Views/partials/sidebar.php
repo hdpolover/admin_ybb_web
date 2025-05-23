@@ -80,10 +80,29 @@
                         <ul class="nav nav-sm flex-column">
                             <li class="nav-item">
                                 <a href="<?= base_url("submissions/essays") ?>" class="nav-link <?= url_is('submissions/essays*') ? 'active' : '' ?>"> <i class="ri-draft-line"></i> Essays </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="<?= base_url("documents/abstracts-papers") ?>" class="nav-link <?= url_is('documents/abstracts-papers*') ? 'active' : '' ?>"> <i class="ri-file-paper-2-line"></i> Abstracts and Papers </a>
-                            </li>
+                            </li> <!-- JOURNAL TYPE CHECK BEGIN -->
+                            <?php
+                            // Force clear and rebuild the sidebar cache
+                            $selectedProg = session('topbar_data')['selectedProgram'] ?? null;
+                            $isJournal = session('topbar_data')['isJournalType'] ?? false;
+                            $categoryId = $selectedProg ? $selectedProg->program_category_id : 'none';
+
+                            log_message('debug', 'Category ID: ' . $categoryId);
+                            log_message('debug', 'Is Journal: ' . ($isJournal ? 'true' : 'false'));
+
+                            // The strict comparison ensures it's exactly true, not just truthy
+                            if ($isJournal === true):
+                            ?>
+                                <li class="nav-item">
+                                    <a href="<?= base_url("submissions/abstracts-papers") ?>" class="nav-link <?= url_is('submissions/abstracts-papers*') ? 'active' : '' ?>">
+                                        <i class="ri-file-paper-2-line"></i> Abstracts and Papers <span class="text-success">(YAF Only)</span>
+                                    </a>
+                                </li>
+                            <?php else: ?>
+                                <!-- This is an empty placeholder where the Abstracts menu would be -->
+                                <!-- DO NOT add any visible content here -->
+                            <?php endif; ?>
+                            <!-- JOURNAL TYPE CHECK END -->
                             <li class="nav-item">
                                 <a href="<?= base_url("submissions/agreements") ?>" class="nav-link <?= url_is('submissions/agreements*') ? 'active' : '' ?>"> <i class="ri-file-text-line"></i> Agreement Letters </a>
                             </li>
@@ -101,13 +120,14 @@
                             <li class="nav-item">
                                 <a href="<?= base_url("documents/program-documents") ?>" class="nav-link <?= url_is('documents/program-documents*') ? 'active' : '' ?>"> <i class="ri-file-paper-2-line"></i> Program Documents </a>
                             </li>
-                           
+
                             <li class="nav-item">
                                 <a href="<?= base_url("documents/certificates") ?>" class="nav-link <?= url_is('documents/certificates*') ? 'active' : '' ?>"> <i class="ri-award-line"></i> Certificates </a>
                             </li>
                         </ul>
                     </div>
-                </li>                <li class="nav-item">
+                </li>
+                <li class="nav-item">
                     <a class="nav-link menu-link <?= url_is('announcements*') ? 'active' : '' ?>" href="<?= base_url("announcements") ?>">
                         <i class="ri-megaphone-line"></i> <span>Announcements</span>
                     </a>
@@ -143,12 +163,15 @@
                             </li>
                             <li class="nav-item">
                                 <a href="<?= base_url("master-data/program-photos") ?>" class="nav-link <?= url_is('master-data/program-photos*') ? 'active' : '' ?>"> <i class="ri-image-line"></i> Program Photos </a>
-                            </li>                            <li class="nav-item">
-                                <a href="<?= base_url("master-data/program-rundowns") ?>" class="nav-link <?= url_is('master-data/program-rundowns*') ? 'active' : '' ?>"> <i class="ri-calendar-event-line"></i> Program Rundowns </a>
                             </li>
                             <li class="nav-item">
-                                <a href="<?= base_url("master-data/abstract-topics") ?>" class="nav-link <?= url_is('master-data/abstract-topics*') ? 'active' : '' ?>"> <i class="ri-list-check"></i> Abstract Topics </a>
+                                <a href="<?= base_url("master-data/program-rundowns") ?>" class="nav-link <?= url_is('master-data/program-rundowns*') ? 'active' : '' ?>"> <i class="ri-calendar-event-line"></i> Program Rundowns </a>
                             </li>
+                            <?php if (session('topbar_data')['isJournalType'] ?? false): ?>
+                                <li class="nav-item">
+                                    <a href="<?= base_url("master-data/abstract-topics") ?>" class="nav-link <?= url_is('master-data/abstract-topics*') ? 'active' : '' ?>"> <i class="ri-list-check"></i> Abstract Topics <span class="text-success">(YAF Only)</span></a>
+                                </li>
+                            <?php endif; ?>
                             <li class="nav-item">
                                 <a href="<?= base_url("master-data/faqs") ?>" class="nav-link <?= url_is('master-data/faqs*') ? 'active' : '' ?>"> <i class="ri-question-answer-line"></i> FAQs </a>
                             </li>

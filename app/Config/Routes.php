@@ -284,6 +284,9 @@ $routes->group('api/landing', ['namespace' => 'App\Controllers\Api'], function (
     $routes->get('home', 'LandingApiController::home');
     $routes->get('programs', 'LandingApiController::programs');
     $routes->get('programs/(:num)', 'LandingApiController::programDetail/$1');
+
+    // galllery
+    $routes->get('gallery', 'LandingApiController::gallery');
     // insights
     $routes->get('insights', 'LandingApiController::insights');
     $routes->get('insights/(:num)', 'LandingApiController::insightDetail/$1');
