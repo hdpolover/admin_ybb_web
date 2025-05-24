@@ -14,9 +14,10 @@ if (!function_exists('url_encrypt')) {
      * @param string|array $data Query string or associative array to encrypt
      * @param string $secret_key Secret key for encryption (optional)
      * @param string $secret_iv Initialization vector for encryption (optional)
-     * @return string Encrypted string safe for URL
+     * @param int $max_length Maximum allowed length for input data (default 4096)
+     * @return string|bool Encrypted string safe for URL or false on failure
      */
-    function url_encrypt($data, $secret_key = 'ybb_program', $secret_iv = 'ybb_iv')
+    function url_encrypt($data, $secret_key = 'ybb_program', $secret_iv = 'ybb_iv', $max_length = 4096)
     {
         try {
             // Log incoming data type
@@ -44,6 +45,12 @@ if (!function_exists('url_encrypt')) {
                 log_message('error', 'URL Encrypt - Empty input data');
                 return false;
             }
+            
+            // Check if data is too long
+            if (strlen($data) > $max_length) {
+                log_message('error', 'URL Encrypt - Input data exceeds maximum allowed length');
+                return false;
+            }
 
             $encrypt_method = "AES-256-CBC";
             $key = hash('sha256', $secret_key);
@@ -59,8 +66,8 @@ if (!function_exists('url_encrypt')) {
 
             $output = base64_encode($encrypted);
 
-            // Make URL safe by replacing + and / with - and _
-            $output = strtr($output, '+/', '-_');
+            // Make URL safe by replacing problematic characters
+            $output = strtr($output, ['+' => '-', '/' => '_', '=' => '']);
 
             log_message('debug', 'URL Encrypt - Successfully encrypted data to: ' . substr($output, 0, 30) . '...');
 
@@ -80,9 +87,10 @@ if (!function_exists('url_decrypt')) {
      * @param bool $as_array Return as array (true) or query string (false)
      * @param string $secret_key Secret key for decryption (optional)
      * @param string $secret_iv Initialization vector for decryption (optional)
+     * @param int $max_output_length Maximum allowed length for decrypted data (default 8192)
      * @return array|string|bool Decrypted data or false if decryption fails
      */
-    function url_decrypt($encrypted_data, $as_array = true, $secret_key = 'ybb_program', $secret_iv = 'ybb_iv')
+    function url_decrypt($encrypted_data, $as_array = true, $secret_key = 'ybb_program', $secret_iv = 'ybb_iv', $max_output_length = 8192)
     {
         try {
             // Log incoming data
@@ -93,14 +101,23 @@ if (!function_exists('url_decrypt')) {
                 log_message('error', 'URL Decrypt - Empty input data');
                 return false;
             }
+            
+            // Sanitize the input - remove any whitespace or non-standard characters
+            $encrypted_data = trim($encrypted_data);
+            
+            // Check if data looks like base64 encoded data (approximately)
+            if (!preg_match('/^[a-zA-Z0-9\-_]+$/', $encrypted_data)) {
+                log_message('error', 'URL Decrypt - Input does not appear to be valid base64url encoded data');
+                return false;
+            }
 
             // URL-safe base64 decode (convert - and _ back to + and /)
             $encrypted_data = strtr($encrypted_data, '-_', '+/');
 
-            // Check for base64 padding - add if needed
-            $mod4 = strlen($encrypted_data) % 4;
-            if ($mod4) {
-                $encrypted_data .= substr('====', $mod4);
+            // Add padding if needed
+            $pad = strlen($encrypted_data) % 4;
+            if ($pad) {
+                $encrypted_data .= str_repeat('=', 4 - $pad);
             }
 
             $encrypt_method = "AES-256-CBC";
@@ -120,6 +137,12 @@ if (!function_exists('url_decrypt')) {
             if ($decrypted === false) {
                 $error = openssl_error_string();
                 log_message('error', 'URL Decrypt - OpenSSL error: ' . ($error ?: 'Unknown error'));
+                return false;
+            }
+            
+            // Check if decrypted data is too long (security measure)
+            if (strlen($decrypted) > $max_output_length) {
+                log_message('error', 'URL Decrypt - Decrypted data exceeds maximum allowed length');
                 return false;
             }
 

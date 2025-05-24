@@ -149,7 +149,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->get('ambassadors/(:any)/referrals', 'AmbassadorsApiController::getAmbassadorReferrals/$1');
     $routes->get('ambassadors/(:num)/generate-link', 'AmbassadorsApiController::generateLink/$1');
     // check query
-    $routes->post('ambassadors/check-query', 'AmbassadorsApiController::checkEncryptedQuery');
+    $routes->get('ambassadors/check-query', 'AmbassadorsApiController::checkEncryptedQuery');
     // get ambassador by ref code and program id
     $routes->get('ambassadors/programs/(:num)/ref-code/(:any)', 'AmbassadorsApiController::getAmbassadorByRefAndProgram/$1/$2');
 
