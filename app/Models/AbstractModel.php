@@ -34,6 +34,15 @@ class AbstractModel extends Model
         'updated_at'
     ];
 
+    // get by primary participant id
+    public function getByPrimaryParticipantId($primary_participant_id)
+    {
+        $builder = $this->builder();
+        $builder->select('*')
+            ->where('primary_participant_id', $primary_participant_id);
+        return $builder->get()->getRow();
+    }
+
     // get abstract by id
     public function getAbstractById($id)
     {

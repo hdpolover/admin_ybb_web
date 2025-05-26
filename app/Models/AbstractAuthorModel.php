@@ -78,4 +78,14 @@ class AbstractAuthorModel extends Model
             ->where('participant_id', $participant_id);
         return $builder->get()->getResult();
     }
+
+    // getAbstractByAuthorParticipantId
+    public function getAbstractByAuthorParticipantId($participant_id)
+    {
+        $builder = $this->builder();
+        $builder->select('abstract_authors.*, abstracts.*')
+            ->join('abstracts', 'abstract_authors.abstract_id = abstracts.id')
+            ->where('abstract_authors.participant_id', $participant_id);
+        return $builder->get()->getResult();
+    }
 }

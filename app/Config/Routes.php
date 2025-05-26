@@ -276,6 +276,11 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
         // Author operations
         $routes->put('authors/(:num)', 'AbstractsApiController::updateAbstractAuthor/$1');
         $routes->delete('authors/(:num)', 'AbstractsApiController::deleteAbstractAuthor/$1');
+    });    
+    
+    // Abstract topics group
+    $routes->group('abstract-topics', function ($routes) {
+        $routes->get('program/(:num)', 'AbstractTopicsApiController::getAbstractTopicsByProgramId/$1');
     });
 });
 

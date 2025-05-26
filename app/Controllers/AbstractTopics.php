@@ -335,6 +335,7 @@ class AbstractTopics extends BaseController
         try {
             $this->abstractTopicModel->update($id, [
                 'is_deleted' => 1,
+                'is_active' => 0,
                 'updated_at' => date('Y-m-d H:i:s')
             ]);
 

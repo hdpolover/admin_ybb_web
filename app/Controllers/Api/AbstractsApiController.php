@@ -7,7 +7,8 @@ use App\Models\AbstractVersionModel;
 use App\Models\AbstractAuthorModel;
 use App\Models\ProgramModel;
 use App\Models\ParticipantModel;
-
+use App\Models\ParticipantStatusModel;
+use App\Models\AbstractTopicModel;
 
 use App\Controllers\Api\ApiBaseController;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -21,6 +22,8 @@ class AbstractsApiController extends ApiBaseController
     protected $abstractAuthorModel;
     protected $programModel;
     protected $participantModel;
+    protected $abstractTopicModel;
+    protected $participantStatusModel;
 
     /**
      * Initialize controller, set models
@@ -37,8 +40,10 @@ class AbstractsApiController extends ApiBaseController
         $this->abstractModel = new AbstractModel();
         $this->abstractVersionModel = new AbstractVersionModel();
         $this->abstractAuthorModel = new AbstractAuthorModel();
-        $this->programModel = new ProgramModel();   
+        $this->programModel = new ProgramModel();
         $this->participantModel = new ParticipantModel();
+        $this->abstractTopicModel = new AbstractTopicModel();
+        $this->participantStatusModel = new ParticipantStatusModel();
     }
 
     /**
@@ -96,7 +101,7 @@ class AbstractsApiController extends ApiBaseController
      * Get all abstracts by participant id
      * GET /api/abstracts/participant/{participant_id}
      */
-    public function getAllAbstractsByParticipantId($participant_id)
+    public function getAbstractByParticipantId($participant_id)
     {
         // Check if participant exists
         $participant = $this->participantModel->find($participant_id);
@@ -104,6 +109,8 @@ class AbstractsApiController extends ApiBaseController
         if (!$participant) {
             return $this->failNotFound('Participant not found');
         }
+
+        $data = [];
 
         try {
             // Get all abstracts by participant id
@@ -169,6 +176,23 @@ class AbstractsApiController extends ApiBaseController
         }
     }
 
+    function isEligibleForSubmission($participant_id)
+    {
+        // Check if participant is eligible for abstract submission
+        $hasSubmittedForm = false;
+
+        // get participant status from the model
+        $participantStatusResult = $this->participantStatusModel->getParticipantStatusById($participant_id);
+
+        if ($participantStatusResult) {
+            // get form status from the field
+            // form_status of 2 means the participant has already submitted the form and is eligible for abstract submission
+            $hasSubmittedForm = $participantStatusResult->form_status == 2;
+        }
+
+        return $hasSubmittedForm;
+    }
+
     /**
      * Get abstract details by participant id
      * GET /api/abstracts/participant/{participant_id}/details
@@ -182,33 +206,38 @@ class AbstractsApiController extends ApiBaseController
             return $this->failNotFound('Participant not found');
         }
 
+        $data = [
+            'participant_id' => $participant->id,
+            'eligible_for_abstract' => $this->isEligibleForSubmission($participant_id),
+            'abstract' => null,
+        ];
+
         try {
             // Get abstract where participant is primary author
-            $abstract = $this->abstractModel->getAbstractByParticipantId($participant_id);
-            
+            $abstract = $this->abstractModel->getByPrimaryParticipantId($participant_id);
+
             if (!$abstract) {
-            // Check if participant is listed as an author on any abstract
-            $abstractAsAuthor = $this->abstractAuthorModel->getAbstractByAuthorParticipantId($participant_id);
-            
-            if ($abstractAsAuthor) {
-                // Get the full abstract details
-                $abstract = $this->abstractModel->find($abstractAsAuthor->abstract_id);
-            }
-            }
-            
-            if (!$abstract) {
-            return $this->failNotFound('No abstract found for this participant');
+                // Check if participant is listed as an author on any abstract
+                $abstractAsAuthor = $this->abstractAuthorModel->getAbstractByAuthorParticipantId($participant_id);
+                
+                if ($abstractAsAuthor) {
+                    // Get the full abstract details
+                    $abstract = $this->abstractModel->find($abstractAsAuthor->abstract_id);
+                }
             }
 
-            // Get additional details for the abstract
-            $abstractVersions = $this->abstractVersionModel->getAllAbstractVersionsByAbstractId($abstract->id);
-            $abstractAuthors = $this->abstractAuthorModel->getAllAbstractAuthorsByAbstractId($abstract->id);
+            if ($abstract) {
+                $data['abstract'] = $abstract;
 
-            return $this->respondSuccess([
-            'abstract' => $abstract,
-            'abstract_versions' => $abstractVersions,
-            'abstract_authors' => $abstractAuthors
-            ]);
+                // Get additional details for the abstract
+                $abstractVersions = $this->abstractVersionModel->getAllAbstractVersionsByAbstractId($abstract->id);
+                $abstractAuthors = $this->abstractAuthorModel->getAllAbstractAuthorsByAbstractId($abstract->id);
+
+                $data['abstract']['versions'] = $abstractVersions;
+                $data['abstract']['authors'] = $abstractAuthors;
+            }
+
+            return $this->respondSuccess($data);
         } catch (\Exception $e) {
             return $this->failServerError('Failed to retrieve abstract details: ' . $e->getMessage());
         }
@@ -253,7 +282,7 @@ class AbstractsApiController extends ApiBaseController
             return $this->failNotFound('Abstract not found');
         }        // Get is_participant value first to determine validation rules
         $is_participant = (int)$this->request->getPost('is_participant');
-        
+
         // Set validation rules based on is_participant value
         $rules = [
             'full_name' => 'required|string',
@@ -261,7 +290,7 @@ class AbstractsApiController extends ApiBaseController
             'email' => 'required|valid_email',
             'is_participant' => 'required|in:0,1'
         ];
-        
+
         // participant_id is required only if is_participant is 1
         if ($is_participant === 1) {
             $rules['participant_id'] = 'required|numeric';
@@ -271,23 +300,27 @@ class AbstractsApiController extends ApiBaseController
             return $this->failValidationErrors($this->validator->getErrors());
         }        // Process participant_id based on is_participant value
         $participant_id = $this->request->getPost('participant_id');
-        
+
         // Check if participant exists only if is_participant is 1
         if ($is_participant === 1) {
             if (empty($participant_id)) {
                 return $this->fail('Participant ID is required when is_participant is true', 400);
             }
-            
             $participant = $this->participantModel->find($participant_id);
             if (!$participant) {
                 return $this->failNotFound('Participant not found');
+            }
+
+            // Check if participant is eligible for abstract submission
+            if (!$this->isEligibleForSubmission($participant_id)) {
+                return $this->fail('Participant is not eligible for abstract submission. Form status must be 2 (submitted).', 403);
             }
         }        // Check if author already exists for this abstract (only if participant_id is provided)
         if (!empty($participant_id)) {
             $existingAuthor = $this->abstractAuthorModel->where('abstract_id', $abstract_id)
                 ->where('participant_id', $participant_id)
                 ->first();
-                
+
             if ($existingAuthor) {
                 return $this->failResourceExists('This participant is already an author of this abstract');
             }
@@ -296,7 +329,7 @@ class AbstractsApiController extends ApiBaseController
             $existingAuthor = $this->abstractAuthorModel->where('abstract_id', $abstract_id)
                 ->where('email', $this->request->getPost('email'))
                 ->first();
-                
+
             if ($existingAuthor) {
                 return $this->failResourceExists('An author with this email is already associated with this abstract');
             }
@@ -304,23 +337,24 @@ class AbstractsApiController extends ApiBaseController
         if ($is_participant === 1 && !empty($participant_id)) {
             // Check if participant is already associated with any abstract as a primary submitter
             $existingAbstract = $this->abstractModel->where('participant_id', $participant_id)->first();
-            
+
             if ($existingAbstract) {
                 return $this->fail('This participant is already a primary submitter for another abstract', 409);
             }
-            
+
             // Check if participant is already an author in other abstracts
             $existingAsAuthor = $this->abstractAuthorModel->where('participant_id', $participant_id)
                 ->where('abstract_id !=', $abstract_id)
                 ->first();
-                
+
             if ($existingAsAuthor) {
                 return $this->fail('This participant is already an author for another abstract', 409);
             }
         }
         // If not a participant, no additional checks are needed as they can be associated with multiple abstracts
 
-        try {            $authorData = [
+        try {
+            $authorData = [
                 'abstract_id' => $abstract_id,
                 'full_name' => $this->request->getPost('full_name'),
                 'institution' => $this->request->getPost('institution'),
@@ -329,7 +363,7 @@ class AbstractsApiController extends ApiBaseController
                 'is_active' => 1,
                 'is_deleted' => 0
             ];
-            
+
             // Add participant_id only if it's provided
             if (!empty($participant_id)) {
                 $authorData['participant_id'] = $participant_id;
@@ -379,9 +413,7 @@ class AbstractsApiController extends ApiBaseController
 
         if (!$program) {
             return $this->failNotFound('Program not found');
-        }
-
-        // Check if participant exists
+        }        // Check if participant exists
         $participant_id = $this->request->getPost('participant_id');
         $participant = $this->participantModel->find($participant_id);
 
@@ -389,16 +421,21 @@ class AbstractsApiController extends ApiBaseController
             return $this->failNotFound('Participant not found');
         }
 
+        // Check if participant is eligible for abstract submission
+        if (!$this->isEligibleForSubmission($participant_id)) {
+            return $this->fail('Participant is not eligible for abstract submission. Form status must be 2 (submitted).', 403);
+        }
+
         // Check if participant is already a primary submitter for any abstract
         $existingAbstract = $this->abstractModel->where('primary_participant_id', $participant_id)->first();
-        
+
         if ($existingAbstract) {
             return $this->fail('This participant is already a primary submitter for another abstract', 409);
         }
-        
+
         // Check if participant is already an author in any abstract
         $existingAsAuthor = $this->abstractAuthorModel->where('participant_id', $participant_id)->first();
-        
+
         if ($existingAsAuthor) {
             return $this->fail('This participant is already an author for another abstract', 409);
         }
@@ -406,7 +443,7 @@ class AbstractsApiController extends ApiBaseController
         try {
             // Begin transaction
             $this->abstractModel->db->transBegin();
-            
+
             // Create abstract data
             $abstractData = [
                 'program_id' => $program_id,
@@ -415,11 +452,11 @@ class AbstractsApiController extends ApiBaseController
                 'is_active' => 1,
                 'is_deleted' => 0
             ];
-            
+
             // Insert abstract
             $this->abstractModel->insert($abstractData);
             $abstract_id = $this->abstractModel->getInsertID();
-            
+
             // Create first version of abstract
             $versionData = [
                 'abstract_id' => $abstract_id,
@@ -430,10 +467,10 @@ class AbstractsApiController extends ApiBaseController
                 'is_active' => 1,
                 'is_deleted' => 0
             ];
-            
+
             // Insert abstract version
             $this->abstractVersionModel->insert($versionData);
-            
+
             // Add the participant as an author
             $authorData = [
                 'abstract_id' => $abstract_id,
@@ -445,10 +482,10 @@ class AbstractsApiController extends ApiBaseController
                 'is_active' => 1,
                 'is_deleted' => 0
             ];
-            
+
             // Insert author
             $this->abstractAuthorModel->insert($authorData);
-            
+
             // Commit transaction if all operations are successful
             if ($this->abstractModel->db->transStatus() === false) {
                 $this->abstractModel->db->transRollback();
@@ -456,10 +493,10 @@ class AbstractsApiController extends ApiBaseController
             } else {
                 $this->abstractModel->db->transCommit();
             }
-            
+
             // Get the newly created abstract with its details
             $newAbstract = $this->abstractModel->getAbstractById($abstract_id);
-            
+
             return $this->respondCreated([
                 'message' => 'Abstract created successfully',
                 'abstract' => $newAbstract
@@ -498,20 +535,20 @@ class AbstractsApiController extends ApiBaseController
         try {
             // Build update data
             $updateData = [];
-            
+
             // Only update fields that were provided
             if ($this->request->getVar('program_id') !== null) {
                 $program_id = $this->request->getVar('program_id');
-                
+
                 // Check if program exists
                 $program = $this->programModel->find($program_id);
                 if (!$program) {
                     return $this->failNotFound('Program not found');
                 }
-                
+
                 $updateData['program_id'] = $program_id;
             }
-            
+
             if ($this->request->getVar('status') !== null) {
                 $updateData['status'] = $this->request->getVar('status');
             }
@@ -520,19 +557,19 @@ class AbstractsApiController extends ApiBaseController
             if (!empty($updateData)) {
                 // Begin transaction
                 $this->abstractModel->db->transBegin();
-                
+
                 // Update abstract
                 $this->abstractModel->update($abstract_id, $updateData);
-                
+
                 // If title is provided, create a new abstract version
                 if ($this->request->getVar('title') !== null) {
                     // Get the latest version
                     $latestVersion = $this->abstractVersionModel->where('abstract_id', $abstract_id)
                         ->orderBy('version_number', 'DESC')
                         ->first();
-                    
+
                     $newVersionNumber = $latestVersion ? $latestVersion->version_number + 1 : 1;
-                    
+
                     $versionData = [
                         'abstract_id' => $abstract_id,
                         'title' => $this->request->getVar('title'),
@@ -542,10 +579,10 @@ class AbstractsApiController extends ApiBaseController
                         'is_active' => 1,
                         'is_deleted' => 0
                     ];
-                    
+
                     $this->abstractVersionModel->insert($versionData);
                 }
-                
+
                 // Commit transaction if successful
                 if ($this->abstractModel->db->transStatus() === false) {
                     $this->abstractModel->db->transRollback();
@@ -554,10 +591,10 @@ class AbstractsApiController extends ApiBaseController
                     $this->abstractModel->db->transCommit();
                 }
             }
-            
+
             // Get the updated abstract
             $updatedAbstract = $this->abstractModel->getAbstractById($abstract_id);
-            
+
             return $this->respondUpdated([
                 'message' => 'Abstract updated successfully',
                 'abstract' => $updatedAbstract
@@ -587,20 +624,20 @@ class AbstractsApiController extends ApiBaseController
         try {
             // Begin transaction
             $this->abstractModel->db->transBegin();
-            
+
             // Soft delete by setting is_deleted to 1
             $this->abstractModel->update($abstract_id, ['is_deleted' => 1]);
-            
+
             // Also mark all versions as deleted
             $this->abstractVersionModel->where('abstract_id', $abstract_id)
                 ->set(['is_deleted' => 1])
                 ->update();
-                
+
             // Also mark all authors as deleted
             $this->abstractAuthorModel->where('abstract_id', $abstract_id)
                 ->set(['is_deleted' => 1])
                 ->update();
-            
+
             // Commit transaction if successful
             if ($this->abstractModel->db->transStatus() === false) {
                 $this->abstractModel->db->transRollback();
@@ -608,7 +645,7 @@ class AbstractsApiController extends ApiBaseController
             } else {
                 $this->abstractModel->db->transCommit();
             }
-            
+
             return $this->respondDeleted([
                 'message' => 'Abstract deleted successfully',
                 'id' => $abstract_id
@@ -619,7 +656,7 @@ class AbstractsApiController extends ApiBaseController
             return $this->failServerError('Failed to delete abstract: ' . $e->getMessage());
         }
     }
-    
+
     /**
      * Update an existing abstract author
      * PUT /api/abstracts/authors/{author_id}
@@ -634,10 +671,10 @@ class AbstractsApiController extends ApiBaseController
         }
 
         // Get is_participant value
-        $is_participant = $this->request->getVar('is_participant') !== null 
-            ? (int)$this->request->getVar('is_participant') 
+        $is_participant = $this->request->getVar('is_participant') !== null
+            ? (int)$this->request->getVar('is_participant')
             : $author->is_participant;
-        
+
         // Set validation rules based on is_participant value
         $rules = [
             'full_name' => 'permit_empty|string',
@@ -646,7 +683,7 @@ class AbstractsApiController extends ApiBaseController
             'is_participant' => 'permit_empty|in:0,1',
             'is_active' => 'permit_empty|in:0,1'
         ];
-        
+
         // participant_id can only be updated if is_participant is 1
         if ($is_participant === 1 && $this->request->getVar('participant_id') !== null) {
             $rules['participant_id'] = 'numeric';
@@ -659,14 +696,14 @@ class AbstractsApiController extends ApiBaseController
         try {
             // Build update data
             $updateData = [];
-            
+
             // Only update fields that were provided
             foreach (['full_name', 'institution', 'email', 'is_participant', 'is_active'] as $field) {
                 if ($this->request->getVar($field) !== null) {
                     $updateData[$field] = $this->request->getVar($field);
                 }
             }
-            
+
             // Process participant_id if provided and is_participant is 1
             $participant_id = $this->request->getVar('participant_id');
             if ($is_participant === 1 && $participant_id !== null) {
@@ -675,7 +712,7 @@ class AbstractsApiController extends ApiBaseController
                 if (!$participant) {
                     return $this->failNotFound('Participant not found');
                 }
-                
+
                 // Only if participant_id is changing
                 if ($author->participant_id != $participant_id) {
                     // Check if participant is already an author for this abstract
@@ -684,43 +721,43 @@ class AbstractsApiController extends ApiBaseController
                         ->where('participant_id', $participant_id)
                         ->where('id !=', $author_id)
                         ->first();
-                        
+
                     if ($existingAuthor) {
                         return $this->failResourceExists('This participant is already an author of this abstract');
                     }
-                    
+
                     // Check if participant is already associated with any abstract as a primary submitter
                     $existingAbstract = $this->abstractModel->where('primary_participant_id', $participant_id)->first();
-                    
+
                     if ($existingAbstract && $existingAbstract->id != $author->abstract_id) {
                         return $this->fail('This participant is already a primary submitter for another abstract', 409);
                     }
-                    
+
                     // Check if participant is already an author in other abstracts
                     $existingAsAuthor = $this->abstractAuthorModel
                         ->where('participant_id', $participant_id)
                         ->where('abstract_id !=', $author->abstract_id)
                         ->first();
-                        
+
                     if ($existingAsAuthor) {
                         return $this->fail('This participant is already an author for another abstract', 409);
                     }
-                    
+
                     $updateData['participant_id'] = $participant_id;
                 }
             } else if ($is_participant === 0 && $this->request->getVar('participant_id') === '') {
                 // If is_participant is 0 and participant_id is explicitly set to empty string, set to null
                 $updateData['participant_id'] = null;
             }
-            
+
             // Only update if there's data to update
             if (!empty($updateData)) {
                 $this->abstractAuthorModel->update($author_id, $updateData);
             }
-            
+
             // Get the updated author
             $updatedAuthor = $this->abstractAuthorModel->find($author_id);
-            
+
             return $this->respondUpdated([
                 'message' => 'Abstract author updated successfully',
                 'author' => $updatedAuthor
@@ -729,7 +766,7 @@ class AbstractsApiController extends ApiBaseController
             return $this->failServerError('Failed to update abstract author: ' . $e->getMessage());
         }
     }
-      /**
+    /**
      * Delete an abstract author (soft delete)
      * DELETE /api/abstracts/authors/{author_id}
      */
@@ -741,20 +778,20 @@ class AbstractsApiController extends ApiBaseController
         if (!$author) {
             return $this->failNotFound('Abstract author not found');
         }
-        
+
         // Get the abstract to check primary participant
         $abstract = $this->abstractModel->find($author->abstract_id);
-        
+
         // Don't allow deletion if the author is the primary participant
         if ($abstract && !empty($author->participant_id) && $author->participant_id == $abstract->primary_participant_id) {
             return $this->fail('Cannot delete the primary participant author', 409);
         }
-        
+
         // Count remaining authors for this abstract
         $authorCount = $this->abstractAuthorModel->where('abstract_id', $author->abstract_id)
             ->where('is_deleted', 0)
             ->countAllResults();
-            
+
         // Don't allow deletion if this is the last author
         if ($authorCount <= 1) {
             return $this->fail('Cannot delete the only author of an abstract', 409);
@@ -763,7 +800,7 @@ class AbstractsApiController extends ApiBaseController
         try {
             // Soft delete by setting is_deleted to 1
             $this->abstractAuthorModel->update($author_id, ['is_deleted' => 1]);
-            
+
             return $this->respondDeleted([
                 'message' => 'Abstract author deleted successfully',
                 'id' => $author_id
@@ -776,14 +813,18 @@ class AbstractsApiController extends ApiBaseController
     /**
      * Create a new abstract version
      * POST /api/abstracts/{abstract_id}/versions
-     */
-    public function createAbstractVersion($abstract_id)
+     */    public function createAbstractVersion($abstract_id)
     {
         // Check if abstract exists
         $abstract = $this->abstractModel->find($abstract_id);
 
         if (!$abstract) {
             return $this->failNotFound('Abstract not found');
+        }
+
+        // Check if the primary participant is eligible for abstract submission
+        if (!$this->isEligibleForSubmission($abstract->primary_participant_id)) {
+            return $this->fail('Primary participant is not eligible for abstract submission. Form status must be 2 (submitted).', 403);
         }
 
         // Validate request
@@ -802,9 +843,9 @@ class AbstractsApiController extends ApiBaseController
             $latestVersion = $this->abstractVersionModel->where('abstract_id', $abstract_id)
                 ->orderBy('version_number', 'DESC')
                 ->first();
-            
+
             $newVersionNumber = $latestVersion ? $latestVersion->version_number + 1 : 1;
-            
+
             // Create new version data
             $versionData = [
                 'abstract_id' => $abstract_id,
@@ -815,14 +856,14 @@ class AbstractsApiController extends ApiBaseController
                 'is_active' => 1,
                 'is_deleted' => 0
             ];
-            
+
             // Insert new version
             $this->abstractVersionModel->insert($versionData);
             $versionId = $this->abstractVersionModel->getInsertID();
-            
+
             // Get the newly created version
             $newVersion = $this->abstractVersionModel->getAbstractVersionById($versionId);
-            
+
             return $this->respondCreated([
                 'message' => 'Abstract version created successfully',
                 'abstract_version' => $newVersion
@@ -841,39 +882,39 @@ class AbstractsApiController extends ApiBaseController
         // Get pagination params
         $page = $this->request->getGet('page') ? (int)$this->request->getGet('page') : 1;
         $limit = $this->request->getGet('limit') ? (int)$this->request->getGet('limit') : 10;
-        
+
         // Get filter params
         $status = $this->request->getGet('status');
         $program_id = $this->request->getGet('program_id');
-        
+
         // Start building query
         $builder = $this->abstractModel->builder();
         $builder->select('*');
-        
+
         // Apply filters
         if ($status) {
             $builder->where('status', $status);
         }
-        
+
         if ($program_id) {
             $builder->where('program_id', $program_id);
         }
-        
+
         // By default, only show active and not deleted abstracts
         $builder->where('is_active', 1);
         $builder->where('is_deleted', 0);
-        
+
         try {
             // Count total before pagination
             $total = $builder->countAllResults(false);
-            
+
             // Apply pagination
             $offset = ($page - 1) * $limit;
             $builder->limit($limit, $offset);
-            
+
             // Get results
             $abstracts = $builder->get()->getResult();
-            
+
             return $this->respondSuccess([
                 'abstracts' => $abstracts,
                 'pagination' => [
