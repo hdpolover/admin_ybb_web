@@ -58,7 +58,9 @@ class ProgramDetails extends BaseController
         ];
 
         return view('master-data/program-details/edit', $data);
-    }    // update program category details
+    }    
+    
+    // update program category details
     public function updateCategoryDetails($id)
     {
         // Check if this is an AJAX request
@@ -77,13 +79,14 @@ class ProgramDetails extends BaseController
             ];
 
             // No URL validation - accept any user input for URLs
-
             if (!$this->validate($rules)) {
                 return $this->response->setJSON([
                     'success' => false,
                     'errors' => $this->validator->getErrors()
                 ]);
-            }            // Get program category
+            }
+
+            // Get program category
             $programCategory = $this->programCategoryModel->find($id);
 
             if (!$programCategory) {

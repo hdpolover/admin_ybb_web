@@ -32,10 +32,10 @@ class SubmissionForm extends BaseController
         $programId = session()->get('current_program');
 
         // get current program details
-        $currentProgram = $this->programModel->find($programId);
-
-        // get competititon categories 
-        $competitionCategories = $this->competitionCategoryModel->where('program_id', $programId)->findAll();
+        $currentProgram = $this->programModel->find($programId);        // get competititon categories 
+        $competitionCategories = $this->competitionCategoryModel->where('program_id', $programId)
+            ->where('is_deleted', 0)
+            ->findAll();
 
         // check if empty
         if (empty($competitionCategories)) {
@@ -48,10 +48,12 @@ class SubmissionForm extends BaseController
         // check if empty
         if (empty($programEssays)) {
             $programEssays = [];
-        }
-
+        }        
+        
         // get program sub themes
-        $programSubThemes = $this->programSubThemeModel->where('program_id', $programId)->findAll();
+        $programSubThemes = $this->programSubThemeModel->where('program_id', $programId)
+            ->where('is_deleted', 0)
+            ->findAll();
 
         if (empty($programSubThemes)) {
             $programSubThemes = [];
@@ -93,7 +95,18 @@ class SubmissionForm extends BaseController
             'is_active' => 'permit_empty'
         ];
 
-        if (!$this->validate($rules)) {
+        $messages = [
+            'name' => [
+                'required' => 'Category name is required',
+                'min_length' => 'Category name must be at least 3 characters long',
+                'max_length' => 'Category name cannot exceed 100 characters'
+            ],
+            'description' => [
+                'max_length' => 'Description cannot exceed 255 characters'
+            ]
+        ];
+
+        if (!$this->validate($rules, $messages)) {
             return $this->response->setStatusCode(400)->setJSON([
                 'success' => false,
                 'message' => 'Validation failed',
@@ -139,7 +152,9 @@ class SubmissionForm extends BaseController
         }
 
         // Check if category exists
-        $category = $this->competitionCategoryModel->find($id);
+        $category = $this->competitionCategoryModel->where('id', $id)
+            ->where('is_deleted', 0)
+            ->first();
         if (!$category) {
             return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Category not found']);
         }
@@ -147,11 +162,22 @@ class SubmissionForm extends BaseController
         // Validate the request
         $rules = [
             'name' => 'required|min_length[3]|max_length[100]',
-            'description    ' => 'permit_empty|max_length[255]',
+            'description' => 'permit_empty|max_length[255]',
             'is_active' => 'permit_empty'
         ];
 
-        if (!$this->validate($rules)) {
+        $messages = [
+            'name' => [
+                'required' => 'Category name is required',
+                'min_length' => 'Category name must be at least 3 characters long',
+                'max_length' => 'Category name cannot exceed 100 characters'
+            ],
+            'description' => [
+                'max_length' => 'Description cannot exceed 255 characters'
+            ]
+        ];
+
+        if (!$this->validate($rules, $messages)) {
             return $this->response->setStatusCode(400)->setJSON([
                 'success' => false,
                 'message' => 'Validation failed',
@@ -181,7 +207,6 @@ class SubmissionForm extends BaseController
             ]);
         }
     }
-
     public function deleteCategory($id = null)
     {
         // Check if request is AJAX
@@ -195,22 +220,30 @@ class SubmissionForm extends BaseController
         }
 
         // Check if category exists
-        $category = $this->competitionCategoryModel->find($id);
+        $category = $this->competitionCategoryModel->where('id', $id)
+            ->where('is_deleted', 0)
+            ->first();
         if (!$category) {
             return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Category not found']);
         }
 
-        // Delete data
+        // Soft delete by updating is_deleted and is_active
         try {
-            $this->competitionCategoryModel->delete($id);
+            $data = [
+                'is_deleted' => 1,
+                'is_active' => 0
+            ];
+
+            $this->competitionCategoryModel->update($id, $data);
             return $this->response->setJSON([
                 'success' => true,
                 'message' => 'Category deleted successfully'
             ]);
         } catch (\Exception $e) {
+            log_message('error', 'Error soft-deleting category: ' . $e->getMessage());
             return $this->response->setStatusCode(500)->setJSON([
                 'success' => false,
-                'message' => 'Failed to delete category',
+                'message' => 'Failed to delete category. It may be in use by submissions.',
                 'error' => $e->getMessage()
             ]);
         }
@@ -229,7 +262,9 @@ class SubmissionForm extends BaseController
         }
 
         // Get category
-        $category = $this->competitionCategoryModel->find($id);
+        $category = $this->competitionCategoryModel->where('id', $id)
+            ->where('is_deleted', 0)
+            ->first();
         if (!$category) {
             return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Category not found']);
         }
@@ -301,7 +336,9 @@ class SubmissionForm extends BaseController
         }
 
         // Check if sub theme exists
-        $subTheme = $this->programSubThemeModel->find($id);
+        $subTheme = $this->programSubThemeModel->where('id', $id)
+            ->where('is_deleted', 0)
+            ->first();
         if (!$subTheme) {
             return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Sub Theme not found']);
         }
@@ -357,19 +394,25 @@ class SubmissionForm extends BaseController
         }
 
         // Check if sub theme exists
-        $subTheme = $this->programSubThemeModel->find($id);
+        $subTheme = $this->programSubThemeModel->where('id', $id)
+            ->where('is_deleted', 0)
+            ->first();
         if (!$subTheme) {
             return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Sub Theme not found']);
-        }
-
-        // Delete data
+        }        // Soft delete by updating is_deleted and is_active
         try {
-            $this->programSubThemeModel->delete($id);
+            $data = [
+                'is_deleted' => 1,
+                'is_active' => 0
+            ];
+
+            $this->programSubThemeModel->update($id, $data);
             return $this->response->setJSON([
                 'success' => true,
                 'message' => 'Sub Theme deleted successfully'
             ]);
         } catch (\Exception $e) {
+            log_message('error', 'Error soft-deleting sub theme: ' . $e->getMessage());
             return $this->response->setStatusCode(500)->setJSON([
                 'success' => false,
                 'message' => 'Failed to delete sub theme',
@@ -388,10 +431,10 @@ class SubmissionForm extends BaseController
         // Validate ID
         if (!$id) {
             return $this->response->setStatusCode(400)->setJSON(['success' => false, 'message' => 'Sub Theme ID is required']);
-        }
-
-        // Get sub theme
-        $subTheme = $this->programSubThemeModel->find($id);
+        }        // Get sub theme
+        $subTheme = $this->programSubThemeModel->where('id', $id)
+            ->where('is_deleted', 0)
+            ->first();
         if (!$subTheme) {
             return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Sub Theme not found']);
         }
@@ -458,10 +501,10 @@ class SubmissionForm extends BaseController
         // Validate ID
         if (!$id) {
             return $this->response->setStatusCode(400)->setJSON(['success' => false, 'message' => 'Essay ID is required']);
-        }
-
-        // Check if essay exists
-        $essay = $this->programEssayModel->find($id);
+        }        // Check if essay exists
+        $essay = $this->programEssayModel->where('id', $id)
+            ->where('is_deleted', 0)
+            ->first();
         if (!$essay) {
             return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Essay not found']);
         }
@@ -517,19 +560,27 @@ class SubmissionForm extends BaseController
         }
 
         // Check if essay exists
-        $essay = $this->programEssayModel->find($id);
+        $essay = $this->programEssayModel->where('id', $id)
+            ->where('is_deleted', 0)
+            ->first();
         if (!$essay) {
             return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Essay not found']);
         }
 
-        // Delete data
+        // Soft delete by updating is_deleted and is_active
         try {
-            $this->programEssayModel->delete($id);
+            $data = [
+                'is_deleted' => 1,
+                'is_active' => 0
+            ];
+
+            $this->programEssayModel->update($id, $data);
             return $this->response->setJSON([
                 'success' => true,
                 'message' => 'Essay deleted successfully'
             ]);
         } catch (\Exception $e) {
+            log_message('error', 'Error soft-deleting essay: ' . $e->getMessage());
             return $this->response->setStatusCode(500)->setJSON([
                 'success' => false,
                 'message' => 'Failed to delete essay',
@@ -548,10 +599,10 @@ class SubmissionForm extends BaseController
         // Validate ID
         if (!$id) {
             return $this->response->setStatusCode(400)->setJSON(['success' => false, 'message' => 'Essay ID is required']);
-        }
-
-        // Get essay
-        $essay = $this->programEssayModel->find($id);
+        }        // Get essay
+        $essay = $this->programEssayModel->where('id', $id)
+            ->where('is_deleted', 0)
+            ->first();
         if (!$essay) {
             return $this->response->setStatusCode(404)->setJSON(['success' => false, 'message' => 'Essay not found']);
         }

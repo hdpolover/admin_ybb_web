@@ -70,46 +70,64 @@ class JwtAuthController extends BaseAuthController
 
             case 2: // participant
                 $userModel = new UserModel();
-                $user = $userModel->signIn($email, $password, $web_url);
+                $authData = $userModel->signIn($email, $password, $web_url);
 
-                // Check if user exists and authentication succeeded
-                if (!$user) {
+                // Handle authentication result based on the authData from UserModel
+                if (!$authData || !isset($authData['is_authenticated'])) {
                     return $this->respondError('Invalid email or password', ResponseInterface::HTTP_UNAUTHORIZED);
                 }
 
-                // check if verification is required
-                $programCategoryModel = new ProgramCategoryModel();
-                $programCategory = $programCategoryModel->find($user->program_category_id);
-
-                // check if program category is not empty
-                if (!$programCategory) {
-                    return $this->respondError('Program category not found', ResponseInterface::HTTP_NOT_FOUND);
+                // Check if the user account is deleted
+                if (isset($authData['user']) && isset($authData['user']->is_deleted) && $authData['user']->is_deleted) {
+                    return $this->respondForbidden('Your account has been deleted. Please contact support.');
                 }
 
-                if ($programCategory->verification_required) {
-                    // Check if user is verified
-                    if (isset($user->is_verified) && !$user->is_verified) {
-                        // Generate a new verification token and send email
-                        $user = $userModel->regenerateVerificationToken($email, $web_url);
+                // Check if the user account is inactive
+                if (isset($authData['user']) && isset($authData['user']->is_active) && !$authData['user']->is_active) {
+                    return $this->respondForbidden('Your account is not active. Please contact support.');
+                }
 
-                        if ($user) {
+                // Check if the user's email is not verified
+                if (isset($authData['user']) && isset($authData['user']->is_verified) && !$authData['user']->is_verified) {
+                    // Get program category information
+                    $programCategoryModel = new ProgramCategoryModel();
+                    $programCategory = $programCategoryModel->find($authData['user']->program_category_id);
+
+                    // Check if verification is required for this program
+                    if ($programCategory && $programCategory->verification_required) {
+                        // Generate a new verification token and send email
+                        $updatedUser = $userModel->regenerateVerificationToken($email, $web_url);
+
+                        if ($updatedUser) {
                             // Send verification email
                             $emailService = new EmailService();
-                            $emailService->sendVerificationEmail($email, $user->verification_token, $web_url);
+                            $emailService->sendVerificationEmail($email, $updatedUser->verification_token, $updatedUser->program_category_id);
+                            
+                            return $this->respondForbidden(
+                                'Your email is not verified. We have sent a new verification email to your address. Please check your inbox and spam folder.'
+                            );
+                        } else {
+                            return $this->respondForbidden(
+                                'Your email is not verified. We could not send a verification email. Please contact support.'
+                            );
                         }
-
-                        return $this->respondForbidden(lang('EmailVerification.verification_required'));
                     }
                 }
 
-                // Check if account is active
-                if (!$user->is_active) {
-                    return $this->respondForbidden('Your account is not active.');
+                // Check if authentication failed
+                if (!$authData['is_authenticated']) {
+                    // Return the specific error message from the model
+                    return $this->respondError(
+                        $authData['message'] ?? 'Invalid credentials', 
+                        ResponseInterface::HTTP_UNAUTHORIZED
+                    );
                 }
+
+                // Authentication successful, set user
+                $user = $authData['user'];
                 break;
 
-            // ambassador
-            case 3:
+            case 3: // ambassador
                 $ambassadorModel = new AmbassadorModel();
                 $user = $ambassadorModel->signIn($email, $ref_code);
 
@@ -121,7 +139,6 @@ class JwtAuthController extends BaseAuthController
                 if (!$user->is_active) {
                     return $this->respondForbidden('Your account has been deactivated.');
                 }
-
                 break;
         }
 
@@ -187,7 +204,12 @@ class JwtAuthController extends BaseAuthController
                 break;
 
             case 3: // ambassador
-                return $this->respondNotImplemented('Profile retrieval for ambassador is not implemented yet.');
+                $ambassadorModel = new AmbassadorModel();
+                $user = $ambassadorModel->find($userData->id);
+                if (!$user) {
+                    return $this->respondNotFound('Ambassador profile not found');
+                }
+                break;
 
             default:
                 return $this->respondError('Invalid user type');

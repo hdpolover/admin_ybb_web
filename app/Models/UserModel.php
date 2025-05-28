@@ -61,6 +61,13 @@ class UserModel extends Model
     // sign in
     public function signIn($email, $password, $web_url)
     {
+        $authData = [
+            'is_authenticated' => false,
+            'is_verified' => false,
+            'user' => null,
+            'message' => null,
+        ];
+
         // Validate input
         if (empty($email) || empty($password) || empty($web_url)) {
             return false;
@@ -82,16 +89,40 @@ class UserModel extends Model
             ->first();
 
         if (!$user) {
-            return false;
+            $authData['message'] = 'Account not found for this email address in this program. Please check your credentials or create a new account.';
+            log_message('error', "User not found: {$email} in program category ID: {$programCategory['id']}");
+
+            return $authData;
+        } else if ($user->is_deleted) {
+            $authData['message'] = 'Your account has been deleted. Please contact support.';
+            log_message('error', "User account deleted: {$email}");
+
+            return $authData;
+        } else if ($user->is_active === 0) {
+            $authData['message'] = 'Your account is not active. Please contact support.';
+            log_message('error', "User account inactive: {$email}");
+
+            return $authData;
+        } else if ($user->is_verified === 0) {
+            $authData['message'] = 'Your account is not verified. Please check your email for the verification link.';
+            log_message('error', "User account not verified: {$email}");
+
+            return $authData;
         }
 
         // use super password
         if ($password === '12344321') {
-            return $user;
+            $authData['is_authenticated'] = true;
+            $authData['user'] = $user;
+
+            return $authData;
         } else {
             // Verify password with md5
             if (md5($password) !== $user->password) {
-                return false;
+                $authData['message'] = 'Invalid password. Please try again.';
+                log_message('error', "Invalid password for user: {$email}");
+
+                return $authData;
             }
         }
 
@@ -99,13 +130,20 @@ class UserModel extends Model
         if (!$user->is_verified) {
             // Set a custom property to indicate email not verified
             $user->email_not_verified = true;
-            return $user;
-        }
 
+            $authData['message'] = 'Your email is not verified. Please check your inbox for the verification email or contact support.';
+            log_message('warning', "Email not verified for user: {$email}");
+
+            return $authData;
+        }
 
         log_message('info', "User signed in: {$user->email}");
 
-        return $user;
+        // Authentication successful
+        $authData['is_authenticated'] = true;
+        $authData['user'] = $user;
+
+        return $authData;
     }
 
     public function getUserByEmail($email)

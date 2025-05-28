@@ -9,6 +9,7 @@ use App\Models\ProgramModel;
 use App\Models\ParticipantModel;
 use App\Models\ParticipantStatusModel;
 use App\Models\AbstractTopicModel;
+use App\Models\UserModel;
 
 use App\Controllers\Api\ApiBaseController;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -24,6 +25,7 @@ class AbstractsApiController extends ApiBaseController
     protected $participantModel;
     protected $abstractTopicModel;
     protected $participantStatusModel;
+    protected $userModel;
 
     /**
      * Initialize controller, set models
@@ -44,6 +46,7 @@ class AbstractsApiController extends ApiBaseController
         $this->participantModel = new ParticipantModel();
         $this->abstractTopicModel = new AbstractTopicModel();
         $this->participantStatusModel = new ParticipantStatusModel();
+        $this->userModel = new UserModel();
     }
 
     /**
@@ -219,7 +222,7 @@ class AbstractsApiController extends ApiBaseController
             if (!$abstract) {
                 // Check if participant is listed as an author on any abstract
                 $abstractAsAuthor = $this->abstractAuthorModel->getAbstractByAuthorParticipantId($participant_id);
-                
+
                 if ($abstractAsAuthor) {
                     // Get the full abstract details
                     $abstract = $this->abstractModel->find($abstractAsAuthor->abstract_id);
@@ -280,7 +283,9 @@ class AbstractsApiController extends ApiBaseController
 
         if (!$abstract) {
             return $this->failNotFound('Abstract not found');
-        }        // Get is_participant value first to determine validation rules
+        }
+
+        // Get is_participant value first to determine validation rules
         $is_participant = (int)$this->request->getPost('is_participant');
 
         // Set validation rules based on is_participant value
@@ -394,13 +399,12 @@ class AbstractsApiController extends ApiBaseController
         // Validate request
         $rules = [
             'program_id' => 'required|numeric',
+            'primary_participant_id' => 'required|numeric',
             'title' => 'required|string',
-            'participant_id' => 'required|numeric',
-            'full_name' => 'required|string',
-            'institution' => 'string',
-            'email' => 'required|valid_email',
-            'abstract_content' => 'required|string',
-            'keywords' => 'permit_empty|string'
+            'content' => 'permit_empty|string',
+            'abstract_topic_id' => 'required|numeric',
+            'keywords' => 'permit_empty|string',
+            'status' => 'permit_empty|string|in_list[draft,submitted,under_review,accepted,rejected]', // Default to 'draft'
         ];
 
         if (!$this->validate($rules)) {
@@ -413,7 +417,9 @@ class AbstractsApiController extends ApiBaseController
 
         if (!$program) {
             return $this->failNotFound('Program not found');
-        }        // Check if participant exists
+        }
+
+        // Check if participant exists
         $participant_id = $this->request->getPost('participant_id');
         $participant = $this->participantModel->find($participant_id);
 
@@ -447,8 +453,9 @@ class AbstractsApiController extends ApiBaseController
             // Create abstract data
             $abstractData = [
                 'program_id' => $program_id,
+                'abstract_topic_id' => $this->request->getPost('abstract_topic_id') ?? null,
                 'primary_participant_id' => $participant_id, // Set participant as primary submitter
-                'status' => 'submitted',
+                'status' => 'draft', // Default status
                 'is_active' => 1,
                 'is_deleted' => 0
             ];
@@ -462,8 +469,8 @@ class AbstractsApiController extends ApiBaseController
                 'abstract_id' => $abstract_id,
                 'version_number' => 1,
                 'title' => $this->request->getPost('title'),
-                'content' => $this->request->getPost('abstract_content'),
-                'keywords' => $this->request->getPost('keywords') ?? '',
+                'content' => $this->request->getPost('content'),
+                'keywords' => $this->request->getPost('keywords'),
                 'is_active' => 1,
                 'is_deleted' => 0
             ];
@@ -471,13 +478,26 @@ class AbstractsApiController extends ApiBaseController
             // Insert abstract version
             $this->abstractVersionModel->insert($versionData);
 
+            // get user by participant_id
+            $participant = $this->participantModel->find($participant_id);
+            if (!$participant) {
+                return $this->failNotFound('Participant not found');
+            }
+
+            // Check if participant is a user
+            $user = $this->userModel->where('user_id', $participant->user_id)->first();
+
+            if (!$user) {
+                return $this->failNotFound('User not found for the participant');
+            }
+
             // Add the participant as an author
             $authorData = [
                 'abstract_id' => $abstract_id,
                 'participant_id' => $participant_id,
-                'full_name' => $this->request->getPost('full_name'),
-                'institution' => $this->request->getPost('institution'),
-                'email' => $this->request->getPost('email'),
+                'full_name' => $participant->full_name,
+                'institution' => $participant->institution,
+                'email' => $user->email,
                 'is_participant' => 1, // Mark as a participant
                 'is_active' => 1,
                 'is_deleted' => 0

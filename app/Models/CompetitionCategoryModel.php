@@ -33,7 +33,6 @@ class CompetitionCategoryModel extends Model
     protected $protectFields  = true;
 
     protected $validationRules      = [
-        'program_category_id' => 'required|numeric',
         'program_id'          => 'required|numeric',
         'category'            => 'required|min_length[3]',
         'desc'                => 'permit_empty',
@@ -41,7 +40,19 @@ class CompetitionCategoryModel extends Model
         'is_deleted'          => 'permit_empty|in_list[0,1]'
     ];
 
-    protected $validationMessages   = [];
+    protected $validationMessages   = [
+        'program_id' => [
+            'required' => 'Program ID is required.',
+            'numeric'  => 'Program ID must be a number.'
+        ],
+        'category' => [
+            'required'    => 'Category name is required.',
+            'min_length'  => 'Category name must be at least 3 characters long.'
+        ],
+        'desc' => [
+            'permit_empty' => 'Description is optional.'
+        ],
+    ];
 
 
     // get competition categories by program ID
