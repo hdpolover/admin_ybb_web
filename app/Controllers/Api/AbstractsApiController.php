@@ -9,6 +9,7 @@ use App\Models\ProgramModel;
 use App\Models\ParticipantModel;
 use App\Models\ParticipantStatusModel;
 use App\Models\AbstractTopicModel;
+use App\Models\AbstractSettingModel;
 use App\Models\UserModel;
 
 use App\Controllers\Api\ApiBaseController;
@@ -17,13 +18,13 @@ use CodeIgniter\HTTP\RequestInterface;
 use Psr\Log\LoggerInterface;
 
 class AbstractsApiController extends ApiBaseController
-{
-    protected $abstractModel;
+{    protected $abstractModel;
     protected $abstractVersionModel;
     protected $abstractAuthorModel;
     protected $programModel;
     protected $participantModel;
     protected $abstractTopicModel;
+    protected $abstractSettingModel;
     protected $participantStatusModel;
     protected $userModel;
 
@@ -36,15 +37,14 @@ class AbstractsApiController extends ApiBaseController
         \Psr\Log\LoggerInterface $logger
     ) {
         // Call parent initializer
-        parent::initController($request, $response, $logger);
-
-        // Initialize models
+        parent::initController($request, $response, $logger);        // Initialize models
         $this->abstractModel = new AbstractModel();
         $this->abstractVersionModel = new AbstractVersionModel();
         $this->abstractAuthorModel = new AbstractAuthorModel();
         $this->programModel = new ProgramModel();
         $this->participantModel = new ParticipantModel();
         $this->abstractTopicModel = new AbstractTopicModel();
+        $this->abstractSettingModel = new AbstractSettingModel();
         $this->participantStatusModel = new ParticipantStatusModel();
         $this->userModel = new UserModel();
     }
@@ -62,15 +62,34 @@ class AbstractsApiController extends ApiBaseController
             return $this->failNotFound('Abstract not found');
         }
 
-        try {
-            // Get abstract by id
-            $abstractDetails = $this->abstractModel->getAbstractById($id);
+        return $this->respondSuccess(
+            $abstract
+        );
+    }
 
-            return $this->respondSuccess([
-                'abstract' => $abstractDetails
-            ]);
+
+    /**
+     * Get all abstract versions by abstract id
+     * GET /api/abstracts/{abstract_id}/versions
+     */
+    public function getAllAbstractVersionsByAbstractId($abstract_id)
+    {
+        // Check if abstract exists
+        $abstract = $this->abstractModel->find($abstract_id);
+
+        if (!$abstract) {
+            return $this->failNotFound('Abstract not found');
+        }
+
+        try {
+            // Get all abstract versions by abstract id
+            $abstractVersions = $this->abstractVersionModel->getAllAbstractVersionsByAbstractId($abstract_id);
+
+            return $this->respondSuccess(
+                $abstractVersions
+            );
         } catch (\Exception $e) {
-            return $this->failServerError('Failed to retrieve abstract: ' . $e->getMessage());
+            return $this->failServerError('Failed to retrieve abstract versions: ' . $e->getMessage());
         }
     }
 
@@ -153,31 +172,6 @@ class AbstractsApiController extends ApiBaseController
         }
     }
 
-    /**
-     * Get all abstract versions by abstract id
-     * GET /api/abstracts/{abstract_id}/versions
-     */
-    public function getAllAbstractVersionsByAbstractId($abstract_id)
-    {
-        // Check if abstract exists
-        $abstract = $this->abstractModel->find($abstract_id);
-
-        if (!$abstract) {
-            return $this->failNotFound('Abstract not found');
-        }
-
-        try {
-            // Get all abstract versions by abstract id
-            $abstractVersions = $this->abstractVersionModel->getAllAbstractVersionsByAbstractId($abstract_id);
-
-            return $this->respondSuccess([
-                'abstract_versions' => $abstractVersions,
-                'total' => count($abstractVersions)
-            ]);
-        } catch (\Exception $e) {
-            return $this->failServerError('Failed to retrieve abstract versions: ' . $e->getMessage());
-        }
-    }
 
     function isEligibleForSubmission($participant_id)
     {
@@ -187,7 +181,7 @@ class AbstractsApiController extends ApiBaseController
         // get participant status from the model
         $participantStatusResult = $this->participantStatusModel->getParticipantStatusById($participant_id);
 
-        if ($participantStatusResult) {
+        if ($participantStatusResult && is_object($participantStatusResult)) {
             // get form status from the field
             // form_status of 2 means the participant has already submitted the form and is eligible for abstract submission
             $hasSubmittedForm = $participantStatusResult->form_status == 2;
@@ -230,7 +224,8 @@ class AbstractsApiController extends ApiBaseController
             }
 
             if ($abstract) {
-                $data['abstract'] = $abstract;
+                // Convert the abstract object to an array
+                $data['abstract'] = (array) $abstract;
 
                 // Get additional details for the abstract
                 $abstractVersions = $this->abstractVersionModel->getAllAbstractVersionsByAbstractId($abstract->id);
@@ -409,10 +404,8 @@ class AbstractsApiController extends ApiBaseController
 
         if (!$this->validate($rules)) {
             return $this->failValidationErrors($this->validator->getErrors());
-        }
-
-        // Check if program exists
-        $program_id = $this->request->getPost('program_id');
+        }        // Check if program exists
+        $program_id = $this->getInput('program_id');
         $program = $this->programModel->find($program_id);
 
         if (!$program) {
@@ -420,11 +413,25 @@ class AbstractsApiController extends ApiBaseController
         }
 
         // Check if participant exists
-        $participant_id = $this->request->getPost('participant_id');
+        $participant_id = $this->getInput('primary_participant_id');
         $participant = $this->participantModel->find($participant_id);
 
         if (!$participant) {
             return $this->failNotFound('Participant not found');
+        }
+
+        // Check if abstract topic exists
+        $abstract_topic_id = $this->getInput('abstract_topic_id');
+        if (!empty($abstract_topic_id)) {
+            $topic = $this->abstractTopicModel->find($abstract_topic_id);
+            if (!$topic) {
+                return $this->failNotFound('Abstract topic not found');
+            }
+
+            // Check if topic belongs to the selected program
+            if ($topic->program_id != $program_id) {
+                return $this->fail('This abstract topic does not belong to the selected program', 400);
+            }
         }
 
         // Check if participant is eligible for abstract submission
@@ -440,37 +447,46 @@ class AbstractsApiController extends ApiBaseController
         }
 
         // Check if participant is already an author in any abstract
-        $existingAsAuthor = $this->abstractAuthorModel->where('participant_id', $participant_id)->first();
-
-        if ($existingAsAuthor) {
+        $existingAsAuthor = $this->abstractAuthorModel->where('participant_id', $participant_id)->first();        if ($existingAsAuthor) {
             return $this->fail('This participant is already an author for another abstract', 409);
         }
 
-        try {
-            // Begin transaction
+        // Validate character limits based on program's abstract settings
+        $title = $this->getInput('title');
+        $content = $this->getInput('content');
+        $keywords = $this->getInput('keywords');
+        
+        $validation = $this->validateCharacterLimits($program_id, $title, $content, $keywords);
+          if (!$validation['valid']) {
+            return $this->fail('Character limit validation failed: ' . implode(', ', $validation['errors']), 400);
+        }
+
+        try {// Begin transaction
             $this->abstractModel->db->transBegin();
 
             // Create abstract data
             $abstractData = [
                 'program_id' => $program_id,
-                'abstract_topic_id' => $this->request->getPost('abstract_topic_id') ?? null,
                 'primary_participant_id' => $participant_id, // Set participant as primary submitter
                 'status' => 'draft', // Default status
                 'is_active' => 1,
                 'is_deleted' => 0
             ];
 
+            // Add abstract_topic_id only if it's provided and valid
+            if (!empty($abstract_topic_id)) {
+                $abstractData['abstract_topic_id'] = $abstract_topic_id;
+            }
+
             // Insert abstract
             $this->abstractModel->insert($abstractData);
-            $abstract_id = $this->abstractModel->getInsertID();
-
-            // Create first version of abstract
+            $abstract_id = $this->abstractModel->getInsertID(); // Create first version of abstract
             $versionData = [
                 'abstract_id' => $abstract_id,
                 'version_number' => 1,
-                'title' => $this->request->getPost('title'),
-                'content' => $this->request->getPost('content'),
-                'keywords' => $this->request->getPost('keywords'),
+                'title' => $this->getInput('title'),
+                'content' => $this->getInput('content'),
+                'keywords' => $this->getInput('keywords'),
                 'is_active' => 1,
                 'is_deleted' => 0
             ];
@@ -485,7 +501,7 @@ class AbstractsApiController extends ApiBaseController
             }
 
             // Check if participant is a user
-            $user = $this->userModel->where('user_id', $participant->user_id)->first();
+            $user = $this->userModel->find($participant->user_id);
 
             if (!$user) {
                 return $this->failNotFound('User not found for the participant');
@@ -524,6 +540,7 @@ class AbstractsApiController extends ApiBaseController
         } catch (\Exception $e) {
             // Rollback transaction if an error occurs
             $this->abstractModel->db->transRollback();
+            log_message('error', 'Failed to create abstract: ' . $e->getMessage());
             return $this->failServerError('Failed to create abstract: ' . $e->getMessage());
         }
     }
@@ -830,68 +847,68 @@ class AbstractsApiController extends ApiBaseController
         }
     }
 
-    /**
-     * Create a new abstract version
-     * POST /api/abstracts/{abstract_id}/versions
-     */    public function createAbstractVersion($abstract_id)
-    {
-        // Check if abstract exists
-        $abstract = $this->abstractModel->find($abstract_id);
+    // /**
+    //  * Create a new abstract version
+    //  * POST /api/abstracts/{abstract_id}/versions
+    //  */    public function createAbstractVersion($abstract_id)
+    // {
+    //     // Check if abstract exists
+    //     $abstract = $this->abstractModel->find($abstract_id);
 
-        if (!$abstract) {
-            return $this->failNotFound('Abstract not found');
-        }
+    //     if (!$abstract) {
+    //         return $this->failNotFound('Abstract not found');
+    //     }
 
-        // Check if the primary participant is eligible for abstract submission
-        if (!$this->isEligibleForSubmission($abstract->primary_participant_id)) {
-            return $this->fail('Primary participant is not eligible for abstract submission. Form status must be 2 (submitted).', 403);
-        }
+    //     // Check if the primary participant is eligible for abstract submission
+    //     if (!$this->isEligibleForSubmission($abstract->primary_participant_id)) {
+    //         return $this->fail('Primary participant is not eligible for abstract submission. Form status must be 2 (submitted).', 403);
+    //     }
 
-        // Validate request
-        $rules = [
-            'title' => 'required|string',
-            'content' => 'required|string',
-            'keywords' => 'permit_empty|string'
-        ];
+    //     // Validate request
+    //     $rules = [
+    //         'title' => 'required|string',
+    //         'content' => 'required|string',
+    //         'keywords' => 'permit_empty|string'
+    //     ];
 
-        if (!$this->validate($rules)) {
-            return $this->failValidationErrors($this->validator->getErrors());
-        }
+    //     if (!$this->validate($rules)) {
+    //         return $this->failValidationErrors($this->validator->getErrors());
+    //     }
 
-        try {
-            // Get the latest version
-            $latestVersion = $this->abstractVersionModel->where('abstract_id', $abstract_id)
-                ->orderBy('version_number', 'DESC')
-                ->first();
+    //     try {
+    //         // Get the latest version
+    //         $latestVersion = $this->abstractVersionModel->where('abstract_id', $abstract_id)
+    //             ->orderBy('version_number', 'DESC')
+    //             ->first();
 
-            $newVersionNumber = $latestVersion ? $latestVersion->version_number + 1 : 1;
+    //         $newVersionNumber = $latestVersion ? $latestVersion->version_number + 1 : 1;
 
-            // Create new version data
-            $versionData = [
-                'abstract_id' => $abstract_id,
-                'title' => $this->request->getPost('title'),
-                'content' => $this->request->getPost('content'),
-                'keywords' => $this->request->getPost('keywords') ?? '',
-                'version_number' => $newVersionNumber,
-                'is_active' => 1,
-                'is_deleted' => 0
-            ];
+    //         // Create new version data
+    //         $versionData = [
+    //             'abstract_id' => $abstract_id,
+    //             'title' => $this->request->getPost('title'),
+    //             'content' => $this->request->getPost('content'),
+    //             'keywords' => $this->request->getPost('keywords') ?? '',
+    //             'version_number' => $newVersionNumber,
+    //             'is_active' => 1,
+    //             'is_deleted' => 0
+    //         ];
 
-            // Insert new version
-            $this->abstractVersionModel->insert($versionData);
-            $versionId = $this->abstractVersionModel->getInsertID();
+    //         // Insert new version
+    //         $this->abstractVersionModel->insert($versionData);
+    //         $versionId = $this->abstractVersionModel->getInsertID();
 
-            // Get the newly created version
-            $newVersion = $this->abstractVersionModel->getAbstractVersionById($versionId);
+    //         // Get the newly created version
+    //         $newVersion = $this->abstractVersionModel->getAbstractVersionById($versionId);
 
-            return $this->respondCreated([
-                'message' => 'Abstract version created successfully',
-                'abstract_version' => $newVersion
-            ]);
-        } catch (\Exception $e) {
-            return $this->failServerError('Failed to create abstract version: ' . $e->getMessage());
-        }
-    }
+    //         return $this->respondCreated([
+    //             'message' => 'Abstract version created successfully',
+    //             'abstract_version' => $newVersion
+    //         ]);
+    //     } catch (\Exception $e) {
+    //         return $this->failServerError('Failed to create abstract version: ' . $e->getMessage());
+    //     }
+    // }
 
     /**
      * Get all abstracts with optional pagination and filtering
@@ -948,4 +965,548 @@ class AbstractsApiController extends ApiBaseController
             return $this->failServerError('Failed to retrieve abstracts: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Debug helper method to test abstract insertion with abstract_topic_id
+     */
+    public function debugInsertAbstract()
+    {
+        // For debugging: print allowed fields for the abstract model
+        $field = $this->abstractModel->fillable;
+        print_r($field);
+
+        // Check the allowed fields for the abstract model
+        $allowedFields = $this->abstractModel->allowedFields;
+        echo "Allowed fields for AbstractModel: \n";
+        print_r($allowedFields);
+
+        // Insert data with abstract_topic_id
+        $data = [
+            'program_id' => $this->getInput('program_id'),
+            'abstract_topic_id' => $this->getInput('abstract_topic_id'),
+            'primary_participant_id' => $this->getInput('primary_participant_id'),
+            'status' => 'draft',
+            'is_active' => 1,
+            'is_deleted' => 0
+        ];
+
+        // Log the data
+        log_message('debug', 'Abstract data to be inserted: ' . json_encode($data));
+
+        // Try to insert abstract
+        try {
+            $this->abstractModel->insert($data);
+            $abstract_id = $this->abstractModel->getInsertID();
+            echo "Abstract created successfully with ID: " . $abstract_id;
+        } catch (\Exception $e) {
+            echo "Failed to create abstract: " . $e->getMessage();
+            log_message('error', 'Insert abstract exception: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Update an existing abstract version
+     * PUT /api/abstracts/version/{version_id}
+     */
+    public function updateAbstractVersion($version_id)
+    {
+        // Check if abstract version exists
+        $abstractVersion = $this->abstractVersionModel->find($version_id);
+
+        if (!$abstractVersion) {
+            return $this->failNotFound('Abstract version not found');
+        }
+
+        // Get the abstract to check permissions
+        $abstract = $this->abstractModel->find($abstractVersion->abstract_id);
+
+        if (!$abstract) {
+            return $this->failNotFound('Parent abstract not found');
+        }
+
+        // Validate request
+        $rules = [
+            'title' => 'required|string',
+            'content' => 'required|string',
+            'keywords' => 'permit_empty|string'
+        ];
+
+        if (!$this->validate($rules)) {
+            return $this->failValidationErrors($this->validator->getErrors());
+        }
+
+        try {
+            // Build update data
+            $updateData = [
+                'title' => $this->request->getVar('title'),
+                'content' => $this->request->getVar('content'),
+                'keywords' => $this->request->getVar('keywords') ?? '',
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+
+            // Begin transaction
+            $this->abstractVersionModel->db->transBegin();
+
+            // Update abstract version
+            $this->abstractVersionModel->update($version_id, $updateData);
+
+            // Commit transaction if successful
+            if ($this->abstractVersionModel->db->transStatus() === false) {
+                $this->abstractVersionModel->db->transRollback();
+                return $this->failServerError('Failed to update abstract version');
+            } else {
+                $this->abstractVersionModel->db->transCommit();
+            }
+
+            // Get the updated abstract version
+            $updatedVersion = $this->abstractVersionModel->getAbstractVersionById($version_id);
+
+            return $this->respondUpdated([
+                'message' => 'Abstract version updated successfully',
+                'abstract_version' => $updatedVersion
+            ]);
+        } catch (\Exception $e) {
+            // Rollback transaction if an error occurs
+            if (isset($this->abstractVersionModel->db) && $this->abstractVersionModel->db->transStatus() !== false) {
+                $this->abstractVersionModel->db->transRollback();
+            }
+            return $this->failServerError('Failed to update abstract version: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Save an abstract version
+     * POST /api/abstracts/{abstract_id}/save-version
+     *
+     * Handles saving an abstract version for a participant based on various conditions:
+     * - If there is an existing draft version, update it.
+     * - If editing a submitted version, create a new draft version with incremented version_number.
+     * - If submitting a version, mark it as submitted and set all other versions as inactive.
+     * - Only one version should be active per abstract at a time.
+     * - Reviewers can only see versions where status = 'submitted' and is_active = true.
+     * - Participants can see all versions (drafts and submitted).
+     */
+    public function saveAbstractVersion($abstract_id)
+    {
+        // Check if abstract exists
+        $abstract = $this->abstractModel->find($abstract_id);
+        if (!$abstract) {
+            return $this->failNotFound('Abstract not found');
+        }
+
+        // Check if the primary participant is eligible for abstract submission
+        if (!$this->isEligibleForSubmission($abstract->primary_participant_id)) {
+            return $this->fail('Primary participant is not eligible for abstract submission. Form status must be 2 (submitted).', 403);
+        }
+
+        // Validate request
+        $rules = [
+            'title' => 'required|string',
+            'content' => 'required|string',
+            'keywords' => 'permit_empty|string',
+            'refs' => 'permit_empty|string',
+            'status' => 'required|in_list[draft,submitted]',
+            'version_id' => 'permit_empty|numeric' // If editing an existing version
+        ];        if (!$this->validate($rules)) {
+            return $this->failValidationErrors($this->validator->getErrors());
+        }
+
+        // Extract input variables
+        $title = $this->request->getVar('title');
+        $content = $this->request->getVar('content');
+        $keywords = $this->request->getVar('keywords') ?? '';
+        $refs = $this->request->getVar('refs') ?? '';
+        $status = $this->request->getVar('status');
+        $version_id = $this->request->getVar('version_id');
+
+        // Validate character limits based on program's abstract settings
+        $validation = $this->validateCharacterLimits($abstract->program_id, $title, $content, $keywords, $refs);
+        
+        if (!$validation['valid']) {
+            return $this->fail('Character limit validation failed: ' . implode(', ', $validation['errors']), 400);
+        }
+
+        // Start a database transaction
+        $this->abstractVersionModel->db->transBegin();
+
+        try {
+            if ($version_id) {
+                $existingVersion = $this->abstractVersionModel->find($version_id);
+
+                if (!$existingVersion) {
+                    return $this->failNotFound('Abstract version not found');
+                }
+
+                // If editing a submitted version, create a new draft
+                if ($existingVersion->status === 'submitted') {
+                    // Get the latest version number and increment
+                    $latestVersion = $this->abstractVersionModel->where('abstract_id', $abstract_id)
+                        ->orderBy('version_number', 'DESC')
+                        ->first();
+
+                    $newVersionNumber = $latestVersion ? $latestVersion->version_number + 1 : 1;
+
+                    // Create a new draft version
+                    $versionData = [
+                        'abstract_id' => $abstract_id,
+                        'title' => $title,
+                        'content' => $content,
+                        'keywords' => $keywords,
+                        'refs' => $refs,
+                        'version_number' => $newVersionNumber,
+                        'status' => 'draft', // Always start as draft when creating from a submitted version
+                        'is_active' => 0, // Not active until submitted
+                        'is_deleted' => 0
+                    ];
+
+                    // Insert new version
+                    $this->abstractVersionModel->insert($versionData);
+                    $newVersionId = $this->abstractVersionModel->getInsertID();
+                    $resultVersionId = $newVersionId;
+                } else {
+                    // If editing a draft version, update it
+                    $updateData = [
+                        'title' => $title,
+                        'content' => $content,
+                        'keywords' => $keywords,
+                        'refs' => $refs,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ];
+
+                    // If submitting, update status
+                    if ($status === 'submitted') {
+                        $updateData['status'] = 'submitted';
+                    }
+
+                    // Update existing version
+                    $this->abstractVersionModel->update($version_id, $updateData);
+                    $resultVersionId = $version_id;
+                }
+            } else {
+                // Check if there's a draft version first
+                $draftVersion = $this->abstractVersionModel->where('abstract_id', $abstract_id)
+                    ->where('status', 'draft')
+                    ->where('is_deleted', 0)
+                    ->first();
+
+                if ($draftVersion) {
+                    // Update the existing draft
+                    $updateData = [
+                        'title' => $title,
+                        'content' => $content,
+                        'keywords' => $keywords,
+                        'refs' => $refs,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ];
+
+                    // If submitting, update status
+                    if ($status === 'submitted') {
+                        $updateData['status'] = 'submitted';
+                    }
+
+                    // Update existing draft
+                    $this->abstractVersionModel->update($draftVersion->id, $updateData);
+                    $resultVersionId = $draftVersion->id;
+                } else {
+                    // Create new version (no draft exists)
+                    $latestVersion = $this->abstractVersionModel->where('abstract_id', $abstract_id)
+                        ->orderBy('version_number', 'DESC')
+                        ->first();
+
+                    $newVersionNumber = $latestVersion ? $latestVersion->version_number + 1 : 1;
+
+                    $versionData = [
+                        'abstract_id' => $abstract_id,
+                        'title' => $title,
+                        'content' => $content,
+                        'keywords' => $keywords,
+                        'refs' => $refs,
+                        'version_number' => $newVersionNumber,
+                        'status' => $status,
+                        'is_active' => 0, // Not active until submitted and processed
+                        'is_deleted' => 0
+                    ];
+
+                    // Insert new version
+                    $this->abstractVersionModel->insert($versionData);
+                    $resultVersionId = $this->abstractVersionModel->getInsertID();
+                }
+            }
+
+            // If submitting a version, update active status and abstract record
+            if ($status === 'submitted') {
+                // First, set all versions of this abstract to inactive
+                $this->abstractVersionModel->where('abstract_id', $abstract_id)
+                    ->set(['is_active' => 0])
+                    ->update();
+
+                // Then set this version as active
+                $this->abstractVersionModel->update($resultVersionId, ['is_active' => 1]);
+
+                // Update the abstract record to point to this active version
+                $this->abstractModel->update($abstract_id, [
+                    'active_version_id' => $resultVersionId,
+                    'status' => 'submitted' // Update abstract status too
+                ]);
+            }
+
+            // Commit transaction if all operations are successful
+            if ($this->abstractVersionModel->db->transStatus() === false) {
+                $this->abstractVersionModel->db->transRollback();
+                return $this->failServerError('Failed to save abstract version');
+            } else {
+                $this->abstractVersionModel->db->transCommit();
+            }
+
+            // Get the saved version
+            $savedVersion = $this->abstractVersionModel->getAbstractVersionById($resultVersionId);
+
+            return $this->respondCreated([
+                'message' => 'Abstract version saved successfully',
+                'abstract_version' => $savedVersion,
+                'status' => $status
+            ]);
+        } catch (\Exception $e) {
+            // Rollback transaction if an error occurs
+            $this->abstractVersionModel->db->transRollback();
+            log_message('error', 'Failed to save abstract version: ' . $e->getMessage());
+            return $this->failServerError('Failed to save abstract version: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Validate character limits based on program's abstract settings
+     */
+    private function validateCharacterLimits($program_id, $title, $content, $keywords, $references = '')
+    {
+        // Get abstract settings for the program
+        $abstractSettings = $this->abstractSettingModel->where('program_id', $program_id)
+                                                       ->where('is_active', 1)
+                                                       ->first();
+        
+        if (!$abstractSettings) {
+            // If no settings found, return true (no limits enforced)
+            return ['valid' => true];
+        }
+
+        $errors = [];        // Validate title length
+        if (!empty($title) && strlen($title) > $abstractSettings->title_length) {
+            $errors['title'] = "Title exceeds maximum character limit of {$abstractSettings->title_length} characters.";
+        }
+
+        // Validate content length
+        if (!empty($content) && strlen($content) > $abstractSettings->content_length) {
+            $errors['content'] = "Content exceeds maximum character limit of {$abstractSettings->content_length} characters.";
+        }
+
+        // Validate keywords length
+        if (!empty($keywords) && strlen($keywords) > $abstractSettings->keywords_length) {
+            $errors['keywords'] = "Keywords exceed maximum character limit of {$abstractSettings->keywords_length} characters.";
+        }
+
+        // Validate references length
+        if (!empty($references) && strlen($references) > $abstractSettings->refs_length) {
+            $errors['references'] = "References exceed maximum character limit of {$abstractSettings->refs_length} characters.";
+        }
+
+        return [
+            'valid' => empty($errors),
+            'errors' => $errors,
+            'limits' => [
+                'title_limit' => $abstractSettings->title_length,
+                'content_limit' => $abstractSettings->content_length,
+                'keywords_limit' => $abstractSettings->keywords_length,
+                'references_limit' => $abstractSettings->refs_length
+            ]
+        ];
+    }
+
+    /**
+     * Create a new abstract version
+     * POST /api/abstracts/{abstract_id}/versions
+     */
+    public function createAbstractVersion($abstract_id)
+    {
+        // Check if abstract exists
+        $abstract = $this->abstractModel->find($abstract_id);
+
+        if (!$abstract) {
+            return $this->failNotFound('Abstract not found');
+        }
+
+        // Check if the primary participant is eligible for abstract submission
+        if (!$this->isEligibleForSubmission($abstract->primary_participant_id)) {
+            return $this->fail('Primary participant is not eligible for abstract submission. Form status must be 2 (submitted).', 403);
+        }
+
+        // Validate request
+        $rules = [
+            'title' => 'required|string',
+            'content' => 'required|string',
+            'keywords' => 'permit_empty|string'
+        ];
+
+        if (!$this->validate($rules)) {
+            return $this->failValidationErrors($this->validator->getErrors());
+        }
+
+        // Check character limits based on program settings
+        $title = $this->request->getPost('title');
+        $content = $this->request->getPost('content');
+        $keywords = $this->request->getPost('keywords');
+        $refs = $this->request->getPost('refs');
+
+        $limitValidation = $this->validateCharacterLimits($abstract->program_id, $title, $content, $keywords, $refs);
+
+        if (!$limitValidation['valid']) {
+            return $this->failValidationErrors($limitValidation['errors']);
+        }
+
+        try {
+            // Get the latest version
+            $latestVersion = $this->abstractVersionModel->where('abstract_id', $abstract_id)
+                ->orderBy('version_number', 'DESC')
+                ->first();
+
+            $newVersionNumber = $latestVersion ? $latestVersion->version_number + 1 : 1;
+
+            // Create new version data
+            $versionData = [
+                'abstract_id' => $abstract_id,
+                'title' => $this->request->getPost('title'),
+                'content' => $this->request->getPost('content'),
+                'keywords' => $this->request->getPost('keywords') ?? '',
+                'version_number' => $newVersionNumber,
+                'is_active' => 1,
+                'is_deleted' => 0
+            ];
+
+            // Insert new version
+            $this->abstractVersionModel->insert($versionData);
+            $versionId = $this->abstractVersionModel->getInsertID();
+
+            // Get the newly created version
+            $newVersion = $this->abstractVersionModel->getAbstractVersionById($versionId);
+
+            return $this->respondCreated([
+                'message' => 'Abstract version created successfully',
+                'abstract_version' => $newVersion
+            ]);
+        } catch (\Exception $e) {
+            return $this->failServerError('Failed to create abstract version: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get abstract character limits for a program
+     * GET /api/abstracts/programs/{program_id}/limits
+     */
+    public function getAbstractLimits($program_id)
+    {
+        // Check if program exists
+        $program = $this->programModel->find($program_id);
+
+        if (!$program) {
+            return $this->failNotFound('Program not found');
+        }
+
+        // Get abstract settings for the program
+        $abstractSettings = $this->abstractSettingModel->where('program_id', $program_id)
+                                                       ->where('is_active', 1)
+                                                       ->first();
+
+        if (!$abstractSettings) {
+            return $this->respond([
+                'status' => 'success',
+                'message' => 'No character limits configured for this program',
+                'data' => [
+                    'has_limits' => false,
+                    'limits' => null
+                ]
+            ]);
+        }
+
+        return $this->respond([
+            'status' => 'success',
+            'message' => 'Abstract character limits retrieved successfully',
+            'data' => [
+                'has_limits' => true,                'limits' => [
+                    'title_limit' => $abstractSettings->title_length,
+                    'content_limit' => $abstractSettings->content_length,
+                    'keywords_limit' => $abstractSettings->keywords_length,
+                    'references_limit' => $abstractSettings->refs_length
+                ],
+                'settings' => [
+                    'id' => $abstractSettings->id,
+                    'program_id' => $abstractSettings->program_id,
+                    'is_active' => $abstractSettings->is_active,
+                    'created_at' => $abstractSettings->created_at,
+                    'updated_at' => $abstractSettings->updated_at
+                ]
+            ]
+        ]);
+    }
+
+    // /**
+    //  * Create a new abstract version
+    //  * POST /api/abstracts/{abstract_id}/versions
+    //  */    public function createAbstractVersion($abstract_id)
+    // {
+    //     // Check if abstract exists
+    //     $abstract = $this->abstractModel->find($abstract_id);
+
+    //     if (!$abstract) {
+    //         return $this->failNotFound('Abstract not found');
+    //     }
+
+    //     // Check if the primary participant is eligible for abstract submission
+    //     if (!$this->isEligibleForSubmission($abstract->primary_participant_id)) {
+    //         return $this->fail('Primary participant is not eligible for abstract submission. Form status must be 2 (submitted).', 403);
+    //     }
+
+    //     // Validate request
+    //     $rules = [
+    //         'title' => 'required|string',
+    //         'content' => 'required|string',
+    //         'keywords' => 'permit_empty|string'
+    //     ];
+
+    //     if (!$this->validate($rules)) {
+    //         return $this->failValidationErrors($this->validator->getErrors());
+    //     }
+
+    //     try {
+    //         // Get the latest version
+    //         $latestVersion = $this->abstractVersionModel->where('abstract_id', $abstract_id)
+    //             ->orderBy('version_number', 'DESC')
+    //             ->first();
+
+    //         $newVersionNumber = $latestVersion ? $latestVersion->version_number + 1 : 1;
+
+    //         // Create new version data
+    //         $versionData = [
+    //             'abstract_id' => $abstract_id,
+    //             'title' => $this->request->getPost('title'),
+    //             'content' => $this->request->getPost('content'),
+    //             'keywords' => $this->request->getPost('keywords') ?? '',
+    //             'version_number' => $newVersionNumber,
+    //             'is_active' => 1,
+    //             'is_deleted' => 0
+    //         ];
+
+    //         // Insert new version
+    //         $this->abstractVersionModel->insert($versionData);
+    //         $versionId = $this->abstractVersionModel->getInsertID();
+
+    //         // Get the newly created version
+    //         $newVersion = $this->abstractVersionModel->getAbstractVersionById($versionId);
+
+    //         return $this->respondCreated([
+    //             'message' => 'Abstract version created successfully',
+    //             'abstract_version' => $newVersion
+    //         ]);
+    //     } catch (\Exception $e) {
+    //         return $this->failServerError('Failed to create abstract version: ' . $e->getMessage());
+    //     }
+    // }
 }

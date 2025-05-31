@@ -6,7 +6,7 @@ use CodeIgniter\Model;
 
 class AbstractVersionModel extends Model
 {
-    // `id`, `abstract_id`, `title`, `content`, `keywords`, `version_number`, `created_at`, `updated_at`, `is_deleted`, `is_active`
+    // `id`, `abstract_id`, `title`, `content`, `keywords`, 'refs', `version_number`, 'status', `created_at`, `updated_at`, `is_deleted`, `is_active`
     protected $table = 'abstract_versions';
     protected $primaryKey = 'id';
     protected $returnType = 'object';
@@ -21,11 +21,14 @@ class AbstractVersionModel extends Model
         'title',
         'content',
         'keywords',
+        'refs',
         'version_number',
+
         'created_at',
         'updated_at',
         'is_deleted',
-        'is_active'
+        'is_active',
+        'status'
     ];
 
     protected $allowedFields = [
@@ -33,21 +36,25 @@ class AbstractVersionModel extends Model
         'title',
         'content',
         'keywords',
+        'refs',
         'version_number',
+        'status',
         'created_at',
         'updated_at',
         'is_deleted',
         'is_active'
-    ];
-
+    ];   
+    
     protected $validationRules = [
         'abstract_id' => 'required|integer',
         'title' => 'required|string|max_length[255]',
         'content' => 'required|string',
         'keywords' => 'string|max_length[255]',
+        'refs' => 'string|max_length[255]',
         'version_number' => 'required|integer',
-        'is_deleted' => 'boolean',
-        'is_active' => 'boolean'
+        'is_deleted' => 'in_list[0,1]',
+        'is_active' => 'in_list[0,1]',
+        'status' => 'in_list[draft,submitted]'
     ];
 
     // get abstract version by id

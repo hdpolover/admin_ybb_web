@@ -8,6 +8,7 @@ use App\Models\ProgramModel;
 use App\Models\PaymentModel;
 use App\Models\ParticipantEssayModel;
 use App\Models\ParticipantStatusModel;
+use App\Models\ParticipantSubthemeModel;
 use App\Services\ExcelExport;
 
 class Participants extends BaseController
@@ -18,6 +19,7 @@ class Participants extends BaseController
     protected $paymentModel;
     protected $participantEssayModel;
     protected $participantStatusModel;
+    protected $participantSubthemeModel;
 
     public function __construct()
     {
@@ -27,6 +29,7 @@ class Participants extends BaseController
         $this->paymentModel = new PaymentModel();
         $this->participantEssayModel = new ParticipantEssayModel();
         $this->participantStatusModel = new ParticipantStatusModel();
+        $this->participantSubthemeModel = new ParticipantSubthemeModel();
     }
 
     public function index()
@@ -201,9 +204,21 @@ class Participants extends BaseController
 
             // Get participant essays
             $essays = $this->participantEssayModel->getParticipantEssayByParticipantId($id);
-            $participant->essays = $essays;            // Get payment information
+            $participant->essays = $essays;            
+            
+            // Get payment information
             $payments = $this->paymentModel->getPaymentsByParticipantId($id);
             $participant->payments = $payments;
+
+            // get participant subtheme data with subtheme name
+            $participantSubtheme = $this->participantSubthemeModel
+                ->select('participant_subthemes.*, program_subthemes.name as subtheme_name')
+                ->join('program_subthemes', 'program_subthemes.id = participant_subthemes.program_subtheme_id', 'left')
+                ->where('participant_subthemes.participant_id', $id)
+                ->where('participant_subthemes.is_deleted', 0)
+                ->first();
+            
+            $participant->subtheme = $participantSubtheme;
 
             return view('users/participants/view', ['participant' => $participant]);
         } catch (\Exception $e) {

@@ -1,8 +1,41 @@
 <?= $this->include('partials/main') ?>
 
 <head>
-    <?php echo view('partials/title-meta', array('title'=>'Participant Details')); ?>
+    <?php echo view('partials/title-meta', array('title' => 'Participant Details')); ?>
     <?= $this->include('partials/head-css') ?>
+
+    <!-- Custom CSS for Essays Section -->
+    <style>
+        .essay-content {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            position: relative;
+        }
+
+        .essay-text {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            text-align: justify;
+        }
+
+        .essay-collection .card {
+            transition: all 0.3s ease;
+            border-left: 4px solid #0ab39c !important;
+        }
+
+        .essay-collection .card:hover {
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .avatar-title {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
 </head>
 
 <body>
@@ -16,7 +49,7 @@
         <div class="main-content">
             <div class="page-content">
                 <div class="container-fluid">
-                    <?php echo view('partials/page-title', array('pagetitle'=>'Participants', 'title'=>'Participant Details')); ?>
+                    <?php echo view('partials/page-title', array('pagetitle' => 'Participants', 'title' => 'Participant Details')); ?>
 
                     <!-- Participant Details Section -->
                     <div class="row">
@@ -26,14 +59,15 @@
                                     <div class="row">
                                         <!-- Participant Profile Image and Basic Info -->
                                         <div class="col-md-4">
-                                            <div class="text-center border-end p-4">                                                <div class="profile-user position-relative d-inline-block mx-auto mb-4">
-                                                    <img src="<?= !empty($participant->picture_url) ? $participant->picture_url : '/assets/images/users/avatar-1.jpg' ?>" 
-                                                        class="rounded-circle avatar-xl img-thumbnail user-profile-image" 
+                                            <div class="text-center border-end p-4">
+                                                <div class="profile-user position-relative d-inline-block mx-auto mb-4">
+                                                    <img src="<?= !empty($participant->picture_url) ? $participant->picture_url : '/assets/images/users/avatar-1.jpg' ?>"
+                                                        class="rounded-circle avatar-xl img-thumbnail user-profile-image"
                                                         alt="Participant Profile">
                                                 </div>
                                                 <h5 class="fs-17 mb-1"><?= $participant->full_name ?></h5>
                                                 <p class="text-muted mb-0">
-                                                    <i class="ri-account-circle-line align-bottom text-primary me-1"></i> 
+                                                    <i class="ri-account-circle-line align-bottom text-primary me-1"></i>
                                                     ID: <?= $participant->account_id ?>
                                                 </p>
                                                 <div class="mt-3">
@@ -44,7 +78,8 @@
                                                             <span class="badge bg-warning-subtle text-warning">Self Funded</span>
                                                         <?php endif; ?>
                                                     <?php endif; ?>
-                                                </div>                                                <div class="hstack gap-2 justify-content-center mt-4">
+                                                </div>
+                                                <div class="hstack gap-2 justify-content-center mt-4">
                                                     <a href="<?= site_url('users/participants/edit/' . $participant->id) ?>" class="btn btn-primary">
                                                         <i class="ri-pencil-line align-bottom"></i> Edit Profile
                                                     </a>
@@ -54,14 +89,15 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        
+
                                         <!-- Participant Quick Information -->
                                         <div class="col-md-8">
                                             <div class="p-4">
                                                 <h5 class="card-title mb-4">Contact Information</h5>
                                                 <div class="table-responsive">
                                                     <table class="table table-borderless mb-0">
-                                                        <tbody>                                                            <tr>
+                                                        <tbody>
+                                                            <tr>
                                                                 <th scope="row">Full Name</th>
                                                                 <td><?= $participant->full_name ?></td>
                                                             </tr>
@@ -95,7 +131,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Tabs Section -->
                     <div class="row">
                         <div class="col-lg-12">
@@ -124,7 +160,7 @@
                                         </li>
                                     </ul>
                                 </div>
-                                
+
                                 <div class="card-body p-4">
                                     <div class="tab-content">
                                         <!-- Personal Details Tab -->
@@ -135,7 +171,8 @@
                                                         <h5 class="card-title mb-3">Personal Information</h5>
                                                         <div class="table-responsive">
                                                             <table class="table table-borderless mb-0">
-                                                                <tbody>                                                                    <tr>
+                                                                <tbody>
+                                                                    <tr>
                                                                         <th scope="row" width="200">Birth Date</th>
                                                                         <td><?= !empty($participant->birthdate) ? date('d M Y', strtotime($participant->birthdate)) : 'N/A' ?></td>
                                                                     </tr>
@@ -164,13 +201,14 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                                
+
                                                 <div class="col-md-6">
                                                     <div class="mb-3">
                                                         <h5 class="card-title mb-3">Social Media & Others</h5>
                                                         <div class="table-responsive">
                                                             <table class="table table-borderless mb-0">
-                                                                <tbody>                                                                    <tr>
+                                                                <tbody>
+                                                                    <tr>
                                                                         <th scope="row" width="200">Instagram</th>
                                                                         <td><?= $participant->instagram_account ?? 'N/A' ?></td>
                                                                     </tr>
@@ -203,7 +241,7 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        
+
                                         <!-- Education & Experience Tab -->
                                         <div class="tab-pane" id="educationDetails" role="tabpanel">
                                             <div class="row">
@@ -212,7 +250,8 @@
                                                         <h5 class="card-title mb-3">Education</h5>
                                                         <div class="table-responsive">
                                                             <table class="table table-borderless mb-0">
-                                                                <tbody>                                                                    <tr>
+                                                                <tbody>
+                                                                    <tr>
                                                                         <th scope="row" width="200">Education Level</th>
                                                                         <td><?= $participant->education_level ?? 'N/A' ?></td>
                                                                     </tr>
@@ -233,13 +272,14 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                                
+
                                                 <div class="col-md-6">
                                                     <div class="mb-3">
                                                         <h5 class="card-title mb-3">Experience & Achievements</h5>
                                                         <div class="table-responsive">
                                                             <table class="table table-borderless mb-0">
-                                                                <tbody>                                                                    <tr>
+                                                                <tbody>
+                                                                    <tr>
                                                                         <th scope="row" width="200">Organizations</th>
                                                                         <td><?= $participant->organizations ?? 'N/A' ?></td>
                                                                     </tr>
@@ -270,7 +310,7 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        
+
                                         <!-- Emergency Contact Tab -->
                                         <div class="tab-pane" id="emergencyDetails" role="tabpanel">
                                             <div class="row">
@@ -279,7 +319,8 @@
                                                         <h5 class="card-title mb-3">Emergency Contact Information</h5>
                                                         <div class="table-responsive">
                                                             <table class="table table-borderless mb-0">
-                                                                <tbody>                                                                    <tr>
+                                                                <tbody>
+                                                                    <tr>
                                                                         <th scope="row" width="200">Emergency Contact</th>
                                                                         <td><?= $participant->emergency_account ?? 'N/A' ?></td>
                                                                     </tr>
@@ -303,39 +344,88 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                          <!-- Essays Tab -->
-                                        <div class="tab-pane" id="essaysTab" role="tabpanel">                                            <div class="row">
+                                        </div> <!-- Essays Tab -->
+                                        <div class="tab-pane" id="essaysTab" role="tabpanel">
+                                            <div class="row">
                                                 <div class="col-12">
+                                                    <!-- Subtheme Section with Icon -->
+                                                    <?php if (!empty($participant->subtheme)): ?>
+                                                        <div class="card border mb-4">
+                                                            <div class="card-body">
+                                                                <div class="d-flex align-items-center">
+                                                                    <div class="flex-shrink-0 me-3">
+                                                                        <i class="ri-focus-2-line text-primary fs-24"></i>
+                                                                    </div>
+                                                                    <div class="flex-grow-1">
+                                                                        <h5 class="fs-16 mb-1">Selected Subtheme</h5>
+                                                                        <p class="mb-0">
+                                                                            <span class="badge bg-primary-subtle text-primary fs-13"><?= htmlspecialchars($participant->subtheme->subtheme_name) ?></span>
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    <?php endif; ?>
+
+                                                    <!-- Essays Collection -->
                                                     <?php if (!empty($participant->essays)): ?>
-                                                        <div class="accordion" id="essaysAccordion">
-                                                            <?php $essayCount = 0; foreach ($participant->essays as $essay): $essayCount++; ?>
-                                                                <div class="accordion-item">
-                                                                    <h2 class="accordion-header" id="heading<?= $essayCount ?>">
-                                                                        <button class="accordion-button <?= $essayCount > 1 ? 'collapsed' : '' ?>" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<?= $essayCount ?>" aria-expanded="<?= $essayCount == 1 ? 'true' : 'false' ?>" aria-controls="collapse<?= $essayCount ?>">
-                                                                            <strong>Essay #<?= $essayCount ?>:</strong> 
-                                                                            <?= isset($essay['question']) ? htmlspecialchars(substr($essay['question'], 0, 100)) : 'Question ' . $essayCount ?>
-                                                                            <?= isset($essay['question']) && strlen($essay['question']) > 100 ? '...' : '' ?>
-                                                                        </button>
-                                                                    </h2>
-                                                                    <div id="collapse<?= $essayCount ?>" class="accordion-collapse collapse <?= $essayCount == 1 ? 'show' : '' ?>" aria-labelledby="heading<?= $essayCount ?>" data-bs-parent="#essaysAccordion">
-                                                                        <div class="accordion-body">
-                                                                            <div class="mb-4">
-                                                                                <h5 class="fs-14 mb-1">Question:</h5>
-                                                                                <p class="text-muted"><?= isset($essay['question']) ? nl2br(htmlspecialchars($essay['question'])) : 'No question available' ?></p>
+                                                        <h5 class="mb-3">Essay Responses</h5>
+                                                        <div class="essay-collection">
+                                                            <?php $essayCount = 1; ?>
+                                                            <?php foreach ($participant->essays as $essay): ?>
+                                                                <div class="card border mb-4">
+                                                                    <div class="card-header bg-light">
+                                                                        <div class="d-flex align-items-center">
+                                                                            <div class="flex-shrink-0 me-3">
+                                                                                <div class="avatar-sm">
+                                                                                    <div class="avatar-title rounded-circle bg-primary text-white">
+                                                                                        <?= $essayCount ?>
+                                                                                    </div>
+                                                                                </div>
                                                                             </div>
-                                                                            <div>
-                                                                                <h5 class="fs-14 mb-1">Answer:</h5>
-                                                                                <p class="text-muted"><?= isset($essay['answer']) ? nl2br(htmlspecialchars($essay['answer'])) : 'No answer provided' ?></p>
+                                                                            <div class="flex-grow-1">
+                                                                                <h5 class="card-title mb-0">
+                                                                                    <?= isset($essay['question']) ? nl2br(htmlspecialchars($essay['question'])) : 'No question available' ?>
+                                                                                </h5>
                                                                             </div>
                                                                         </div>
                                                                     </div>
+                                                                    <div class="card-body">
+                                                                        <?php if (isset($essay['answer']) && !empty($essay['answer'])): ?>
+                                                                            <div class="essay-content p-2">
+                                                                                <div class="position-relative">
+                                                                                    <div class="essay-icon position-absolute" style="top: 0; left: -10px; opacity: 0.1">
+                                                                                        <i class="ri-double-quotes-l fs-35 text-primary"></i>
+                                                                                    </div>
+                                                                                    <div class="ps-4 pt-2 pb-2 essay-text">
+                                                                                        <?= nl2br(htmlspecialchars($essay['answer'])) ?>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+
+                                                                            <!-- Word count indicator -->
+                                                                            <div class="d-flex justify-content-end mt-3">
+                                                                                <span class="badge bg-soft-secondary text-dark">
+                                                                                    <i class="ri-text me-1"></i>
+                                                                                    <?= str_word_count($essay['answer']) ?> words
+                                                                                </span>
+                                                                            </div>
+                                                                        <?php else: ?>
+                                                                            <div class="alert alert-warning mb-0">
+                                                                                <i class="ri-error-warning-line me-2"></i>No answer provided
+                                                                            </div>
+                                                                        <?php endif; ?>
+                                                                    </div>
                                                                 </div>
+                                                                <?php $essayCount++; ?>
                                                             <?php endforeach; ?>
                                                         </div>
                                                     <?php else: ?>
-                                                        <div class="alert alert-info mb-0">
-                                                            <p class="mb-0">No essay data available for this participant.</p>
+                                                        <div class="alert alert-info d-flex align-items-center mb-0" role="alert">
+                                                            <i class="ri-information-line me-3 fs-16"></i>
+                                                            <div>
+                                                                No essay data available for this participant.
+                                                            </div>
                                                         </div>
                                                     <?php endif; ?>
                                                 </div>
@@ -357,9 +447,8 @@
     </div>
     <!-- END layout-wrapper -->
 
-    <?= $this->include('partials/customizer') ?>
     <?= $this->include('partials/vendor-scripts') ?>
-    
+
     <!-- App js -->
     <script src="/assets/js/app.js"></script>
 </body>

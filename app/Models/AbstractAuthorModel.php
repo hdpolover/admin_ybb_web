@@ -46,9 +46,9 @@ class AbstractAuthorModel extends Model
         'full_name' => 'required|string|max_length[255]',
         'institution' => 'string|max_length[255]',
         'email' => 'required|valid_email|max_length[255]',
-        'is_active' => 'boolean',
-        'is_deleted' => 'boolean',
-        'is_participant' => 'boolean',
+        'is_active' => 'in_list[0,1]',
+        'is_deleted' => 'in_list[0,1]',
+        'is_participant' => 'in_list[0,1]',
         'participant_id' => 'integer'
     ];
 
@@ -59,14 +59,14 @@ class AbstractAuthorModel extends Model
         $builder->select('*')
             ->where('id', $id);
         return $builder->get()->getRow();
-    }
-
-    // get all abstract authors by abstract id
+    }    // get all abstract authors by abstract id
     public function getAllAbstractAuthorsByAbstractId($abstract_id)
     {
         $builder = $this->builder();
         $builder->select('*')
-            ->where('abstract_id', $abstract_id);
+            ->where('abstract_id', $abstract_id)
+            ->where('is_deleted', 0)
+            ->where('is_active', 1);
         return $builder->get()->getResult();
     }
 

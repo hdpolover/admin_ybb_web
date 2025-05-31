@@ -13,10 +13,14 @@ class AbstractModel extends Model
     protected $useAutoIncrement = true;
     public $timestamps = true;
     protected $createdField = 'created_at';
-    protected $updatedField = 'updated_at';    protected $fillable = [
+    protected $updatedField = 'updated_at';
+
+    protected $fillable = [
         'id',
         'primary_participant_id',
         'program_id',
+        'abstract_topic_id',
+        'active_version_id',
         'status',
         'is_active',
         'is_deleted',
@@ -27,11 +31,23 @@ class AbstractModel extends Model
     protected $allowedFields = [
         'primary_participant_id',
         'program_id',
+        'abstract_topic_id',
+        'active_version_id',
         'status',
         'is_active',
         'is_deleted',
         'created_at',
         'updated_at'
+    ];
+
+    protected $validationRules = [
+        'primary_participant_id' => 'required|integer',
+        'program_id' => 'required|integer',
+        'abstract_topic_id' => 'permit_empty|integer',
+        'active_version_id' => 'permit_empty|integer',
+        'status' => 'in_list[draft,submitted,accepted,rejected]',
+        'is_active' => 'in_list[0,1]',
+        'is_deleted' => 'in_list[0,1]'
     ];
 
     // get by primary participant id

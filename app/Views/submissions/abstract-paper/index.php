@@ -75,9 +75,10 @@
                                 </div><div class="card-body">                                    <table id="abstracts-table" class="table table-bordered dt-responsive nowrap table-striped align-middle" style="width:100%">                                        <thead class="table-light">
                                             <tr>
                                                 <th scope="col" style="width: 50px;">#</th>
+                                                <th scope="col">Title</th>
+                                                <th scope="col">Topic</th>
+                                                <th scope="col">Authors</th>
                                                 <th scope="col">Participant</th>
-                                                <th scope="col">Institution</th>
-                                                <th scope="col">Submission Date</th>
                                                 <th scope="col">Status</th>
                                                 <th scope="col">Action</th>
                                             </tr>
@@ -112,8 +113,7 @@
                                             <!-- Participants will be loaded via AJAX -->
                                         </select>
                                     </div>
-                                </div>
-                                <div class="row mb-3">
+                                </div>                                <div class="row mb-3">
                                     <div class="col-md-6">
                                         <label for="status" class="form-label">Status</label>                                        <select name="status" id="status" class="form-select">
                                             <option value="draft">Draft</option>
@@ -121,6 +121,13 @@
                                             <option value="under_review">Under Review</option>
                                             <option value="accepted">Accepted</option>
                                             <option value="rejected">Rejected</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="abstract_topic_id" class="form-label">Topic</label>
+                                        <select name="abstract_topic_id" id="abstract_topic_id" class="form-select">
+                                            <option value="">Select Topic</option>
+                                            <!-- Topics will be loaded via AJAX -->
                                         </select>
                                     </div>
                                 </div>
@@ -224,15 +231,24 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="mb-3">
-                                        <label class="fw-medium">Submission Date:</label>
-                                        <p class="view-abstract-date"></p>
+                                        <label class="fw-medium">Topic:</label>
+                                        <p class="view-abstract-topic"></p>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
+                                        <label class="fw-medium">Submission Date:</label>
+                                        <p class="view-abstract-date"></p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="mb-3">
                                         <label class="fw-medium">Status:</label>
                                         <div class="view-abstract-status"></div>
-                                    </div>                                </div>
+                                    </div>
+                                </div>
                             </div>
                             
                             <!-- Abstract Version Section -->
@@ -310,6 +326,13 @@
                                             <option value="under_review">Under Review</option>
                                             <option value="accepted">Accepted</option>
                                             <option value="rejected">Rejected</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="edit_abstract_topic_id" class="form-label">Topic</label>
+                                        <select name="abstract_topic_id" id="edit_abstract_topic_id" class="form-select">
+                                            <option value="">Select Topic</option>
+                                            <!-- Topics will be loaded via AJAX -->
                                         </select>
                                     </div>
                                 </div>
@@ -408,26 +431,44 @@
                     dataSrc: function(json) {
                         return json.data;
                     }
-                },
-                columns: [{
+                },                columns: [{
                         data: null,
                         render: function(data, type, row, meta) {
                             return meta.row + 1;
                         }
                     },
                     {
-                        data: "participant_name"
-                    },
-                    {
-                        data: "institution"
-                    },
-                    {
-                        data: "created_at",
-                        render: function(data) {
-                            return data ? new Date(data).toLocaleDateString() : 'N/A';
+                        data: "title",
+                        render: function(data, type, row) {
+                            return data ? data : 'No title available';
                         }
                     },
-                    {                        data: "status",
+                    {
+                        data: "topic_name",
+                        render: function(data, type, row) {
+                            return data ? data : 'No topic selected';
+                        }
+                    },
+                    {
+                        data: "authors_list",
+                        render: function(data, type, row) {
+                            let authorsText = '';
+                            if (data && data.length > 0) {
+                                authorsText = data.join(', ');
+                                if (row.authors_count > 2) {
+                                    authorsText += ` and ${row.authors_count - 2} more`;
+                                }
+                            } else {
+                                authorsText = 'No authors';
+                            }
+                            return authorsText;
+                        }
+                    },
+                    {
+                        data: "participant_name"
+                    },
+                    {                        
+                        data: "status",
                         render: function(data) {
                             let statusText = data ? data.replace('_', ' ') : 'Unknown';
                             let badgeClass = 'bg-secondary';
@@ -464,10 +505,9 @@
                     }
                 ],
                 responsive: true
-            });
-
-            // Load participants for add modal
+            });            // Load participants for add modal
             $('#add-abstract-modal').on('show.bs.modal', function() {
+                // Load participants
                 $.ajax({
                     url: '/api/participants',
                     type: 'GET',
@@ -485,10 +525,28 @@
                         }
                     }
                 });
-            });
+                
+                // Load topics
+                $.ajax({
+                    url: '/submissions/abstracts-papers/getTopicsByProgram',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response && response.data) {
+                            let topics = response.data;
+                            let options = '<option value="">Select Topic</option>';
 
-            // Load participants for edit modal
+                            topics.forEach(function(topic) {
+                                options += '<option value="' + topic.id + '">' + topic.name + '</option>';
+                            });
+
+                            $('#abstract_topic_id').html(options);
+                        }
+                    }
+                });
+            });            // Load participants for edit modal
             $('#edit-abstract-modal').on('show.bs.modal', function() {
+                // Load participants
                 $.ajax({
                     url: '/api/participants',
                     type: 'GET',
@@ -503,6 +561,25 @@
                             });
 
                             $('#edit_participant_id').html(options);
+                        }
+                    }
+                });
+                
+                // Load topics
+                $.ajax({
+                    url: '/submissions/abstracts-papers/getTopicsByProgram',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response && response.data) {
+                            let topics = response.data;
+                            let options = '<option value="">Select Topic</option>';
+
+                            topics.forEach(function(topic) {
+                                options += '<option value="' + topic.id + '">' + topic.name + '</option>';
+                            });
+
+                            $('#edit_abstract_topic_id').html(options);
                         }
                     }
                 });
@@ -524,7 +601,9 @@
                             let abstract = response.data;
                             $('.view-abstract-participant').text(abstract.participant_name);
                             $('.view-abstract-institution').text(abstract.institution);
-                            $('.view-abstract-date').text(abstract.created_at ? new Date(abstract.created_at).toLocaleDateString() : 'N/A');                            
+                            $('.view-abstract-topic').text(abstract.topic_name);
+                            $('.view-abstract-date').text(abstract.created_at ? new Date(abstract.created_at).toLocaleDateString() : 'N/A');
+                            
                             // Set status
                             let statusText = abstract.status ? abstract.status.replace('_', ' ') : 'Unknown';
                             let badgeClass = 'bg-secondary';
@@ -552,10 +631,10 @@
                             $('.edit-abstract-btn').data('id', abstract.id);
                             
                             // Load abstract versions
-                            loadAbstractVersions(abstract.id, 'view');
+                            loadAbstractVersionsForView(abstract.id);
                             
                             // Load abstract authors
-                            loadAbstractAuthors(abstract.id, 'view');
+                            loadAbstractAuthorsForView(abstract.id);
                         } else {
                             Swal.fire({
                                 title: 'Error',
@@ -589,13 +668,12 @@
                     type: 'GET',
                     dataType: 'json',
                     success: function(response) {
-                        $('.modal-loading').addClass('d-none');
-
-                        if (response && response.success) {
+                        $('.modal-loading').addClass('d-none');                        if (response && response.success) {
                             let abstract = response.data;
                             $('#edit_abstract_id').val(abstract.id);
                             $('#edit_participant_id').val(abstract.primary_participant_id);
                             $('#edit_status').val(abstract.status);
+                            $('#edit_abstract_topic_id').val(abstract.abstract_topic_id);
 
                             // Update form action
                             $('#edit-abstract-form').attr('action', '/documents/abstracts-papers/update/' + abstract.id);
@@ -631,11 +709,11 @@
                     success: function(response) {
                         $('.modal-loading').addClass('d-none');
                         
-                        if (response && response.success) {
-                            let abstract = response.data;
+                        if (response && response.success) {                            let abstract = response.data;
                             $('#edit_abstract_id').val(abstract.id);
                             $('#edit_participant_id').val(abstract.primary_participant_id);
                             $('#edit_status').val(abstract.status);
+                            $('#edit_abstract_topic_id').val(abstract.abstract_topic_id);
                             
                             // Load abstract versions
                             loadAbstractVersions(abstract.id, 'edit');
@@ -793,9 +871,121 @@
                             text: 'An error occurred while submitting the form',
                             icon: 'error'
                         });
+                    }                });            });
+            
+            // Reset modal content when closed
+            $('#view-abstract-modal').on('hidden.bs.modal', function () {
+                $('.view-abstract-participant').text('');
+                $('.view-abstract-institution').text('');
+                $('.view-abstract-topic').text('');
+                $('.view-abstract-date').text('');
+                $('.view-abstract-status').html('');
+                $('.view-version-select').html('<option value="">Loading versions...</option>');
+                $('.view-abstract-title').text('');
+                $('.view-abstract-content').html('');
+                $('.view-abstract-keywords').text('');
+                $('.view-authors-list').html('');
+                $('.view-version-select').off('change');
+            });
+              // Functions to handle abstract versions for view modal
+            function loadAbstractVersionsForView(abstractId) {
+                // Clear previous version select event handlers
+                $('.view-version-select').off('change');
+                
+                $.ajax({
+                    url: '/submissions/abstracts-papers/getAbstractVersions/' + abstractId,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success && response.data) {
+                            let versions = response.data;
+                            if (versions.length > 0) {
+                                let options = '';
+                                versions.forEach(function(version) {
+                                    options += '<option value="' + version.id + '">Version ' + version.version_number + ' (' + new Date(version.created_at).toLocaleDateString() + ')</option>';
+                                });
+                                
+                                $('.view-version-select').html(options);
+                                // Load the first version by default
+                                displayVersionDetailsForView(versions[0]);
+                                
+                                // Handle version change
+                                $('.view-version-select').on('change', function() {
+                                    let versionId = $(this).val();
+                                    let selectedVersion = versions.find(v => v.id == versionId);
+                                    if (selectedVersion) {
+                                        displayVersionDetailsForView(selectedVersion);
+                                    }
+                                });
+                            } else {
+                                $('.view-version-select').html('<option value="">No versions available</option>');
+                                $('.view-abstract-title').text('No title available');
+                                $('.view-abstract-content').html('No content available');
+                                $('.view-abstract-keywords').text('None');
+                            }
+                        } else {
+                            console.error('Failed to load abstract versions:', response.message);
+                            $('.view-version-select').html('<option value="">Error loading versions</option>');
+                        }
+                    },
+                    error: function() {
+                        console.error('Error occurred while loading abstract versions');
+                        $('.view-version-select').html('<option value="">Error loading versions</option>');
                     }
                 });
-            });
+            }
+              function displayVersionDetailsForView(version) {
+                if (!version) {
+                    $('.view-abstract-title').text('No title available');
+                    $('.view-abstract-content').html('No content available');
+                    $('.view-abstract-keywords').text('None');
+                    return;
+                }
+                
+                $('.view-abstract-title').text(version.title || 'No title available');
+                $('.view-abstract-content').html(version.content ? version.content.replace(/\n/g, '<br>') : 'No content available');
+                $('.view-abstract-keywords').text(version.keywords || 'None');
+            }
+              // Functions to handle abstract authors for view modal
+            function loadAbstractAuthorsForView(abstractId) {
+                $.ajax({
+                    url: '/submissions/abstracts-papers/getAbstractAuthors/' + abstractId,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success && response.data) {
+                            let authors = response.data;
+                            let authorsHtml = '';
+                            
+                            if (authors.length > 0) {
+                                authors.forEach(function(author, index) {
+                                    authorsHtml += '<div class="author-item p-3 border rounded mb-3">';
+                                    authorsHtml += '<div class="row">';
+                                    authorsHtml += '<div class="col-md-6"><strong>Name:</strong> ' + (author.full_name || 'N/A') + '</div>';
+                                    authorsHtml += '<div class="col-md-6"><strong>Institution:</strong> ' + (author.institution || 'N/A') + '</div>';
+                                    authorsHtml += '</div>';
+                                    authorsHtml += '<div class="row mt-2">';
+                                    authorsHtml += '<div class="col-md-6"><strong>Email:</strong> ' + (author.email || 'N/A') + '</div>';
+                                    authorsHtml += '<div class="col-md-6"><strong>Registered Participant:</strong> ' + (author.is_participant == 1 ? 'Yes' : 'No') + '</div>';
+                                    authorsHtml += '</div>';
+                                    authorsHtml += '</div>';
+                                });
+                            } else {
+                                authorsHtml = '<div class="alert alert-info">No authors available for this abstract.</div>';
+                            }
+                            
+                            $('.view-authors-list').html(authorsHtml);
+                        } else {
+                            console.error('Failed to load abstract authors:', response.message || 'Unknown error');
+                            $('.view-authors-list').html('<div class="alert alert-danger">Error loading authors: ' + (response.message || 'Unknown error') + '</div>');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error occurred while loading abstract authors:', error);
+                        $('.view-authors-list').html('<div class="alert alert-danger">Error loading authors. Please try again.</div>');
+                    }
+                });
+            }
             
             // Functions to handle abstract versions
             function loadAbstractVersions(abstractId, mode) {

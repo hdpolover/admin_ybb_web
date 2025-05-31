@@ -73,9 +73,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
     });    
 
     // submissions group
-    $routes->group('submissions', ['filter' => 'program_selection'], function ($routes) {
-        
-        // Abstract Papers routes
+    $routes->group('submissions', ['filter' => 'program_selection'], function ($routes) {        // Abstract Papers routes
         $routes->group('abstracts-papers', function ($routes) {
             $routes->get('/', 'AbstractPapers::index');
             $routes->get('view/(:num)', 'AbstractPapers::view/$1');
@@ -86,6 +84,10 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->get('getAbstractsByProgram/(:num)', 'AbstractPapers::getAbstractsByProgram/$1');
             $routes->get('getAbstractsByProgram', 'AbstractPapers::getAbstractsByProgram');
             $routes->get('getAbstractData/(:num)', 'AbstractPapers::getAbstractData/$1');
+            $routes->get('getAbstractVersions/(:num)', 'AbstractPapers::getAbstractVersions/$1');
+            $routes->get('getAbstractAuthors/(:num)', 'AbstractPapers::getAbstractAuthors/$1');
+            $routes->get('getTopicsByProgram/(:num)', 'AbstractPapers::getTopicsByProgram/$1');
+            $routes->get('getTopicsByProgram', 'AbstractPapers::getTopicsByProgram');
         });
     });
     
@@ -233,8 +235,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->get('delete/(:num)', 'ProgramRundowns::delete/$1');
             $routes->get('getRundown/(:num)', 'ProgramRundowns::getRundown/$1');
         });        
-        
-        // abstract topics
+          // abstract topics
         $routes->group('abstract-topics', function ($routes) {
             $routes->get('/', 'AbstractTopics::index');
             $routes->get('view/(:num)', 'AbstractTopics::view/$1');
@@ -243,6 +244,17 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->post('update/(:num)', 'AbstractTopics::update/$1');
             $routes->get('delete/(:num)', 'AbstractTopics::delete/$1');  // Keep for backward compatibility
             $routes->post('delete/(:num)', 'AbstractTopics::delete/$1');  // Add POST endpoint for AJAX
+        });
+
+        // abstract settings
+        $routes->group('abstract-settings', function ($routes) {
+            $routes->get('/', 'AbstractSettings::index');
+            $routes->get('view', 'AbstractSettings::view');
+            $routes->get('getSettings', 'AbstractSettings::getSettings');
+            $routes->post('save', 'AbstractSettings::save');
+            $routes->post('createDefault', 'AbstractSettings::createDefault');
+            $routes->post('reset', 'AbstractSettings::reset');
+            $routes->post('deactivate', 'AbstractSettings::deactivate');
         });
     });
 
