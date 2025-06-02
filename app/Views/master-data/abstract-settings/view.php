@@ -106,39 +106,38 @@
                                         <h4 class="mb-0"><i class="ri-settings-3-line me-2"></i>Abstract Settings Details</h4>
                                         <p class="mb-0 mt-2 opacity-75">Current submission limits for abstracts</p>
                                     </div>
-                                    <div class="card-body p-4">
-                                        <div class="setting-item">
-                                            <div class="setting-label">Title Character Limit</div>
+                                    <div class="card-body p-4">                                        <div class="setting-item">
+                                            <div class="setting-label">Title Word Limit</div>
                                             <div class="setting-value">
                                                 <span class="badge bg-primary-subtle text-primary fs-6">
-                                                    <?= number_format($abstractSettings->title_length) ?> characters
+                                                    <?= number_format($abstractSettings->title_length) ?> words
                                                 </span>
                                             </div>
                                         </div>
                                         
                                         <div class="setting-item">
-                                            <div class="setting-label">Content Character Limit</div>
+                                            <div class="setting-label">Content Word Limit</div>
                                             <div class="setting-value">
                                                 <span class="badge bg-info-subtle text-info fs-6">
-                                                    <?= number_format($abstractSettings->content_length) ?> characters
+                                                    <?= number_format($abstractSettings->content_length) ?> words
                                                 </span>
                                             </div>
                                         </div>
                                         
                                         <div class="setting-item">
-                                            <div class="setting-label">Keywords Character Limit</div>
+                                            <div class="setting-label">Keywords Word Limit</div>
                                             <div class="setting-value">
                                                 <span class="badge bg-success-subtle text-success fs-6">
-                                                    <?= number_format($abstractSettings->keywords_length) ?> characters
+                                                    <?= number_format($abstractSettings->keywords_length) ?> words
                                                 </span>
                                             </div>
                                         </div>
                                         
                                         <div class="setting-item">
-                                            <div class="setting-label">References Character Limit</div>
+                                            <div class="setting-label">References Word Limit</div>
                                             <div class="setting-value">
                                                 <span class="badge bg-warning-subtle text-warning fs-6">
-                                                    <?= number_format($abstractSettings->refs_length) ?> characters
+                                                    <?= number_format($abstractSettings->refs_length) ?> words
                                                 </span>
                                             </div>
                                         </div>

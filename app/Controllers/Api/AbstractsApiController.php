@@ -449,16 +449,14 @@ class AbstractsApiController extends ApiBaseController
         // Check if participant is already an author in any abstract
         $existingAsAuthor = $this->abstractAuthorModel->where('participant_id', $participant_id)->first();        if ($existingAsAuthor) {
             return $this->fail('This participant is already an author for another abstract', 409);
-        }
-
-        // Validate character limits based on program's abstract settings
+        }        // Validate word limits based on program's abstract settings
         $title = $this->getInput('title');
         $content = $this->getInput('content');
         $keywords = $this->getInput('keywords');
         
-        $validation = $this->validateCharacterLimits($program_id, $title, $content, $keywords);
-          if (!$validation['valid']) {
-            return $this->fail('Character limit validation failed: ' . implode(', ', $validation['errors']), 400);
+        $validation = $this->validateWordLimits($program_id, $title, $content, $keywords);
+        if (!$validation['valid']) {
+            return $this->fail('Word limit validation failed: ' . implode(', ', $validation['errors']), 400);
         }
 
         try {// Begin transaction
@@ -1117,13 +1115,11 @@ class AbstractsApiController extends ApiBaseController
         $keywords = $this->request->getVar('keywords') ?? '';
         $refs = $this->request->getVar('refs') ?? '';
         $status = $this->request->getVar('status');
-        $version_id = $this->request->getVar('version_id');
-
-        // Validate character limits based on program's abstract settings
-        $validation = $this->validateCharacterLimits($abstract->program_id, $title, $content, $keywords, $refs);
+        $version_id = $this->request->getVar('version_id');        // Validate word limits based on program's abstract settings
+        $validation = $this->validateWordLimits($abstract->program_id, $title, $content, $keywords, $refs);
         
         if (!$validation['valid']) {
-            return $this->fail('Character limit validation failed: ' . implode(', ', $validation['errors']), 400);
+            return $this->fail('Word limit validation failed: ' . implode(', ', $validation['errors']), 400);
         }
 
         // Start a database transaction
@@ -1272,12 +1268,9 @@ class AbstractsApiController extends ApiBaseController
             log_message('error', 'Failed to save abstract version: ' . $e->getMessage());
             return $this->failServerError('Failed to save abstract version: ' . $e->getMessage());
         }
-    }
-
-    /**
-     * Validate character limits based on program's abstract settings
-     */
-    private function validateCharacterLimits($program_id, $title, $content, $keywords, $references = '')
+    }    /**
+     * Validate word limits based on program's abstract settings
+     */private function validateWordLimits($program_id, $title, $content, $keywords, $references = '')
     {
         // Get abstract settings for the program
         $abstractSettings = $this->abstractSettingModel->where('program_id', $program_id)
@@ -1289,24 +1282,26 @@ class AbstractsApiController extends ApiBaseController
             return ['valid' => true];
         }
 
-        $errors = [];        // Validate title length
-        if (!empty($title) && strlen($title) > $abstractSettings->title_length) {
-            $errors['title'] = "Title exceeds maximum character limit of {$abstractSettings->title_length} characters.";
+        $errors = [];
+
+        // Validate title word count
+        if (!empty($title) && $this->countWords($title) > $abstractSettings->title_length) {
+            $errors['title'] = "Title exceeds maximum word limit of {$abstractSettings->title_length} words.";
         }
 
-        // Validate content length
-        if (!empty($content) && strlen($content) > $abstractSettings->content_length) {
-            $errors['content'] = "Content exceeds maximum character limit of {$abstractSettings->content_length} characters.";
+        // Validate content word count
+        if (!empty($content) && $this->countWords($content) > $abstractSettings->content_length) {
+            $errors['content'] = "Content exceeds maximum word limit of {$abstractSettings->content_length} words.";
         }
 
-        // Validate keywords length
-        if (!empty($keywords) && strlen($keywords) > $abstractSettings->keywords_length) {
-            $errors['keywords'] = "Keywords exceed maximum character limit of {$abstractSettings->keywords_length} characters.";
+        // Validate keywords word count
+        if (!empty($keywords) && $this->countWords($keywords) > $abstractSettings->keywords_length) {
+            $errors['keywords'] = "Keywords exceed maximum word limit of {$abstractSettings->keywords_length} words.";
         }
 
-        // Validate references length
-        if (!empty($references) && strlen($references) > $abstractSettings->refs_length) {
-            $errors['references'] = "References exceed maximum character limit of {$abstractSettings->refs_length} characters.";
+        // Validate references word count
+        if (!empty($references) && $this->countWords($references) > $abstractSettings->refs_length) {
+            $errors['references'] = "References exceed maximum word limit of {$abstractSettings->refs_length} words.";
         }
 
         return [
@@ -1319,6 +1314,29 @@ class AbstractsApiController extends ApiBaseController
                 'references_limit' => $abstractSettings->refs_length
             ]
         ];
+    }
+
+    /**
+     * Count words in a text string
+     * 
+     * @param string $text
+     * @return int
+     */
+    private function countWords($text)
+    {
+        // Remove HTML tags if present
+        $text = strip_tags($text);
+        
+        // Remove extra whitespace and trim
+        $text = preg_replace('/\s+/', ' ', trim($text));
+        
+        // If empty after cleaning, return 0
+        if (empty($text)) {
+            return 0;
+        }
+        
+        // Split by spaces and count
+        return count(explode(' ', $text));
     }
 
     /**
@@ -1350,13 +1368,13 @@ class AbstractsApiController extends ApiBaseController
             return $this->failValidationErrors($this->validator->getErrors());
         }
 
-        // Check character limits based on program settings
+        // Check word limits based on program settings
         $title = $this->request->getPost('title');
         $content = $this->request->getPost('content');
         $keywords = $this->request->getPost('keywords');
         $refs = $this->request->getPost('refs');
 
-        $limitValidation = $this->validateCharacterLimits($abstract->program_id, $title, $content, $keywords, $refs);
+        $limitValidation = $this->validateWordLimits($abstract->program_id, $title, $content, $keywords, $refs);
 
         if (!$limitValidation['valid']) {
             return $this->failValidationErrors($limitValidation['errors']);
@@ -1395,10 +1413,8 @@ class AbstractsApiController extends ApiBaseController
         } catch (\Exception $e) {
             return $this->failServerError('Failed to create abstract version: ' . $e->getMessage());
         }
-    }
-
-    /**
-     * Get abstract character limits for a program
+    }    /**
+     * Get abstract word limits for a program
      * GET /api/abstracts/programs/{program_id}/limits
      */
     public function getAbstractLimits($program_id)
@@ -1415,22 +1431,19 @@ class AbstractsApiController extends ApiBaseController
                                                        ->where('is_active', 1)
                                                        ->first();
 
-        if (!$abstractSettings) {
-            return $this->respond([
+        if (!$abstractSettings) {            return $this->respond([
                 'status' => 'success',
-                'message' => 'No character limits configured for this program',
+                'message' => 'No word limits configured for this program',
                 'data' => [
                     'has_limits' => false,
                     'limits' => null
                 ]
             ]);
-        }
-
-        return $this->respond([
+        }        return $this->respond([
             'status' => 'success',
-            'message' => 'Abstract character limits retrieved successfully',
+            'message' => 'Abstract word limits retrieved successfully',
             'data' => [
-                'has_limits' => true,                'limits' => [
+                'has_limits' => true,'limits' => [
                     'title_limit' => $abstractSettings->title_length,
                     'content_limit' => $abstractSettings->content_length,
                     'keywords_limit' => $abstractSettings->keywords_length,

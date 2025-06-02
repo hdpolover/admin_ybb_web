@@ -205,14 +205,12 @@ class AbstractSettings extends BaseController
 
             return redirect()->to('/master-data/abstract-settings')
                 ->with('error', 'No abstract settings found for this program');
-        }
-
-        // Default settings
+        }        // Default settings
         $defaultData = [
-            'title_length' => 250,
-            'content_length' => 5000,
-            'keywords_length' => 200,
-            'refs_length' => 1000,
+            'title_length' => 15,
+            'content_length' => 500,
+            'keywords_length' => 5,
+            'refs_length' => 100,
             'is_active' => 1,
             'updated_at' => date('Y-m-d H:i:s')
         ];

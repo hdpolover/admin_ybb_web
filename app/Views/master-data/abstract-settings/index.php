@@ -3,13 +3,38 @@
 <head>
     <?php echo view('partials/title-meta', array('title' => 'Abstract Settings')); ?>
     <?= $this->include('partials/head-css') ?>
-    
+
     <!-- SweetAlert2 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.3/dist/sweetalert2.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.3/dist/sweetalert2.all.min.js"></script>
-    
-    <!-- Custom styles for this page -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.3/dist/sweetalert2.all.min.js"></script> <!-- Custom styles for this page -->
     <style>
+        /* Loading overlay styles */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0s, opacity 0.3s linear;
+        }
+
+        .loading-overlay.show {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .spinner {
+            width: 3.5rem;
+            height: 3.5rem;
+        }
+
         .info-section {
             margin-bottom: 2rem;
         }
@@ -104,51 +129,66 @@
             padding: 2rem;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
         }
-        
+
         .form-control {
             border-radius: 10px;
             border: 2px solid #e9ecef;
             padding: 0.75rem 1rem;
             transition: all 0.3s ease;
         }
-        
+
         .form-control:focus {
             border-color: #405189;
             box-shadow: 0 0 0 0.2rem rgba(64, 81, 137, 0.15);
         }
-        
+
         .form-label {
             font-weight: 600;
             color: #495057;
             margin-bottom: 0.5rem;
         }
-        
-        .character-limit {
+
+        .word-limit {
             font-size: 0.875rem;
             color: #6c757d;
             margin-top: 0.25rem;
         }
-        
-        .character-limit.warning {
+
+        .word-limit.warning {
             color: #fd7e14;
         }
-        
-        .character-limit.danger {
+
+        .word-limit.danger {
             color: #dc3545;
         }
 
         .fade-in {
             animation: fadeIn 0.5s ease-in;
         }
-        
+
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
     </style>
 </head>
 
-<body>
+<body> <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="d-flex flex-column align-items-center">
+            <div class="spinner-border text-primary spinner" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <div class="mt-3 text-primary fw-medium">Processing, please wait...</div>
+        </div>
+    </div>
 
     <!-- Begin page -->
     <div id="layout-wrapper">
@@ -180,7 +220,8 @@
                             </div>
                         </div>
                     </div>
-                    <!-- end page title -->                    <div class="row">
+                    <!-- end page title -->
+                    <div class="row">
                         <div class="col-lg-12">
                             <div class="card">
                                 <div class="card-header align-items-center d-flex">
@@ -196,7 +237,7 @@
 
                                 <div class="card-body">
                                     <div class="live-preview">
-                                        
+
                                         <?php if (!$abstractSettings): ?>
                                             <!-- No Settings Found -->
                                             <div class="text-center py-4">
@@ -205,10 +246,10 @@
                                                         <i class="ri-alert-line me-2"></i>Important Configuration Required
                                                     </h4>
                                                     <p class="mb-0">
-                                                        Abstract settings are not configured for this program yet. These settings are crucial as they control the character limits for abstract submissions including title, content, keywords, and references.
+                                                        Abstract settings are not configured for this program yet. These settings are crucial as they control the word limits for abstract submissions including title, content, keywords, and references.
                                                     </p>
                                                 </div>
-                                                
+
                                                 <div class="mt-4 mb-4">
                                                     <i class="ri-settings-3-line display-4 text-muted"></i>
                                                     <h5 class="mt-3 mb-2">No Abstract Settings Found</h5>
@@ -225,7 +266,7 @@
                                                 <div class="col-xxl-6">
                                                     <div class="card border card-border-primary">
                                                         <div class="card-header">
-                                                            <h6 class="card-title mb-0">Character Limits</h6>
+                                                            <h6 class="card-title mb-0">Word Limits</h6>
                                                         </div>
                                                         <div class="card-body">
                                                             <div class="row gy-3">
@@ -233,7 +274,7 @@
                                                                     <label class="form-label text-muted">Title Limit</label>
                                                                     <div class="d-flex align-items-center">
                                                                         <span class="badge bg-primary-subtle text-primary fs-12">
-                                                                            <?= number_format($abstractSettings->title_length) ?> characters
+                                                                            <?= number_format($abstractSettings->title_length) ?> words
                                                                         </span>
                                                                     </div>
                                                                 </div>
@@ -241,7 +282,7 @@
                                                                     <label class="form-label text-muted">Content Limit</label>
                                                                     <div class="d-flex align-items-center">
                                                                         <span class="badge bg-info-subtle text-info fs-12">
-                                                                            <?= number_format($abstractSettings->content_length) ?> characters
+                                                                            <?= number_format($abstractSettings->content_length) ?> words
                                                                         </span>
                                                                     </div>
                                                                 </div>
@@ -249,7 +290,7 @@
                                                                     <label class="form-label text-muted">Keywords Limit</label>
                                                                     <div class="d-flex align-items-center">
                                                                         <span class="badge bg-success-subtle text-success fs-12">
-                                                                            <?= number_format($abstractSettings->keywords_length) ?> characters
+                                                                            <?= number_format($abstractSettings->keywords_length) ?> words
                                                                         </span>
                                                                     </div>
                                                                 </div>
@@ -257,7 +298,7 @@
                                                                     <label class="form-label text-muted">References Limit</label>
                                                                     <div class="d-flex align-items-center">
                                                                         <span class="badge bg-warning-subtle text-warning fs-12">
-                                                                            <?= number_format($abstractSettings->refs_length) ?> characters
+                                                                            <?= number_format($abstractSettings->refs_length) ?> words
                                                                         </span>
                                                                     </div>
                                                                 </div>
@@ -265,7 +306,7 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                                
+
                                                 <div class="col-xxl-6">
                                                     <div class="card border card-border-secondary">
                                                         <div class="card-header">
@@ -330,25 +371,25 @@
                                                                 <div class="col-md-3">
                                                                     <div class="text-center p-3 border rounded">
                                                                         <h6 class="mb-1">Title</h6>
-                                                                        <span class="text-muted fs-12">250 characters</span>
+                                                                        <span class="text-muted fs-12">15 words</span>
                                                                     </div>
                                                                 </div>
                                                                 <div class="col-md-3">
                                                                     <div class="text-center p-3 border rounded">
                                                                         <h6 class="mb-1">Content</h6>
-                                                                        <span class="text-muted fs-12">5,000 characters</span>
+                                                                        <span class="text-muted fs-12">500 words</span>
                                                                     </div>
                                                                 </div>
                                                                 <div class="col-md-3">
                                                                     <div class="text-center p-3 border rounded">
                                                                         <h6 class="mb-1">Keywords</h6>
-                                                                        <span class="text-muted fs-12">200 characters</span>
+                                                                        <span class="text-muted fs-12">5 words</span>
                                                                     </div>
                                                                 </div>
                                                                 <div class="col-md-3">
                                                                     <div class="text-center p-3 border rounded">
                                                                         <h6 class="mb-1">References</h6>
-                                                                        <span class="text-muted fs-12">1,000 characters</span>
+                                                                        <span class="text-muted fs-12">100 words</span>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -389,46 +430,46 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="title_length" class="form-label">Title Character Limit <span class="text-danger">*</span></label>
-                                    <input type="number" class="form-control" id="title_length" name="title_length" 
-                                           value="<?= $abstractSettings->title_length ?? 250 ?>" min="1" max="1000" required>
-                                    <div class="form-text">Maximum characters allowed for abstract titles</div>
+                                    <label for="title_length" class="form-label">Title Word Limit <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="title_length" name="title_length"
+                                        value="<?= $abstractSettings->title_length ?? 15 ?>" min="1" max="200" required>
+                                    <div class="form-text">Maximum words allowed for abstract titles</div>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="content_length" class="form-label">Content Character Limit <span class="text-danger">*</span></label>
-                                    <input type="number" class="form-control" id="content_length" name="content_length" 
-                                           value="<?= $abstractSettings->content_length ?? 5000 ?>" min="1" max="50000" required>
-                                    <div class="form-text">Maximum characters allowed for abstract content</div>
+                                    <label for="content_length" class="form-label">Content Word Limit <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="content_length" name="content_length"
+                                        value="<?= $abstractSettings->content_length ?? 500 ?>" min="1" max="2000" required>
+                                    <div class="form-text">Maximum words allowed for abstract content</div>
                                 </div>
                             </div>
                         </div>
-                        
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="keywords_length" class="form-label">Keywords Character Limit <span class="text-danger">*</span></label>
-                                    <input type="number" class="form-control" id="keywords_length" name="keywords_length" 
-                                           value="<?= $abstractSettings->keywords_length ?? 200 ?>" min="1" max="1000" required>
-                                    <div class="form-text">Maximum characters allowed for keywords</div>
+                                    <label for="keywords_length" class="form-label">Keywords Word Limit <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="keywords_length" name="keywords_length"
+                                        value="<?= $abstractSettings->keywords_length ?? 5 ?>" min="1" max="100" required>
+                                    <div class="form-text">Maximum words allowed for keywords</div>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="refs_length" class="form-label">References Character Limit <span class="text-danger">*</span></label>
-                                    <input type="number" class="form-control" id="refs_length" name="refs_length" 
-                                           value="<?= $abstractSettings->refs_length ?? 1000 ?>" min="1" max="10000" required>
-                                    <div class="form-text">Maximum characters allowed for references</div>
+                                    <label for="refs_length" class="form-label">References Word Limit <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="refs_length" name="refs_length"
+                                        value="<?= $abstractSettings->refs_length ?? 100 ?>" min="1" max="500" required>
+                                    <div class="form-text">Maximum words allowed for references</div>
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="row">
                             <div class="col-md-12">
                                 <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="is_active" name="is_active" 
-                                           <?= ($abstractSettings->is_active ?? true) ? 'checked' : '' ?>>
+                                    <input type="hidden" name="is_active" value="0">
+                                    <input class="form-check-input" type="checkbox" id="is_active" name="is_active" value="1"
+                                        <?= ($abstractSettings->is_active ?? true) ? 'checked' : '' ?>>
                                     <label class="form-check-label" for="is_active">
                                         Active Settings
                                     </label>
@@ -451,10 +492,20 @@
     <?= $this->include('partials/vendor-scripts') ?>
 
     <script>
+        // Show loading overlay
+        function showLoading() {
+            document.getElementById('loadingOverlay').classList.add('show');
+        }
+
+        // Hide loading overlay
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('show');
+        }
+
         function createDefaultSettings() {
             Swal.fire({
                 title: 'Create Default Settings?',
-                text: 'This will create default abstract settings with standard character limits.',
+                text: 'This will create default abstract settings with standard word limits.',
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonText: 'Create Settings',
@@ -462,41 +513,44 @@
                 confirmButtonColor: '#667eea'
             }).then((result) => {
                 if (result.isConfirmed) {
+                    showLoading();
                     fetch('<?= base_url('master-data/abstract-settings/createDefault') ?>', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            Swal.fire({
-                                title: 'Success!',
-                                text: data.message,
-                                icon: 'success',
-                                confirmButtonColor: '#667eea'
-                            }).then(() => {
-                                location.reload();
-                            });
-                        } else {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            hideLoading();
+                            if (data.success) {
+                                Swal.fire({
+                                    title: 'Success!',
+                                    text: data.message,
+                                    icon: 'success',
+                                    confirmButtonColor: '#667eea'
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    title: 'Error!',
+                                    text: data.message,
+                                    icon: 'error',
+                                    confirmButtonColor: '#dc3545'
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            hideLoading();
                             Swal.fire({
                                 title: 'Error!',
-                                text: data.message,
+                                text: 'An error occurred while creating settings.',
                                 icon: 'error',
                                 confirmButtonColor: '#dc3545'
                             });
-                        }
-                    })
-                    .catch(error => {
-                        Swal.fire({
-                            title: 'Error!',
-                            text: 'An error occurred while creating settings.',
-                            icon: 'error',
-                            confirmButtonColor: '#dc3545'
                         });
-                    });
                 }
             });
         }
@@ -517,33 +571,44 @@
                 confirmButtonColor: '#ffc107'
             }).then((result) => {
                 if (result.isConfirmed) {
+                    showLoading();
                     fetch('<?= base_url('master-data/abstract-settings/reset') ?>', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            Swal.fire({
-                                title: 'Success!',
-                                text: data.message,
-                                icon: 'success',
-                                confirmButtonColor: '#667eea'
-                            }).then(() => {
-                                location.reload();
-                            });
-                        } else {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            hideLoading();
+                            if (data.success) {
+                                Swal.fire({
+                                    title: 'Success!',
+                                    text: data.message,
+                                    icon: 'success',
+                                    confirmButtonColor: '#667eea'
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    title: 'Error!',
+                                    text: data.message,
+                                    icon: 'error',
+                                    confirmButtonColor: '#dc3545'
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            hideLoading();
                             Swal.fire({
                                 title: 'Error!',
-                                text: data.message,
+                                text: 'An error occurred while resetting settings.',
                                 icon: 'error',
                                 confirmButtonColor: '#dc3545'
                             });
-                        }
-                    });
+                        });
                 }
             });
         }
@@ -559,33 +624,44 @@
                 confirmButtonColor: '#dc3545'
             }).then((result) => {
                 if (result.isConfirmed) {
+                    showLoading();
                     fetch('<?= base_url('master-data/abstract-settings/deactivate') ?>', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            Swal.fire({
-                                title: 'Success!',
-                                text: data.message,
-                                icon: 'success',
-                                confirmButtonColor: '#667eea'
-                            }).then(() => {
-                                location.reload();
-                            });
-                        } else {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            hideLoading();
+                            if (data.success) {
+                                Swal.fire({
+                                    title: 'Success!',
+                                    text: data.message,
+                                    icon: 'success',
+                                    confirmButtonColor: '#667eea'
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    title: 'Error!',
+                                    text: data.message,
+                                    icon: 'error',
+                                    confirmButtonColor: '#dc3545'
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            hideLoading();
                             Swal.fire({
                                 title: 'Error!',
-                                text: data.message,
+                                text: 'An error occurred while deactivating settings.',
                                 icon: 'error',
                                 confirmButtonColor: '#dc3545'
                             });
-                        }
-                    });
+                        });
                 }
             });
         }
@@ -593,44 +669,53 @@
         // Handle form submission
         document.getElementById('editSettingsForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            
+
+            // Show loading overlay
+            showLoading();
+
             const formData = new FormData(this);
-            
+
             fetch('<?= base_url('master-data/abstract-settings/save') ?>', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire({
-                        title: 'Success!',
-                        text: data.message,
-                        icon: 'success',
-                        confirmButtonColor: '#667eea'
-                    }).then(() => {
-                        location.reload();
-                    });
-                } else {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Hide loading overlay
+                    hideLoading();
+
+                    if (data.success) {
+                        Swal.fire({
+                            title: 'Success!',
+                            text: data.message,
+                            icon: 'success',
+                            confirmButtonColor: '#667eea'
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: data.message,
+                            icon: 'error',
+                            confirmButtonColor: '#dc3545'
+                        });
+                    }
+                })
+                .catch(error => {
+                    // Hide loading overlay
+                    hideLoading();
+
                     Swal.fire({
                         title: 'Error!',
-                        text: data.message,
+                        text: 'An error occurred while saving settings.',
                         icon: 'error',
                         confirmButtonColor: '#dc3545'
                     });
-                }
-            })
-            .catch(error => {
-                Swal.fire({
-                    title: 'Error!',
-                    text: 'An error occurred while saving settings.',
-                    icon: 'error',
-                    confirmButtonColor: '#dc3545'
                 });
-            });
         });
     </script>
 

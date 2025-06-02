@@ -26,7 +26,7 @@ class TestAbstractValidation extends BaseCommand
      *
      * @var string
      */
-    protected $description = 'Test abstract validation with character limits';
+    protected $description = 'Test abstract validation with word limits';
 
     /**
      * The Command's Usage
@@ -54,7 +54,7 @@ class TestAbstractValidation extends BaseCommand
      */
     public function run(array $params)
     {
-        CLI::write('Testing Abstract Character Limit Validation', 'green');
+        CLI::write('Testing Abstract Word Limit Validation', 'green');
         CLI::newLine();
 
         // Initialize models directly
@@ -76,30 +76,29 @@ class TestAbstractValidation extends BaseCommand
         CLI::write("- Keywords limit: {$abstractSettings->keywords_length}");
         CLI::write("- References limit: {$abstractSettings->refs_length}");
         CLI::newLine();
-        
-        // Test validation logic
+          // Test validation logic
         CLI::write('Testing validation logic...', 'cyan');
         
-        // Create test data that exceeds limits
-        $longTitle = str_repeat('A', $abstractSettings->title_length + 50);
-        $longContent = str_repeat('B', $abstractSettings->content_length + 1000);
-        $longKeywords = str_repeat('C', $abstractSettings->keywords_length + 50);
+        // Create test data that exceeds word limits
+        $longTitle = str_repeat('Word ', $abstractSettings->title_length + 10);
+        $longContent = str_repeat('Content word ', $abstractSettings->content_length + 50);
+        $longKeywords = str_repeat('Keyword ', $abstractSettings->keywords_length + 5);
         
         $errors = [];
         
-        // Validate title length
-        if (strlen($longTitle) > $abstractSettings->title_length) {
-            $errors['title'] = "Title exceeds maximum character limit of {$abstractSettings->title_length} characters.";
+        // Validate title word count
+        if ($this->countWords($longTitle) > $abstractSettings->title_length) {
+            $errors['title'] = "Title exceeds maximum word limit of {$abstractSettings->title_length} words.";
         }
         
-        // Validate content length
-        if (strlen($longContent) > $abstractSettings->content_length) {
-            $errors['content'] = "Content exceeds maximum character limit of {$abstractSettings->content_length} characters.";
+        // Validate content word count
+        if ($this->countWords($longContent) > $abstractSettings->content_length) {
+            $errors['content'] = "Content exceeds maximum word limit of {$abstractSettings->content_length} words.";
         }
         
-        // Validate keywords length
-        if (strlen($longKeywords) > $abstractSettings->keywords_length) {
-            $errors['keywords'] = "Keywords exceed maximum character limit of {$abstractSettings->keywords_length} characters.";
+        // Validate keywords word count
+        if ($this->countWords($longKeywords) > $abstractSettings->keywords_length) {
+            $errors['keywords'] = "Keywords exceed maximum word limit of {$abstractSettings->keywords_length} words.";
         }
         
         if (!empty($errors)) {
@@ -112,27 +111,26 @@ class TestAbstractValidation extends BaseCommand
         }
         
         CLI::newLine();
-        
-        // Test with valid content
+          // Test with valid content
         $validTitle = 'Valid Title';
         $validContent = 'Valid content that is within limits.';
         $validKeywords = 'keyword1, keyword2';
         
         $errors = [];
         
-        // Validate title length
-        if (strlen($validTitle) > $abstractSettings->title_length) {
-            $errors['title'] = "Title exceeds maximum character limit of {$abstractSettings->title_length} characters.";
+        // Validate title word count
+        if ($this->countWords($validTitle) > $abstractSettings->title_length) {
+            $errors['title'] = "Title exceeds maximum word limit of {$abstractSettings->title_length} words.";
         }
         
-        // Validate content length
-        if (strlen($validContent) > $abstractSettings->content_length) {
-            $errors['content'] = "Content exceeds maximum character limit of {$abstractSettings->content_length} characters.";
+        // Validate content word count
+        if ($this->countWords($validContent) > $abstractSettings->content_length) {
+            $errors['content'] = "Content exceeds maximum word limit of {$abstractSettings->content_length} words.";
         }
         
-        // Validate keywords length
-        if (strlen($validKeywords) > $abstractSettings->keywords_length) {
-            $errors['keywords'] = "Keywords exceed maximum character limit of {$abstractSettings->keywords_length} characters.";
+        // Validate keywords word count
+        if ($this->countWords($validKeywords) > $abstractSettings->keywords_length) {
+            $errors['keywords'] = "Keywords exceed maximum word limit of {$abstractSettings->keywords_length} words.";
         }
         
         if (empty($errors)) {
@@ -146,5 +144,28 @@ class TestAbstractValidation extends BaseCommand
 
         CLI::newLine();
         CLI::write('Test completed.', 'green');
+    }
+
+    /**
+     * Count words in a text string
+     * 
+     * @param string $text
+     * @return int
+     */
+    private function countWords($text)
+    {
+        // Remove HTML tags if present
+        $text = strip_tags($text);
+        
+        // Remove extra whitespace and trim
+        $text = preg_replace('/\s+/', ' ', trim($text));
+        
+        // If empty after cleaning, return 0
+        if (empty($text)) {
+            return 0;
+        }
+        
+        // Split by spaces and count
+        return count(explode(' ', $text));
     }
 }

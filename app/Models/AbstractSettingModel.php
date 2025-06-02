@@ -82,15 +82,13 @@ class AbstractSettingModel extends Model
      *
      * @param int $programId The program ID
      * @return int|false Insert ID on success, false on failure
-     */
-    public function createDefaultSettings($programId)
-    {
-        $defaultData = [
+     */    public function createDefaultSettings($programId)
+    {        $defaultData = [
             'program_id' => $programId,
-            'title_length' => 250,
-            'content_length' => 5000,
-            'keywords_length' => 200,
-            'refs_length' => 1000,
+            'title_length' => 15,
+            'content_length' => 500,
+            'keywords_length' => 5,
+            'refs_length' => 100,
             'is_active' => 1,
             'is_deleted' => 0,
             'created_at' => date('Y-m-d H:i:s'),
