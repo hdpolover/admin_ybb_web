@@ -105,6 +105,22 @@ class ParticipantAuthController extends BaseAuthController
             return $this->respondValidationErrors('All fields are required.');
         }
 
+        
+        $disallowedDomains = ['@yandex.ru', '@yandex.com', '@internet.ru', '@mail.ru', '@icloud.com', '@inbox.ru'];
+        $disallowedExtensions = ['.ru'];
+
+        // Cek apakah email mengandung domain yang tidak diizinkan
+        foreach ($disallowedDomains as $domain) {
+            if (stripos($email, $domain) !== false) {
+                return $this->respondValidationErrors("We're sorry, but the email provider you've chosen isn't supported by our program. Please use a different email address to proceed.");
+            }
+        }
+
+        // Cek jika email berakhiran .ru (termasuk domain lainnya yang tidak disebut spesifik)
+        if (preg_match('/\.ru$/i', $email)) {
+            return $this->respondValidationErrors("We're sorry, but the email provider you've chosen isn't supported by our program. Please use a different email address to proceed.");
+        }
+
         // check if ambassador id is valid
         if (!empty($ambassadorId)) {
             $ambassador = $ambassadorModel->getAmbassadorById($ambassadorId);
