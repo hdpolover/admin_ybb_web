@@ -70,22 +70,28 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->post('update-status/(:num)', 'Payments::updateStatus/$1');
         $routes->post('export', 'Payments::export');
         $routes->get('make', 'Payments::makePayment');
-    });    
-
-    // submissions group
-    $routes->group('submissions', ['filter' => 'program_selection'], function ($routes) {        // Abstract Papers routes
+    });        // submissions group
+    $routes->group('submissions', ['filter' => 'program_selection'], function ($routes) {
+        // Abstract Papers routes
         $routes->group('abstracts-papers', function ($routes) {
             $routes->get('/', 'AbstractPapers::index');
             $routes->get('view/(:num)', 'AbstractPapers::view/$1');
+            $routes->get('details/(:num)', 'AbstractPapers::details/$1');
             $routes->get('edit/(:num)', 'AbstractPapers::edit/$1');
             $routes->post('store', 'AbstractPapers::store');
             $routes->post('update/(:num)', 'AbstractPapers::update/$1');
             $routes->post('delete/(:num)', 'AbstractPapers::delete/$1');
             $routes->get('getAbstractsByProgram/(:num)', 'AbstractPapers::getAbstractsByProgram/$1');
             $routes->get('getAbstractsByProgram', 'AbstractPapers::getAbstractsByProgram');
-            $routes->get('getAbstractData/(:num)', 'AbstractPapers::getAbstractData/$1');
-            $routes->get('getAbstractVersions/(:num)', 'AbstractPapers::getAbstractVersions/$1');
+            $routes->get('getAbstractData/(:num)', 'AbstractPapers::getAbstractData/$1');            $routes->get('getAbstractVersions/(:num)', 'AbstractPapers::getAbstractVersions/$1');
             $routes->get('getAbstractAuthors/(:num)', 'AbstractPapers::getAbstractAuthors/$1');
+            $routes->get('getAbstractVersion/(:num)', 'AbstractPapers::getAbstractVersion/$1');
+            $routes->get('getVersionFeedback/(:num)', 'AbstractPapers::getVersionFeedback/$1');
+            $routes->post('submitFeedback', 'AbstractPapers::submitFeedback');            $routes->post('quickAction', 'AbstractPapers::quickAction');
+            $routes->get('pdf/(:num)', 'AbstractPapers::pdf/$1');
+            $routes->get('export/(:num)', 'AbstractPapers::export/$1');
+            $routes->post('createNewVersion', 'AbstractPapers::createNewVersion');
+            $routes->post('removeAuthor/(:num)', 'AbstractPapers::removeAuthor/$1');
             $routes->get('getTopicsByProgram/(:num)', 'AbstractPapers::getTopicsByProgram/$1');
             $routes->get('getTopicsByProgram', 'AbstractPapers::getTopicsByProgram');
         });

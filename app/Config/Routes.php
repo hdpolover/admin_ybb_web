@@ -244,9 +244,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->get('program-announcements/program/(:num)', 'ProgramAnnouncementsApiController::getByProgram/$1');    // program rundowns
     $routes->get('program-rundowns', 'ProgramRundownsApiController::index');
     $routes->get('program-rundowns/(:num)', 'ProgramRundownsApiController::show/$1');
-    $routes->get('program-rundowns/program/(:num)', 'ProgramRundownsApiController::getByProgramId/$1');
-
-    // abstracts routes
+    $routes->get('program-rundowns/program/(:num)', 'ProgramRundownsApiController::getByProgramId/$1');    // abstracts routes
     $routes->group('abstracts', function ($routes) {
         // Get all abstracts with pagination and filtering
         $routes->get('', 'AbstractsApiController::getAllAbstracts');
@@ -256,7 +254,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
         
         // Get, update, delete abstract by id
         $routes->get('(:num)', 'AbstractsApiController::getAbstractById/$1');
-        $routes->put('(:num)', 'AbstractsApiController::updateAbstract/$1');
+        $routes->post('(:num)/update', 'AbstractsApiController::updateAbstract/$1');
         $routes->delete('(:num)', 'AbstractsApiController::deleteAbstract/$1');
           // Get abstracts by program or participant
         $routes->get('programs/(:num)/limits', 'AbstractsApiController::getAbstractLimits/$1');
@@ -267,7 +265,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
         $routes->get('version/(:num)', 'AbstractsApiController::getAbstractVersionById/$1');
         $routes->get('(:num)/versions', 'AbstractsApiController::getAllAbstractVersionsByAbstractId/$1');
        //$routes->post('(:num)/versions', 'AbstractsApiController::createAbstractVersion/$1');
-        $routes->put('version/(:num)', 'AbstractsApiController::updateAbstractVersion/$1');
+        $routes->post('version/(:num)/update', 'AbstractsApiController::updateAbstractVersion/$1');
         $routes->post('(:num)/save-version', 'AbstractsApiController::saveAbstractVersion/$1');
         
         // Abstract authors
@@ -275,17 +273,17 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
         $routes->post('(:num)/authors', 'AbstractsApiController::addAbstractAuthor/$1');
         
         // Author operations
-        $routes->put('authors/(:num)', 'AbstractsApiController::updateAbstractAuthor/$1');
-        $routes->delete('authors/(:num)', 'AbstractsApiController::deleteAbstractAuthor/$1');    });    
+        $routes->post('authors/(:num)/update', 'AbstractsApiController::updateAbstractAuthor/$1');
+        $routes->delete('authors/(:num)', 'AbstractsApiController::deleteAbstractAuthor/$1');    });
     
     // Abstract topics group
     $routes->group('abstract-topics', function ($routes) {
         $routes->get('program/(:num)', 'AbstractTopicsApiController::getAbstractTopicsByProgramId/$1');
     });
-    
-    // Abstract versions group
+      // Abstract versions group
     $routes->group('abstract-versions', function ($routes) {
         $routes->get('(:num)', 'AbstractVersionsApiController::getAbstractVersionById/$1');
+        $routes->get('compare/(:num)/(:num)', 'AbstractVersionsApiController::compareVersions/$1/$2');
     });
 
     // abstract settings

@@ -80,8 +80,7 @@ class AbstractVersionModel extends Model
     {
         $builder = $this->builder();
         $builder->select('*')
-            ->where('is_deleted', 0)
-            ->where('is_active', 1);
+            ->where('is_deleted', 0);
         return $builder->get()->getResult();
     }
     // get all abstract versions by abstract id
@@ -90,8 +89,7 @@ class AbstractVersionModel extends Model
         $builder = $this->builder();
         $builder->select('*')
             ->where('abstract_id', $abstract_id)
-            ->where('is_deleted', 0)
-            ->where('is_active', 1);
+            ->where('is_deleted', 0);
         return $builder->get()->getResult();
     }
 

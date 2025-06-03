@@ -18,7 +18,8 @@ use CodeIgniter\HTTP\RequestInterface;
 use Psr\Log\LoggerInterface;
 
 class AbstractsApiController extends ApiBaseController
-{    protected $abstractModel;
+{
+    protected $abstractModel;
     protected $abstractVersionModel;
     protected $abstractAuthorModel;
     protected $programModel;
@@ -37,7 +38,9 @@ class AbstractsApiController extends ApiBaseController
         \Psr\Log\LoggerInterface $logger
     ) {
         // Call parent initializer
-        parent::initController($request, $response, $logger);        // Initialize models
+        parent::initController($request, $response, $logger);        
+        
+        // Initialize models
         $this->abstractModel = new AbstractModel();
         $this->abstractVersionModel = new AbstractVersionModel();
         $this->abstractAuthorModel = new AbstractAuthorModel();
@@ -399,12 +402,15 @@ class AbstractsApiController extends ApiBaseController
             'content' => 'permit_empty|string',
             'abstract_topic_id' => 'required|numeric',
             'keywords' => 'permit_empty|string',
+            'refs' => 'permit_empty|string',
             'status' => 'permit_empty|string|in_list[draft,submitted,under_review,accepted,rejected]', // Default to 'draft'
         ];
 
         if (!$this->validate($rules)) {
             return $this->failValidationErrors($this->validator->getErrors());
-        }        // Check if program exists
+        }
+
+        // Check if program exists
         $program_id = $this->getInput('program_id');
         $program = $this->programModel->find($program_id);
 
@@ -447,19 +453,23 @@ class AbstractsApiController extends ApiBaseController
         }
 
         // Check if participant is already an author in any abstract
-        $existingAsAuthor = $this->abstractAuthorModel->where('participant_id', $participant_id)->first();        if ($existingAsAuthor) {
+        $existingAsAuthor = $this->abstractAuthorModel->where('participant_id', $participant_id)->first();
+        if ($existingAsAuthor) {
             return $this->fail('This participant is already an author for another abstract', 409);
-        }        // Validate word limits based on program's abstract settings
+        }
+
+        // Validate word limits based on program's abstract settings
         $title = $this->getInput('title');
         $content = $this->getInput('content');
         $keywords = $this->getInput('keywords');
-        
-        $validation = $this->validateWordLimits($program_id, $title, $content, $keywords);
+        $refs = $this->getInput('refs') ?? '';
+
+        $validation = $this->validateWordLimits($program_id, $title, $content, $keywords, $refs);
         if (!$validation['valid']) {
             return $this->fail('Word limit validation failed: ' . implode(', ', $validation['errors']), 400);
         }
 
-        try {// Begin transaction
+        try { // Begin transaction
             $this->abstractModel->db->transBegin();
 
             // Create abstract data
@@ -485,6 +495,7 @@ class AbstractsApiController extends ApiBaseController
                 'title' => $this->getInput('title'),
                 'content' => $this->getInput('content'),
                 'keywords' => $this->getInput('keywords'),
+                'refs' => $this->getInput('refs') ?? '',
                 'is_active' => 1,
                 'is_deleted' => 0
             ];
@@ -545,7 +556,7 @@ class AbstractsApiController extends ApiBaseController
 
     /**
      * Update an existing abstract
-     * PUT /api/abstracts/{abstract_id}
+     * POST /api/abstracts/{abstract_id}/update
      */
     public function updateAbstract($abstract_id)
     {
@@ -691,10 +702,9 @@ class AbstractsApiController extends ApiBaseController
             return $this->failServerError('Failed to delete abstract: ' . $e->getMessage());
         }
     }
-
     /**
      * Update an existing abstract author
-     * PUT /api/abstracts/authors/{author_id}
+     * POST /api/abstracts/authors/{author_id}/update
      */
     public function updateAbstractAuthor($author_id)
     {
@@ -1006,6 +1016,10 @@ class AbstractsApiController extends ApiBaseController
      * Update an existing abstract version
      * PUT /api/abstracts/version/{version_id}
      */
+    /**
+     * Update an existing abstract version
+     * POST /api/abstracts/version/{version_id}/update
+     */
     public function updateAbstractVersion($version_id)
     {
         // Check if abstract version exists
@@ -1105,7 +1119,9 @@ class AbstractsApiController extends ApiBaseController
             'refs' => 'permit_empty|string',
             'status' => 'required|in_list[draft,submitted]',
             'version_id' => 'permit_empty|numeric' // If editing an existing version
-        ];        if (!$this->validate($rules)) {
+        ];
+
+        if (!$this->validate($rules)) {
             return $this->failValidationErrors($this->validator->getErrors());
         }
 
@@ -1117,7 +1133,7 @@ class AbstractsApiController extends ApiBaseController
         $status = $this->request->getVar('status');
         $version_id = $this->request->getVar('version_id');        // Validate word limits based on program's abstract settings
         $validation = $this->validateWordLimits($abstract->program_id, $title, $content, $keywords, $refs);
-        
+
         if (!$validation['valid']) {
             return $this->fail('Word limit validation failed: ' . implode(', ', $validation['errors']), 400);
         }
@@ -1257,26 +1273,26 @@ class AbstractsApiController extends ApiBaseController
             // Get the saved version
             $savedVersion = $this->abstractVersionModel->getAbstractVersionById($resultVersionId);
 
-            return $this->respondCreated([
-                'message' => 'Abstract version saved successfully',
+            return $this->respondSuccess([
                 'abstract_version' => $savedVersion,
                 'status' => $status
-            ]);
+            ], SELF::HTTP_OK, 'Abstract version saved successfully',);
         } catch (\Exception $e) {
             // Rollback transaction if an error occurs
             $this->abstractVersionModel->db->transRollback();
             log_message('error', 'Failed to save abstract version: ' . $e->getMessage());
             return $this->failServerError('Failed to save abstract version: ' . $e->getMessage());
         }
-    }    /**
+    }
+    /**
      * Validate word limits based on program's abstract settings
-     */private function validateWordLimits($program_id, $title, $content, $keywords, $references = '')
+     */ private function validateWordLimits($program_id, $title, $content, $keywords, $references = '')
     {
         // Get abstract settings for the program
         $abstractSettings = $this->abstractSettingModel->where('program_id', $program_id)
-                                                       ->where('is_active', 1)
-                                                       ->first();
-        
+            ->where('is_active', 1)
+            ->first();
+
         if (!$abstractSettings) {
             // If no settings found, return true (no limits enforced)
             return ['valid' => true];
@@ -1326,15 +1342,15 @@ class AbstractsApiController extends ApiBaseController
     {
         // Remove HTML tags if present
         $text = strip_tags($text);
-        
+
         // Remove extra whitespace and trim
         $text = preg_replace('/\s+/', ' ', trim($text));
-        
+
         // If empty after cleaning, return 0
         if (empty($text)) {
             return 0;
         }
-        
+
         // Split by spaces and count
         return count(explode(' ', $text));
     }
@@ -1413,7 +1429,8 @@ class AbstractsApiController extends ApiBaseController
         } catch (\Exception $e) {
             return $this->failServerError('Failed to create abstract version: ' . $e->getMessage());
         }
-    }    /**
+    }
+    /**
      * Get abstract word limits for a program
      * GET /api/abstracts/programs/{program_id}/limits
      */
@@ -1428,10 +1445,11 @@ class AbstractsApiController extends ApiBaseController
 
         // Get abstract settings for the program
         $abstractSettings = $this->abstractSettingModel->where('program_id', $program_id)
-                                                       ->where('is_active', 1)
-                                                       ->first();
+            ->where('is_active', 1)
+            ->first();
 
-        if (!$abstractSettings) {            return $this->respond([
+        if (!$abstractSettings) {
+            return $this->respond([
                 'status' => 'success',
                 'message' => 'No word limits configured for this program',
                 'data' => [
@@ -1439,11 +1457,13 @@ class AbstractsApiController extends ApiBaseController
                     'limits' => null
                 ]
             ]);
-        }        return $this->respond([
+        }
+        return $this->respond([
             'status' => 'success',
             'message' => 'Abstract word limits retrieved successfully',
             'data' => [
-                'has_limits' => true,'limits' => [
+                'has_limits' => true,
+                'limits' => [
                     'title_limit' => $abstractSettings->title_length,
                     'content_limit' => $abstractSettings->content_length,
                     'keywords_limit' => $abstractSettings->keywords_length,
