@@ -862,17 +862,16 @@
                             }
                             return authorsText;
                         }
-                    },
-                    {
+                    }, {
                         data: "created_at",
                         render: function(data) {
-                            return data ? new Date(data).toLocaleDateString() : 'N/A';
+                            return data ? new Date(data).toLocaleString() : 'N/A';
                         }
                     },
                     {
                         data: "updated_at",
                         render: function(data) {
-                            return data ? new Date(data).toLocaleDateString() : 'N/A';
+                            return data ? new Date(data).toLocaleString() : 'N/A';
                         }
                     },
                     {
@@ -1267,7 +1266,7 @@
                             if (versions.length > 0) {
                                 let options = '';
                                 versions.forEach(function(version) {
-                                    options += '<option value="' + version.id + '">Version ' + version.version_number + ' (' + new Date(version.created_at).toLocaleDateString() + ')</option>';
+                                    options += '<option value="' + version.id + '">Version ' + version.version_number + ' (' + new Date(version.created_at).toLocaleString() + ')</option>';
                                 });
 
                                 $('.view-version-select').html(options);
@@ -1365,7 +1364,7 @@
                             if (versions.length > 0) {
                                 let options = '';
                                 versions.forEach(function(version) {
-                                    options += '<option value="' + version.id + '">Version ' + version.version_number + ' (' + new Date(version.created_at).toLocaleDateString() + ')</option>';
+                                    options += '<option value="' + version.id + '">Version ' + version.version_number + ' (' + new Date(version.created_at).toLocaleString() + ')</option>';
                                 });
 
                                 if (mode === 'view') {
@@ -1725,12 +1724,10 @@
                             let abstract = response.data;
 
                             // Set form data
-                            $('#feedback_abstract_id').val(abstract.id);
-
-                            // Basic info
+                            $('#feedback_abstract_id').val(abstract.id); // Basic info
                             $('.feedback-abstract-participant').text(abstract.participant_name);
                             $('.feedback-abstract-topic').text(abstract.topic_name || 'No topic');
-                            $('.feedback-abstract-date').text(abstract.created_at ? new Date(abstract.created_at).toLocaleDateString() : 'N/A');
+                            $('.feedback-abstract-date').text(abstract.created_at ? new Date(abstract.created_at).toLocaleString() : 'N/A');
 
                             // Status
                             let statusText = abstract.status ? abstract.status.replace('_', ' ') : 'Unknown';
@@ -1763,9 +1760,8 @@
                         if (response.success && response.data) {
                             let versions = response.data;
                             let options = '<option value="">Select a version to review</option>';
-
                             versions.forEach(function(version) {
-                                options += '<option value="' + version.id + '">Version ' + version.version_number + ' (' + new Date(version.created_at).toLocaleDateString() + ')</option>';
+                                options += '<option value="' + version.id + '">Version ' + version.version_number + ' (' + new Date(version.created_at).toLocaleString() + ')</option>';
                             });
 
                             $('#feedback-version-select').html(options);
@@ -1817,7 +1813,7 @@
                                     feedbackHtml += '<div class="feedback-item border rounded p-3 mb-3">';
                                     feedbackHtml += '<div class="d-flex justify-content-between mb-2">';
                                     feedbackHtml += '<strong>' + (feedback.reviewer_name || 'Anonymous Reviewer') + '</strong>';
-                                    feedbackHtml += '<small class="text-muted">' + new Date(feedback.created_at).toLocaleDateString() + '</small>';
+                                    feedbackHtml += '<small class="text-muted">' + new Date(feedback.created_at).toLocaleString() + '</small>';
                                     feedbackHtml += '</div>';
                                     if (feedback.recommendation) {
                                         feedbackHtml += '<div class="mb-2"><span class="badge bg-info">' + feedback.recommendation.replace('_', ' ') + '</span></div>';
@@ -1922,7 +1918,7 @@
                                     accordionHtml += '<div class="accordion-item">';
                                     accordionHtml += '<h2 class="accordion-header" id="heading-' + versionId + '">';
                                     accordionHtml += '<button class="accordion-button ' + (isActive ? '' : 'collapsed') + '" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-' + versionId + '" aria-expanded="' + isActive + '">';
-                                    accordionHtml += 'Version ' + version.version_number + ' (' + new Date(version.created_at).toLocaleDateString() + ')';
+                                    accordionHtml += 'Version ' + version.version_number + ' (' + new Date(version.created_at).toLocaleString() + ')';
                                     accordionHtml += '</button>';
                                     accordionHtml += '</h2>';
                                     accordionHtml += '<div id="collapse-' + versionId + '" class="accordion-collapse collapse ' + (isActive ? 'show' : '') + '" data-bs-parent="#versionsAccordion">';
@@ -1976,7 +1972,7 @@
                                     feedbackHtml += '<div class="feedback-item border rounded p-2 mb-2">';
                                     feedbackHtml += '<div class="d-flex justify-content-between mb-1">';
                                     feedbackHtml += '<small><strong>' + (feedback.reviewer_name || 'Anonymous Reviewer') + '</strong></small>';
-                                    feedbackHtml += '<small class="text-muted">' + new Date(feedback.created_at).toLocaleDateString() + '</small>';
+                                    feedbackHtml += '<small class="text-muted">' + new Date(feedback.created_at).toLocaleString() + '</small>';
                                     feedbackHtml += '</div>';
                                     if (feedback.recommendation) {
                                         feedbackHtml += '<div class="mb-1"><span class="badge bg-info badge-sm">' + feedback.recommendation.replace('_', ' ') + '</span></div>';

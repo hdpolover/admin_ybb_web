@@ -9,15 +9,110 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.3/dist/sweetalert2.all.min.js"></script>
 
     <style>
-        /* Card hover effects */
+        /* Card styling */
         .card {
-            transition: all 0.3s ease;
+            border-radius: 0.25rem;
             border: 1px solid rgba(0, 0, 0, 0.125);
+            margin-bottom: 1.5rem;
         }
 
-        .card:hover {
-            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-            transform: translateY(-2px);
+        .card-header {
+            background-color: rgba(0, 0, 0, 0.03);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+            padding: 0.75rem 1.25rem;
+        }
+
+        .card-header h5 {
+            margin-bottom: 0;
+            font-weight: 500;
+        }
+
+        .card-body {
+            padding: 1.25rem;
+        }
+
+        /* Version selector styles */
+        .version-selector {
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            border-radius: 0.25rem;
+            margin-bottom: 10px;
+            cursor: pointer;
+            background-color: #f8f9fa;
+        }
+
+        .version-selector:hover {
+            background-color: #e9ecef;
+        }
+
+        .version-selector.selected {
+            border-color: #0d6efd;
+            background-color: #e7f1ff;
+        }
+
+        .version-selector.loading-selection {
+            border-color: #6c757d;
+            background-color: #f0f0f0;
+            position: relative;
+        }
+
+        .version-selector.loading-selection::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(1px);
+        }
+
+        /* Stats cards */
+        .stats-card {
+            padding: 1rem;
+            text-align: center;
+            height: 100%;
+            border: 1px solid rgba(0, 0, 0, 0.125);
+            border-radius: 0.25rem;
+        }
+
+        /* Loading spinner */
+        .loading-spinner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            text-align: center;
+            min-height: 100px;
+        }
+
+        .loading-spinner .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+
+        .stats-card .stats-icon {
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            margin: 0 auto 0.75rem;
+            font-size: 1.25rem;
+        }
+
+        .stats-card .stats-value {
+            font-size: 1.75rem;
+            font-weight: 600;
+            line-height: 1.2;
+            margin-bottom: 0.25rem;
+        }
+
+        .stats-card .stats-label {
+            font-size: 0.8125rem;
+            color: #6c757d;
+            text-transform: uppercase;
         }
 
         /* Author cards */
@@ -25,14 +120,25 @@
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: linear-gradient(135deg, #6c757d, #495057);
             color: white;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 600;
-            margin-right: 0.75rem;
+            font-size: 1rem;
+            margin-right: 1rem;
             flex-shrink: 0;
+        }
+
+        .author-card {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            background: #f8f9fa;
+            margin-bottom: 0.75rem;
+            border: 1px solid #e9ecef;
+            border-radius: 0.25rem;
         }
 
         /* Version timeline */
@@ -48,15 +154,15 @@
             top: 0;
             bottom: 0;
             width: 2px;
-            background: #e5e7eb;
+            background: #e9ecef;
         }
 
         .version-item {
             position: relative;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.25rem;
             background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 0.5rem;
+            border: 1px solid #e9ecef;
+            border-radius: 0.25rem;
             padding: 1rem;
             margin-left: 1rem;
         }
@@ -64,75 +170,54 @@
         .version-item::before {
             content: '';
             position: absolute;
-            left: -1.65rem;
-            top: 1rem;
+            left: -1.5rem;
+            top: 1.25rem;
             width: 10px;
             height: 10px;
-            background: #667eea;
+            background: #6c757d;
             border-radius: 50%;
             border: 2px solid white;
-            box-shadow: 0 0 0 2px #e5e7eb;
         }
 
         .version-item.latest::before {
-            background: #10b981;
+            background: #28a745;
         }
 
-        /* Comparison modal */
-        .comparison-container {
-            display: flex;
-            gap: 1rem;
-            height: 500px;
+        /* Keywords styling */
+        .keywords-tag {
+            background: #f1f8ff;
+            color: #0d6efd;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.25rem;
+            font-size: 0.8125rem;
+            margin: 0.25rem;
+            display: inline-block;
         }
 
-        .comparison-panel {
-            flex: 1;
-            border: 1px solid #e5e7eb;
-            border-radius: 0.5rem;
-            overflow: hidden;
-        }
-
-        .comparison-header {
-            background: #f9fafb;
+        /* Abstract content styling */
+        .abstract-content {
+            line-height: 1.6;
+            color: #495057;
+            background: #f8f9fa;
             padding: 1rem;
-            border-bottom: 1px solid #e5e7eb;
-            font-weight: 600;
+            border-radius: 0.25rem;
+            border: 1px solid #e9ecef;
         }
 
-        .comparison-content {
-            padding: 1rem;
-            height: calc(100% - 60px);
-            overflow-y: auto;
+        /* Navigation & Action buttons */
+        .action-btn {
+            border-radius: 0.25rem;
+            padding: 0.375rem 0.75rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
         }
 
-        .field-comparison {
-            margin-bottom: 1rem;
-            border: 1px solid #e5e7eb;
-            border-radius: 0.375rem;
-            overflow: hidden;
-        }
-
-        .field-label {
-            background: #f9fafb;
-            padding: 0.5rem 1rem;
-            border-bottom: 1px solid #e5e7eb;
-            font-weight: 600;
-            font-size: 0.875rem;
-        }
-
-        .field-content {
-            padding: 1rem;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
-
-        .changed-field {
-            border-left: 4px solid #f59e0b;
-        }
-
-        .changed-field .field-label {
-            background: #fef3c7;
-            color: #92400e;
+        /* Status badges */
+        .status-badge {
+            padding: 0.35rem 0.65rem;
+            border-radius: 0.25rem;
+            font-weight: 500;
         }
 
         /* Content truncation */
@@ -144,155 +229,57 @@
             overflow: hidden;
         }
 
-        /* Modal loading */
-        .loading-spinner {
-            text-align: center;
-            padding: 2rem;
+        /* Additional utility classes */
+        .text-purple {
+            color: #6f42c1 !important;
         }
 
-        .loading-spinner .spinner-border {
-            width: 3rem;
-            height: 3rem;
+        .bg-purple-subtle {
+            background-color: rgba(111, 66, 193, 0.1) !important;
         }
 
-        /* Version selector styling */
-        .version-selector {
-            background: white;
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            padding: 1rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
+        .bg-primary-subtle {
+            background-color: rgba(13, 110, 253, 0.1) !important;
         }
 
-        .version-selector:hover,
-        .version-selector.selected {
-            border-color: #007bff;
-            background: #f0f8ff;
+        .bg-success-subtle {
+            background-color: rgba(25, 135, 84, 0.1) !important;
         }
 
-        /* Keywords styling */
-        .keywords-tag {
-            background: #e3f2fd;
-            color: #1976d2;
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.875rem;
-            margin: 0.25rem;
-            display: inline-block;
+        .bg-info-subtle {
+            background-color: rgba(13, 202, 240, 0.1) !important;
         }
 
-        /* Statistics grid */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
+        .bg-warning-subtle {
+            background-color: rgba(255, 193, 7, 0.1) !important;
         }
 
-        .stat-item {
-            text-align: center;
+        .bg-danger-subtle {
+            background-color: rgba(220, 53, 69, 0.1) !important;
         }
 
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #007bff;
+        .btn-soft-primary {
+            background-color: rgba(13, 110, 253, 0.1);
+            color: #0d6efd;
+            border: 1px solid rgba(13, 110, 253, 0.1);
         }
 
-        .stat-label {
-            font-size: 0.875rem;
-            color: #6c757d;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+        .btn-soft-info {
+            background-color: rgba(13, 202, 240, 0.1);
+            color: #0dcaf0;
+            border: 1px solid rgba(13, 202, 240, 0.1);
         }
 
-        /* Feedback Section Styles */
-        .feedback-item {
-            border: 1px solid #e9ecef;
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-            background: white;
-            transition: all 0.3s ease;
+        .btn-danger-subtle {
+            background-color: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+            border: 1px solid rgba(220, 53, 69, 0.1);
         }
 
-        .feedback-item:hover {
-            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-            border-color: #dee2e6;
-        }
-
-        .feedback-header {
-            display: flex;
-            justify-content: between;
-            align-items: flex-start;
-            margin-bottom: 1rem;
-        }
-
-        .feedback-reviewer {
-            display: flex;
-            align-items: center;
-            margin-bottom: 0.5rem;
-        }
-
-        .reviewer-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            margin-right: 0.75rem;
-            flex-shrink: 0;
-        }
-
-        .feedback-content {
-            background: #f8f9fa;
-            border-radius: 6px;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
-
-        .feedback-meta {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.875rem;
-            color: #6c757d;
-        }
-
-        .feedback-rating {
-            display: flex;
-            align-items: center;
-        }
-
-        .rating-stars {
-            color: #ffc107;
-            margin-right: 0.5rem;
-        }
-
-        .feedback-actions {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .feedback-status-badge {
-            font-size: 0.75rem;
-            padding: 0.25rem 0.5rem;
-        }
-
-        .feedback-version-info {
-            background: #e7f3ff;
-            border: 1px solid #b8daff;
-            border-radius: 4px;
-            padding: 0.5rem 0.75rem;
-            font-size: 0.875rem;
-            color: #004085;
-            margin-bottom: 0.5rem;
+        /* Badge styling */
+        .badge {
+            font-weight: 500;
+            letter-spacing: 0.3px;
         }
     </style>
 </head>
@@ -305,45 +292,46 @@
             <div class="page-content">
                 <div class="container-fluid">
 
-                    <?php echo view('partials/page-title', array('pagetitle' => 'Submissions', 'title' => 'Abstract Details')); ?>
-
-                    <!-- Navigation Bar -->
-                    <div class="row mb-3">
+                    <?php echo view('partials/page-title', array('pagetitle' => 'Submissions', 'title' => 'Abstract Details')); ?> <!-- Navigation Bar -->
+                    <div class="row mb-4">
                         <div class="col-12">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <a href="<?= base_url('submissions/abstracts-papers') ?>" class="btn btn-light btn-sm me-2">
-                                        <i class="ri-arrow-left-line me-1"></i>Back to List
-                                    </a>
-                                </div>
-                                <div class="btn-group" role="group"> <button type="button" class="btn btn-outline-primary btn-sm" onclick="openVersionComparison()" data-bs-toggle="tooltip" title="Compare Versions">
-                                        <i class="ri-git-branch-line me-1"></i>Compare Versions
-                                    </button>
-                                    <?php if (!session('adminId')): ?>
-                                        <button type="button" class="btn btn-outline-success btn-sm" onclick="openEditModal()" data-bs-toggle="tooltip" title="Edit Abstract">
-                                            <i class="ri-pencil-line me-1"></i>Edit
-                                        </button>
-                                    <?php endif; ?>
-                                    <div class="btn-group" role="group">
-                                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                            <i class="ri-settings-3-line me-1"></i>Actions
-                                        </button>
-                                        <ul class="dropdown-menu">
-                                            <li><a class="dropdown-item" href="#" onclick="quickAction('accept')"><i class="ri-check-line me-2 text-success"></i>Accept</a></li>
-                                            <li><a class="dropdown-item" href="#" onclick="quickAction('reject')"><i class="ri-close-line me-2 text-danger"></i>Reject</a></li>
-                                            <li>
-                                                <hr class="dropdown-divider">
-                                            </li>
-                                            <li><a class="dropdown-item" href="#" onclick="downloadPDF()"><i class="ri-download-line me-2"></i>Download PDF</a></li>
-                                            <li><a class="dropdown-item" href="#" onclick="exportData()"><i class="ri-file-export-line me-2"></i>Export Data</a></li>
-                                        </ul>
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <a href="<?= base_url('submissions/abstracts-papers') ?>" class="btn btn-light action-btn">
+                                                <i class="ri-arrow-left-line me-1"></i> Back to List
+                                            </a>
+                                        </div>
+                                        <div class="d-flex gap-2">
+                                            <button type="button" class="btn btn-primary action-btn" onclick="openVersionComparison()">
+                                                <i class="ri-git-branch-line me-1"></i> Compare Versions
+                                            </button>
+                                            <?php if (!session('adminId')): ?>
+                                                <button type="button" class="btn btn-success action-btn" onclick="openEditModal()">
+                                                    <i class="ri-pencil-line me-1"></i> Edit
+                                                </button>
+                                            <?php endif; ?>
+                                            <div class="dropdown">
+                                                <button class="btn btn-light action-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                    <i class="ri-settings-3-line me-1"></i> Actions
+                                                </button>
+                                                <ul class="dropdown-menu dropdown-menu-end">
+                                                    <li><a class="dropdown-item" href="#" onclick="quickAction('accept')"><i class="ri-check-line me-2 text-success"></i>Accept</a></li>
+                                                    <li><a class="dropdown-item" href="#" onclick="quickAction('reject')"><i class="ri-close-line me-2 text-danger"></i>Reject</a></li>
+                                                    <li>
+                                                        <hr class="dropdown-divider">
+                                                    </li>
+                                                    <li><a class="dropdown-item" href="#" onclick="downloadPDF()"><i class="ri-download-line me-2"></i>Download PDF</a></li>
+                                                    <li><a class="dropdown-item" href="#" onclick="exportData()"><i class="ri-file-export-line me-2"></i>Export Data</a></li>
+                                                </ul>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Abstract Header Card -->
+                    </div> <!-- Abstract Header Card -->
                     <div class="row">
                         <div class="col-12">
                             <div class="card mb-4">
@@ -357,87 +345,121 @@
                                             <?php endif; ?>
                                         </p>
                                     </div>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span class="badge bg-<?= $abstract->status === 'submitted' ? 'primary' : ($abstract->status === 'accepted' ? 'success' : ($abstract->status === 'rejected' ? 'danger' : 'warning')) ?> fs-6">
-                                            <?= ucfirst(str_replace('_', ' ', $abstract->status ?? 'submitted')) ?>
-                                        </span>
-                                    </div>
+                                    <span class="badge bg-<?= $abstract->status === 'submitted' ? 'primary' : ($abstract->status === 'accepted' ? 'success' : ($abstract->status === 'rejected' ? 'danger' : 'warning')) ?> fs-6">
+                                        <?= ucfirst(str_replace('_', ' ', $abstract->status ?? 'submitted')) ?>
+                                    </span>
                                 </div>
                                 <div class="card-body">
                                     <div class="row">
                                         <div class="col-md-3">
-                                            <small class="text-muted">Submitted</small>
-                                            <p class="mb-0 fw-medium"><?= date('F j, Y', strtotime($abstract->created_at)) ?></p>
+                                            <div class="d-flex align-items-center">
+                                                <div style="width: 36px; height: 36px; background-color: #f8f9fa; border-radius: 4px; display: flex; align-items: center; justify-content: center; margin-right: 10px;">
+                                                    <i class="ri-calendar-line text-primary" style="font-size: 1.15rem;"></i>
+                                                </div>
+                                                <div>
+                                                    <small class="text-muted d-block">Submitted</small>
+                                                    <p class="mb-0 fw-medium"><?= date('F j, Y', strtotime($abstract->created_at)) ?></p>
+                                                </div>
+                                            </div>
                                         </div>
                                         <div class="col-md-3">
-                                            <small class="text-muted">Last Updated</small>
-                                            <p class="mb-0 fw-medium"><?= $version_stats['last_update'] ? date('F j, Y', strtotime($version_stats['last_update'])) : 'N/A' ?></p>
+                                            <div class="d-flex align-items-center">
+                                                <div style="width: 36px; height: 36px; background-color: #f8f9fa; border-radius: 4px; display: flex; align-items: center; justify-content: center; margin-right: 10px;">
+                                                    <i class="ri-time-line text-success" style="font-size: 1.15rem;"></i>
+                                                </div>
+                                                <div>
+                                                    <small class="text-muted d-block">Last Updated</small>
+                                                    <p class="mb-0 fw-medium"><?= $version_stats['last_update'] ? date('F j, Y', strtotime($version_stats['last_update'])) : 'N/A' ?></p>
+                                                </div>
+                                            </div>
                                         </div>
                                         <div class="col-md-3">
-                                            <small class="text-muted">Institution</small>
-                                            <p class="mb-0 fw-medium"><?= esc($participant->institution ?? 'N/A') ?></p>
+                                            <div class="d-flex align-items-center">
+                                                <div style="width: 36px; height: 36px; background-color: #f8f9fa; border-radius: 4px; display: flex; align-items: center; justify-content: center; margin-right: 10px;">
+                                                    <i class="ri-building-line text-info" style="font-size: 1.15rem;"></i>
+                                                </div>
+                                                <div>
+                                                    <small class="text-muted d-block">Institution</small>
+                                                    <p class="mb-0 fw-medium"><?= esc($participant->institution ?? 'N/A') ?></p>
+                                                </div>
+                                            </div>
                                         </div>
                                         <div class="col-md-3">
-                                            <small class="text-muted">Email</small>
-                                            <p class="mb-0 fw-medium"><?= esc($participant->email ?? 'N/A') ?></p>
+                                            <div class="d-flex align-items-center">
+                                                <div style="width: 36px; height: 36px; background-color: #f8f9fa; border-radius: 4px; display: flex; align-items: center; justify-content: center; margin-right: 10px;">
+                                                    <i class="ri-mail-line text-warning" style="font-size: 1.15rem;"></i>
+                                                </div>
+                                                <div>
+                                                    <small class="text-muted d-block">Email</small>
+                                                    <p class="mb-0 fw-medium"><?= esc($participant->email ?? 'N/A') ?></p>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Statistics Cards -->
+                    </div> <!-- Statistics Cards -->
                     <div class="row mb-4">
                         <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card border-0 bg-primary text-white">
-                                <div class="card-body text-center">
-                                    <h3 class="card-title text-white mb-1"><?= $version_stats['total_versions'] ?></h3>
-                                    <p class="card-text opacity-75 mb-0">Total Versions</p>
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <i class="ri-file-list-3-line text-primary fs-4"></i>
+                                    </div>
+                                    <h4 class="card-title mb-1"><?= $version_stats['total_versions'] ?></h4>
+                                    <p class="text-muted mb-0">Total Versions</p>
                                 </div>
                             </div>
                         </div>
                         <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card border-0 bg-success text-white">
-                                <div class="card-body text-center">
-                                    <h3 class="card-title text-white mb-1"><?= $version_stats['latest_version'] ?></h3>
-                                    <p class="card-text opacity-75 mb-0">Latest Version</p>
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <i class="ri-file-paper-2-line text-success fs-4"></i>
+                                    </div>
+                                    <h4 class="card-title mb-1"><?= $version_stats['latest_version'] ?></h4>
+                                    <p class="text-muted mb-0">Latest Version</p>
                                 </div>
                             </div>
                         </div>
                         <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card border-0 bg-info text-white">
-                                <div class="card-body text-center">
-                                    <h3 class="card-title text-white mb-1"><?= count($authors) ?></h3>
-                                    <p class="card-text opacity-75 mb-0">Authors</p>
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <i class="ri-user-star-line text-info fs-4"></i>
+                                    </div>
+                                    <h4 class="card-title mb-1"><?= count($authors) ?></h4>
+                                    <p class="text-muted mb-0">Authors</p>
                                 </div>
                             </div>
                         </div>
                         <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card border-0 bg-warning text-white">
-                                <div class="card-body text-center">
-                                    <h3 class="card-title text-white mb-1">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <i class="ri-history-line text-warning fs-4"></i>
+                                    </div>
+                                    <h4 class="card-title mb-1">
                                         <?= $version_stats['last_update'] ? date('M j', strtotime($version_stats['last_update'])) : 'N/A' ?>
-                                    </h3>
-                                    <p class="card-text opacity-75 mb-0">Last Update</p>
+                                    </h4>
+                                    <p class="text-muted mb-0">Last Update</p>
                                 </div>
                             </div>
                         </div>
                     </div>
-
                     <div class="row">
                         <!-- Main Content -->
-                        <div class="col-lg-8">
-                            <!-- Current Version Display -->
+                        <div class="col-lg-8"> <!-- Current Version Display -->
                             <div class="card mb-4">
-                                <div class="card-header bg-primary text-white">
+                                <div class="card-header">
                                     <h5 class="card-title mb-0">
                                         <i class="ri-file-text-line me-2"></i>
-                                        Current Version (<?= $versions[0]->version_number ?? 'N/A' ?>)
+                                        Current Version <span class="badge bg-primary"><?= $versions[0]->version_number ?? 'N/A' ?></span>
                                     </h5>
                                 </div>
                                 <div class="card-body">
-                                    <div class="abstract-content mb-3">
+                                    <div class="abstract-content mb-4">
                                         <?php
                                         $content = $versions[0]->content ?? 'No content available';
                                         // Check if content contains HTML tags (likely from Quill editor)
@@ -452,17 +474,17 @@
                                     </div>
 
                                     <?php if (!empty($versions[0]->keywords)): ?>
-                                        <div class="keywords-section">
-                                            <h6 class="mb-2">Keywords:</h6>
-                                            <?php foreach (explode(',', $versions[0]->keywords) as $keyword): ?>
-                                                <span class="keywords-tag"><?= trim(esc($keyword)) ?></span>
-                                            <?php endforeach; ?>
+                                        <div class="keywords-section mt-4 pt-3 border-top">
+                                            <h6 class="mb-3"><i class="ri-price-tag-3-line me-2"></i>Keywords:</h6>
+                                            <div>
+                                                <?php foreach (explode(',', $versions[0]->keywords) as $keyword): ?>
+                                                    <span class="keywords-tag"><?= trim(esc($keyword)) ?></span>
+                                                <?php endforeach; ?>
+                                            </div>
                                         </div>
                                     <?php endif; ?>
                                 </div>
-                            </div>
-
-                            <!-- Version History -->
+                            </div> <!-- Version History -->
                             <div class="card">
                                 <div class="card-header">
                                     <h5 class="card-title mb-0">
@@ -472,28 +494,27 @@
                                 </div>
                                 <div class="card-body">
                                     <div class="version-timeline">
-                                        <?php foreach ($versions as $index => $version): ?>
-                                            <div class="version-item <?= $index === 0 ? 'latest' : '' ?>">
-                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <?php foreach ($versions as $index => $version): ?> <div class="version-item <?= $index === 0 ? 'latest' : '' ?>">
+                                                <div class="d-flex justify-content-between align-items-start mb-3">
                                                     <div>
-                                                        <h6 class="mb-1">Version <?= $version->version_number ?></h6>
+                                                        <h6 class="mb-1">Version <?= $version->version_number ?> <?= $index === 0 ? '<span class="badge bg-success">Latest</span>' : '' ?></h6>
                                                         <p class="text-muted mb-1"><?= $version->title ?></p>
                                                         <small class="text-muted">
-                                                            <?= date('F j, Y \a\t g:i A', strtotime($version->created_at)) ?>
+                                                            <i class="ri-time-line me-1"></i><?= date('F j, Y \a\t g:i A', strtotime($version->created_at)) ?>
                                                         </small>
                                                     </div>
                                                     <div class="btn-group btn-group-sm">
                                                         <button class="btn btn-outline-primary" onclick="viewFullVersion(<?= $version->id ?>)">
-                                                            <i class="ri-eye-line"></i>
+                                                            <i class="ri-eye-line me-1"></i> View
                                                         </button>
                                                         <?php if ($index > 0): ?>
                                                             <button class="btn btn-outline-info" onclick="compareWithCurrent(<?= $version->id ?>)">
-                                                                <i class="ri-git-branch-line"></i>
+                                                                <i class="ri-git-branch-line me-1"></i> Compare
                                                             </button>
                                                         <?php endif; ?>
                                                     </div>
                                                 </div>
-                                                <div class="version-content text-truncate-3">
+                                                <div class="version-content text-truncate-3 bg-light p-3 border rounded">
                                                     <?php
                                                     $versionContent = substr($version->content, 0, 150);
                                                     if (strip_tags($versionContent) !== $versionContent) {
@@ -503,15 +524,74 @@
                                                     }
                                                     ?>
                                                 </div>
+
+                                                <?php if (!empty($version->keywords)): ?>
+                                                    <div class="mt-2">
+                                                        <small class="text-muted"><strong>Keywords:</strong></small>
+                                                        <div>
+                                                            <?php foreach (explode(',', $version->keywords) as $keyword): ?>
+                                                                <span class="keywords-tag"><?= trim(esc($keyword)) ?></span>
+                                                            <?php endforeach; ?>
+                                                        </div>
+                                                    </div>
+                                                <?php endif; ?>
+
+                                                <?php if (!empty($version->references)): ?>
+                                                    <div class="mt-2">
+                                                        <small class="text-muted"><strong>References:</strong> Available</small>
+                                                    </div>
+                                                <?php endif; ?>
+
+                                                <div class="mt-2">
+                                                    <small class="text-muted">
+                                                        <strong>Updated:</strong> <?= date('F j, Y \a\t g:i A', strtotime($version->updated_at)) ?>
+                                                    </small>
+                                                </div>
                                             </div>
                                         <?php endforeach; ?>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-
-                        <!-- Sidebar -->
+                        </div> <!-- Sidebar -->
                         <div class="col-lg-4">
+                            <!-- Quick Actions Card -->
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">
+                                        <i class="ri-settings-3-line me-2"></i>
+                                        Quick Actions
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-grid gap-2">
+                                        <button type="button" class="btn btn-outline-primary" onclick="openVersionComparison()">
+                                            <i class="ri-git-branch-line me-1"></i> Compare Versions
+                                        </button>
+
+                                        <?php if (!session('adminId')): ?>
+                                            <button type="button" class="btn btn-outline-success" onclick="openEditModal()">
+                                                <i class="ri-pencil-line me-1"></i> Edit Abstract
+                                            </button>
+                                        <?php endif; ?>
+
+                                        <div class="dropdown">
+                                            <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                <i class="ri-more-2-line me-1"></i> More Actions
+                                            </button>
+                                            <ul class="dropdown-menu w-100">
+                                                <li><a class="dropdown-item" href="#" onclick="quickAction('accept')"><i class="ri-check-line me-2 text-success"></i>Accept</a></li>
+                                                <li><a class="dropdown-item" href="#" onclick="quickAction('reject')"><i class="ri-close-line me-2 text-danger"></i>Reject</a></li>
+                                                <li>
+                                                    <hr class="dropdown-divider">
+                                                </li>
+                                                <li><a class="dropdown-item" href="#" onclick="downloadPDF()"><i class="ri-download-line me-2"></i>Download PDF</a></li>
+                                                <li><a class="dropdown-item" href="#" onclick="exportData()"><i class="ri-file-export-line me-2"></i>Export Data</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Statistics Card -->
                             <div class="card mb-4">
                                 <div class="card-header">
@@ -521,22 +601,34 @@
                                     </h5>
                                 </div>
                                 <div class="card-body">
-                                    <div class="stats-grid">
-                                        <div class="stat-item">
-                                            <div class="stat-value"><?= count($versions) ?></div>
-                                            <div class="stat-label">Total Versions</div>
+                                    <div class="row g-3">
+                                        <div class="col-6">
+                                            <div class="p-3 border rounded bg-light text-center">
+                                                <div class="mb-2"><i class="ri-file-list-3-line text-primary"></i></div>
+                                                <div class="fs-4 fw-bold"><?= count($versions) ?></div>
+                                                <div class="small text-muted">Versions</div>
+                                            </div>
                                         </div>
-                                        <div class="stat-item">
-                                            <div class="stat-value"><?= count($authors) ?></div>
-                                            <div class="stat-label">Authors</div>
+                                        <div class="col-6">
+                                            <div class="p-3 border rounded bg-light text-center">
+                                                <div class="mb-2"><i class="ri-team-line text-success"></i></div>
+                                                <div class="fs-4 fw-bold"><?= count($authors) ?></div>
+                                                <div class="small text-muted">Authors</div>
+                                            </div>
                                         </div>
-                                        <div class="stat-item">
-                                            <div class="stat-value"><?= str_word_count($versions[0]->content ?? '') ?></div>
-                                            <div class="stat-label">Words</div>
+                                        <div class="col-6">
+                                            <div class="p-3 border rounded bg-light text-center">
+                                                <div class="mb-2"><i class="ri-text text-info"></i></div>
+                                                <div class="fs-4 fw-bold"><?= str_word_count($versions[0]->content ?? '') ?></div>
+                                                <div class="small text-muted">Words</div>
+                                            </div>
                                         </div>
-                                        <div class="stat-item">
-                                            <div class="stat-value"><?= date('M j', strtotime($abstract->created_at)) ?></div>
-                                            <div class="stat-label">Submitted</div>
+                                        <div class="col-6">
+                                            <div class="p-3 border rounded bg-light text-center">
+                                                <div class="mb-2"><i class="ri-calendar-check-line text-warning"></i></div>
+                                                <div class="fs-4 fw-bold"><?= date('M j', strtotime($abstract->created_at)) ?></div>
+                                                <div class="small text-muted">Submitted</div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -547,70 +639,67 @@
                                 <div class="card-header">
                                     <h5 class="card-title mb-0">
                                         <i class="ri-team-line me-2"></i>
-                                        Authors (<?= count($authors) ?>)
+                                        Authors <span class="badge bg-secondary rounded-pill"><?= count($authors) ?></span>
                                     </h5>
                                 </div>
                                 <div class="card-body">
                                     <?php if (!empty($authors)): ?>
-                                        <?php foreach ($authors as $author): ?>
-                                            <div class="d-flex align-items-center mb-3">
-                                                <div class="author-avatar">
-                                                    <?= strtoupper(substr($author->full_name, 0, 1)) ?>
+                                        <div class="authors-list">
+                                            <?php foreach ($authors as $author): ?>
+                                                <div class="author-card">
+                                                    <div class="author-avatar">
+                                                        <?= strtoupper(substr($author->full_name, 0, 1)) ?>
+                                                    </div>
+                                                    <div class="flex-grow-1">
+                                                        <div class="fw-medium mb-1"><?= htmlspecialchars($author->full_name) ?></div>
+                                                        <?php if (!empty($author->institution)): ?>
+                                                            <div class="small text-muted mb-1"><i class="ri-building-line me-1"></i><?= htmlspecialchars($author->institution) ?></div>
+                                                        <?php endif; ?>
+                                                        <?php if (!empty($author->email)): ?>
+                                                            <div class="small text-muted"><i class="ri-mail-line me-1"></i><?= htmlspecialchars($author->email) ?></div>
+                                                        <?php endif; ?>
+                                                        <?php if ($author->is_participant): ?>
+                                                            <span class="badge bg-info mt-2">Participant</span>
+                                                        <?php endif; ?>
+                                                    </div>
                                                 </div>
-                                                <div class="flex-grow-1">
-                                                    <div class="fw-medium"><?= htmlspecialchars($author->full_name) ?></div>
-                                                    <?php if (!empty($author->institution)): ?>
-                                                        <div class="small text-muted"><?= htmlspecialchars($author->institution) ?></div>
-                                                    <?php endif; ?>
-                                                    <?php if (!empty($author->email)): ?>
-                                                        <div class="small text-muted"><?= htmlspecialchars($author->email) ?></div>
-                                                    <?php endif; ?>
-                                                    <?php if ($author->is_participant): ?>
-                                                        <span class="badge bg-info badge-sm">Participant</span>
-                                                    <?php endif; ?>
-                                                </div>
-                                            </div>
-                                        <?php endforeach; ?>
+                                            <?php endforeach; ?>
+                                        </div>
                                     <?php else: ?>
-                                        <div class="text-center py-3">
-                                            <i class="ri-user-line text-muted" style="font-size: 2rem;"></i>
-                                            <p class="text-muted mt-2 mb-0">No authors listed</p>
+                                        <div class="text-center py-4">
+                                            <div class="text-muted mb-2">
+                                                <i class="ri-user-line" style="font-size: 2rem;"></i>
+                                            </div>
+                                            <p class="text-muted">No authors listed</p>
                                         </div>
                                     <?php endif; ?>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <!-- Feedback Section -->
-                <div class="row">
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-header">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h5 class="card-title mb-0">
-                                            <i class="ri-message-3-line me-2"></i>
-                                            Reviewer Feedback
-                                        </h5>
-                                        <p class="text-muted mb-0 mt-1">Comments and suggestions from reviewers</p>
-                                    </div>
-                                    <div>
-                                        <button type="button" class="btn btn-primary btn-sm" onclick="openAddFeedbackModal()" data-bs-toggle="tooltip" title="Add New Feedback">
-                                            <i class="ri-add-line me-1"></i>Add Feedback
-                                        </button>
-                                    </div>
+                </div> <!-- Feedback Section -->
+                <div class="container-fluid">
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5 class="card-title mb-0">
+                                        <i class="ri-message-3-line me-2"></i>
+                                        Reviewer Feedback
+                                    </h5>
+                                    <button type="button" class="btn btn-primary btn-sm" onclick="openAddFeedbackModal()">
+                                        <i class="ri-add-line me-1"></i>Add Feedback
+                                    </button>
                                 </div>
-                            </div>
-                            <div class="card-body">
-                                <!-- Feedback List -->
-                                <div id="feedbackList">
-                                    <!-- Feedback items will be loaded here -->
-                                    <div class="text-center py-4" id="noFeedbackMessage">
-                                        <i class="ri-message-3-line text-muted" style="font-size: 3rem;"></i>
-                                        <h6 class="text-muted mt-2">No feedback available</h6>
-                                        <p class="text-muted mb-0">Reviewer feedback will appear here once submitted.</p>
+                                <div class="card-body">
+                                    <!-- Feedback List -->
+                                    <div id="feedbackList">
+                                        <!-- Feedback items will be loaded here -->
+                                        <div class="text-center py-4" id="noFeedbackMessage">
+                                            <i class="ri-message-3-line text-muted" style="font-size: 2rem;"></i>
+                                            <h6 class="text-muted mt-2">No feedback available</h6>
+                                            <p class="text-muted mb-0">Reviewer feedback will appear here once submitted.</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -644,13 +733,12 @@
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
-                                        <label for="feedbackVersion" class="form-label">Abstract Version <span class="text-danger">*</span></label>
-                                        <select class="form-select" id="feedbackVersion" name="abstract_version_id" required>
+                                        <label for="feedbackVersion" class="form-label">Abstract Version <span class="text-danger">*</span></label> <select class="form-select" id="feedbackVersion" name="abstract_version_id" required>
                                             <option value="">Select Version</option>
                                             <?php if (!empty($versions)): ?>
                                                 <?php foreach ($versions as $version): ?>
                                                     <option value="<?= $version->id ?>">
-                                                        Version <?= $version->version_number ?> - <?= date('M j, Y', strtotime($version->created_at)) ?>
+                                                        Version <?= $version->version_number ?> - <?= date('M j, Y \a\t g:i A', strtotime($version->created_at)) ?>
                                                     </option>
                                                 <?php endforeach; ?>
                                             <?php endif; ?>
@@ -845,54 +933,53 @@
                     </div>
                 </div>
             </div>
-        </div>
-
-        <!-- Version Comparison Modal -->
+        </div> <!-- Version Comparison Modal -->
         <div class="modal fade comparison-modal" id="comparisonModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-xl">
                 <div class="modal-content">
-                    <div class="modal-header bg-primary text-white">
-                        <h5 class="modal-title">
+                    <div class="modal-header">
+                        <h5 class="modal-title mb-0">
                             <i class="ri-git-branch-line me-2"></i>
                             Version Comparison
                         </h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
                         <!-- Version Selection -->
                         <div class="row mb-4">
                             <div class="col-md-6">
-                                <h6>Select First Version:</h6>
+                                <h6 class="mb-3">Select First Version:</h6>
                                 <div id="version1-selector" class="version-selectors">
                                     <!-- Version options will be loaded here -->
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <h6>Select Second Version:</h6>
+                                <h6 class="mb-3">Select Second Version:</h6>
                                 <div id="version2-selector" class="version-selectors">
                                     <!-- Version options will be loaded here -->
                                 </div>
                             </div>
-                        </div>
-
-                        <!-- Comparison Results -->
+                        </div> <!-- Comparison Results -->
                         <div id="comparisonResults" class="d-none">
-                            <div class="comparison-panel">
-                                <h6>Comparison Summary</h6>
-                                <div id="comparisonSummary"></div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="comparison-panel">
-                                        <h6 id="version1Title">Version 1</h6>
-                                        <div id="version1Content"></div>
-                                    </div>
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">
+                                        <i class="ri-git-branch-line me-2"></i>
+                                        Comparison Results
+                                    </h5>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="comparison-panel">
-                                        <h6 id="version2Title">Version 2</h6>
-                                        <div id="version2Content"></div>
+                                <div class="card-body">
+                                    <div id="comparisonSummary" class="p-3 bg-light rounded border mb-4"></div>
+
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <h6 class="mb-3" id="version1Title">Version 1</h6>
+                                            <div id="version1Content" class="p-3 bg-light rounded border"></div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6 class="mb-3" id="version2Title">Version 2</h6>
+                                            <div id="version2Content" class="p-3 bg-light rounded border"></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -900,27 +987,29 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="button" class="btn btn-primary" id="compareBtn" onclick="performComparison()">
-                            <i class="ri-git-branch-line me-1"></i> Compare Selected Versions
+                        <button type="button" class="btn btn-primary" id="compareBtn" onclick="performComparison()" disabled>
+                            <span class="d-flex align-items-center">
+                                <i class="ri-git-branch-line me-1"></i>
+                                <span id="compareBtnText">Compare Selected Versions</span>
+                                <span id="compareBtnSpinner" class="spinner-border spinner-border-sm ms-2 d-none" role="status"></span>
+                            </span>
                         </button>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <!-- View Full Version Modal -->
+        </div> <!-- View Full Version Modal -->
         <div class="modal fade" id="fullVersionModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">
+                        <h5 class="modal-title mb-0" id="fullVersionTitle">
                             <i class="ri-file-text-line me-2"></i>
-                            <span id="fullVersionTitle">Version Details</span>
+                            Version Details
                         </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        <div id="fullVersionContent"></div>
+                        <div id="fullVersionContent" class="abstract-content bg-light p-3 rounded border"></div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -1046,128 +1135,220 @@
             }
 
             function loadVersionSelectors() {
-                let version1Html = '';
-                let version2Html = '';
+                // Clear previous selectors
+                $('#version1-selector, #version2-selector').empty();
 
-                console.log("Loading version selectors with versions:", versions);
-
-                if (!versions || versions.length === 0) {
-                    console.error("No versions available");
-                    return;
-                }
-
+                // Create selectors for each version
                 versions.forEach(function(version) {
-                    let versionHtml = `
+                    const $version1Item = $(`
                         <div class="version-selector mb-2" data-version-id="${version.id}">
-                            <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
                                 <div>
                                     <strong>Version ${version.version_number}</strong>
                                     <div class="small text-muted">${escapeHtml(version.title)}</div>
                                 </div>
                                 <div>
-                                    <span class="badge ${version.status === 'submitted' ? 'bg-primary' : 'bg-secondary'}">${escapeHtml(version.status)}</span>
-                                    <div class="small text-muted">${new Date(version.created_at).toLocaleDateString()}</div>
+                                    <span class="badge ${version.status === 'submitted' ? 'bg-primary' : (version.status === 'accepted' ? 'bg-success' : (version.status === 'rejected' ? 'bg-danger' : 'bg-warning'))}">${escapeHtml(version.status)}</span>
+                                    <div class="small text-muted">${new Date(version.created_at).toLocaleString()}</div>
                                 </div>
                             </div>
+                            ${version.keywords ? `
+                                <div class="small text-muted mt-1 mb-1">
+                                    <strong>Keywords:</strong> ${escapeHtml(version.keywords)}
+                                </div>
+                            ` : ''}
+                            ${version.refs ? `
+                                <div class="small text-muted">
+                                    <strong>Has References:</strong> Yes
+                                </div>
+                            ` : ''}
                         </div>
-                    `;
+                    `);
 
-                    version1Html += versionHtml;
-                    version2Html += versionHtml;
+                    const $version2Item = $version1Item.clone(); // Add click handlers
+                    $version1Item.on('click', function() {
+                        console.log('Version 1 selector clicked:', version.id);
+
+                        // Show visual feedback
+                        $(this).addClass('loading-selection');
+
+                        // Use setTimeout to allow the UI to update
+                        setTimeout(() => {
+                            $('#version1-selector .version-selector').removeClass('selected loading-selection');
+                            $(this).addClass('selected');
+                            selectedVersion1 = version.id;
+                            updateCompareButtonState();
+                            console.log('Version 1 selected:', selectedVersion1);
+                        }, 100);
+                    });
+
+                    $version2Item.on('click', function() {
+                        console.log('Version 2 selector clicked:', version.id);
+
+                        // Show visual feedback
+                        $(this).addClass('loading-selection');
+
+                        // Use setTimeout to allow the UI to update
+                        setTimeout(() => {
+                            $('#version2-selector .version-selector').removeClass('selected loading-selection');
+                            $(this).addClass('selected');
+                            selectedVersion2 = version.id;
+                            updateCompareButtonState();
+                            console.log('Version 2 selected:', selectedVersion2);
+                        }, 100);
+                    });
+
+                    // Append to respective containers                    
+                    $('#version1-selector').append($version1Item);
+                    $('#version2-selector').append($version2Item);
                 });
-
-                $('#version1-selector').html(version1Html);
-                $('#version2-selector').html(version2Html);
-
-                // Add click event handlers after adding elements to DOM
-                $('#version1-selector .version-selector').on('click', function() {
-                    const versionId = $(this).data('version-id');
-                    selectVersion(versionId, this, true);
-                });
-
-                $('#version2-selector .version-selector').on('click', function() {
-                    const versionId = $(this).data('version-id');
-                    selectVersion(versionId, this, false);
-                });
-
-                console.log("Version selectors populated with event handlers attached");
             }
 
-            function selectVersion(versionId, element) {
-                console.log("Selecting version:", versionId, element);
+            function updateCompareButtonState() {
+                console.log('updateCompareButtonState called', {
+                    version1: selectedVersion1,
+                    version2: selectedVersion2
+                });
 
-                let container = $(element).parent();
-                let isVersion1 = container.attr('id') === 'version1-selector';
-
-                console.log("Container ID:", container.attr('id'), "isVersion1:", isVersion1);
-
-                // Remove previous selection in this container
-                container.find('.version-selector').removeClass('selected');
-
-                // Add selection to clicked element
-                $(element).addClass('selected');
-                if (isVersion1) {
-                    selectedVersion1 = versionId;
-                    console.log("Set selectedVersion1 to", selectedVersion1);
-                } else {
-                    selectedVersion2 = versionId;
-                    console.log("Set selectedVersion2 to", selectedVersion2);
-                }
-
-                // Enable compare button if both versions selected
+                // Enable compare button only if two different versions are selected
                 if (selectedVersion1 && selectedVersion2 && selectedVersion1 !== selectedVersion2) {
                     $('#compareBtn').prop('disabled', false);
+                    console.log('Compare button enabled');
                 } else {
                     $('#compareBtn').prop('disabled', true);
+                    console.log('Compare button disabled');
                 }
             }
 
             function openVersionComparison() {
-                $('#comparisonModal').modal('show');
+                console.log('openVersionComparison called');
+
+                // Show loading using SweetAlert
+                Swal.fire({
+                    title: 'Opening Version Comparison',
+                    text: 'Please wait...',
+                    allowOutsideClick: false,
+                    timer: 1000,
+                    timerProgressBar: true,
+                    showConfirmButton: false,
+                    willOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // Reset state
                 $('#comparisonResults').addClass('d-none');
                 selectedVersion1 = null;
                 selectedVersion2 = null;
+
+                console.log('Resetting comparison state');
+
+                // Show modal
+                $('#comparisonModal').modal('show');
+
+                // Reset selections
+                $('#version1-selector .version-selector, #version2-selector .version-selector').removeClass('selected');
+
+                // Disable compare button
                 $('#compareBtn').prop('disabled', true);
-                $('.version-selector').removeClass('selected');
+                console.log('Version comparison modal opened');
             }
 
             function performComparison() {
+                console.log('performComparison called');
+
                 if (!selectedVersion1 || !selectedVersion2) {
+                    console.log('Error: Missing versions', {
+                        selectedVersion1,
+                        selectedVersion2
+                    });
                     Swal.fire('Error', 'Please select two different versions to compare', 'error');
                     return;
                 }
 
                 if (selectedVersion1 === selectedVersion2) {
+                    console.log('Error: Same versions selected', {
+                        selectedVersion1,
+                        selectedVersion2
+                    });
                     Swal.fire('Error', 'Please select two different versions', 'error');
                     return;
                 }
 
-                // Show loading
-                $('#comparisonResults').removeClass('d-none');
-                $('#comparisonSummary').html('<div class="loading-spinner"><div class="spinner-border" role="status"></div></div>');
-                $('#version1Content').html('<div class="loading-spinner"><div class="spinner-border" role="status"></div></div>');
-                $('#version2Content').html('<div class="loading-spinner"><div class="spinner-border" role="status"></div></div>');
+                // Show loading using SweetAlert
+                Swal.fire({
+                    title: 'Comparing Versions',
+                    text: 'Please wait while we prepare the comparison...',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    willOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                console.log('Starting comparison between versions', {
+                    v1: selectedVersion1,
+                    v2: selectedVersion2
+                });
 
                 // Get version data
                 let version1 = versions.find(v => v.id == selectedVersion1);
                 let version2 = versions.find(v => v.id == selectedVersion2);
 
-                // Update titles
+                if (!version1 || !version2) {
+                    console.log('Error: Versions not found', {
+                        version1,
+                        version2
+                    });
+                    Swal.close();
+                    Swal.fire('Error', 'Selected version not found', 'error');
+                    return;
+                }
+
+                // Show comparison results section - make sure this is visible
+                $('#comparisonResults').removeClass('d-none').show();
+
+                // Show loading indicators
+                $('#comparisonSummary').html('<div class="loading-spinner"><div class="spinner-border text-primary" role="status"></div></div>');
+                $('#version1Content').html('<div class="loading-spinner"><div class="spinner-border text-primary" role="status"></div></div>');
+                $('#version2Content').html('<div class="loading-spinner"><div class="spinner-border text-primary" role="status"></div></div>');
+
+                console.log('Found versions to compare', {
+                    v1: {
+                        id: version1.id,
+                        number: version1.version_number
+                    },
+                    v2: {
+                        id: version2.id,
+                        number: version2.version_number
+                    }
+                }); // Update titles
                 $('#version1Title').text(`Version ${version1.version_number} - ${version1.title}`);
                 $('#version2Title').text(`Version ${version2.version_number} - ${version2.title}`);
 
-                // Simple comparison display
+                // Simple comparison display - simulate loading delay
                 setTimeout(() => {
+                    console.log('Building comparison content');
+
                     $('#comparisonSummary').html(`
-                        <div class="alert alert-info">
+                        <div class="alert alert-info mb-0">
                             <strong>Comparison between Version ${version1.version_number} and Version ${version2.version_number}</strong><br>
-                            <small>Created: ${new Date(version1.created_at).toLocaleDateString()} vs ${new Date(version2.created_at).toLocaleDateString()}</small>
+                            <small>Created: ${new Date(version1.created_at).toLocaleString()} vs ${new Date(version2.created_at).toLocaleString()}</small>
                         </div>
                     `);
+
                     $('#version1Content').html(`
                         <div class="field-comparison">
                             <div class="field-label">Title</div>
                             <div class="field-content">${escapeHtml(version1.title)}</div>
+                        </div>
+                        <div class="field-comparison">
+                            <div class="field-label">Status</div>
+                            <div class="field-content">
+                                <span class="badge ${version1.status === 'submitted' ? 'bg-primary' : (version1.status === 'accepted' ? 'bg-success' : (version1.status === 'rejected' ? 'bg-danger' : 'bg-warning'))}">
+                                    ${version1.status ? version1.status.charAt(0).toUpperCase() + version1.status.slice(1) : 'Draft'}
+                                </span>
+                            </div>
                         </div>
                         <div class="field-comparison">
                             <div class="field-label">Content</div>
@@ -1179,12 +1360,36 @@
                                 <div class="field-content">${escapeHtml(version1.keywords)}</div>
                             </div>
                         ` : ''}
+                        ${version1.refs ? `
+                            <div class="field-comparison">
+                                <div class="field-label">References</div>
+                                <div class="field-content">${isHtml(version1.refs) ? version1.refs : version1.refs.replace(/\n/g, '<br>')}</div>
+                            </div>
+                        ` : ''}
+                        <div class="field-comparison">
+                            <div class="field-label">Created At</div>
+                            <div class="field-content">${new Date(version1.created_at).toLocaleString()}</div>
+                        </div>
+                        ${version1.updated_at && version1.updated_at !== version1.created_at ? `
+                            <div class="field-comparison">
+                                <div class="field-label">Updated At</div>
+                                <div class="field-content">${new Date(version1.updated_at).toLocaleString()}</div>
+                            </div>
+                        ` : ''}
                     `);
 
                     $('#version2Content').html(`
                         <div class="field-comparison">
                             <div class="field-label">Title</div>
                             <div class="field-content">${escapeHtml(version2.title)}</div>
+                        </div>
+                        <div class="field-comparison">
+                            <div class="field-label">Status</div>
+                            <div class="field-content">
+                                <span class="badge ${version2.status === 'submitted' ? 'bg-primary' : (version2.status === 'accepted' ? 'bg-success' : (version2.status === 'rejected' ? 'bg-danger' : 'bg-warning'))}">
+                                    ${version2.status ? version2.status.charAt(0).toUpperCase() + version2.status.slice(1) : 'Draft'}
+                                </span>
+                            </div>
                         </div>
                         <div class="field-comparison">
                             <div class="field-label">Content</div>
@@ -1196,90 +1401,178 @@
                                 <div class="field-content">${escapeHtml(version2.keywords)}</div>
                             </div>
                         ` : ''}
+                        ${version2.refs ? `
+                            <div class="field-comparison">
+                                <div class="field-label">References</div>
+                                <div class="field-content">${isHtml(version2.refs) ? version2.refs : version2.refs.replace(/\n/g, '<br>')}</div>
+                            </div>
+                        ` : ''}
+                        <div class="field-comparison">
+                            <div class="field-label">Created At</div>
+                            <div class="field-content">${new Date(version2.created_at).toLocaleString()}</div>
+                        </div>
+                        ${version2.updated_at && version2.updated_at !== version2.created_at ? `
+                            <div class="field-comparison">
+                                <div class="field-label">Updated At</div>
+                                <div class="field-content">${new Date(version2.updated_at).toLocaleString()}</div>
+                            </div>
+                        ` : ''}
                     `);
-                }, 1000);
+                    console.log('Comparison complete');
+
+                    // Close the loading dialog
+                    Swal.close();
+                }, 800);
             }
 
             function viewFullVersion(versionId) {
+                // Show loading indicator in a toast
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 1500,
+                    timerProgressBar: true
+                });
+
+                Toast.fire({
+                    icon: 'info',
+                    title: 'Loading version details...'
+                });
+
                 let version = versions.find(v => v.id == versionId);
                 if (!version) {
                     Swal.fire('Error', 'Version not found', 'error');
                     return;
                 }
-                $('#fullVersionTitle').text(`Version ${version.version_number} - ${version.title}`);
 
-                let contentHtml = `
-                    <div class="mb-3">
-                        <strong>Title:</strong>
-                        <div class="mt-1">${escapeHtml(version.title)}</div>
-                    </div>
-                    <div class="mb-3">
-                        <strong>Status:</strong>
-                        <span class="badge ${version.status === 'submitted' ? 'bg-primary' : 'bg-secondary'}">${escapeHtml(version.status)}</span>
-                    </div>
-                    <div class="mb-3">
-                        <strong>Content:</strong>
-                        <div class="mt-1 p-3 bg-light rounded abstract-content">
-                            ${isHtml(version.content) ? version.content : version.content.replace(/\n/g, '<br>')}
-                        </div>
-                    </div>
-                    ${version.keywords ? `
+                // Show loading indicator in the modal content
+                $('#fullVersionTitle').text(`Version ${version.version_number} - ${version.title}`);
+                $('#fullVersionContent').html('<div class="loading-spinner py-5"><div class="spinner-border text-primary" role="status"></div></div>');
+                $('#fullVersionModal').modal('show');
+
+                // Simulate loading delay for better UX
+                setTimeout(() => {
+                    let contentHtml = `
                         <div class="mb-3">
-                            <strong>Keywords:</strong>
-                            <div class="mt-1">
-                                ${version.keywords.split(',').map(k => `<span class="keywords-tag">${escapeHtml(k.trim())}</span>`).join('')}
+                            <strong>Title:</strong>
+                            <div class="mt-1">${escapeHtml(version.title)}</div>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Status:</strong>
+                            <span class="badge ${version.status === 'submitted' ? 'bg-primary' : (version.status === 'accepted' ? 'bg-success' : (version.status === 'rejected' ? 'bg-danger' : 'bg-warning'))}">
+                                ${version.status ? version.status.charAt(0).toUpperCase() + version.status.slice(1) : 'Draft'}
+                            </span>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Content:</strong>
+                            <div class="mt-1 p-3 bg-light rounded border abstract-content">
+                                ${isHtml(version.content) ? version.content : version.content.replace(/\n/g, '<br>')}
                             </div>
                         </div>
-                    ` : ''}
-                    <div class="mb-3">
-                        <strong>Version Info:</strong>
-                        <div class="small text-muted">
-                            Created: ${new Date(version.created_at).toLocaleString()}<br>
-                            ${version.updated_at !== version.created_at ? `Updated: ${new Date(version.updated_at).toLocaleString()}` : ''}
-                        </div>
-                    </div>
-                `;
+                        ${version.keywords ? `
+                            <div class="mb-3">
+                                <strong>Keywords:</strong>
+                                <div class="mt-1">
+                                    ${version.keywords.split(',').map(k => `<span class="keywords-tag">${escapeHtml(k.trim())}</span>`).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        ${version.refs ? `
+                            <div class="mb-3">
+                                <strong>References:</strong>
+                                <div class="mt-1 p-3 bg-light rounded border">
+                                    ${isHtml(version.refs) ? version.refs : version.refs.replace(/\n/g, '<br>')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        <div class="mb-3">
+                            <strong>Version Info:</strong>
+                            <div class="small text-muted">
+                                Created: ${new Date(version.created_at).toLocaleString()}<br>
+                                ${version.updated_at !== version.created_at ? `Updated: ${new Date(version.updated_at).toLocaleString()}` : ''}
+                            </div>
+                        </div>                    `;
 
-                $('#fullVersionContent').html(contentHtml);
-                $('#fullVersionModal').modal('show');
+                    $('#fullVersionContent').html(contentHtml);
+                    console.log('Version content rendered');
+
+                    // Close the loading dialog
+                    Swal.close();
+                }, 300);
             }
 
             function compareWithCurrent(versionId) {
-                console.log("compareWithCurrent called with versionId:", versionId);
-                console.log("Current versions array:", versions);
+                console.log('compareWithCurrent called with versionId:', versionId);
 
-                if (!versions || versions.length === 0) {
-                    console.error("No versions available");
-                    return;
+                // Show loading dialog using SweetAlert
+                Swal.fire({
+                    title: 'Preparing Comparison',
+                    text: 'Loading version data...',
+                    allowOutsideClick: false,
+                    showConfirmButton: false,
+                    willOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // First reset everything
+                $('#comparisonResults').addClass('d-none');
+                selectedVersion1 = null;
+                selectedVersion2 = null;
+
+                console.log('Opening comparison modal');
+
+                // Open modal first
+                $('#comparisonModal').modal('show');
+
+                // Set version selections
+                if (versions && versions.length > 0) {
+                    selectedVersion1 = versions[0].id; // Current version (first in array)
+                    selectedVersion2 = versionId;
+
+                    console.log('Setting versions for comparison', {
+                        current: selectedVersion1,
+                        selected: selectedVersion2
+                    });
+
+                    // Apply selection visually after modal has shown
+                    $('#comparisonModal').on('shown.bs.modal', function() {
+                        console.log('Modal shown, applying version selections');
+
+                        // Select first version (current version)
+                        $('#version1-selector .version-selector').each(function() {
+                            if ($(this).data('version-id') == selectedVersion1) {
+                                $(this).addClass('selected');
+                                console.log('Selected version 1:', selectedVersion1);
+                            }
+                        });
+
+                        // Select second version (comparison version)
+                        $('#version2-selector .version-selector').each(function() {
+                            if ($(this).data('version-id') == selectedVersion2) {
+                                $(this).addClass('selected');
+                                console.log('Selected version 2:', selectedVersion2);
+                            }
+                        });
+
+                        // Enable compare button
+                        $('#compareBtn').prop('disabled', false);
+
+                        // Close the initial loading dialog
+                        Swal.close(); // Auto-perform comparison after a small delay
+                        setTimeout(() => {
+                            console.log('Auto-performing comparison');
+                            performComparison();
+                        }, 300);
+
+                        // Remove event listener to prevent multiple bindings
+                        $('#comparisonModal').off('shown.bs.modal');
+                    });
+                } else {
+                    console.log('Error: No versions available');
+                    Swal.fire('Error', 'No versions available for comparison', 'error');
                 }
-
-                selectedVersion1 = versions[0].id; // Current version (first in array)
-                selectedVersion2 = versionId;
-
-                console.log("Set selectedVersion1 to", selectedVersion1);
-                console.log("Set selectedVersion2 to", selectedVersion2);
-
-                openVersionComparison();
-
-                // Pre-select the versions
-                setTimeout(() => {
-                    console.log("Selecting version elements in DOM");
-                    console.log("Selector 1:", `#version1-selector .version-selector[data-version-id="${selectedVersion1}"]`);
-                    console.log("Selector 2:", `#version2-selector .version-selector[data-version-id="${selectedVersion2}"]`);
-
-                    const version1Element = $(`#version1-selector .version-selector[data-version-id="${selectedVersion1}"]`);
-                    const version2Element = $(`#version2-selector .version-selector[data-version-id="${selectedVersion2}"]`);
-
-                    console.log("Version1 element found:", version1Element.length);
-                    console.log("Version2 element found:", version2Element.length);
-
-                    version1Element.addClass('selected');
-                    version2Element.addClass('selected');
-                    $('#compareBtn').prop('disabled', false);
-
-                    // Auto-perform comparison
-                    performComparison();
-                }, 100);
             }
 
             function openEditModal() {
@@ -1373,61 +1666,67 @@
                     const reviewer = reviewers.find(r => r.id == feedback.reviewer_id);
                     const version = versions.find(v => v.id == feedback.abstract_version_id);
 
+                    // Generate star rating
+                    const ratingStars = feedback.rating ?
+                        `<div class="me-2">
+                            <span class="text-warning">${'★'.repeat(parseInt(feedback.rating))}</span><span class="text-muted">${'☆'.repeat(5 - parseInt(feedback.rating))}</span>
+                        </div>
+                        <span class="fw-medium">${feedback.rating}/5</span>` :
+                        '<span class="text-muted">No rating</span>';
+
                     html += `
-                        <div class="feedback-item" data-feedback-id="${feedback.id}">
-                            <div class="feedback-header">
-                                <div class="flex-grow-1">
-                                    <div class="feedback-reviewer">
-                                        <div class="reviewer-avatar">
+                        <div class="card mb-3 border" data-feedback-id="${feedback.id}">
+                            <div class="card-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="d-flex align-items-center">
+                                        <div class="author-avatar me-2">
                                             ${reviewer ? reviewer.name.charAt(0).toUpperCase() : 'R'}
                                         </div>
                                         <div>
-                                            <h6 class="mb-1">${reviewer ? reviewer.name : 'Unknown Reviewer'}</h6>
+                                            <h6 class="mb-0">${reviewer ? reviewer.name : 'Unknown Reviewer'}</h6>
                                             <small class="text-muted">${reviewer ? reviewer.email : ''}</small>
                                         </div>
                                     </div>
-                                    ${version ? `
-                                        <div class="feedback-version-info">
-                                            <i class="ri-file-text-line me-1"></i>
-                                            Version ${version.version_number} - ${new Date(version.created_at).toLocaleDateString()}
-                                        </div>
-                                    ` : ''}
-                                </div>
-                                <div class="feedback-actions">
-                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewFeedback(${feedback.id})">
-                                        <i class="ri-eye-line"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="editFeedback(${feedback.id})">
-                                        <i class="ri-edit-line"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteFeedback(${feedback.id})">
-                                        <i class="ri-delete-bin-line"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div class="feedback-content">
-                                ${feedback.feedback ? feedback.feedback.substring(0, 300) + (feedback.feedback.length > 300 ? '...' : '') : 'No feedback content'}
-                            </div>
-                            
-                            <div class="feedback-meta">
-                                <div class="d-flex align-items-center">
-                                    ${feedback.rating ? `
-                                        <div class="feedback-rating">
-                                            <div class="rating-stars">
-                                                ${'★'.repeat(parseInt(feedback.rating))}${'☆'.repeat(5 - parseInt(feedback.rating))}
-                                            </div>
-                                            <span>${feedback.rating}/5</span>
-                                        </div>
-                                    ` : ''}
-                                    <span class="feedback-status-badge badge ${feedback.status === 'submitted' ? 'bg-success' : 'bg-warning'}">
+                                    <span class="badge ${feedback.status === 'submitted' ? 'bg-success' : 'bg-warning'}">
                                         ${feedback.status ? feedback.status.charAt(0).toUpperCase() + feedback.status.slice(1) : 'Draft'}
                                     </span>
                                 </div>
-                                <div>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3 bg-light p-3 rounded">
+                                    ${feedback.feedback ? feedback.feedback.substring(0, 300) + (feedback.feedback.length > 300 ? '...' : '') : 'No feedback content'}
+                                </div>
+                                
+                                ${version ? `
+                                    <div class="mb-3">
+                                        <small class="text-muted">
+                                            <i class="ri-file-text-line me-1"></i>
+                                            Version ${version.version_number} - ${new Date(version.created_at).toLocaleDateString()}
+                                        </small>
+                                    </div>
+                                ` : ''}
+                                
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="d-flex align-items-center">
+                                        ${ratingStars}
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="viewFeedback(${feedback.id})">
+                                            <i class="ri-eye-line me-1"></i> View
+                                        </button>
+                                        <button type="button" class="btn btn-outline-success btn-sm" onclick="editFeedback(${feedback.id})">
+                                            <i class="ri-edit-line me-1"></i> Edit
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteFeedback(${feedback.id})">
+                                            <i class="ri-delete-bin-line me-1"></i> Delete
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-3 pt-2 border-top">
                                     <small class="text-muted">
-                                        ${new Date(feedback.created_at).toLocaleDateString()} • 
-                                        ${feedback.updated_at ? 'Updated ' + new Date(feedback.updated_at).toLocaleDateString() : ''}
+                                        <i class="ri-time-line me-1"></i> Created: ${new Date(feedback.created_at).toLocaleDateString()} 
+                                        ${feedback.updated_at ? ' • Updated: ' + new Date(feedback.updated_at).toLocaleDateString() : ''}
                                     </small>
                                 </div>
                             </div>
