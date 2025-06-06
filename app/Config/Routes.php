@@ -102,6 +102,8 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     });
 
     // routes for program documents
+    $routes->post('program-documents/upload', 'ProgramDocumentsApiController::addDocument');
+
     $routes->get('program-documents', 'ProgramDocumentsApiController::index');
     $routes->get('program-documents/(:num)', 'ProgramDocumentsApiController::show/$1');
     $routes->get('program-documents/program/(:num)', 'ProgramDocumentsApiController::getByProgram/$1');

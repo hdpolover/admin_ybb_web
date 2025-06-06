@@ -36,6 +36,77 @@ class ProgramDocumentsApiController extends ApiBaseController
         return $this->respondSuccess($documents);
     }
 
+    // public function addDocument()
+    // {
+    //     log_message('debug', 'DEBUG: POST participant_id = ' . $this->request->getPost('participant_id'));
+    //     log_message('debug', 'DEBUG: POST program_document_id = ' . $this->request->getPost('program_document_id'));
+
+    //     // Ambil file upload
+    //     $file = $this->request->getFile('participant_program_documents');
+    //     if ($file === null) {
+    //         log_message('error', 'DEBUG: File tidak ditemukan dalam request.');
+    //         return $this->fail('No file uploaded');
+    //     }
+    //     $participantId = $this->request->getPost('participant_id');
+    //     $programDocumentId = $this->request->getPost('program_document_id');
+    //     $originalName = $file->getClientName();
+
+    //     // Simpan file di folder
+    //     $uploadPath = WRITEPATH . 'uploads/documents/' . $participantId;
+    //     if (!is_dir($uploadPath)) {
+    //         mkdir($uploadPath, 0755, true);
+    //     }
+
+    //     $fileName = time() . '_' . $file->getClientName();
+    //     $file->move($uploadPath, $fileName);
+
+    //     $fileUrl = base_url('uploads/documents/' . $participantId . '/' . $fileName);
+
+    //     // Simpan ke database
+    //     $model = new ParticipantProgramDocumentModel();
+    //     $model->insert([
+    //         'participant_id'       => $participantId,
+    //         'program_document_id'  => $programDocId,
+    //         'file_url'             => $fileUrl,
+    //         'status'               => 'under_review',
+    //         'notes'                => null,
+    //         'created_at'           => date('Y-m-d H:i:s'),
+    //     ]);
+
+    //     return $this->respond(['message' => 'Berhasil disimpan', 'file_url' => $fileUrl], 200);
+    // }
+    public function addDocument()
+    {
+        $participantId = $this->request->getPost('participant_id');
+        $programDocumentId = $this->request->getPost('program_document_id');
+
+        if (empty($participantId) || empty($programDocumentId)) {
+            return $this->failValidationErrors("participant_id dan program_document_id wajib diisi.");
+        }
+
+        $data = [
+            'participant_id'        => $participantId,
+            'program_document_id'   => $programDocumentId,
+            'file_url'              => null,
+            'status'                => 'under_review',
+            'notes'                 => null,
+            'created_at'            => date('Y-m-d H:i:s')
+        ];
+
+        // Simpan ke database (contoh dengan model)
+        $model = new \App\Models\ParticipantProgramDocumentModel();
+
+        if (!$model->insert($data)) {
+            return $this->failServerError("Gagal menyimpan data.");
+        }
+
+        return $this->respond([
+            'status' => true,
+            'message' => 'Metadata berhasil disimpan.',
+            'data' => $data
+        ]);
+    }
+
     /**
      * 🔍 Get Single Program Document (READ)
      * GET /api/program-documents/{id}
