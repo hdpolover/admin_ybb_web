@@ -38,10 +38,17 @@ class ProgramDocumentsApiController extends ApiBaseController
 
     // public function addDocument()
     // {
-    //     log_message('debug', 'DEBUG: POST participant_id = ' . $this->request->getPost('participant_id'));
-    //     log_message('debug', 'DEBUG: POST program_document_id = ' . $this->request->getPost('program_document_id'));
-
     //     // Ambil file upload
+    //     // $multi = $this->request->getPost('multi');
+    //     // foreach ($multi as $key => $value) {
+    //     // $multipart[] = [
+    //     //         'name'     => $key,
+    //     //         'contents' => $value,
+    //     //         // tambahkan 'filename' jika ini file
+    //     //         ...( $key === 'participant_program_documents' ? ['filename' => $fileName] : [] )
+    //     //     ];
+    //     // }
+    //     // return $this->fail($multipart);
     //     $file = $this->request->getFile('participant_program_documents');
     //     if ($file === null) {
     //         log_message('error', 'DEBUG: File tidak ditemukan dalam request.');
@@ -75,11 +82,14 @@ class ProgramDocumentsApiController extends ApiBaseController
 
     //     return $this->respond(['message' => 'Berhasil disimpan', 'file_url' => $fileUrl], 200);
     // }
+    
     public function addDocument()
     {
+        date_default_timezone_set("Asia/Jakarta");
         $participantId = $this->request->getPost('participant_id');
         $programDocumentId = $this->request->getPost('program_document_id');
-
+        $file_url = $this->request->getPost('file_url');
+        
         if (empty($participantId) || empty($programDocumentId)) {
             return $this->failValidationErrors("participant_id dan program_document_id wajib diisi.");
         }
@@ -87,24 +97,52 @@ class ProgramDocumentsApiController extends ApiBaseController
         $data = [
             'participant_id'        => $participantId,
             'program_document_id'   => $programDocumentId,
-            'file_url'              => null,
+            'file_url'              => $file_url,
             'status'                => 'under_review',
-            'notes'                 => null,
+            'notes'                 => '',
             'created_at'            => date('Y-m-d H:i:s')
         ];
 
         // Simpan ke database (contoh dengan model)
         $model = new \App\Models\ParticipantProgramDocumentModel();
+        $existing = $model->where('participant_id', $participantId)
+                            ->where('program_document_id', $programDocumentId)
+                            ->first();
 
-        if (!$model->insert($data)) {
-            return $this->failServerError("Gagal menyimpan data.");
-        }
+            if ($existing) {
+                // Update jika sudah ada
+                $updateData = $data;
+                unset($updateData['created_at']); // Jangan overwrite created_at saat update
+                $updateData['updated_at'] = date('Y-m-d H:i:s');
 
-        return $this->respond([
-            'status' => true,
-            'message' => 'Metadata berhasil disimpan.',
-            'data' => $data
-        ]);
+                $model->update($existing['id'], $updateData);
+
+                return $this->respond([
+                    'status' => true,
+                    'message' => 'Data berhasil diperbarui.',
+                    'data' => $updateData
+                ]);
+            } else {
+                // Insert jika belum ada
+                if (!$model->insert($data)) {
+                    return $this->failServerError("Gagal menyimpan data.");
+                }
+
+                return $this->respond([
+                    'status' => true,
+                    'message' => 'Data berhasil disimpan.',
+                    'data' => $data
+                ]);
+            }
+        // if (!$model->insert($data)) {
+        //     return $this->failServerError("Gagal menyimpan data.");
+        // }
+
+        // return $this->respond([
+        //     'status' => true,
+        //     'message' => 'Metadata berhasil disimpan.',
+        //     'data' => $data
+        // ]);
     }
 
     /**
@@ -112,6 +150,17 @@ class ProgramDocumentsApiController extends ApiBaseController
      * GET /api/program-documents/{id}
      */
     public function show($id = null)
+    {
+        $document = $this->model->find($id);
+
+        if (!$document) {
+            return $this->failNotFound('Document not found');
+        }
+
+        return $this->respondSuccess($document);
+    }
+
+    public function docUpload($id = null)
     {
         $document = $this->model->find($id);
 
