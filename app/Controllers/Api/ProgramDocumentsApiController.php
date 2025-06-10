@@ -160,9 +160,20 @@ class ProgramDocumentsApiController extends ApiBaseController
         return $this->respondSuccess($document);
     }
 
-    public function docUpload($id = null)
+    public function showfile()
     {
-        $document = $this->model->find($id);
+        $participantId = $this->request->getPost('participant_id');
+        $programDocumentId = $this->request->getPost('program_document_id');
+
+        if (empty($participantId) || empty($programDocumentId)) {
+            return $this->failValidationErrors('participant_id dan program_document_id tidak boleh kosong.');
+        }
+
+        $model = new \App\Models\ParticipantProgramDocumentModel();
+        $document = $model->where([
+            'participant_id' => $participantId,
+            'program_document_id' => $programDocumentId
+        ])->first();
 
         if (!$document) {
             return $this->failNotFound('Document not found');
