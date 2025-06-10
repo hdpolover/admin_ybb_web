@@ -615,5 +615,72 @@ class ParticipantsApiController extends ApiBaseController
         } catch (\Exception $e) {
             return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
         }
+    }    /**
+     * 🔍 Search Participants by Custom Parameters (READ)
+     * GET /api/participants/search
+     *     * Query Parameters:
+     * @param string email Filter by user email
+     * @param string full_name Filter by participant full name (partial match)
+     * @param int program_id Filter by program ID
+     * @param int program_category_id Filter by program category ID
+     * @param string gender Filter by gender
+     * @param string phone_number Filter by phone number (partial match)
+     * @param string nationality Filter by nationality
+     * @param string user_full_name Filter by user full name (partial match)
+     * @param int page Page number for pagination
+     * @param int limit Items per page
+     * @param string include Optional comma-separated list of related data to include (essays,payments)
+     */
+    public function search()
+    {
+        try {
+            // Get search parameters from query string
+            $searchParams = $this->request->getGet();
+            
+            // Remove pagination and special params from search criteria
+            $page = (int)($searchParams['page'] ?? 1);
+            $limit = (int)($searchParams['limit'] ?? 10);
+            $include = $searchParams['include'] ?? '';
+            unset($searchParams['page'], $searchParams['limit'], $searchParams['include']);
+            
+            // Validate that at least one search parameter is provided
+            if (empty($searchParams)) {
+                return $this->respondError('At least one search parameter is required', self::HTTP_BAD_REQUEST);
+            }
+            
+            // Parse include parameter
+            $includeOptions = [];
+            if (!empty($include)) {
+                $includeOptions = array_map('trim', explode(',', $include));
+            }
+            
+            // Call model method to search participants
+            $result = $this->model->searchParticipants($searchParams, $limit, $page, $includeOptions);
+            
+            // If no results found
+            if (empty($result['data'])) {
+                return $this->respondNotFound("No participants found matching the search criteria");
+            }
+            
+            // If only one result, return as object, otherwise return as list
+            if (count($result['data']) === 1) {
+                return $this->respondSuccess($result['data'][0], self::HTTP_OK, "Participant found", [
+                    'total_results' => $result['total']
+                ]);
+            } else {
+                // Return as paginated list
+                $totalPages = ceil($result['total'] / $limit);
+                
+                return $this->respondSuccess($result['data'], self::HTTP_OK, "Participants found", [
+                    'current_page' => $page,
+                    'per_page' => $limit,
+                    'total_items' => $result['total'],
+                    'total_pages' => $totalPages
+                ]);
+            }
+            
+        } catch (\Exception $e) {
+            return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
+        }
     }
 }

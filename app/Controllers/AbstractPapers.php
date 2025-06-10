@@ -79,13 +79,16 @@ class AbstractPapers extends BaseController
             } else {
                 $abstract->title = 'No title available';
             }
-            // Get abstract topic
-            if (!empty($abstract->abstract_topic_id)) {
-                $topicData = $this->abstractTopicModel->find($abstract->abstract_topic_id);
-                $abstract->topic_name = $topicData ? $topicData->name : 'No topic selected';
-            } else {
-                $abstract->topic_name = 'No topic selected';
-            }
+
+            // Get participant subtheme data
+            $participantSubthemeModel = new \App\Models\ParticipantSubthemeModel();
+            $subtheme = $participantSubthemeModel
+                ->select('participant_subthemes.*, program_subthemes.name as subtheme_name')
+                ->join('program_subthemes', 'program_subthemes.id = participant_subthemes.program_subtheme_id', 'left')
+                ->where('participant_subthemes.participant_id', $abstract->primary_participant_id)
+                ->where('participant_subthemes.is_deleted', 0)
+                ->first();
+            $abstract->topic_name = $subtheme ? $subtheme->subtheme_name : 'No subtheme selected';
 
             // Get authors count
             $authorModel = new \App\Models\AbstractAuthorModel();
@@ -118,16 +121,12 @@ class AbstractPapers extends BaseController
             return redirect()->to('/submissions/abstracts-papers')->with('error', 'Abstract not found');
         }
 
-        $programId = session('current_program');
-
-        if ($abstract->program_id != $programId) {
+        $programId = session('current_program');        if ($abstract->program_id != $programId) {
             return redirect()->to('/submissions/abstracts-papers')->with('error', 'You do not have access to this abstract');
         }
 
         // Get participant details
         $participant = $this->participantModel->find($abstract->primary_participant_id);
-        // Get abstract topic
-        $topic = $abstract->abstract_topic_id ? $this->abstractTopicModel->find($abstract->abstract_topic_id) : null;
 
         // Get all versions
         $versions = $this->abstractVersionModel->getAllAbstractVersionsByAbstractId($id);
@@ -138,13 +137,10 @@ class AbstractPapers extends BaseController
         });
 
         // Get all authors
-        $authors = $this->abstractAuthorModel->getAllAbstractAuthorsByAbstractId($id);
-
-        $data = [
+        $authors = $this->abstractAuthorModel->getAllAbstractAuthorsByAbstractId($id);        $data = [
             'title' => 'View Abstract',
             'abstract' => $abstract,
             'participant' => $participant,
-            'topic' => $topic,
             'versions' => $versions,
             'authors' => $authors
         ];
@@ -186,13 +182,10 @@ class AbstractPapers extends BaseController
                 'message' => 'Validation failed',
                 'errors' => $validation->getErrors()
             ]);
-        }
-
-        $programId = session('current_program');
+        }        $programId = session('current_program');
         $data = [
             'program_id' => $programId,
             'primary_participant_id' => $this->request->getPost('participant_id'),
-            'abstract_topic_id' => $this->request->getPost('abstract_topic_id'),
             'status' => $this->request->getPost('status') ?? 'draft',
             'is_active' => 1,
             'is_deleted' => 0
@@ -339,11 +332,9 @@ class AbstractPapers extends BaseController
             ]);
         }
 
-        // Start a transaction
-        $this->abstractModel->db->transBegin();
+        // Start a transaction        $this->abstractModel->db->transBegin();
         $data = [
             'status' => $this->request->getPost('status') ?? 'draft',
-            'abstract_topic_id' => $this->request->getPost('abstract_topic_id'),
             'updated_at' => date('Y-m-d H:i:s')
         ];
 
@@ -485,9 +476,7 @@ class AbstractPapers extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Abstract not found']);
         }
 
-        $programId = session('current_program');
-
-        if ($abstract->program_id != $programId) {
+        $programId = session('current_program');        if ($abstract->program_id != $programId) {
             return $this->response->setJSON(['success' => false, 'message' => 'You do not have access to this abstract']);
         }
 
@@ -495,15 +484,6 @@ class AbstractPapers extends BaseController
         $participant = $this->participantModel->find($abstract->primary_participant_id);
         $abstract->participant_name = $participant ? $participant->full_name : 'N/A';
         $abstract->institution = $participant ? $participant->institution : 'N/A';
-        // Get topic details
-        if (!empty($abstract->abstract_topic_id)) {
-            $topic = $this->abstractTopicModel->find($abstract->abstract_topic_id);
-            $abstract->topic_name = $topic ? $topic->name : 'No topic selected';
-            $abstract->topic_description = $topic ? $topic->description : '';
-        } else {
-            $abstract->topic_name = 'No topic selected';
-            $abstract->topic_description = '';
-        }
 
         // Get latest abstract version
         $versions = $this->abstractVersionModel->getAllAbstractVersionsByAbstractId($id);
@@ -713,12 +693,8 @@ class AbstractPapers extends BaseController
 
         if ($abstract->program_id != $programId) {
             return redirect()->to('/submissions/abstracts-papers')->with('error', 'You do not have access to this abstract');
-        }
-
-        // Get participant details
+        }        // Get participant details
         $participant = $this->participantModel->find($abstract->primary_participant_id);
-        // Get abstract topic
-        $topic = $abstract->abstract_topic_id ? $this->abstractTopicModel->find($abstract->abstract_topic_id) : null;
 
         // Get all versions with detailed information
         $versions = $this->abstractVersionModel->getAllAbstractVersionsByAbstractId($id);
@@ -737,13 +713,10 @@ class AbstractPapers extends BaseController
             'latest_version' => !empty($versions) ? $versions[0]->version_number : 0,
             'first_submission' => !empty($versions) ? end($versions)->created_at : null,
             'last_update' => !empty($versions) ? $versions[0]->updated_at : null
-        ];
-
-        $data = [
+        ];        $data = [
             'title' => 'Abstract Details',
             'abstract' => $abstract,
             'participant' => $participant,
-            'topic' => $topic,
             'versions' => $versions,
             'authors' => $authors,
             'version_stats' => $versionStats

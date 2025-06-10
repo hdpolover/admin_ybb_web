@@ -84,17 +84,17 @@ class JwtAuthController extends BaseAuthController
 
                 // Check if the user account is inactive
                 if (isset($authData['user']) && isset($authData['user']->is_active) && !$authData['user']->is_active) {
-                    return $this->respondForbidden('Your account is not active. Please contact support.');
+                    return $this->respondForbidden('Your account has been deactivated. Please contact support.');
                 }
 
-                // Check if the user's email is not verified
-                if (isset($authData['user']) && isset($authData['user']->is_verified) && !$authData['user']->is_verified) {
-                    // Get program category information
-                    $programCategoryModel = new ProgramCategoryModel();
-                    $programCategory = $programCategoryModel->find($authData['user']->program_category_id);
+                // First, get program category information
+                $programCategoryModel = new ProgramCategoryModel();
+                $programCategory = $programCategoryModel->find($authData['user']->program_category_id ?? 0);
 
-                    // Check if verification is required for this program
-                    if ($programCategory && $programCategory->verification_required) {
+                // Only check verification if the program requires it
+                if ($programCategory && $programCategory->verification_required) {
+                    // Now check if the user's email is not verified
+                    if (isset($authData['user']) && isset($authData['user']->is_verified) && !$authData['user']->is_verified) {
                         // Generate a new verification token and send email
                         $updatedUser = $userModel->regenerateVerificationToken($email, $web_url);
 
@@ -102,7 +102,7 @@ class JwtAuthController extends BaseAuthController
                             // Send verification email
                             $emailService = new EmailService();
                             $emailService->sendVerificationEmail($email, $updatedUser->verification_token, $updatedUser->program_category_id);
-                            
+
                             return $this->respondForbidden(
                                 'Your email is not verified. We have sent a new verification email to your address. Please check your inbox and spam folder.'
                             );
@@ -118,7 +118,7 @@ class JwtAuthController extends BaseAuthController
                 if (!$authData['is_authenticated']) {
                     // Return the specific error message from the model
                     return $this->respondError(
-                        $authData['message'] ?? 'Invalid credentials', 
+                        $authData['message'] ?? 'Invalid credentials',
                         ResponseInterface::HTTP_UNAUTHORIZED
                     );
                 }

@@ -32,15 +32,14 @@ class ParticipantSubthemeModel extends Model
     {
         $builder = $this->builder();
 
-        // Select all fields
-        $builder->select('*');
+        // Select fields from both tables
+        $builder->select('participant_subthemes.*, program_subthemes.name as subtheme_name, program_subthemes.desc as subtheme_description');
+        
+        // Join with program_subthemes table
+        $builder->join('program_subthemes', 'program_subthemes.id = participant_subthemes.program_subtheme_id', 'left');
 
         // Filter by participant ID
-        $result = $builder->where('participant_id', $participant_id)->get()->getRow();
-
-        if (empty($result)) {
-            return null;
-        }
+        $result = $builder->where('participant_subthemes.participant_id', $participant_id)->get()->getRow();
 
         return $result;
     }

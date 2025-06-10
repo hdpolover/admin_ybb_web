@@ -121,10 +121,12 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->get('users', 'UsersApiController::index');
     $routes->get('users/(:num)', 'UsersApiController::show/$1');
     // check users by params
-    $routes->get('users/check', 'UsersApiController::checkUserByParams');
-
+    $routes->get('users/check', 'UsersApiController::checkUserByParams');    
+    
     // participants 
     $routes->get('participants', 'ParticipantsApiController::index');
+    // Search participants by custom parameters
+    $routes->get('participants/search', 'ParticipantsApiController::search');
     //  POST /api/participants/users/{userId}/create
     $routes->post('participants/users/(:num)/create', 'ParticipantsApiController::createFromUserId/$1');
     $routes->post('participants', 'ParticipantsApiController::create');
@@ -267,9 +269,9 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
        //$routes->post('(:num)/versions', 'AbstractsApiController::createAbstractVersion/$1');
         $routes->post('version/(:num)/update', 'AbstractsApiController::updateAbstractVersion/$1');
         $routes->post('(:num)/save-version', 'AbstractsApiController::saveAbstractVersion/$1');
-        
-        // Abstract authors
+          // Abstract authors
         $routes->get('(:num)/authors', 'AbstractsApiController::getAllAbstractAuthorsByAbstractId/$1');
+        $routes->post('(:num)/authors/validate', 'AbstractsApiController::validateAuthorForAbstract/$1');
         $routes->post('(:num)/authors', 'AbstractsApiController::addAbstractAuthor/$1');
         
         // Author operations

@@ -78,8 +78,7 @@ class AbstractSettings extends BaseController
      * Create or update abstract settings
      * 
      * @return \CodeIgniter\HTTP\ResponseInterface
-     */
-    public function save()
+     */    public function save()
     {
         // Validate form data
         $rules = [
@@ -87,6 +86,9 @@ class AbstractSettings extends BaseController
             'content_length' => 'required|integer|greater_than[0]',
             'keywords_length' => 'required|integer|greater_than[0]',
             'refs_length' => 'required|integer|greater_than[0]',
+            'paper_template_url' => 'permit_empty|valid_url',
+            'abstract_submission_deadline' => 'permit_empty|valid_date',
+            'full_paper_submission_deadline' => 'permit_empty|valid_date',
             'is_active' => 'permit_empty|in_list[0,1]'
         ];
 
@@ -129,6 +131,9 @@ class AbstractSettings extends BaseController
             'content_length' => $this->request->getPost('content_length'),
             'keywords_length' => $this->request->getPost('keywords_length'),
             'refs_length' => $this->request->getPost('refs_length'),
+            'paper_template_url' => $this->request->getPost('paper_template_url') ?: null,
+            'abstract_submission_deadline' => $this->request->getPost('abstract_submission_deadline') ?: null,
+            'full_paper_submission_deadline' => $this->request->getPost('full_paper_submission_deadline') ?: null,
             'is_active' => $this->request->getPost('is_active') ? 1 : 0,
             'is_deleted' => 0,
             'updated_at' => date('Y-m-d H:i:s')
@@ -168,7 +173,7 @@ class AbstractSettings extends BaseController
             return redirect()->to('/master-data/abstract-settings')
                 ->with('error', 'Failed to save abstract settings: ' . $e->getMessage());
         }
-    }    /**
+    }/**
      * Reset abstract settings to default values
      * 
      * @return \CodeIgniter\HTTP\ResponseInterface
@@ -211,6 +216,9 @@ class AbstractSettings extends BaseController
             'content_length' => 500,
             'keywords_length' => 5,
             'refs_length' => 100,
+            'paper_template_url' => null,
+            'abstract_submission_deadline' => null,
+            'full_paper_submission_deadline' => null,
             'is_active' => 1,
             'updated_at' => date('Y-m-d H:i:s')
         ];

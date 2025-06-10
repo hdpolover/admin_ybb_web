@@ -88,4 +88,30 @@ class AbstractAuthorModel extends Model
             ->where('abstract_authors.participant_id', $participant_id);
         return $builder->get()->getResult();
     }
+
+    /**
+     * Check if an author email is already assigned to any abstract within the same program
+     * @param string $email
+     * @param int $program_id
+     * @param int|null $exclude_abstract_id Abstract ID to exclude from check (for updates)
+     * @return object|null
+     */
+    public function checkAuthorEmailInProgram($email, $program_id, $exclude_abstract_id = null)
+    {
+        $builder = $this->builder();
+        $builder->select('abstract_authors.*, abstracts.program_id, abstracts.id as abstract_id')
+            ->join('abstracts', 'abstract_authors.abstract_id = abstracts.id')
+            ->where('abstract_authors.email', $email)
+            ->where('abstracts.program_id', $program_id)
+            ->where('abstract_authors.is_active', 1)
+            ->where('abstract_authors.is_deleted', 0)
+            ->where('abstracts.is_active', 1)
+            ->where('abstracts.is_deleted', 0);
+        
+        if ($exclude_abstract_id !== null) {
+            $builder->where('abstracts.id !=', $exclude_abstract_id);
+        }
+        
+        return $builder->get()->getRow();
+    }
 }

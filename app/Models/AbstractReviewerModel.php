@@ -26,25 +26,23 @@ class AbstractReviewerModel extends Model
         'is_deleted',
         'created_at',
         'updated_at'
-    ];
-
-    protected $allowedFields = [
+    ];    protected $allowedFields = [
         'program_id',
         'name',
         'email',
         'institution',
         'password',
+        'role',
         'is_active',
         'is_deleted',
         'is_participant',
-    ];
-
-    protected $validationRules = [
+    ];    protected $validationRules = [
         'program_id' => 'required|integer',
         'name' => 'required|string|max_length[100]',
         'email' => 'required|string|valid_email|max_length[100]',
         'institution' => 'required|string|max_length[100]',
         'password' => 'required|string|min_length[6]|max_length[100]',
+        'role' => 'required|in_list[super,internal,external]',
         'is_active' => 'in_list[0,1]',
         'is_deleted' => 'in_list[0,1]',
     ];
@@ -170,5 +168,4 @@ class AbstractReviewerModel extends Model
         $this->update($id, ['is_deleted' => 1]);
         return true;
     }
-    
 }

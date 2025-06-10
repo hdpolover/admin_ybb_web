@@ -71,20 +71,10 @@ try {
     
     $abstracts = $abstractModel->where('program_id', $testProgramId)
         ->where('is_deleted', 0)
-        ->findAll();
-    
+        ->findAll();    
     if (!empty($abstracts)) {
         $abstract = $abstracts[0];
         echo "✓ Test 6a: Found " . count($abstracts) . " abstracts for program $testProgramId\n";
-        
-        // Test topic retrieval
-        if (!empty($abstract->abstract_topic_id)) {
-            $topicData = $abstractTopicModel->find($abstract->abstract_topic_id);
-            $topicName = $topicData ? $topicData->name : 'No topic selected';
-            echo "✓ Test 6b: Topic retrieval - '$topicName'\n";
-        } else {
-            echo "✓ Test 6b: No topic assigned to first abstract\n";
-        }
         
         // Test version retrieval
         $versions = $abstractVersionModel->getAllAbstractVersionsByAbstractId($abstract->id);

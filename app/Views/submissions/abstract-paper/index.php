@@ -211,14 +211,8 @@
 
                     <div class="row">
                         <div class="col-lg-12">
-                            <div class="card">
-                                <div class="card-header d-flex align-items-center">
-                                    <h5 class="card-title mb-0 flex-grow-1">Abstract Submissions List</h5>
-                                    <div class="flex-shrink-0">
-                                        <button class="btn btn-primary waves-effect waves-light me-2" data-bs-toggle="modal" data-bs-target="#add-abstract-modal">
-                                            <i class="ri-add-line align-middle me-1"></i> Add Abstract Submission
-                                        </button>
-                                    </div>
+                            <div class="card">                                <div class="card-header d-flex align-items-center">
+                                    <h5 class="card-title mb-0 flex-grow-1">Abstract Submissions List (Reviewer View)</h5>
                                 </div>
                                 <div class="card-body">
                                     <table id="abstracts-table" class="table table-bordered dt-responsive nowrap table-striped align-middle" style="width:100%">
@@ -246,115 +240,7 @@
                 </div>
                 <!-- container-fluid -->
             </div>
-            <!-- End Page-content -->
-
-            <!-- Add Abstract Modal -->
-            <div class="modal fade" id="add-abstract-modal" tabindex="-1" aria-labelledby="addAbstractModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="addAbstractModalLabel">Add New Abstract Submission</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <form id="add-abstract-form">
-                                <div class="row mb-3">
-                                    <div class="col-md-12">
-                                        <label for="participant_id" class="form-label">Participant</label>
-                                        <select name="participant_id" id="participant_id" class="form-select" required>
-                                            <option value="">Select Participant</option>
-                                            <!-- Participants will be loaded via AJAX -->
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="status" class="form-label">Status</label> <select name="status" id="status" class="form-select">
-                                            <option value="draft">Draft</option>
-                                            <option value="submitted">Submitted</option>
-                                            <option value="under_review">Under Review</option>
-                                            <option value="accepted">Accepted</option>
-                                            <option value="rejected">Rejected</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="abstract_topic_id" class="form-label">Topic</label>
-                                        <select name="abstract_topic_id" id="abstract_topic_id" class="form-select">
-                                            <option value="">Select Topic</option>
-                                            <!-- Topics will be loaded via AJAX -->
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <!-- Abstract Version -->
-                                <div class="abstract-version-container">
-                                    <h5 class="mb-3">Abstract Version</h5>
-                                    <div class="row mb-3">
-                                        <div class="col-md-12">
-                                            <label for="title" class="form-label">Title</label>
-                                            <input type="text" class="form-control" id="title" name="title" required>
-                                        </div>
-                                    </div>
-                                    <div class="row mb-3">
-                                        <div class="col-md-12">
-                                            <label for="content" class="form-label">Content</label>
-                                            <textarea class="form-control" id="content" name="content" rows="5" required></textarea>
-                                        </div>
-                                    </div>
-                                    <div class="row mb-3">
-                                        <div class="col-md-12">
-                                            <label for="keywords" class="form-label">Keywords</label>
-                                            <input type="text" class="form-control" id="keywords" name="keywords" placeholder="Comma separated keywords">
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Abstract Authors -->
-                                <div class="abstract-authors-container">
-                                    <h5 class="mb-3">Abstract Authors</h5>
-                                    <div class="authors-list">
-                                        <div class="author-item mb-3 p-3 border rounded">
-                                            <div class="row mb-2">
-                                                <div class="col-md-6">
-                                                    <label class="form-label">Name</label>
-                                                    <input type="text" class="form-control" name="author_name[]" required>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <label class="form-label">Institution</label>
-                                                    <input type="text" class="form-control" name="author_institution[]">
-                                                </div>
-                                            </div>
-                                            <div class="row mb-2">
-                                                <div class="col-md-6">
-                                                    <label class="form-label">Email</label>
-                                                    <input type="email" class="form-control" name="author_email[]" required>
-                                                </div>
-                                                <div class="col-md-6 d-flex align-items-end">
-                                                    <div class="form-check pt-2">
-                                                        <input class="form-check-input" type="checkbox" name="is_participant[]" value="1">
-                                                        <label class="form-check-label">Is Registered Participant</label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="text-end mb-3">
-                                        <button type="button" class="btn btn-sm btn-secondary add-author-btn">
-                                            <i class="ri-add-line align-middle"></i> Add Another Author
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="text-end">
-                                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                                    <button type="submit" class="btn btn-primary">Add Abstract</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- View Abstract Modal -->
+            <!-- End Page-content -->            <!-- View Abstract Modal -->
             <div class="modal fade" id="view-abstract-modal" tabindex="-1" aria-labelledby="viewAbstractModalLabel" aria-hidden="true">
                 <div class="modal-dialog modal-lg">
                     <div class="modal-content">
@@ -439,113 +325,9 @@
                                         <!-- Authors will be loaded dynamically -->
                                     </div>
                                 </div>
-                            </div>
-                        </div>
+                            </div>                        </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
-                            <button type="button" class="btn btn-success edit-abstract-btn">Edit</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Edit Abstract Modal -->
-            <div class="modal fade" id="edit-abstract-modal" tabindex="-1" aria-labelledby="editAbstractModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="editAbstractModalLabel">Edit Abstract Submission</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="modal-loading d-none">
-                                <div class="d-flex flex-column align-items-center">
-                                    <div class="spinner-border text-primary" role="status"></div>
-                                    <div class="loading-text">Loading...</div>
-                                </div>
-                            </div>
-                            <form id="edit-abstract-form">
-                                <input type="hidden" id="edit_abstract_id" name="id">
-                                <div class="row mb-3">
-                                    <div class="col-md-12">
-                                        <label for="edit_participant_id" class="form-label">Participant</label>
-                                        <select name="participant_id" id="edit_participant_id" class="form-select">
-                                            <option value="">Select Participant</option>
-                                            <!-- Participants will be loaded via AJAX -->
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="edit_status" class="form-label">Status</label> <select name="status" id="edit_status" class="form-select">
-                                            <option value="draft">Draft</option>
-                                            <option value="submitted">Submitted</option>
-                                            <option value="under_review">Under Review</option>
-                                            <option value="accepted">Accepted</option>
-                                            <option value="rejected">Rejected</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="edit_abstract_topic_id" class="form-label">Topic</label>
-                                        <select name="abstract_topic_id" id="edit_abstract_topic_id" class="form-select">
-                                            <option value="">Select Topic</option>
-                                            <!-- Topics will be loaded via AJAX -->
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <!-- Abstract Version -->
-                                <div class="abstract-version-container">
-                                    <h5 class="mb-3">Abstract Version</h5>
-                                    <div class="version-select-container mb-3">
-                                        <label for="version_select" class="form-label">Select Version</label>
-                                        <select class="form-select" id="version_select">
-                                            <option value="">Loading versions...</option>
-                                        </select>
-                                    </div>
-                                    <div class="row mb-3">
-                                        <div class="col-md-12">
-                                            <label for="edit_title" class="form-label">Title</label>
-                                            <input type="text" class="form-control" id="edit_title" name="title" required>
-                                            <input type="hidden" id="edit_version_id" name="version_id">
-                                        </div>
-                                    </div>
-                                    <div class="row mb-3">
-                                        <div class="col-md-12">
-                                            <label for="edit_content" class="form-label">Content</label>
-                                            <textarea class="form-control" id="edit_content" name="content" rows="5" required></textarea>
-                                        </div>
-                                    </div>
-                                    <div class="row mb-3">
-                                        <div class="col-md-12">
-                                            <label for="edit_keywords" class="form-label">Keywords</label>
-                                            <input type="text" class="form-control" id="edit_keywords" name="keywords" placeholder="Comma separated keywords">
-                                        </div>
-                                    </div>
-                                    <div class="text-end mb-3">
-                                        <button type="button" class="btn btn-sm btn-primary add-new-version-btn">
-                                            <i class="ri-add-line align-middle"></i> Create New Version
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <!-- Abstract Authors -->
-                                <div class="abstract-authors-container">
-                                    <h5 class="mb-3">Abstract Authors</h5>
-                                    <div class="edit-authors-list">
-                                        <!-- Authors will be loaded dynamically -->
-                                    </div>
-                                    <div class="text-end mb-3">
-                                        <button type="button" class="btn btn-sm btn-secondary edit-add-author-btn">
-                                            <i class="ri-add-line align-middle"></i> Add Another Author
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="text-end">
-                                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                                    <button type="submit" class="btn btn-primary">Update Abstract</button>
-                                </div>
-                            </form>
                         </div>
                     </div>
                 </div>
@@ -781,11 +563,9 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="modal-footer">
+                        </div>                        <div class="modal-footer">
                             <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
                             <button type="button" class="btn btn-info open-feedback-btn">Review Abstract</button>
-                            <button type="button" class="btn btn-success edit-abstract-btn">Edit Abstract</button>
                         </div>
                     </div>
                 </div>
@@ -822,11 +602,13 @@
             // Initialize DataTable
             var abstractsTable = $('#abstracts-table').DataTable({
                 processing: true,
-                serverSide: false,
-                ajax: {
+                serverSide: false,                ajax: {
                     url: "/submissions/abstracts-papers/getAbstractsByProgram",
                     dataSrc: function(json) {
-                        return json.data;
+                        // Filter out abstracts with 'draft' status
+                        return json.data.filter(function(item) {
+                            return item.status !== 'draft';
+                        });
                     }
                 },
                 columns: [{
@@ -899,8 +681,7 @@
 
                             return '<span class="badge ' + badgeClass + '">' + statusText + '</span>';
                         }
-                    },
-                    {
+                    },                    {
                         data: null,
                         render: function(data) {
                             let actions = '<div class="d-flex gap-2 flex-wrap">';
@@ -911,333 +692,26 @@
                             // Review/Feedback
                             actions += '<button class="btn btn-sm btn-warning review-abstract" data-id="' + data.id + '" data-bs-toggle="tooltip" data-bs-placement="top" title="Review & Give Feedback"><i class="ri-feedback-fill"></i></button>';
 
-                            // Edit
-                            actions += '<button class="btn btn-sm btn-success edit-abstract" data-id="' + data.id + '" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit"><i class="ri-pencil-fill"></i></button>';
-
-                            // Quick Actions based on status
+                            // Quick Actions based on status for reviewers (status updates only)
                             if (data.status === 'submitted' || data.status === 'under_review') {
                                 actions += '<div class="btn-group">';
-                                actions += '<button class="btn btn-sm btn-outline-success quick-accept" data-id="' + data.id + '" data-bs-toggle="tooltip" title="Quick Accept"><i class="ri-check-fill"></i></button>';
-                                actions += '<button class="btn btn-sm btn-outline-danger quick-reject" data-id="' + data.id + '" data-bs-toggle="tooltip" title="Quick Reject"><i class="ri-close-fill"></i></button>';
+                                actions += '<button class="btn btn-sm btn-outline-success quick-accept" data-id="' + data.id + '" data-bs-toggle="tooltip" title="Accept"><i class="ri-check-fill"></i></button>';
+                                actions += '<button class="btn btn-sm btn-outline-danger quick-reject" data-id="' + data.id + '" data-bs-toggle="tooltip" title="Reject"><i class="ri-close-fill"></i></button>';
                                 actions += '</div>';
                             }
-
-                            // Delete
-                            actions += '<button class="btn btn-sm btn-danger delete-abstract" data-id="' + data.id + '" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete"><i class="ri-delete-bin-fill"></i></button>';
 
                             actions += '</div>';
                             return actions;
                         }
-                    }
-                ],
+                    }                ],
                 responsive: true
-            }); // Load participants for add modal
-            $('#add-abstract-modal').on('show.bs.modal', function() {
-                // Load participants
-                $.ajax({
-                    url: '/api/participants',
-                    type: 'GET',
-                    dataType: 'json',
-                    success: function(response) {
-                        if (response && response.data) {
-                            let participants = response.data;
-                            let options = '<option value="">Select Participant</option>';
+            });
 
-                            participants.forEach(function(participant) {
-                                options += '<option value="' + participant.id + '">' + participant.full_name + ' (' + participant.institution + ')</option>';
-                            });
-
-                            $('#participant_id').html(options);
-                        }
-                    }
-                });
-
-                // Load topics
-                $.ajax({
-                    url: '/submissions/abstracts-papers/getTopicsByProgram',
-                    type: 'GET',
-                    dataType: 'json',
-                    success: function(response) {
-                        if (response && response.data) {
-                            let topics = response.data;
-                            let options = '<option value="">Select Topic</option>';
-
-                            topics.forEach(function(topic) {
-                                options += '<option value="' + topic.id + '">' + topic.name + '</option>';
-                            });
-
-                            $('#abstract_topic_id').html(options);
-                        }
-                    }
-                });
-            }); // Load participants for edit modal
-            $('#edit-abstract-modal').on('show.bs.modal', function() {
-                // Load participants
-                $.ajax({
-                    url: '/api/participants',
-                    type: 'GET',
-                    dataType: 'json',
-                    success: function(response) {
-                        if (response && response.data) {
-                            let participants = response.data;
-                            let options = '<option value="">Select Participant</option>';
-
-                            participants.forEach(function(participant) {
-                                options += '<option value="' + participant.id + '">' + participant.full_name + ' (' + participant.institution + ')</option>';
-                            });
-
-                            $('#edit_participant_id').html(options);
-                        }
-                    }
-                });
-
-                // Load topics
-                $.ajax({
-                    url: '/submissions/abstracts-papers/getTopicsByProgram',
-                    type: 'GET',
-                    dataType: 'json',
-                    success: function(response) {
-                        if (response && response.data) {
-                            let topics = response.data;
-                            let options = '<option value="">Select Topic</option>';
-
-                            topics.forEach(function(topic) {
-                                options += '<option value="' + topic.id + '">' + topic.name + '</option>';
-                            });
-
-                            $('#edit_abstract_topic_id').html(options);
-                        }
-                    }
-                });
-            }); // View abstract (legacy support)
+            // View abstract (legacy support)
             $(document).on('click', '.view-abstract', function() {
                 let abstractId = $(this).data('id');
                 loadAbstractDetails(abstractId);
-            });
-
-            // Edit button in view modal
-            $(document).on('click', '.edit-abstract-btn', function() {
-                let abstractId = $(this).data('id');
-
-                $('#view-abstract-modal').modal('hide');
-                $('#edit-abstract-modal').modal('show');
-                $('.modal-loading').removeClass('d-none');
-
-                $.ajax({
-                    url: '/submissions/abstracts-papers/getAbstractData/' + abstractId,
-                    type: 'GET',
-                    dataType: 'json',
-                    success: function(response) {
-                        $('.modal-loading').addClass('d-none');
-                        if (response && response.success) {
-                            let abstract = response.data;
-                            $('#edit_abstract_id').val(abstract.id);
-                            $('#edit_participant_id').val(abstract.primary_participant_id);
-                            $('#edit_status').val(abstract.status);
-                            $('#edit_abstract_topic_id').val(abstract.abstract_topic_id);
-
-                            // Update form action
-                            $('#edit-abstract-form').attr('action', '/documents/abstracts-papers/update/' + abstract.id);
-                        } else {
-                            Swal.fire({
-                                title: 'Error',
-                                text: response.message || 'Failed to load abstract data',
-                                icon: 'error'
-                            });
-                        }
-                    },
-                    error: function() {
-                        $('.modal-loading').addClass('d-none');
-
-                        Swal.fire({
-                            title: 'Error',
-                            text: 'An error occurred while loading the abstract',
-                            icon: 'error'
-                        });
-                    }
-                });
-            }); // Edit abstract
-            $(document).on('click', '.edit-abstract', function() {
-                let abstractId = $(this).data('id');
-
-                $('#edit-abstract-modal').modal('show');
-                $('.modal-loading').removeClass('d-none');
-
-                $.ajax({
-                    url: '/submissions/abstracts-papers/getAbstractData/' + abstractId,
-                    type: 'GET',
-                    dataType: 'json',
-                    success: function(response) {
-                        $('.modal-loading').addClass('d-none');
-
-                        if (response && response.success) {
-                            let abstract = response.data;
-                            $('#edit_abstract_id').val(abstract.id);
-                            $('#edit_participant_id').val(abstract.primary_participant_id);
-                            $('#edit_status').val(abstract.status);
-                            $('#edit_abstract_topic_id').val(abstract.abstract_topic_id);
-
-                            // Load abstract versions
-                            loadAbstractVersions(abstract.id, 'edit');
-
-                            // Load abstract authors
-                            loadAbstractAuthors(abstract.id, 'edit');
-                        } else {
-                            Swal.fire({
-                                title: 'Error',
-                                text: response.message || 'Failed to load abstract data',
-                                icon: 'error'
-                            });
-                        }
-                    },
-                    error: function() {
-                        $('.modal-loading').addClass('d-none');
-
-                        Swal.fire({
-                            title: 'Error',
-                            text: 'An error occurred while loading the abstract',
-                            icon: 'error'
-                        });
-                    }
-                });
-            });
-            // Edit abstract form submission
-            $('#edit-abstract-form').on('submit', function(e) {
-                e.preventDefault();
-
-                let abstractId = $('#edit_abstract_id').val();
-                let formData = $(this).serialize();
-
-                $.ajax({
-                    url: '/submissions/abstracts-papers/update/' + abstractId,
-                    type: 'POST',
-                    data: formData,
-                    dataType: 'json',
-                    success: function(response) {
-                        if (response.success) {
-                            Swal.fire({
-                                title: 'Success',
-                                text: response.message,
-                                icon: 'success'
-                            }).then(() => {
-                                $('#edit-abstract-modal').modal('hide');
-                                abstractsTable.ajax.reload();
-                            });
-                        } else {
-                            Swal.fire({
-                                title: 'Error',
-                                text: response.message,
-                                icon: 'error'
-                            });
-                        }
-                    },
-                    error: function() {
-                        Swal.fire({
-                            title: 'Error',
-                            text: 'An error occurred while updating the abstract',
-                            icon: 'error'
-                        });
-                    }
-                });
-            });
-
-            // Delete abstract
-            $(document).on('click', '.delete-abstract', function() {
-                let abstractId = $(this).data('id');
-
-                Swal.fire({
-                    title: 'Are you sure?',
-                    text: 'You will not be able to recover this abstract!',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonText: 'Yes, delete it!',
-                    cancelButtonText: 'No, cancel!',
-                    confirmButtonClass: 'btn btn-danger me-2',
-                    cancelButtonClass: 'btn btn-light',
-                    buttonsStyling: false
-                }).then(function(result) {
-                    if (result.value) {
-                        $.ajax({
-                            url: '/submissions/abstracts-papers/delete/' + abstractId,
-                            type: 'POST',
-                            dataType: 'json',
-                            success: function(response) {
-                                if (response.success) {
-                                    Swal.fire({
-                                        title: 'Deleted!',
-                                        text: response.message,
-                                        icon: 'success',
-                                        confirmButtonClass: 'btn btn-primary',
-                                        buttonsStyling: false
-                                    });
-
-                                    // Reload the table
-                                    abstractsTable.ajax.reload();
-                                } else {
-                                    Swal.fire({
-                                        title: 'Error!',
-                                        text: response.message,
-                                        icon: 'error',
-                                        confirmButtonClass: 'btn btn-primary',
-                                        buttonsStyling: false
-                                    });
-                                }
-                            },
-                            error: function() {
-                                Swal.fire({
-                                    title: 'Error!',
-                                    text: 'An error occurred while deleting the abstract',
-                                    icon: 'error',
-                                    confirmButtonClass: 'btn btn-primary',
-                                    buttonsStyling: false
-                                });
-                            }
-                        });
-                    }
-                });
-            });
-
-            // Add abstract form submission
-            $('#add-abstract-form').on('submit', function(e) {
-                e.preventDefault();
-
-                let formData = $(this).serialize();
-
-                $.ajax({
-                    url: '/submissions/abstracts-papers/store',
-                    type: 'POST',
-                    data: formData,
-                    dataType: 'json',
-                    success: function(response) {
-                        if (response.success) {
-                            Swal.fire({
-                                title: 'Success',
-                                text: response.message,
-                                icon: 'success'
-                            }).then(() => {
-                                $('#add-abstract-modal').modal('hide');
-                                $('#add-abstract-form')[0].reset();
-                                abstractsTable.ajax.reload();
-                            });
-                        } else {
-                            Swal.fire({
-                                title: 'Error',
-                                text: response.message,
-                                icon: 'error'
-                            });
-                        }
-                    },
-                    error: function() {
-                        Swal.fire({
-                            title: 'Error',
-                            text: 'An error occurred while submitting the form',
-                            icon: 'error'
-                        });
-                    }
-                });
-            });
-
-            // Reset modal content when closed
+            });            // Reset modal content when closed
             $('#view-abstract-modal').on('hidden.bs.modal', function() {
                 $('.view-abstract-participant').text('');
                 $('.view-abstract-institution').text('');
@@ -1684,11 +1158,9 @@
             // Submit Feedback
             $(document).on('click', '#submit-feedback-btn', function() {
                 submitFeedback();
-            });
-
-            // Open Feedback Modal from Details Modal
+            });            // Open Feedback Modal from Details Modal
             $(document).on('click', '.open-feedback-btn', function() {
-                let abstractId = $('.edit-abstract-btn').data('id');
+                let abstractId = $(this).data('id') || $('#view_abstract_id').val();
                 $('#abstract-details-modal').modal('hide');
                 loadAbstractForReview(abstractId);
             });
@@ -1711,6 +1183,7 @@
             // Function to load abstract for review
             function loadAbstractForReview(abstractId) {
                 $('#feedback-modal').modal('show');
+
                 $('.modal-loading').removeClass('d-none');
 
                 $.ajax({

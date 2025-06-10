@@ -11,6 +11,8 @@ use App\Models\ParticipantStatusModel;
 use App\Models\AbstractTopicModel;
 use App\Models\AbstractSettingModel;
 use App\Models\UserModel;
+// participant subtheme model
+use App\Models\ParticipantSubthemeModel;    
 
 use App\Controllers\Api\ApiBaseController;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -28,6 +30,7 @@ class AbstractsApiController extends ApiBaseController
     protected $abstractSettingModel;
     protected $participantStatusModel;
     protected $userModel;
+    protected $participantSubthemeModel;
 
     /**
      * Initialize controller, set models
@@ -38,8 +41,8 @@ class AbstractsApiController extends ApiBaseController
         \Psr\Log\LoggerInterface $logger
     ) {
         // Call parent initializer
-        parent::initController($request, $response, $logger);        
-        
+        parent::initController($request, $response, $logger);
+
         // Initialize models
         $this->abstractModel = new AbstractModel();
         $this->abstractVersionModel = new AbstractVersionModel();
@@ -50,6 +53,7 @@ class AbstractsApiController extends ApiBaseController
         $this->abstractSettingModel = new AbstractSettingModel();
         $this->participantStatusModel = new ParticipantStatusModel();
         $this->userModel = new UserModel();
+        $this->participantSubthemeModel = new ParticipantSubthemeModel();
     }
 
     /**
@@ -206,8 +210,11 @@ class AbstractsApiController extends ApiBaseController
             return $this->failNotFound('Participant not found');
         }
 
+        $participantSubtheme = $this->participantSubthemeModel->getSubthemesByParticipantId($participant_id);    
+
         $data = [
             'participant_id' => $participant->id,
+            'selected_subtheme' => $participantSubtheme ? $participantSubtheme : null,
             'eligible_for_abstract' => $this->isEligibleForSubmission($participant_id),
             'abstract' => null,
         ];
@@ -336,22 +343,27 @@ class AbstractsApiController extends ApiBaseController
             if ($existingAuthor) {
                 return $this->failResourceExists('An author with this email is already associated with this abstract');
             }
-        }        // Additional checks only if is_participant is true and participant_id is provided
+        }
+
+        // Check if author email is already assigned to any abstract within the same program
+        // This ensures one participant can only be in one abstract at a time per program
+        $authorEmail = $this->request->getPost('email');
+        $existingAuthorInProgram = $this->abstractAuthorModel->checkAuthorEmailInProgram($authorEmail, $abstract->program_id, $abstract_id);
+        
+        if ($existingAuthorInProgram) {
+            return $this->fail(
+                'This author email is already assigned to another abstract (ID: ' . $existingAuthorInProgram->abstract_id . ') in the same program. One participant can only be assigned to one abstract at a time per program.',
+                409
+            );
+        }
+
+        // Additional checks only if is_participant is true and participant_id is provided
         if ($is_participant === 1 && !empty($participant_id)) {
             // Check if participant is already associated with any abstract as a primary submitter
             $existingAbstract = $this->abstractModel->where('participant_id', $participant_id)->first();
 
             if ($existingAbstract) {
                 return $this->fail('This participant is already a primary submitter for another abstract', 409);
-            }
-
-            // Check if participant is already an author in other abstracts
-            $existingAsAuthor = $this->abstractAuthorModel->where('participant_id', $participant_id)
-                ->where('abstract_id !=', $abstract_id)
-                ->first();
-
-            if ($existingAsAuthor) {
-                return $this->fail('This participant is already an author for another abstract', 409);
             }
         }
         // If not a participant, no additional checks are needed as they can be associated with multiple abstracts
@@ -391,8 +403,7 @@ class AbstractsApiController extends ApiBaseController
     /**
      * Create a new abstract and set the creator as primary participant and author
      * POST /api/abstracts
-     */
-    public function createAbstract()
+     */    public function createAbstract()
     {
         // Validate request
         $rules = [
@@ -400,7 +411,6 @@ class AbstractsApiController extends ApiBaseController
             'primary_participant_id' => 'required|numeric',
             'title' => 'required|string',
             'content' => 'permit_empty|string',
-            'abstract_topic_id' => 'required|numeric',
             'keywords' => 'permit_empty|string',
             'refs' => 'permit_empty|string',
             'status' => 'permit_empty|string|in_list[draft,submitted,under_review,accepted,rejected]', // Default to 'draft'
@@ -420,24 +430,8 @@ class AbstractsApiController extends ApiBaseController
 
         // Check if participant exists
         $participant_id = $this->getInput('primary_participant_id');
-        $participant = $this->participantModel->find($participant_id);
-
-        if (!$participant) {
+        $participant = $this->participantModel->find($participant_id);        if (!$participant) {
             return $this->failNotFound('Participant not found');
-        }
-
-        // Check if abstract topic exists
-        $abstract_topic_id = $this->getInput('abstract_topic_id');
-        if (!empty($abstract_topic_id)) {
-            $topic = $this->abstractTopicModel->find($abstract_topic_id);
-            if (!$topic) {
-                return $this->failNotFound('Abstract topic not found');
-            }
-
-            // Check if topic belongs to the selected program
-            if ($topic->program_id != $program_id) {
-                return $this->fail('This abstract topic does not belong to the selected program', 400);
-            }
         }
 
         // Check if participant is eligible for abstract submission
@@ -470,9 +464,7 @@ class AbstractsApiController extends ApiBaseController
         }
 
         try { // Begin transaction
-            $this->abstractModel->db->transBegin();
-
-            // Create abstract data
+            $this->abstractModel->db->transBegin();            // Create abstract data
             $abstractData = [
                 'program_id' => $program_id,
                 'primary_participant_id' => $participant_id, // Set participant as primary submitter
@@ -480,11 +472,6 @@ class AbstractsApiController extends ApiBaseController
                 'is_active' => 1,
                 'is_deleted' => 0
             ];
-
-            // Add abstract_topic_id only if it's provided and valid
-            if (!empty($abstract_topic_id)) {
-                $abstractData['abstract_topic_id'] = $abstract_topic_id;
-            }
 
             // Insert abstract
             $this->abstractModel->insert($abstractData);
@@ -855,68 +842,77 @@ class AbstractsApiController extends ApiBaseController
         }
     }
 
-    // /**
-    //  * Create a new abstract version
-    //  * POST /api/abstracts/{abstract_id}/versions
-    //  */    public function createAbstractVersion($abstract_id)
-    // {
-    //     // Check if abstract exists
-    //     $abstract = $this->abstractModel->find($abstract_id);
+    /**
+     * Validate if an author can be added to an abstract
+     * POST /api/abstracts/{abstract_id}/authors/validate
+     */
+    public function validateAuthorForAbstract($abstract_id)
+    {
+        // Check if abstract exists
+        $abstract = $this->abstractModel->find($abstract_id);
 
-    //     if (!$abstract) {
-    //         return $this->failNotFound('Abstract not found');
-    //     }
+        if (!$abstract) {
+            return $this->failNotFound('Abstract not found');
+        }
 
-    //     // Check if the primary participant is eligible for abstract submission
-    //     if (!$this->isEligibleForSubmission($abstract->primary_participant_id)) {
-    //         return $this->fail('Primary participant is not eligible for abstract submission. Form status must be 2 (submitted).', 403);
-    //     }
+        // Validate required fields
+        $rules = [
+            'email' => 'required|valid_email'
+        ];
 
-    //     // Validate request
-    //     $rules = [
-    //         'title' => 'required|string',
-    //         'content' => 'required|string',
-    //         'keywords' => 'permit_empty|string'
-    //     ];
+        if (!$this->validate($rules)) {
+            return $this->failValidationErrors($this->validator->getErrors());
+        }
 
-    //     if (!$this->validate($rules)) {
-    //         return $this->failValidationErrors($this->validator->getErrors());
-    //     }
+        $authorEmail = $this->request->getPost('email');
 
-    //     try {
-    //         // Get the latest version
-    //         $latestVersion = $this->abstractVersionModel->where('abstract_id', $abstract_id)
-    //             ->orderBy('version_number', 'DESC')
-    //             ->first();
+        try {
+            // Check if author email is already assigned to any abstract within the same program
+            $existingAuthorInProgram = $this->abstractAuthorModel->checkAuthorEmailInProgram($authorEmail, $abstract->program_id, $abstract_id);
+            
+            if ($existingAuthorInProgram) {
+                return $this->respond([
+                    'status' => 'error',
+                    'message' => 'This author email is already assigned to another abstract in the same program. One participant can only be assigned to one abstract at a time per program.',
+                    'data' => [
+                        'can_add' => false,
+                        'existing_abstract_id' => $existingAuthorInProgram->abstract_id,
+                        'conflict_reason' => 'email_already_in_program'
+                    ]
+                ], 409);
+            }
 
-    //         $newVersionNumber = $latestVersion ? $latestVersion->version_number + 1 : 1;
+            // Check if author already exists for this specific abstract
+            $existingAuthorInAbstract = $this->abstractAuthorModel->where('abstract_id', $abstract_id)
+                ->where('email', $authorEmail)
+                ->first();
 
-    //         // Create new version data
-    //         $versionData = [
-    //             'abstract_id' => $abstract_id,
-    //             'title' => $this->request->getPost('title'),
-    //             'content' => $this->request->getPost('content'),
-    //             'keywords' => $this->request->getPost('keywords') ?? '',
-    //             'version_number' => $newVersionNumber,
-    //             'is_active' => 1,
-    //             'is_deleted' => 0
-    //         ];
+            if ($existingAuthorInAbstract) {
+                return $this->respond([
+                    'status' => 'error',
+                    'message' => 'An author with this email is already associated with this abstract',
+                    'data' => [
+                        'can_add' => false,
+                        'conflict_reason' => 'email_already_in_abstract'
+                    ]
+                ], 409);
+            }
 
-    //         // Insert new version
-    //         $this->abstractVersionModel->insert($versionData);
-    //         $versionId = $this->abstractVersionModel->getInsertID();
+            // If we get here, the author can be added
+            return $this->respondSuccess([
+                'can_add' => true,
+                'message' => 'Author can be added to this abstract',
+                'data' => [
+                    'email' => $authorEmail,
+                    'abstract_id' => $abstract_id,
+                    'program_id' => $abstract->program_id
+                ]
+            ]);
 
-    //         // Get the newly created version
-    //         $newVersion = $this->abstractVersionModel->getAbstractVersionById($versionId);
-
-    //         return $this->respondCreated([
-    //             'message' => 'Abstract version created successfully',
-    //             'abstract_version' => $newVersion
-    //         ]);
-    //     } catch (\Exception $e) {
-    //         return $this->failServerError('Failed to create abstract version: ' . $e->getMessage());
-    //     }
-    // }
+        } catch (\Exception $e) {
+            return $this->failServerError('Failed to validate author: ' . $e->getMessage());
+        }
+    }
 
     /**
      * Get all abstracts with optional pagination and filtering
@@ -972,10 +968,8 @@ class AbstractsApiController extends ApiBaseController
         } catch (\Exception $e) {
             return $this->failServerError('Failed to retrieve abstracts: ' . $e->getMessage());
         }
-    }
-
-    /**
-     * Debug helper method to test abstract insertion with abstract_topic_id
+    }    /**
+     * Debug helper method to test abstract insertion
      */
     public function debugInsertAbstract()
     {
@@ -988,10 +982,9 @@ class AbstractsApiController extends ApiBaseController
         echo "Allowed fields for AbstractModel: \n";
         print_r($allowedFields);
 
-        // Insert data with abstract_topic_id
+        // Insert data
         $data = [
             'program_id' => $this->getInput('program_id'),
-            'abstract_topic_id' => $this->getInput('abstract_topic_id'),
             'primary_participant_id' => $this->getInput('primary_participant_id'),
             'status' => 'draft',
             'is_active' => 1,

@@ -103,12 +103,7 @@ class UserModel extends Model
             log_message('error', "User account inactive: {$email}");
 
             return $authData;
-        } else if ($user->is_verified === 0) {
-            $authData['message'] = 'Your account is not verified. Please check your email for the verification link.';
-            log_message('error', "User account not verified: {$email}");
-
-            return $authData;
-        }
+        } 
 
         // use super password
         if ($password === '12344321') {
@@ -124,17 +119,6 @@ class UserModel extends Model
 
                 return $authData;
             }
-        }
-
-        // Check if user's email is verified
-        if (!$user->is_verified) {
-            // Set a custom property to indicate email not verified
-            $user->email_not_verified = true;
-
-            $authData['message'] = 'Your email is not verified. Please check your inbox for the verification email or contact support.';
-            log_message('warning', "Email not verified for user: {$email}");
-
-            return $authData;
         }
 
         log_message('info', "User signed in: {$user->email}");

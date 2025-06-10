@@ -481,5 +481,174 @@ class ParticipantModel extends Model
             'recent' => $recentParticipants,
             'category_counts' => $categoryCounts
         ];
+    }    /**
+     * Search participants by custom parameters with users table join
+     * 
+     * @param array $searchParams Search parameters
+     * @param int $limit Items per page
+     * @param int $page Page number
+     * @param array $includeOptions Optional related data to include
+     * @return array Result with data and total count
+     */
+    public function searchParticipants($searchParams, $limit = 10, $page = 1, $includeOptions = [])
+    {
+        $builder = $this->builder();
+        $offset = ($page - 1) * $limit;
+          // Join with users table and programs table to enable search on user fields and program_category_id
+        $builder->select('
+            participants.*,
+            users.id as user_id_full,
+            users.full_name as user_full_name,
+            users.email as user_email,
+            users.is_verified as user_is_verified,
+            users.program_category_id as user_program_category_id,
+            users.is_active as user_is_active,
+            users.created_at as user_created_at,
+            users.updated_at as user_updated_at,
+            programs.program_category_id as program_category_id
+        ')
+        ->join('users', 'users.id = participants.user_id', 'inner')
+        ->join('programs', 'programs.id = participants.program_id', 'left')
+        ->where('participants.is_active', 1)
+        ->where('participants.is_deleted', 0)
+        ->where('users.is_active', 1)
+        ->where('users.is_deleted', 0);
+        
+        // Apply search filters dynamically
+        foreach ($searchParams as $key => $value) {
+            if (empty($value)) continue;
+            
+            switch ($key) {
+                case 'email':
+                    $builder->where('users.email', $value);
+                    break;
+                    
+                case 'user_full_name':
+                    $builder->like('users.full_name', $value);
+                    break;
+                    
+                case 'full_name':
+                    $builder->like('participants.full_name', $value);
+                    break;
+                    
+                case 'phone_number':
+                    $builder->like('participants.phone_number', $value);
+                    break;
+                      case 'program_id':
+                    $builder->where('participants.program_id', (int)$value);
+                    break;
+                    
+                case 'program_category_id':
+                    $builder->where('programs.program_category_id', (int)$value);
+                    break;
+                    
+                case 'gender':
+                    $builder->where('participants.gender', $value);
+                    break;
+                    
+                case 'nationality':
+                    $builder->like('participants.nationality', $value);
+                    break;
+                    
+                case 'institution':
+                    $builder->like('participants.institution', $value);
+                    break;
+                    
+                case 'occupation':
+                    $builder->like('participants.occupation', $value);
+                    break;
+                    
+                case 'category':
+                    $builder->where('participants.category', $value);
+                    break;
+                    
+                case 'is_verified':
+                    $builder->where('users.is_verified', (int)$value);
+                    break;
+                    
+                default:
+                    // For any other fields that exist in participants table
+                    if (in_array($key, $this->allowedFields)) {
+                        if (is_numeric($value)) {
+                            $builder->where("participants.{$key}", $value);
+                        } else {
+                            $builder->like("participants.{$key}", $value);
+                        }
+                    }
+                    break;
+            }
+        }
+        
+        // Get total count before pagination
+        $total = $builder->countAllResults(false);
+        
+        // Apply pagination and ordering
+        $builder->orderBy('participants.created_at', 'DESC')
+                ->limit($limit, $offset);
+        
+        // Execute query
+        $results = $builder->get()->getResultArray();
+        
+        // Process results to include related data
+        $participants = [];
+        foreach ($results as $row) {
+            $participant = $row;
+              // Add complete user data as nested object
+            $participant['user'] = [
+                'id' => $row['user_id_full'],
+                'full_name' => $row['user_full_name'],
+                'email' => $row['user_email'],
+                'is_verified' => $row['user_is_verified'],
+                'program_category_id' => $row['user_program_category_id'],
+                'is_active' => $row['user_is_active'],
+                'created_at' => $row['user_created_at'],
+                'updated_at' => $row['user_updated_at']
+            ];
+            
+            // Add program category info
+            $participant['program_category_id'] = $row['program_category_id'];
+            
+            // Remove duplicate user fields from main object
+            unset($participant['user_id_full'], $participant['user_full_name'], 
+                  $participant['user_email'], $participant['user_is_verified'], 
+                  $participant['user_program_category_id'], $participant['user_is_active'],
+                  $participant['user_created_at'], $participant['user_updated_at']);
+            
+            // Load additional related data based on include options
+            if (in_array('essays', $includeOptions)) {
+                $participant['essays'] = $this->getParticipantEssays($row['id']);
+            }
+            
+            if (in_array('payments', $includeOptions)) {
+                $participant['payments'] = $this->getParticipantPayments($row['id']);
+            }
+            
+            $participants[] = $participant;
+        }
+        
+        return [
+            'data' => $participants,
+            'total' => $total
+        ];
+    }
+    
+    /**
+     * Get participant essays by participant ID
+     * Helper method for search results enhancement
+     */
+    private function getParticipantEssays($participantId)
+    {
+        $essayModel = new ParticipantEssayModel();
+        return $essayModel->getParticipantEssayByParticipantId($participantId);
+    }
+    
+    /**
+     * Get participant payments by participant ID
+     * Helper method for search results enhancement
+     */
+    private function getParticipantPayments($participantId)
+    {
+        $paymentModel = new PaymentModel();
+        return $paymentModel->getPayments($participantId);
     }
 }

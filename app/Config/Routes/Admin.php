@@ -252,6 +252,18 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->post('delete/(:num)', 'AbstractTopics::delete/$1');  // Add POST endpoint for AJAX
         });
 
+        // abstract reviewers
+        $routes->group('abstract-reviewers', function ($routes) {
+            $routes->get('/', 'AbstractReviewers::index');
+            $routes->get('getData', 'AbstractReviewers::getData');
+            $routes->get('edit/(:num)', 'AbstractReviewers::edit/$1');
+            $routes->get('getSubthemes', 'AbstractReviewers::getSubthemes');
+            $routes->post('create', 'AbstractReviewers::create');
+            $routes->post('update/(:num)', 'AbstractReviewers::update/$1');
+            $routes->post('delete/(:num)', 'AbstractReviewers::delete/$1');
+            $routes->post('toggleStatus/(:num)', 'AbstractReviewers::toggleStatus/$1');
+        });
+
         // abstract settings
         $routes->group('abstract-settings', function ($routes) {
             $routes->get('/', 'AbstractSettings::index');
