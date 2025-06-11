@@ -100,5 +100,6 @@ class Autoload extends AutoloadConfig
         'storage',
         'excel',
         'web_url',
+        'menu',
     ];
 }

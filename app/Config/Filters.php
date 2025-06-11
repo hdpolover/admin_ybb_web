@@ -18,8 +18,7 @@ class Filters extends BaseConfig
     /**
      * Configures aliases for Filter classes to
      * make reading things nicer and simpler.
-     */
-    public array $aliases = [
+     */    public array $aliases = [
         'csrf'          => CSRF::class,
         'toolbar'       => DebugToolbar::class,
         'honeypot'      => Honeypot::class,
@@ -29,6 +28,7 @@ class Filters extends BaseConfig
         'noauth'        => NoAuth::class,
         'program_selection' => \App\Filters\ProgramSelectionFilter::class,
         'jwt'           => JWTAuthFilter::class,
+        'access_control' => \App\Filters\AccessControlFilter::class,
     ];
 
     /**

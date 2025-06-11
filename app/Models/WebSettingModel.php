@@ -15,8 +15,8 @@ class WebSettingModel extends Model
     protected $returnType     = 'object'; // Set to return objects
     protected $useAutoIncrement = true;
     protected $useSoftDeletes = false; // Using is_deleted field manually
-    protected $protectFields  = true; 
-    
+    protected $protectFields  = true;
+
     protected $allowedFields  = [
         'program_category_id',
         'is_maintenance_mode',
@@ -43,10 +43,11 @@ class WebSettingModel extends Model
      * @return object|null Maintenance status and related information
      */
     public function getSettingByWebUrl($webUrl)
-    {   
-        // Get the web setting joined with program category
-        $webSetting = $this->select('web_settings.*, program_categories.*, program_categories.web_url')
+    {
+        // Get the web setting joined with program category and program type
+        $webSetting = $this->select('web_settings.*, program_categories.*, program_categories.web_url, program_types.name as program_type_name')
             ->join('program_categories', 'program_categories.id = web_settings.program_category_id')
+            ->join('program_types', 'program_types.id = program_categories.program_type_id')
             ->where('program_categories.web_url', $webUrl)
             ->first();
 
@@ -62,6 +63,9 @@ class WebSettingModel extends Model
             if ($randomPhoto) {
                 $webSetting->img_url = $randomPhoto->img_url;
             }
+
+            // Add is_journal_type flag by checking program type name
+            $webSetting->is_journal_type = strtolower($webSetting->program_type_name) === 'journal';
         }
 
         return $webSetting;

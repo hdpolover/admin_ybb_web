@@ -318,6 +318,15 @@ $routes->group('api/landing', ['namespace' => 'App\Controllers\Api'], function (
 // Include modular route files
 require_once APPPATH . 'Config/Routes/Admin.php';
 
+// Menu management test routes
+$routes->group('menu-test', ['namespace' => 'App\Controllers', 'filter' => 'access_control'], function ($routes) {
+    $routes->get('/', 'MenuTestController::index');
+    $routes->get('super-only', 'MenuTestController::superOnly');
+    $routes->get('program-admin', 'MenuTestController::programAdminAccess');
+    $routes->get('editor', 'MenuTestController::editorAccess');
+    $routes->get('user-info', 'MenuTestController::userInfo');
+});
+
 /*
  * --------------------------------------------------------------------
  * Additional Routing
