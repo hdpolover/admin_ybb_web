@@ -6,7 +6,7 @@ use CodeIgniter\Model;
 
 class AbstractSettingModel extends Model
 {
-    // `id`, `program_id`, `title_length`, `content_length`, `keywords_length`, `refs_length`, `paper_template_url`, `abstract_submission_deadline`, `full_paper_submission_deadline`, `is_active`, `is_deleted`, `created_at`, `updated_at`
+    // `id`, `program_id`, `title_length`, `content_length`, `keywords_length`, `refs_length`, `abstract_template_url`, `paper_template_url`, `abstract_submission_deadline`, `full_paper_submission_deadline`, `is_active`, `is_deleted`, `created_at`, `updated_at`
     protected $table = 'abstract_settings';
     protected $primaryKey = 'id';
     protected $returnType = 'object';
@@ -23,6 +23,7 @@ class AbstractSettingModel extends Model
         'keywords_length',
         'refs_length',
         'paper_template_url',
+        'abstract_template_url',
         'abstract_submission_deadline',
         'full_paper_submission_deadline',
         'is_active',
@@ -38,6 +39,7 @@ class AbstractSettingModel extends Model
         'keywords_length',
         'refs_length',
         'paper_template_url',
+        'abstract_template_url',
         'abstract_submission_deadline',
         'full_paper_submission_deadline',
         'is_active',
@@ -53,6 +55,7 @@ class AbstractSettingModel extends Model
         'keywords_length' => 'required|integer',
         'refs_length' => 'required|integer',
         'paper_template_url' => 'permit_empty|valid_url',
+        'abstract_template_url' => 'permit_empty|valid_url',
         'abstract_submission_deadline' => 'permit_empty|valid_date',
         'full_paper_submission_deadline' => 'permit_empty|valid_date',
         'is_active' => 'in_list[0,1]',
@@ -99,6 +102,8 @@ class AbstractSettingModel extends Model
             'keywords_length' => 5,
             'refs_length' => 100,
             'paper_template_url' => null,
+            'abstract_template_url' => null,
+            // Set deadlines to null by default
             'abstract_submission_deadline' => null,
             'full_paper_submission_deadline' => null,
             'is_active' => 1,

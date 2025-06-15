@@ -101,5 +101,6 @@ class Autoload extends AutoloadConfig
         'excel',
         'web_url',
         'menu',
+        'date',
     ];
 }

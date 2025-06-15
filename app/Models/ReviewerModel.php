@@ -5,8 +5,7 @@ namespace App\Models;
 use CodeIgniter\Model;
 
 class ReviewerModel extends Model
-{
-    protected $table = 'reviewers';
+{    protected $table = 'abstract_reviewers';
     protected $primaryKey = 'id';
     protected $returnType = 'object';
     protected $useAutoIncrement = true;
@@ -15,11 +14,12 @@ class ReviewerModel extends Model
     protected $updatedField = 'updated_at';
 
     protected $allowedFields = [
+        'program_id',
         'name',
         'email',
+        'institution',
         'password',
         'role',
-        'specialization',
         'is_active',
         'is_deleted'
     ];
@@ -161,9 +161,7 @@ class ReviewerModel extends Model
     public function setActiveStatus($id, $status)
     {
         return $this->update($id, ['is_active' => $status ? 1 : 0]);
-    }
-
-    /**
+    }    /**
      * Get reviewers by specialization
      * 
      * @param string $specialization
@@ -171,7 +169,87 @@ class ReviewerModel extends Model
      */
     public function getReviewersBySpecialization($specialization)
     {
-        return $this->where('specialization LIKE', "%{$specialization}%")
+        return $this->where('institution LIKE', "%{$specialization}%")
+                   ->where('is_active', 1)
+                   ->where('is_deleted', 0)
+                   ->findAll();
+    }
+
+    /**
+     * Update reviewer profile
+     * 
+     * @param int $reviewer_id
+     * @param array $data
+     * @return bool
+     */
+    public function updateProfile($reviewer_id, $data)
+    {
+        // Remove password from profile update if empty
+        if (isset($data['password']) && empty($data['password'])) {
+            unset($data['password']);
+        }
+        
+        return $this->update($reviewer_id, $data);
+    }
+
+    /**
+     * Change reviewer password
+     * 
+     * @param int $reviewer_id
+     * @param string $new_password
+     * @return bool
+     */
+    public function changePassword($reviewer_id, $new_password)
+    {
+        return $this->update($reviewer_id, ['password' => password_hash($new_password, PASSWORD_DEFAULT)]);
+    }
+
+    /**
+     * Get reviewer statistics
+     * 
+     * @param int $reviewer_id
+     * @return array
+     */
+    public function getReviewerStatistics($reviewer_id)
+    {
+        // Get review statistics for the reviewer
+        $db = \Config\Database::connect();
+        
+        $builder = $db->table('abstract_feedbacks');
+        $total_assigned = $builder->where('abstract_reviewer_id', $reviewer_id)
+                                 ->where('is_deleted', 0)
+                                 ->countAllResults();
+        
+        $builder = $db->table('abstract_feedbacks');
+        $total_completed = $builder->where('abstract_reviewer_id', $reviewer_id)
+                                 ->where('feedback IS NOT NULL')
+                                 ->where('feedback !=', '')
+                                 ->where('is_deleted', 0)
+                                 ->countAllResults();
+        
+        $builder = $db->table('abstract_feedbacks');
+        $total_pending = $builder->where('abstract_reviewer_id', $reviewer_id)
+                               ->where('(feedback IS NULL OR feedback = "")')
+                               ->where('is_deleted', 0)
+                               ->countAllResults();
+
+        return [
+            'total_assigned' => $total_assigned,
+            'total_completed' => $total_completed,
+            'total_pending' => $total_pending,
+            'completion_rate' => $total_assigned > 0 ? round(($total_completed / $total_assigned) * 100, 2) : 0
+        ];
+    }
+
+    /**
+     * Get reviewers by program
+     * 
+     * @param int $program_id
+     * @return array
+     */
+    public function getReviewersByProgram($program_id)
+    {
+        return $this->where('program_id', $program_id)
                    ->where('is_active', 1)
                    ->where('is_deleted', 0)
                    ->findAll();

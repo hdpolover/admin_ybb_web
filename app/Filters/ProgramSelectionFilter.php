@@ -10,6 +10,11 @@ class ProgramSelectionFilter implements FilterInterface
 {
     public function before(RequestInterface $request, $arguments = null)
     {
+        // Skip program selection check for reviewers
+        if (session()->get('userType') === 'reviewer') {
+            return;
+        }
+
         if (!session()->has('current_program')) {
             return redirect()->to('welcome')->with('error_message', 'Please select a program first');
         }

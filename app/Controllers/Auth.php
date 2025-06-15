@@ -16,14 +16,17 @@ class Auth extends BaseController
     public function index()
     {
         return view('auth/sign-in');
-    }
-
-    public function signIn()
+    }    public function signIn()
     {
 
         $email = $this->request->getPost('email');
         $password = $this->request->getPost('password');
         $type = $this->request->getPost('type');
+
+        // Check if this is a reviewer login attempt
+        if ($type === 'reviewer') {
+            return redirect()->to('/reviewer-sign-in')->withInput();
+        }
 
         // Pass the parameters directly to signIn method
         $admin = $this->adminModel->signIn($email, $password, $type);
@@ -32,6 +35,7 @@ class Auth extends BaseController
             // Set session data
             $this->session->set('isLoggedIn', true);
             $this->session->set('adminId', $admin->id);
+            $this->session->set('userType', 'admin');
 
             // if admin role is super, return welcome page. if not, return dashboard page
             if ($admin->role == 'super') {
@@ -44,7 +48,7 @@ class Auth extends BaseController
         } else {
             return redirect()->back()->with('error', $admin['message'] ?? 'Invalid email or password.');
         }
-    }  
+    }
     
     public function signOut()
     {

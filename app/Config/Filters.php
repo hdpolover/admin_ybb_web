@@ -29,6 +29,7 @@ class Filters extends BaseConfig
         'program_selection' => \App\Filters\ProgramSelectionFilter::class,
         'jwt'           => JWTAuthFilter::class,
         'access_control' => \App\Filters\AccessControlFilter::class,
+        'reviewer_auth' => \App\Filters\ReviewerAuthFilter::class,
     ];
 
     /**

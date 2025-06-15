@@ -47,34 +47,48 @@
                                 <div class="text-center mt-2">
                                     <h5 class="text-primary">Welcome Back!</h5>
                                     <p class="text-muted">Sign in to continue.</p>
-                                </div>
-                                <div class="p-2 mt-4">
+                                </div>                                <div class="p-2 mt-4">
                                     <?php if (!empty(session()->getFlashdata('error'))): ?>
                                         <div class="alert alert-danger" role="alert">
                                             <strong> Error! </strong> <?= session()->getFlashdata('error') ?>
                                         </div>
                                     <?php endif; ?>
-                                    <form action="<?= base_url('sign-in') ?>" method="post">
+                                    
+                                    <?php if (!empty(session()->getFlashdata('success'))): ?>
+                                        <div class="alert alert-success" role="alert">
+                                            <strong> Success! </strong> <?= session()->getFlashdata('success') ?>
+                                        </div>
+                                    <?php endif; ?>
+                                    
+                                    <form action="<?= base_url('sign-in') ?>" method="post" id="sign-in-form">
 
                                         <?= csrf_field() ?>
 
-                                        <input type="hidden" name="type" value="4">
+                                        <input type="hidden" name="type" id="user-type" value="admin">
+
+                                        <div class="mb-3">
+                                            <label for="user-type-select" class="form-label">Sign in as</label>
+                                            <select class="form-select" id="user-type-select" onchange="changeUserType()">
+                                                <option value="admin">Admin</option>
+                                                <option value="reviewer">Reviewer</option>
+                                            </select>
+                                        </div>
 
                                         <div class="mb-3">
                                             <label for="email" class="form-label">Email</label>
-                                            <input type="text" class="form-control" id="email" name="email" placeholder="Enter email" value="admin@themesbrand.com" required>
+                                            <input type="text" class="form-control" id="email" name="email" placeholder="Enter email" value="" required>
                                         </div>
 
                                         <div class="mb-3">
                                             <label class="form-label" for="password-input">Password</label>
                                             <div class="position-relative auth-pass-inputgroup mb-3">
-                                                <input type="password" class="form-control pe-5 password-input" placeholder="Enter password" id="password-input" name="password" value="123456" required>
+                                                <input type="password" class="form-control pe-5 password-input" placeholder="Enter password" id="password-input" name="password" value="" required>
                                                 <button class="btn btn-link position-absolute end-0 top-0 text-decoration-none text-muted password-addon" type="button" id="password-addon"><i class="ri-eye-fill align-middle"></i></button>
                                             </div>
                                         </div>
 
                                         <div class="mt-4">
-                                            <button class="btn btn-success w-100" type="submit">Sign In</button>
+                                            <button class="btn btn-success w-100" type="submit" id="sign-in-btn">Sign In</button>
                                         </div>
                                     </form>
                                 </div>
@@ -111,14 +125,39 @@
     </div>
     <!-- end auth-page-wrapper -->
 
-    <?= $this->include('partials/vendor-scripts') ?>
-
-    <!-- particles js -->
+    <?= $this->include('partials/vendor-scripts') ?>    <!-- particles js -->
     <script src="/assets/libs/particles.js/particles.js"></script>
     <!-- particles app js -->
     <script src="/assets/js/pages/particles.app.js"></script>
     <!-- password-addon init -->
     <script src="/assets/js/pages/password-addon.init.js"></script>
+    
+    <script>
+    function changeUserType() {
+        const userTypeSelect = document.getElementById('user-type-select');
+        const userTypeInput = document.getElementById('user-type');
+        const form = document.getElementById('sign-in-form');
+        const signInBtn = document.getElementById('sign-in-btn');
+        
+        userTypeInput.value = userTypeSelect.value;
+        
+        // Update form action based on user type
+        if (userTypeSelect.value === 'reviewer') {
+            form.action = '<?= base_url('reviewer-sign-in') ?>';
+            signInBtn.textContent = 'Sign In as Reviewer';
+            signInBtn.className = 'btn btn-info w-100';
+        } else {
+            form.action = '<?= base_url('sign-in') ?>';
+            signInBtn.textContent = 'Sign In as Admin';
+            signInBtn.className = 'btn btn-success w-100';
+        }
+    }
+    
+    // Initialize form on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        changeUserType();
+    });
+    </script>
 </body>
 
 </html>

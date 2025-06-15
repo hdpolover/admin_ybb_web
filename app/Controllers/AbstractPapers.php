@@ -11,9 +11,9 @@ class AbstractPapers extends BaseController
     protected $abstractModel;
     protected $programModel;
     protected $participantModel;
-    protected $abstractVersionModel;
-    protected $abstractAuthorModel;
+    protected $abstractVersionModel;    protected $abstractAuthorModel;
     protected $abstractTopicModel;
+    protected $programSubthemeModel;
 
     public function __construct()
     {
@@ -23,6 +23,7 @@ class AbstractPapers extends BaseController
         $this->abstractVersionModel = new \App\Models\AbstractVersionModel();
         $this->abstractAuthorModel = new \App\Models\AbstractAuthorModel();
         $this->abstractTopicModel = new \App\Models\AbstractTopicModel();
+        $this->programSubthemeModel = new \App\Models\ProgramSubthemeModel();
     }
 
     public function index()
@@ -48,17 +49,26 @@ class AbstractPapers extends BaseController
         ];
 
         return view('submissions/abstract-paper/index', $data);
-    }
-
-    public function getAbstractsByProgram($programId = null)
+    }    public function getAbstractsByProgram($programId = null)
     {
         if (!$programId) {
             $programId = session('current_program');
         }
 
-        $abstracts = $this->abstractModel->where('program_id', $programId)
-            ->where('is_deleted', 0)
-            ->findAll();
+        $subthemeFilter = $this->request->getGet('subtheme_id') ?: $this->request->getPost('subtheme_id');
+          $builder = $this->abstractModel->builder();
+        $builder->where('program_id', $programId)
+                ->where('abstracts.is_deleted', 0);
+        
+        // Filter by subtheme if specified
+        if ($subthemeFilter) {
+            $builder->join('participant_subthemes ps', 'ps.participant_id = abstracts.primary_participant_id')
+                   ->where('ps.program_subtheme_id', $subthemeFilter)
+                   ->where('ps.is_active', 1)
+                   ->where('ps.is_deleted', 0);
+        }
+        
+        $abstracts = $builder->get()->getResult();
 
         // Get participant details and latest version for each abstract
         foreach ($abstracts as &$abstract) {
@@ -81,8 +91,7 @@ class AbstractPapers extends BaseController
             }
 
             // Get participant subtheme data
-            $participantSubthemeModel = new \App\Models\ParticipantSubthemeModel();
-            $subtheme = $participantSubthemeModel
+            $participantSubthemeModel = new \App\Models\ParticipantSubthemeModel();            $subtheme = $participantSubthemeModel
                 ->select('participant_subthemes.*, program_subthemes.name as subtheme_name')
                 ->join('program_subthemes', 'program_subthemes.id = participant_subthemes.program_subtheme_id', 'left')
                 ->where('participant_subthemes.participant_id', $abstract->primary_participant_id)
@@ -1018,5 +1027,90 @@ class AbstractPapers extends BaseController
         // This would require PhpSpreadsheet library
         // For now, fall back to CSV
         return $this->exportCSV($data, $id);
+    }
+
+    /**
+     * Get program subthemes for dropdown
+     */
+    public function getSubthemes()
+    {
+        $programId = session('current_program');
+
+        if (!$programId) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No program selected'
+            ]);
+        }
+
+        $subthemes = $this->programSubthemeModel->getActiveSubthemes($programId);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $subthemes
+        ]);
+    }    /**
+     * Get reviewer's assigned subthemes for filtering
+     */
+    public function getReviewerSubthemes()
+    {
+        $reviewerId = session('reviewerId');
+        $adminId = session('adminId');
+        $programId = session('current_program');
+
+        if (!$programId) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No program selected'
+            ]);
+        }
+
+        // If admin user, return all subthemes for the program
+        if ($adminId && !$reviewerId) {
+            try {
+                $subthemes = $this->programSubthemeModel->getActiveSubthemes($programId);
+                
+                // Format for consistency with reviewer subthemes
+                $formattedSubthemes = array_map(function($subtheme) {
+                    return (object)[
+                        'program_subtheme_id' => $subtheme->id,
+                        'subtheme_name' => $subtheme->name
+                    ];
+                }, $subthemes);
+
+                return $this->response->setJSON([
+                    'success' => true,
+                    'data' => $formattedSubthemes
+                ]);
+            } catch (\Exception $e) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Error retrieving subthemes: ' . $e->getMessage()
+                ]);
+            }
+        }
+
+        // For reviewer users, get only assigned subthemes
+        if (!$reviewerId) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Reviewer not found in session'
+            ]);
+        }
+
+        try {
+            $abstractReviewerSubthemeModel = new \App\Models\AbstractReviewerSubthemeModel();
+            $assignedSubthemes = $abstractReviewerSubthemeModel->getSubthemesByReviewerId($reviewerId);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => $assignedSubthemes
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Error retrieving subthemes: ' . $e->getMessage()
+            ]);
+        }
     }
 }

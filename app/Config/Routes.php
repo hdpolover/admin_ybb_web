@@ -32,7 +32,7 @@ $routes->setAutoRoute(false);
 $routes->group('', ['namespace' => 'App\Controllers'], function ($routes) {
     $routes->get('/', 'Auth::index');
     $routes->post('sign-in', 'Auth::signIn');
-      // Simple Excel export routes
+    // Simple Excel export routes
     $routes->get('simpleexport', 'SimpleExportController::index');
     $routes->get('simpleexport/exportSimple', 'SimpleExportController::exportSimple');
 });
@@ -82,12 +82,12 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
 
         // Configuration and initialization
         $routes->get('config', 'PaymentsApiController::getConfig');
-        
+
         // Transaction management
         $routes->post('create', 'PaymentsApiController::createTransaction');
         $routes->get('status/(:num)', 'PaymentsApiController::getStatus/$1');
         $routes->get('participants/(:num)', 'PaymentsApiController::getPaymentsByParticipantId/$1');
-        
+
         // Manual payment handling
         $routes->post('upload-proof', 'PaymentsApiController::uploadPaymentProof');
 
@@ -98,7 +98,6 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
         $routes->get('error', 'PaymentsApiController::errorRedirect');
 
         $routes->get('program-payment/(:num)/participant/(:num)', 'PaymentsApiController::getPaymentsByProgramPaymentIdAndParticipantId/$1/$2');
-        
     });
 
     // routes for program documents
@@ -123,8 +122,8 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->get('users', 'UsersApiController::index');
     $routes->get('users/(:num)', 'UsersApiController::show/$1');
     // check users by params
-    $routes->get('users/check', 'UsersApiController::checkUserByParams');    
-    
+    $routes->get('users/check', 'UsersApiController::checkUserByParams');
+
     // participants 
     $routes->get('participants', 'ParticipantsApiController::index');
     // Search participants by custom parameters
@@ -219,7 +218,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->post('submissions/participants/(:num)/upload-picture', 'SubmissionApiController::uploadProfilePicture/$1');
     // submit form
     $routes->post('submissions/participants/(:num)/submit', 'SubmissionApiController::submitForm/$1');
-    
+
     // Maintenance check endpoint - publicly accessible
     $routes->get('maintenance/check', 'Api\MaintenanceApiController::check');
 
@@ -230,14 +229,14 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->get('loa-templates/(:num)/program-documents/(:num)', 'LoaTemplatesApiController::getByProgramDocumentIdAndTemplateId/$1/$2');
 
     // notifications
-   $routes->get('notifications', 'NotificationsApiController::index');
-   $routes->get('notifications/(:num)', 'NotificationsApiController::show/$1');
-   $routes->get('notifications/random-registration', 'NotificationsApiController::generateRandomRegistrationNotifications');
+    $routes->get('notifications', 'NotificationsApiController::index');
+    $routes->get('notifications/(:num)', 'NotificationsApiController::show/$1');
+    $routes->get('notifications/random-registration', 'NotificationsApiController::generateRandomRegistrationNotifications');
 
-   $routes->put('notifications/(:num)', 'NotificationsApiController::update/$1');
-   $routes->delete('notifications/(:num)', 'NotificationsApiController::delete/$1');
+    $routes->put('notifications/(:num)', 'NotificationsApiController::update/$1');
+    $routes->delete('notifications/(:num)', 'NotificationsApiController::delete/$1');
 
-   // program faqs
+    // program faqs
     $routes->get('program-faqs', 'ProgramFaqsApiController::index');
     $routes->get('program-faqs/(:num)', 'ProgramFaqsApiController::show/$1');
     $routes->get('program-faqs/program/(:num)', 'ProgramFaqsApiController::getByProgram/$1');
@@ -252,39 +251,41 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->group('abstracts', function ($routes) {
         // Get all abstracts with pagination and filtering
         $routes->get('', 'AbstractsApiController::getAllAbstracts');
-        
+
         // Create a new abstract
         $routes->post('', 'AbstractsApiController::createAbstract');
-        
+
         // Get, update, delete abstract by id
         $routes->get('(:num)', 'AbstractsApiController::getAbstractById/$1');
         $routes->post('(:num)/update', 'AbstractsApiController::updateAbstract/$1');
         $routes->delete('(:num)', 'AbstractsApiController::deleteAbstract/$1');
-          // Get abstracts by program or participant
+        // Get abstracts by program or participant
         $routes->get('programs/(:num)/limits', 'AbstractsApiController::getAbstractLimits/$1');
         $routes->get('program/(:num)', 'AbstractsApiController::getAllAbstractsByProgramId/$1');
         $routes->get('participant/(:num)', 'AbstractsApiController::getAllAbstractsByParticipantId/$1');
         $routes->get('participant/(:num)/details', 'AbstractsApiController::getAbstractDetailsByParticipantId/$1');
-          // Abstract versions
+        // Abstract versions
         $routes->get('version/(:num)', 'AbstractsApiController::getAbstractVersionById/$1');
         $routes->get('(:num)/versions', 'AbstractsApiController::getAllAbstractVersionsByAbstractId/$1');
-       //$routes->post('(:num)/versions', 'AbstractsApiController::createAbstractVersion/$1');
+        //$routes->post('(:num)/versions', 'AbstractsApiController::createAbstractVersion/$1');
         $routes->post('version/(:num)/update', 'AbstractsApiController::updateAbstractVersion/$1');
         $routes->post('(:num)/save-version', 'AbstractsApiController::saveAbstractVersion/$1');
-          // Abstract authors
+        // Abstract authors
         $routes->get('(:num)/authors', 'AbstractsApiController::getAllAbstractAuthorsByAbstractId/$1');
         $routes->post('(:num)/authors/validate', 'AbstractsApiController::validateAuthorForAbstract/$1');
         $routes->post('(:num)/authors', 'AbstractsApiController::addAbstractAuthor/$1');
-        
+
         // Author operations
         $routes->post('authors/(:num)/update', 'AbstractsApiController::updateAbstractAuthor/$1');
-        $routes->delete('authors/(:num)', 'AbstractsApiController::deleteAbstractAuthor/$1');    });
-    
+        $routes->delete('authors/(:num)', 'AbstractsApiController::deleteAbstractAuthor/$1');
+    });
+
     // Abstract topics group
     $routes->group('abstract-topics', function ($routes) {
         $routes->get('program/(:num)', 'AbstractTopicsApiController::getAbstractTopicsByProgramId/$1');
     });
-      // Abstract versions group
+    
+    // Abstract versions group
     $routes->group('abstract-versions', function ($routes) {
         $routes->get('(:num)', 'AbstractVersionsApiController::getAbstractVersionById/$1');
         $routes->get('compare/(:num)/(:num)', 'AbstractVersionsApiController::compareVersions/$1/$2');
@@ -316,6 +317,7 @@ $routes->group('api/landing', ['namespace' => 'App\Controllers\Api'], function (
 });
 
 // Include modular route files
+require_once APPPATH . 'Config/Routes/Reviewers.php';
 require_once APPPATH . 'Config/Routes/Admin.php';
 
 // Menu management test routes

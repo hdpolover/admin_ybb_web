@@ -9,37 +9,37 @@
     <style>
         .settings-card {
             border: none;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             border-radius: 10px;
         }
-        
+
         .settings-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border-radius: 10px 10px 0 0;
             padding: 1.5rem;
         }
-        
+
         .setting-item {
             border-bottom: 1px solid #e9ecef;
             padding: 1rem 0;
         }
-        
+
         .setting-item:last-child {
             border-bottom: none;
         }
-        
+
         .setting-label {
             font-weight: 600;
             color: #495057;
             margin-bottom: 0.5rem;
         }
-        
+
         .setting-value {
             font-size: 1.1rem;
             color: #212529;
         }
-        
+
         .btn-primary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border: none;
@@ -88,7 +88,7 @@
 
                     <div class="row justify-content-center">
                         <div class="col-lg-8">
-                            
+
                             <?php if (!$abstractSettings): ?>
                                 <div class="card">
                                     <div class="card-body text-center py-5">
@@ -106,7 +106,8 @@
                                         <h4 class="mb-0"><i class="ri-settings-3-line me-2"></i>Abstract Settings Details</h4>
                                         <p class="mb-0 mt-2 opacity-75">Current submission limits for abstracts</p>
                                     </div>
-                                    <div class="card-body p-4">                                        <div class="setting-item">
+                                    <div class="card-body p-4">
+                                        <div class="setting-item">
                                             <div class="setting-label">Title Word Limit</div>
                                             <div class="setting-value">
                                                 <span class="badge bg-primary-subtle text-primary fs-6">
@@ -114,7 +115,7 @@
                                                 </span>
                                             </div>
                                         </div>
-                                        
+
                                         <div class="setting-item">
                                             <div class="setting-label">Content Word Limit</div>
                                             <div class="setting-value">
@@ -123,7 +124,7 @@
                                                 </span>
                                             </div>
                                         </div>
-                                        
+
                                         <div class="setting-item">
                                             <div class="setting-label">Keywords Word Limit</div>
                                             <div class="setting-value">
@@ -132,7 +133,6 @@
                                                 </span>
                                             </div>
                                         </div>
-                                        
                                         <div class="setting-item">
                                             <div class="setting-label">References Word Limit</div>
                                             <div class="setting-value">
@@ -141,7 +141,69 @@
                                                 </span>
                                             </div>
                                         </div>
-                                        
+
+                                        <div class="setting-item">
+                                            <div class="setting-label">Paper Template URL</div>
+                                            <div class="setting-value">
+                                                <?php if (!empty($abstractSettings->paper_template_url)): ?>
+                                                    <a href="<?= $abstractSettings->paper_template_url ?>" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                        <i class="ri-download-line me-1"></i>Download Template
+                                                    </a>
+                                                <?php else: ?>
+                                                    <span class="text-muted">
+                                                        <i class="ri-file-line me-1"></i>No template URL provided
+                                                    </span>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+
+                                        <div class="setting-item">
+                                            <div class="setting-label">Abstract Template URL</div>
+                                            <div class="setting-value">
+                                                <?php if (!empty($abstractSettings->abstract_template_url)): ?>
+                                                    <a href="<?= $abstractSettings->abstract_template_url ?>" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                                        <i class="ri-download-line me-1"></i>Download Template
+                                                    </a>
+                                                <?php else: ?>
+                                                    <span class="text-muted">
+                                                        <i class="ri-file-line me-1"></i>No template URL provided
+                                                    </span>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+
+                                        <div class="setting-item">
+                                            <div class="setting-label">Abstract Submission Deadline</div>
+                                            <div class="setting-value">
+                                                <?php if (!empty($abstractSettings->abstract_submission_deadline)): ?>
+                                                    <span class="text-primary">
+                                                        <i class="ri-calendar-line me-1"></i>
+                                                        <?= date('F j, Y', strtotime($abstractSettings->abstract_submission_deadline)) ?>
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-muted">
+                                                        <i class="ri-calendar-line me-1"></i>No deadline set
+                                                    </span>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+
+                                        <div class="setting-item">
+                                            <div class="setting-label">Full Paper Submission Deadline</div>
+                                            <div class="setting-value">
+                                                <?php if (!empty($abstractSettings->full_paper_submission_deadline)): ?>
+                                                    <span class="text-primary">
+                                                        <i class="ri-calendar-line me-1"></i>
+                                                        <?= date('F j, Y', strtotime($abstractSettings->full_paper_submission_deadline)) ?>
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-muted">
+                                                        <i class="ri-calendar-line me-1"></i>No deadline set
+                                                    </span>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+
                                         <div class="setting-item">
                                             <div class="setting-label">Status</div>
                                             <div class="setting-value">
@@ -156,14 +218,14 @@
                                                 <?php endif; ?>
                                             </div>
                                         </div>
-                                        
+
                                         <div class="setting-item">
                                             <div class="setting-label">Created</div>
                                             <div class="setting-value text-muted">
                                                 <?= date('F j, Y \a\t g:i A', strtotime($abstractSettings->created_at)) ?>
                                             </div>
                                         </div>
-                                        
+
                                         <div class="setting-item">
                                             <div class="setting-label">Last Updated</div>
                                             <div class="setting-value text-muted">

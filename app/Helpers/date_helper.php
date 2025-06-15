@@ -127,3 +127,50 @@ if (!function_exists('format_date_range')) {
         }
     }
 }
+
+if (!function_exists('get_feedback_display_date')) {
+    /**
+     * Get the appropriate date to display for feedback
+     * Returns updated_at if it's valid and different from created_at, otherwise returns created_at
+     *
+     * @param string $created_at The created_at timestamp
+     * @param string $updated_at The updated_at timestamp
+     * @return string The appropriate timestamp to display
+     */
+    function get_feedback_display_date($created_at, $updated_at)
+    {
+        // If updated_at is empty, null, or invalid date, use created_at
+        if (empty($updated_at) || $updated_at === '0000-00-00 00:00:00' || $updated_at === '1970-01-01 00:00:00') {
+            return $created_at;
+        }
+        
+        // If updated_at is the same as created_at, use created_at (no actual update occurred)
+        if ($updated_at === $created_at) {
+            return $created_at;
+        }
+        
+        // Otherwise, use updated_at
+        return $updated_at;
+    }
+}
+
+if (!function_exists('is_valid_timestamp')) {
+    /**
+     * Check if a timestamp is valid (not null, empty, or zero date)
+     *
+     * @param string $timestamp The timestamp to check
+     * @return bool True if valid, false otherwise
+     */
+    function is_valid_timestamp($timestamp)
+    {
+        if (empty($timestamp)) {
+            return false;
+        }
+        
+        if (in_array($timestamp, ['0000-00-00 00:00:00', '1970-01-01 00:00:00', '0000-00-00', '1970-01-01'])) {
+            return false;
+        }
+        
+        return strtotime($timestamp) !== false;
+    }
+}

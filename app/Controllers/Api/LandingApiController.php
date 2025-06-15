@@ -293,12 +293,10 @@ class LandingApiController extends ApiBaseController
 
             if (!$activeProgram) {
                 return $this->respondNotFound('No active program found for this category');
-            }
-
-            // Get insights for the active program
+            }            // Get insights for the active program
             $totalParticipants = $this->participantModel->getTotalParticipants($activeProgram->id);
-            $totalCountries = $this->participantModel->getTotalCountries($activeProgram->id);
-            $countriesData = $this->participantModel->getCountriesData($activeProgram->id);
+            $totalCountries = $this->participantModel->getTotalValidCountries($activeProgram->id);
+            $countriesData = $this->participantModel->getValidCountriesData($activeProgram->id);
 
             $activeProgramInsights = [
                 'program' => $activeProgram,
@@ -622,6 +620,65 @@ class LandingApiController extends ApiBaseController
             return $this->respondSuccess([
                 'category' => $category,
                 'help_news' => $helpNews
+            ]);
+        } catch (\Exception $e) {
+            return $this->respondError($e->getMessage());
+        }
+    }
+
+    /**
+     * Get insights data with country validation debug info
+     * 
+     * @return \CodeIgniter\HTTP\ResponseInterface
+     */
+    public function insightsDebug()
+    {
+        try {
+            $webUrl = $this->request->getGet('web_url');
+
+            if (empty($webUrl)) {
+                return $this->respondValidationErrors('web_url parameter is required');
+            }
+
+            $normalizedWebUrl = normalize_web_url($webUrl);
+
+            // Get program category by web_url
+            $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $normalizedWebUrl]);
+
+            if (!$category) {
+                return $this->respondNotFound('Program category not found');
+            }
+
+            // get latest program for this category
+            $activeProgram = $this->programModel->getActivePrograms($category->id);
+
+            if (!$activeProgram) {
+                return $this->respondNotFound('No active program found for this category');
+            }
+
+            // Get insights for the active program
+            $totalParticipants = $this->participantModel->getTotalParticipants($activeProgram->id);
+            $totalValidCountries = $this->participantModel->getTotalValidCountries($activeProgram->id);
+            $validCountriesData = $this->participantModel->getValidCountriesData($activeProgram->id);
+            $invalidCountriesData = $this->participantModel->getInvalidCountriesData($activeProgram->id);
+            
+            // Also get original data for comparison
+            $totalOriginalCountries = $this->participantModel->getTotalCountries($activeProgram->id);
+            $originalCountriesData = $this->participantModel->getCountriesData($activeProgram->id);
+
+            $debugData = [
+                'program' => $activeProgram,
+                'total_registered_participants' => $totalParticipants,
+                'original_total_countries' => $totalOriginalCountries,
+                'valid_total_countries' => $totalValidCountries,
+                'original_countries_data' => $originalCountriesData,
+                'valid_countries_data' => $validCountriesData,
+                'invalid_countries_data' => $invalidCountriesData,
+            ];
+
+            return $this->respondSuccess([
+                'category' => $category,
+                'debugData' => $debugData,
             ]);
         } catch (\Exception $e) {
             return $this->respondError($e->getMessage());

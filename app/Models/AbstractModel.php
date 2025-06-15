@@ -6,7 +6,7 @@ use CodeIgniter\Model;
 
 class AbstractModel extends Model
 {
-    // `id`, `primary_participant_id`, `program_id`, `status`, `is_active`, `is_deleted`, `created_at`, `updated_at`
+    // `abstracts` ADD FULLTEXT(`id`, `primary_participant_id`, `program_id`, `active_version_id`, `program_subtheme_id`, `status`, `is_active`, `is_deleted`, `created_at`, `updated_at`)
     protected $table = 'abstracts';
     protected $primaryKey = 'id';
     protected $returnType = 'object';
@@ -19,6 +19,7 @@ class AbstractModel extends Model
         'primary_participant_id',
         'program_id',
         'active_version_id',
+        'program_subtheme_id',
         'status',
         'is_active',
         'is_deleted',
@@ -30,6 +31,7 @@ class AbstractModel extends Model
         'primary_participant_id',
         'program_id',
         'active_version_id',
+        'program_subtheme_id',
         'status',
         'is_active',
         'is_deleted',
@@ -42,6 +44,7 @@ class AbstractModel extends Model
         'program_id' => 'required|integer',
         'active_version_id' => 'permit_empty|integer',
         'status' => 'in_list[draft,submitted,under_review,accepted]',
+        'program_subtheme_id' => 'permit_empty|integer',
         'is_active' => 'in_list[0,1]',
         'is_deleted' => 'in_list[0,1]'
     ];

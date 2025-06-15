@@ -162,5 +162,90 @@ class AbstractReviewerSubthemeModel extends Model
             log_message('error', 'Exception removing assignments: ' . $e->getMessage());
             return false;
         }
+    }    /**
+     * Get subthemes for a specific reviewer
+     * 
+     * @param int $reviewer_id
+     * @return array
+     */
+    public function getReviewerSubthemes($reviewer_id)
+    {
+        $builder = $this->db->table('abstract_reviewer_subthemes ars');
+        $builder->select('ars.*, ps.name as subtheme_name, ps.desc as subtheme_description,
+                         p.name as program_name');
+        $builder->join('program_subthemes ps', 'ps.id = ars.program_subtheme_id');
+        $builder->join('programs p', 'p.id = ps.program_id'); // Direct join via program_subthemes.program_id
+        $builder->where('ars.abstract_reviewer_id', $reviewer_id);
+        $builder->where('ars.is_active', 1);
+        $builder->where('ars.is_deleted', 0);
+        $builder->orderBy('p.name, ps.name');
+        
+        return $builder->get()->getResult();
+    }
+
+    /**
+     * Get reviewers for a specific subtheme
+     * 
+     * @param int $subtheme_id
+     * @return array
+     */
+    public function getSubthemeReviewers($subtheme_id)
+    {
+        $builder = $this->db->table('abstract_reviewer_subthemes ars');
+        $builder->select('ars.*, ar.name as reviewer_name, ar.email, ar.institution');
+        $builder->join('abstract_reviewers ar', 'ar.id = ars.abstract_reviewer_id');
+        $builder->where('ars.program_subtheme_id', $subtheme_id);
+        $builder->where('ars.is_active', 1);
+        $builder->where('ars.is_deleted', 0);
+        $builder->where('ar.is_active', 1);
+        $builder->where('ar.is_deleted', 0);
+        $builder->orderBy('ar.name');
+        
+        return $builder->get()->getResult();
+    }
+
+    /**
+     * Assign reviewer to subtheme
+     * 
+     * @param int $reviewer_id
+     * @param int $subtheme_id
+     * @return int|false
+     */
+    public function assignReviewerToSubtheme($reviewer_id, $subtheme_id)
+    {
+        // Check if assignment already exists
+        $existing = $this->where('abstract_reviewer_id', $reviewer_id)
+                        ->where('program_subtheme_id', $subtheme_id)
+                        ->where('is_deleted', 0)
+                        ->first();
+        
+        if ($existing) {
+            // Reactivate if it exists but is inactive
+            return $this->update($existing->id, ['is_active' => 1]);
+        }
+        
+        $data = [
+            'abstract_reviewer_id' => $reviewer_id,
+            'program_subtheme_id' => $subtheme_id,
+            'is_active' => 1
+        ];
+        
+        return $this->insert($data);
+    }
+
+    /**
+     * Check if reviewer is assigned to subtheme
+     * 
+     * @param int $reviewer_id
+     * @param int $subtheme_id
+     * @return bool
+     */
+    public function isReviewerAssignedToSubtheme($reviewer_id, $subtheme_id)
+    {
+        return $this->where('abstract_reviewer_id', $reviewer_id)
+                   ->where('program_subtheme_id', $subtheme_id)
+                   ->where('is_active', 1)
+                   ->where('is_deleted', 0)
+                   ->countAllResults() > 0;
     }
 }

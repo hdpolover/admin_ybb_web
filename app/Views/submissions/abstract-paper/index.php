@@ -179,14 +179,23 @@
             animation: button-loading-spinner 1s ease infinite;
         }
 
-        @keyframes button-loading-spinner {
-            from {
-                transform: rotate(0turn);
-            }
+        /* Subtheme filter styling */
+        .subtheme-filter-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
 
-            to {
-                transform: rotate(1turn);
-            }
+        #subthemeFilter {
+            min-width: 200px;
+            font-size: 0.875rem;
+        }
+
+        .subtheme-filter-container .form-label {
+            white-space: nowrap;
+            margin-bottom: 0;
+            font-weight: 500;
+            color: #6c757d;
         }
     </style>
 
@@ -211,8 +220,18 @@
 
                     <div class="row">
                         <div class="col-lg-12">
-                            <div class="card">                                <div class="card-header d-flex align-items-center">
+                            <div class="card">
+                                <div class="card-header d-flex align-items-center">
                                     <h5 class="card-title mb-0 flex-grow-1">Abstract Submissions List (Reviewer View)</h5>
+                                    <div class="flex-shrink-0">
+                                        <div class="subtheme-filter-container">
+                                            <label for="subthemeFilter" class="form-label">Filter by Subtheme:</label>
+                                            <select id="subthemeFilter" class="form-select">
+                                                <option value="">All Assigned Subthemes</option>
+                                                <!-- Options will be loaded via AJAX -->
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="card-body">
                                     <table id="abstracts-table" class="table table-bordered dt-responsive nowrap table-striped align-middle" style="width:100%">
@@ -240,7 +259,7 @@
                 </div>
                 <!-- container-fluid -->
             </div>
-            <!-- End Page-content -->            <!-- View Abstract Modal -->
+            <!-- End Page-content --> <!-- View Abstract Modal -->
             <div class="modal fade" id="view-abstract-modal" tabindex="-1" aria-labelledby="viewAbstractModalLabel" aria-hidden="true">
                 <div class="modal-dialog modal-lg">
                     <div class="modal-content">
@@ -325,7 +344,8 @@
                                         <!-- Authors will be loaded dynamically -->
                                     </div>
                                 </div>
-                            </div>                        </div>
+                            </div>
+                        </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
                         </div>
@@ -563,7 +583,8 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>                        <div class="modal-footer">
+                        </div>
+                        <div class="modal-footer">
                             <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
                             <button type="button" class="btn btn-info open-feedback-btn">Review Abstract</button>
                         </div>
@@ -599,15 +620,32 @@
 
     <script>
         $(document).ready(function() {
+            // Enable debugging for DataTables
+            if (typeof console !== 'undefined') {
+                console.log('Initializing DataTable for abstracts...');
+            }
+
+            // Load reviewer's assigned subthemes for filtering
+            loadReviewerSubthemes();
+
             // Initialize DataTable
             var abstractsTable = $('#abstracts-table').DataTable({
                 processing: true,
-                serverSide: false,                ajax: {
+                serverSide: false,
+                ajax: {
                     url: "/submissions/abstracts-papers/getAbstractsByProgram",
                     dataSrc: function(json) {
                         // Filter out abstracts with 'draft' status
                         return json.data.filter(function(item) {
                             return item.status !== 'draft';
+                        });
+                    },
+                    error: function(xhr, error, code) {
+                        console.error('DataTable Ajax Error:', error, code, xhr.responseText);
+                        Swal.fire({
+                            title: 'Error Loading Data',
+                            text: 'Failed to load abstracts. Please check the console for details.',
+                            icon: 'error'
                         });
                     }
                 },
@@ -681,7 +719,7 @@
 
                             return '<span class="badge ' + badgeClass + '">' + statusText + '</span>';
                         }
-                    },                    {
+                    }, {
                         data: null,
                         render: function(data) {
                             let actions = '<div class="d-flex gap-2 flex-wrap">';
@@ -703,15 +741,101 @@
                             actions += '</div>';
                             return actions;
                         }
-                    }                ],
+                    }
+                ],
                 responsive: true
+            }); // Load reviewer's assigned subthemes for filtering
+            function loadReviewerSubthemes() {
+                // Show loading state
+                $('#subthemeFilter').html('<option value="">Loading subthemes...</option>').prop('disabled', true);
+
+                $.ajax({
+                    url: '/submissions/abstracts-papers/getReviewerSubthemes',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success && response.data) {
+                            let options = '<option value="">All Assigned Subthemes</option>';
+                            if (response.data.length > 0) {
+                                response.data.forEach(function(subtheme) {
+                                    options += `<option value="${subtheme.program_subtheme_id}">${subtheme.subtheme_name}</option>`;
+                                });
+                            } else {
+                                options += '<option value="" disabled>No subthemes assigned</option>';
+                            }
+                            $('#subthemeFilter').html(options).prop('disabled', false);
+                        } else {
+                            console.error('Failed to load reviewer subthemes:', response.message);
+                            $('#subthemeFilter').html('<option value="" disabled>No subthemes assigned</option>').prop('disabled', true);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error loading reviewer subthemes:', error, xhr.responseText);
+                        $('#subthemeFilter').html('<option value="" disabled>Error loading subthemes</option>').prop('disabled', true);
+                        Swal.fire({
+                            title: 'Warning',
+                            text: 'Could not load subthemes filter. You can still view all abstracts.',
+                            icon: 'warning'
+                        });
+                    }
+                });
+            }
+
+            // Handle subtheme filter change
+            $('#subthemeFilter').on('change', function() {
+                const selectedSubtheme = $(this).val();
+                const selectedText = $(this).find('option:selected').text();
+
+                // Update the DataTable ajax configuration with subtheme filter
+                let newAjaxConfig = {
+                    url: "/submissions/abstracts-papers/getAbstractsByProgram",
+                    dataSrc: function(json) {
+                        // Filter out abstracts with 'draft' status
+                        return json.data.filter(function(item) {
+                            return item.status !== 'draft';
+                        });
+                    },
+                    error: function(xhr, error, code) {
+                        console.error('DataTable Ajax Error:', error, code, xhr.responseText);
+                        Swal.fire({
+                            title: 'Error',
+                            text: 'Failed to load data. Please try again.',
+                            icon: 'error'
+                        });
+                    }
+                };
+
+                // Add subtheme filter if selected
+                if (selectedSubtheme) {
+                    newAjaxConfig.data = function(d) {
+                        d.subtheme_id = selectedSubtheme;
+                        return d;
+                    };
+                }
+
+                // Update DataTable ajax configuration and reload
+                abstractsTable.ajax.url(newAjaxConfig.url);
+                if (newAjaxConfig.data) {
+                    abstractsTable.settings()[0].ajax.data = newAjaxConfig.data;
+                } else {
+                    delete abstractsTable.settings()[0].ajax.data;
+                }
+                abstractsTable.ajax.reload();
+
+                // Update card title to show active filter
+                const cardTitle = $('.card-title');
+                if (selectedSubtheme) {
+                    cardTitle.html('Abstract Submissions List (Reviewer View) <small class="text-primary">- Filtered by: ' + selectedText + '</small>');
+                } else {
+                    cardTitle.text('Abstract Submissions List (Reviewer View)');
+                }
             });
 
             // View abstract (legacy support)
             $(document).on('click', '.view-abstract', function() {
                 let abstractId = $(this).data('id');
                 loadAbstractDetails(abstractId);
-            });            // Reset modal content when closed
+            }); // Reset modal content when closed
             $('#view-abstract-modal').on('hidden.bs.modal', function() {
                 $('.view-abstract-participant').text('');
                 $('.view-abstract-institution').text('');
@@ -1158,7 +1282,7 @@
             // Submit Feedback
             $(document).on('click', '#submit-feedback-btn', function() {
                 submitFeedback();
-            });            // Open Feedback Modal from Details Modal
+            }); // Open Feedback Modal from Details Modal
             $(document).on('click', '.open-feedback-btn', function() {
                 let abstractId = $(this).data('id') || $('#view_abstract_id').val();
                 $('#abstract-details-modal').modal('hide');

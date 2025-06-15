@@ -39,9 +39,7 @@ class AbstractAuthorModel extends Model
         'is_deleted',
         'is_participant',
         'participant_id'
-    ];
-
-    protected $validationRules = [
+    ];    protected $validationRules = [
         'abstract_id' => 'required|integer',
         'full_name' => 'required|string|max_length[255]',
         'institution' => 'string|max_length[255]',
@@ -49,7 +47,7 @@ class AbstractAuthorModel extends Model
         'is_active' => 'in_list[0,1]',
         'is_deleted' => 'in_list[0,1]',
         'is_participant' => 'in_list[0,1]',
-        'participant_id' => 'integer'
+        'participant_id' => 'permit_empty|integer'
     ];
 
     // get abstract author by id

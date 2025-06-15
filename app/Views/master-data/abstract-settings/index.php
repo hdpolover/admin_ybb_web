@@ -379,13 +379,27 @@
                                                             <h6 class="card-title mb-0">Template & Deadlines</h6>
                                                         </div>
                                                         <div class="card-body">
-                                                            <div class="row gy-3">
-                                                                <div class="col-md-4">
+                                                            <div class="row gy-3">                                                                <div class="col-md-4">
                                                                     <label class="form-label text-muted">Paper Template</label>
                                                                     <div class="d-flex align-items-center">
                                                                         <?php if (!empty($abstractSettings->paper_template_url)): ?>
                                                                             <a href="<?= $abstractSettings->paper_template_url ?>" 
                                                                                target="_blank" class="btn btn-outline-primary btn-sm">
+                                                                                <i class="ri-download-line me-1"></i>Download Template
+                                                                            </a>
+                                                                        <?php else: ?>
+                                                                            <span class="text-muted fs-12">
+                                                                                <i class="ri-file-line me-1"></i>No template uploaded
+                                                                            </span>
+                                                                        <?php endif; ?>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-4">
+                                                                    <label class="form-label text-muted">Abstract Template</label>
+                                                                    <div class="d-flex align-items-center">
+                                                                        <?php if (!empty($abstractSettings->abstract_template_url)): ?>
+                                                                            <a href="<?= $abstractSettings->abstract_template_url ?>" 
+                                                                               target="_blank" class="btn btn-outline-secondary btn-sm">
                                                                                 <i class="ri-download-line me-1"></i>Download Template
                                                                             </a>
                                                                         <?php else: ?>
@@ -536,18 +550,24 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
-
-                        <!-- Template & Deadlines Section -->
+                        </div>                        <!-- Template & Deadlines Section -->
                         <div class="mb-4">
                             <h6 class="border-bottom pb-2 mb-3">Template & Deadlines Configuration</h6>
                             <div class="row">
-                                <div class="col-md-12">
+                                <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="paper_template_url" class="form-label">Paper Template URL</label>
                                         <input type="url" class="form-control" id="paper_template_url" name="paper_template_url"
-                                            value="<?= $abstractSettings->paper_template_url ?? '' ?>" placeholder="https://example.com/template.pdf">
+                                            value="<?= $abstractSettings->paper_template_url ?? '' ?>" placeholder="https://example.com/paper-template.pdf">
                                         <div class="form-text">URL link to the paper template file (PDF, DOC, etc.)</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="abstract_template_url" class="form-label">Abstract Template URL</label>
+                                        <input type="url" class="form-control" id="abstract_template_url" name="abstract_template_url"
+                                            value="<?= $abstractSettings->abstract_template_url ?? '' ?>" placeholder="https://example.com/abstract-template.pdf">
+                                        <div class="form-text">URL link to the abstract template file (PDF, DOC, etc.)</div>
                                     </div>
                                 </div>
                             </div>
@@ -857,10 +877,28 @@
             } else {
                 fullPaperInput.min = '';
             }
+        });        // URL validation helper
+        document.getElementById('paper_template_url').addEventListener('blur', function() {
+            const url = this.value.trim();
+            if (url && !isValidUrl(url)) {
+                this.classList.add('is-invalid');
+                if (!this.nextElementSibling || !this.nextElementSibling.classList.contains('invalid-feedback')) {
+                    const feedback = document.createElement('div');
+                    feedback.className = 'invalid-feedback';
+                    feedback.textContent = 'Please enter a valid URL (e.g., https://example.com/file.pdf)';
+                    this.parentNode.appendChild(feedback);
+                }
+            } else {
+                this.classList.remove('is-invalid');
+                const feedback = this.parentNode.querySelector('.invalid-feedback');
+                if (feedback) {
+                    feedback.remove();
+                }
+            }
         });
 
-        // URL validation helper
-        document.getElementById('paper_template_url').addEventListener('blur', function() {
+        // URL validation helper for abstract template
+        document.getElementById('abstract_template_url').addEventListener('blur', function() {
             const url = this.value.trim();
             if (url && !isValidUrl(url)) {
                 this.classList.add('is-invalid');

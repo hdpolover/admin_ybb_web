@@ -5,6 +5,8 @@ namespace App\Controllers\Api;
 use App\Models\AbstractModel;
 use App\Models\AbstractVersionModel;
 use App\Models\AbstractAuthorModel;
+use App\Models\AbstractFeedbackModel;
+use App\Models\AbstractReviewerModel;
 use App\Models\ProgramModel;
 use App\Models\ParticipantModel;
 use App\Models\ParticipantStatusModel;
@@ -12,7 +14,7 @@ use App\Models\AbstractTopicModel;
 use App\Models\AbstractSettingModel;
 use App\Models\UserModel;
 // participant subtheme model
-use App\Models\ParticipantSubthemeModel;    
+use App\Models\ParticipantSubthemeModel;
 
 use App\Controllers\Api\ApiBaseController;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -24,6 +26,8 @@ class AbstractsApiController extends ApiBaseController
     protected $abstractModel;
     protected $abstractVersionModel;
     protected $abstractAuthorModel;
+    protected $abstractFeedbackModel;
+    protected $abstractReviewerModel;
     protected $programModel;
     protected $participantModel;
     protected $abstractTopicModel;
@@ -47,6 +51,8 @@ class AbstractsApiController extends ApiBaseController
         $this->abstractModel = new AbstractModel();
         $this->abstractVersionModel = new AbstractVersionModel();
         $this->abstractAuthorModel = new AbstractAuthorModel();
+        $this->abstractFeedbackModel = new AbstractFeedbackModel();
+        $this->abstractReviewerModel = new AbstractReviewerModel();
         $this->programModel = new ProgramModel();
         $this->participantModel = new ParticipantModel();
         $this->abstractTopicModel = new AbstractTopicModel();
@@ -210,7 +216,7 @@ class AbstractsApiController extends ApiBaseController
             return $this->failNotFound('Participant not found');
         }
 
-        $participantSubtheme = $this->participantSubthemeModel->getSubthemesByParticipantId($participant_id);    
+        $participantSubtheme = $this->participantSubthemeModel->getSubthemesByParticipantId($participant_id);
 
         $data = [
             'participant_id' => $participant->id,
@@ -243,6 +249,14 @@ class AbstractsApiController extends ApiBaseController
 
                 $data['abstract']['versions'] = $abstractVersions;
                 $data['abstract']['authors'] = $abstractAuthors;
+
+                // Get feedbacks for the abstract
+                $abstractFeedbacks = $this->abstractFeedbackModel->getAllFeedbacksForAbstract($abstract->id);
+                $data['abstract']['feedbacks'] = $abstractFeedbacks;
+
+                // Get assigned reviewers for the abstract
+                // $assignedReviewers = $this->abstractFeedbackModel->getAvailableReviewersForAbstract($abstract->id);
+                // $data['abstract']['reviewers'] = $assignedReviewers;
             }
 
             return $this->respondSuccess($data);
@@ -291,14 +305,12 @@ class AbstractsApiController extends ApiBaseController
         }
 
         // Get is_participant value first to determine validation rules
-        $is_participant = (int)$this->request->getPost('is_participant');
-
-        // Set validation rules based on is_participant value
+        $is_participant = (int)$this->request->getPost('is_participant');        // Set validation rules based on is_participant value
         $rules = [
             'full_name' => 'required|string',
             'institution' => 'string',
             'email' => 'required|valid_email',
-            'is_participant' => 'required|in:0,1'
+            'is_participant' => 'required|in_list[0,1]'
         ];
 
         // participant_id is required only if is_participant is 1
@@ -349,7 +361,7 @@ class AbstractsApiController extends ApiBaseController
         // This ensures one participant can only be in one abstract at a time per program
         $authorEmail = $this->request->getPost('email');
         $existingAuthorInProgram = $this->abstractAuthorModel->checkAuthorEmailInProgram($authorEmail, $abstract->program_id, $abstract_id);
-        
+
         if ($existingAuthorInProgram) {
             return $this->fail(
                 'This author email is already assigned to another abstract (ID: ' . $existingAuthorInProgram->abstract_id . ') in the same program. One participant can only be assigned to one abstract at a time per program.',
@@ -368,8 +380,7 @@ class AbstractsApiController extends ApiBaseController
         }
         // If not a participant, no additional checks are needed as they can be associated with multiple abstracts
 
-        try {
-            $authorData = [
+        try {            $authorData = [
                 'abstract_id' => $abstract_id,
                 'full_name' => $this->request->getPost('full_name'),
                 'institution' => $this->request->getPost('institution'),
@@ -379,17 +390,68 @@ class AbstractsApiController extends ApiBaseController
                 'is_deleted' => 0
             ];
 
-            // Add participant_id only if it's provided
-            if (!empty($participant_id)) {
+            // Add participant_id only if it's provided and is_participant is 1
+            if ($is_participant === 1 && !empty($participant_id)) {
                 $authorData['participant_id'] = $participant_id;
             }
-
-            // Add new abstract author
-            $this->abstractAuthorModel->insert($authorData);
+            // For non-participants, we don't include participant_id field at all// Add new abstract author
+            log_message('debug', 'Attempting to insert author data: ' . json_encode($authorData));
+            
+            $insertResult = $this->abstractAuthorModel->insert($authorData);
+            
+            // Check if insert was successful
+            if ($insertResult === false) {
+                $errors = $this->abstractAuthorModel->errors();
+                log_message('error', 'Failed to insert author: ' . json_encode($errors));
+                return $this->failServerError('Failed to insert author: ' . implode(', ', $errors));
+            }
+            
             $authorId = $this->abstractAuthorModel->getInsertID();
+            
+            // Debug: Log the author ID
+            log_message('debug', 'Author ID after insert: ' . $authorId);
+            
+            // Check if we got a valid ID
+            if (!$authorId || $authorId === 0) {
+                log_message('error', 'Insert seemed successful but got invalid author ID: ' . $authorId);
+                return $this->failServerError('Failed to get author ID after insert');
+            }            // Get the newly created author using a more reliable method
+            $newAuthor = null;
+            if ($authorId) {
+                // First, verify the record exists in the database
+                $db = \Config\Database::connect();
+                $dbCheck = $db->query("SELECT * FROM abstract_authors WHERE id = ?", [$authorId]);
+                $dbResult = $dbCheck->getRow();
+                
+                log_message('debug', 'Direct DB check result: ' . ($dbResult ? json_encode($dbResult) : 'No record found'));
+                
+                // Try model methods
+                $newAuthor = $this->abstractAuthorModel->where('id', $authorId)->first();
+                
+                // If still null, try without any conditions
+                if (!$newAuthor) {
+                    log_message('debug', 'Author not found with where clause, trying direct select');
+                    $builder = $this->abstractAuthorModel->builder();
+                    $newAuthor = $builder->select('*')->where('id', $authorId)->get()->getRow();
+                }
+                
+                // If still null, construct the author object from the data we have
+                if (!$newAuthor && $dbResult) {
+                    log_message('debug', 'Using direct DB result as fallback');
+                    $newAuthor = $dbResult;
+                } elseif (!$newAuthor) {
+                    log_message('debug', 'Creating author object from inserted data');
+                    $newAuthor = (object) array_merge($authorData, ['id' => $authorId]);
+                    $newAuthor->created_at = date('Y-m-d H:i:s');
+                    $newAuthor->updated_at = date('Y-m-d H:i:s');
+                }
+            }
 
-            // Get the newly created author
-            $newAuthor = $this->abstractAuthorModel->find($authorId);
+            // Debug: Log if author was found
+            log_message('debug', 'Author found after insert: ' . ($newAuthor ? 'Yes' : 'No'));
+            if ($newAuthor) {
+                log_message('debug', 'Author data: ' . json_encode($newAuthor));
+            }
 
             return $this->respondCreated([
                 'message' => 'Abstract author created successfully',
@@ -430,7 +492,8 @@ class AbstractsApiController extends ApiBaseController
 
         // Check if participant exists
         $participant_id = $this->getInput('primary_participant_id');
-        $participant = $this->participantModel->find($participant_id);        if (!$participant) {
+        $participant = $this->participantModel->find($participant_id);
+        if (!$participant) {
             return $this->failNotFound('Participant not found');
         }
 
@@ -444,12 +507,17 @@ class AbstractsApiController extends ApiBaseController
 
         if ($existingAbstract) {
             return $this->fail('This participant is already a primary submitter for another abstract', 409);
-        }
-
-        // Check if participant is already an author in any abstract
+        }        // Check if participant is already an author in any abstract
         $existingAsAuthor = $this->abstractAuthorModel->where('participant_id', $participant_id)->first();
         if ($existingAsAuthor) {
             return $this->fail('This participant is already an author for another abstract', 409);
+        }
+
+        // Get participant's selected subtheme
+        $participantSubtheme = $this->participantSubthemeModel->getSubthemesByParticipantId($participant_id);
+
+        if (!$participantSubtheme) {
+            return $this->fail('Participant must select a subtheme before creating an abstract', 400);
         }
 
         // Validate word limits based on program's abstract settings
@@ -468,6 +536,7 @@ class AbstractsApiController extends ApiBaseController
             $abstractData = [
                 'program_id' => $program_id,
                 'primary_participant_id' => $participant_id, // Set participant as primary submitter
+                'program_subtheme_id' => $participantSubtheme->program_subtheme_id, // Set from participant's selected subtheme
                 'status' => 'draft', // Default status
                 'is_active' => 1,
                 'is_deleted' => 0
@@ -705,15 +774,13 @@ class AbstractsApiController extends ApiBaseController
         // Get is_participant value
         $is_participant = $this->request->getVar('is_participant') !== null
             ? (int)$this->request->getVar('is_participant')
-            : $author->is_participant;
-
-        // Set validation rules based on is_participant value
+            : $author->is_participant;        // Set validation rules based on is_participant value
         $rules = [
             'full_name' => 'permit_empty|string',
             'institution' => 'permit_empty|string',
             'email' => 'permit_empty|valid_email',
-            'is_participant' => 'permit_empty|in:0,1',
-            'is_active' => 'permit_empty|in:0,1'
+            'is_participant' => 'permit_empty|in_list[0,1]',
+            'is_active' => 'permit_empty|in_list[0,1]'
         ];
 
         // participant_id can only be updated if is_participant is 1
@@ -819,7 +886,7 @@ class AbstractsApiController extends ApiBaseController
             return $this->fail('Cannot delete the primary participant author', 409);
         }
 
-        // Count remaining authors for this abstract
+        // Count the number of authors for this abstract
         $authorCount = $this->abstractAuthorModel->where('abstract_id', $author->abstract_id)
             ->where('is_deleted', 0)
             ->countAllResults();
@@ -869,7 +936,7 @@ class AbstractsApiController extends ApiBaseController
         try {
             // Check if author email is already assigned to any abstract within the same program
             $existingAuthorInProgram = $this->abstractAuthorModel->checkAuthorEmailInProgram($authorEmail, $abstract->program_id, $abstract_id);
-            
+
             if ($existingAuthorInProgram) {
                 return $this->respond([
                     'status' => 'error',
@@ -908,7 +975,6 @@ class AbstractsApiController extends ApiBaseController
                     'program_id' => $abstract->program_id
                 ]
             ]);
-
         } catch (\Exception $e) {
             return $this->failServerError('Failed to validate author: ' . $e->getMessage());
         }
@@ -968,7 +1034,8 @@ class AbstractsApiController extends ApiBaseController
         } catch (\Exception $e) {
             return $this->failServerError('Failed to retrieve abstracts: ' . $e->getMessage());
         }
-    }    /**
+    }
+    /**
      * Debug helper method to test abstract insertion
      */
     public function debugInsertAbstract()
@@ -1472,67 +1539,4 @@ class AbstractsApiController extends ApiBaseController
             ]
         ]);
     }
-
-    // /**
-    //  * Create a new abstract version
-    //  * POST /api/abstracts/{abstract_id}/versions
-    //  */    public function createAbstractVersion($abstract_id)
-    // {
-    //     // Check if abstract exists
-    //     $abstract = $this->abstractModel->find($abstract_id);
-
-    //     if (!$abstract) {
-    //         return $this->failNotFound('Abstract not found');
-    //     }
-
-    //     // Check if the primary participant is eligible for abstract submission
-    //     if (!$this->isEligibleForSubmission($abstract->primary_participant_id)) {
-    //         return $this->fail('Primary participant is not eligible for abstract submission. Form status must be 2 (submitted).', 403);
-    //     }
-
-    //     // Validate request
-    //     $rules = [
-    //         'title' => 'required|string',
-    //         'content' => 'required|string',
-    //         'keywords' => 'permit_empty|string'
-    //     ];
-
-    //     if (!$this->validate($rules)) {
-    //         return $this->failValidationErrors($this->validator->getErrors());
-    //     }
-
-    //     try {
-    //         // Get the latest version
-    //         $latestVersion = $this->abstractVersionModel->where('abstract_id', $abstract_id)
-    //             ->orderBy('version_number', 'DESC')
-    //             ->first();
-
-    //         $newVersionNumber = $latestVersion ? $latestVersion->version_number + 1 : 1;
-
-    //         // Create new version data
-    //         $versionData = [
-    //             'abstract_id' => $abstract_id,
-    //             'title' => $this->request->getPost('title'),
-    //             'content' => $this->request->getPost('content'),
-    //             'keywords' => $this->request->getPost('keywords') ?? '',
-    //             'version_number' => $newVersionNumber,
-    //             'is_active' => 1,
-    //             'is_deleted' => 0
-    //         ];
-
-    //         // Insert new version
-    //         $this->abstractVersionModel->insert($versionData);
-    //         $versionId = $this->abstractVersionModel->getInsertID();
-
-    //         // Get the newly created version
-    //         $newVersion = $this->abstractVersionModel->getAbstractVersionById($versionId);
-
-    //         return $this->respondCreated([
-    //             'message' => 'Abstract version created successfully',
-    //             'abstract_version' => $newVersion
-    //         ]);
-    //     } catch (\Exception $e) {
-    //         return $this->failServerError('Failed to create abstract version: ' . $e->getMessage());
-    //     }
-    // }
 }

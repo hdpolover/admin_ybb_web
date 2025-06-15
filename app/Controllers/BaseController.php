@@ -59,14 +59,18 @@ abstract class BaseController extends Controller
 
         // Get program data for the topbar
         $this->loadTopbarData();
-    }
-
-    /**
+    }    /**
      * Load program data for topbar
      * This ensures program data is available across all views
      */
     protected function loadTopbarData()
     {
+        // Skip program loading for reviewers since they're tied to a specific program
+        if (session()->get('userType') === 'reviewer') {
+            $this->loadReviewerTopbarData();
+            return;
+        }
+
         // Get program category with categoryWithPrograms
         $categoryWithPrograms = $this->programCategoryModel->getAllCategoriesWithPrograms();
 
@@ -136,6 +140,52 @@ abstract class BaseController extends Controller
             'inactivePrograms' => $inactivePrograms,
             'categoryWithPrograms' => $categoryWithPrograms,
             'isJournalType' => $isJournalType,
+        ]);
+    }    /**
+     * Load program data for reviewers
+     * Reviewers are tied to a specific program, so we just load their program data
+     */
+    protected function loadReviewerTopbarData()
+    {
+        $reviewerId = session()->get('reviewerId');
+        $reviewerProgramId = session()->get('reviewerProgramId');
+        
+        // Set the current_program session for reviewers to prevent any conflicts
+        if ($reviewerProgramId && !session()->has('current_program')) {
+            session()->set('current_program', $reviewerProgramId);
+        }
+        
+        // Set cookie to indicate program is "selected" for reviewers (if not already set)
+        if (!isset($_COOKIE['has_program_selected']) || $_COOKIE['has_program_selected'] !== 'true') {
+            $cookie = [
+                'name' => 'has_program_selected',
+                'value' => 'true',
+                'expire' => time() + (24 * 60 * 60), // 24 hours
+                'path' => '/',
+                'secure' => false,
+                'httponly' => false
+            ];
+            
+            // Use CodeIgniter's response service to set cookie
+            $response = service('response');
+            $response->setCookie($cookie);
+        }
+        
+        // Set a simplified topbar data for reviewers
+        $selectedProgram = null;
+        
+        if ($reviewerProgramId) {
+            // Get the reviewer's assigned program
+            $selectedProgram = $this->programModel->find($reviewerProgramId);
+        }
+        
+        // Share simplified data for reviewers
+        $this->session->set('topbar_data', [
+            'selectedProgram' => $selectedProgram,
+            'activePrograms' => [], // Reviewers don't need to see other programs
+            'inactivePrograms' => [],
+            'categoryWithPrograms' => [],
+            'isJournalType' => false, // We can add this logic later if needed for reviewers
         ]);
     }
 }

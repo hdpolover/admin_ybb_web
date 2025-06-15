@@ -72,13 +72,12 @@ class AbstractSettings extends BaseController
         ];
 
         return view('master-data/abstract-settings/view', $data);
-    }
-
-    /**
+    }    /**
      * Create or update abstract settings
      * 
      * @return \CodeIgniter\HTTP\ResponseInterface
-     */    public function save()
+     */
+    public function save()
     {
         // Validate form data
         $rules = [
@@ -87,6 +86,7 @@ class AbstractSettings extends BaseController
             'keywords_length' => 'required|integer|greater_than[0]',
             'refs_length' => 'required|integer|greater_than[0]',
             'paper_template_url' => 'permit_empty|valid_url',
+            'abstract_template_url' => 'permit_empty|valid_url',
             'abstract_submission_deadline' => 'permit_empty|valid_date',
             'full_paper_submission_deadline' => 'permit_empty|valid_date',
             'is_active' => 'permit_empty|in_list[0,1]'
@@ -122,9 +122,7 @@ class AbstractSettings extends BaseController
         }
 
         // Check if settings already exist for this program
-        $existingSettings = $this->abstractSettingModel->getByProgramId($programId);
-
-        // Prepare data
+        $existingSettings = $this->abstractSettingModel->getByProgramId($programId);        // Prepare data
         $data = [
             'program_id' => $programId,
             'title_length' => $this->request->getPost('title_length'),
@@ -132,6 +130,7 @@ class AbstractSettings extends BaseController
             'keywords_length' => $this->request->getPost('keywords_length'),
             'refs_length' => $this->request->getPost('refs_length'),
             'paper_template_url' => $this->request->getPost('paper_template_url') ?: null,
+            'abstract_template_url' => $this->request->getPost('abstract_template_url') ?: null,
             'abstract_submission_deadline' => $this->request->getPost('abstract_submission_deadline') ?: null,
             'full_paper_submission_deadline' => $this->request->getPost('full_paper_submission_deadline') ?: null,
             'is_active' => $this->request->getPost('is_active') ? 1 : 0,

@@ -91,9 +91,9 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->get('pdf/(:num)', 'AbstractPapers::pdf/$1');
             $routes->get('export/(:num)', 'AbstractPapers::export/$1');
             $routes->post('createNewVersion', 'AbstractPapers::createNewVersion');
-            $routes->post('removeAuthor/(:num)', 'AbstractPapers::removeAuthor/$1');
-            $routes->get('getTopicsByProgram/(:num)', 'AbstractPapers::getTopicsByProgram/$1');
+            $routes->post('removeAuthor/(:num)', 'AbstractPapers::removeAuthor/$1');            $routes->get('getTopicsByProgram/(:num)', 'AbstractPapers::getTopicsByProgram/$1');
             $routes->get('getTopicsByProgram', 'AbstractPapers::getTopicsByProgram');
+            $routes->get('getReviewerSubthemes', 'AbstractPapers::getReviewerSubthemes');
         });
     });
     
