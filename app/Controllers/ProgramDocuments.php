@@ -82,9 +82,7 @@ class ProgramDocuments extends BaseController
 
 
         return view('documents/program-documents/view', $data);
-    }
-
-    /**
+    }    /**
      * Process document creation
      * @return \CodeIgniter\HTTP\RedirectResponse
      */
@@ -92,45 +90,72 @@ class ProgramDocuments extends BaseController
     {
         $programId = session('current_program');
 
+        // Check if program is selected
+        if (!$programId) {
+            return redirect()->to('/welcome')
+                ->with('error', 'Please select a program first');
+        }
+
+        // Validate required fields
+        $name = trim($this->request->getPost('name'));
+        $type = $this->request->getPost('type');
+        $driveUrl = trim($this->request->getPost('drive_url'));
+
+        if (empty($name) || empty($type)) {
+            return redirect()->to('/documents/program-documents')
+                ->with('error', 'Document name and type are required');
+        }
+
+        // Set is_upload and is_generated based on document type
+        $isUpload = 0;
+        $isGenerated = 0;
+        $finalDriveUrl = null;
+
+        if ($type === 'loa') {
+            // LOA is always system generated
+            $isGenerated = 1;
+            $finalDriveUrl = null; // No URL needed for generated documents
+        } else if ($type === 'agreement' || $type === 'complement') {
+            // Agreement and complement require drive URL
+            $isUpload = 1;
+            if (empty($driveUrl)) {
+                $docTypeName = ($type === 'agreement') ? 'Agreement letter' : 'Complementary document';
+                return redirect()->to('/documents/program-documents')
+                    ->with('error', $docTypeName . ' requires a document link');
+            }
+            $finalDriveUrl = $driveUrl;
+        }
+
         // Get form data
         $data = [
             'program_id' => $programId,
-            'name' => $this->request->getPost('name'),
-            'type' => $this->request->getPost('type'),
-            'desc' => $this->request->getPost('desc'),
-            'is_upload' => $this->request->getPost('is_upload') ?? 0,
-            'is_generated' => $this->request->getPost('is_generated') ?? 0,
-            'visibility' => $this->request->getPost('visibility') ?? 1,
-            'is_active' => $this->request->getPost('is_active') ?? 1,
-            'is_deleted' => 0
+            'name' => $name,
+            'type' => $type,
+            'desc' => trim($this->request->getPost('desc') ?? ''),
+            'drive_url' => $finalDriveUrl,
+            'is_upload' => $isUpload,
+            'is_generated' => $isGenerated,
+            'visibility' => (int)($this->request->getPost('visibility') ?? 1),
+            'is_active' => (int)($this->request->getPost('is_active') ?? 1),
+            'is_deleted' => 0,
+            'file_url' => null
         ];
 
-        // Handle file upload if it exists
-        $file = $this->request->getFile('document_file');
-
-        if ($file && $file->isValid() && !$file->hasMoved()) {
-            // Generate new file name
-            $newName = $file->getRandomName();
-
-            // Move file to uploads directory
-            $file->move(ROOTPATH . 'writable/uploads/documents', $newName);
-
-            // Set file URL
-            $data['file_url'] = base_url('uploads/documents/' . $newName);
-            $data['is_upload'] = 1;
-        } else if ($this->request->getPost('drive_url')) {
-            // Set Google Drive URL if provided instead
-            $data['drive_url'] = $this->request->getPost('drive_url');
-            $data['is_upload'] = 0;
-        }
-
         // Insert the data
-        if ($this->programDocumentModel->insert($data)) {
-            return redirect()->to('/program-documents')
-                ->with('success', 'Document has been added successfully');
-        } else {
-            return redirect()->to('/program-documents')
-                ->with('error', 'Failed to add document: ' . implode(', ', $this->programDocumentModel->errors()));
+        try {
+            $insertId = $this->programDocumentModel->insert($data);
+            if ($insertId) {
+                return redirect()->to('/documents/program-documents')
+                    ->with('success', 'Document has been added successfully');
+            } else {
+                $errors = $this->programDocumentModel->errors();
+                return redirect()->to('/documents/program-documents')
+                    ->with('error', 'Failed to add document: ' . (empty($errors) ? 'Unknown error' : implode(', ', $errors)));
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Error creating document: ' . $e->getMessage());
+            return redirect()->to('/documents/program-documents')
+                ->with('error', 'Database error occurred while saving the document');
         }
     }
 
@@ -165,9 +190,7 @@ class ProgramDocuments extends BaseController
         ];
 
         return view('documents/program-documents/edit', $data);
-    }
-
-    /**
+    }    /**
      * Process document update
      * @param int $id Document ID
      * @return \CodeIgniter\HTTP\RedirectResponse
@@ -175,68 +198,82 @@ class ProgramDocuments extends BaseController
     public function update($id = null)
     {
         if ($id === null) {
-            return redirect()->to('/program-documents')->with('error', 'Document ID is required');
+            return redirect()->to('/documents/program-documents')->with('error', 'Document ID is required');
         }
 
         // Get document by ID to check if it exists
         $document = $this->programDocumentModel->getProgramDocumentById($id);
 
         if (!$document) {
-            return redirect()->to('/program-documents')->with('error', 'Document not found');
+            return redirect()->to('/documents/program-documents')->with('error', 'Document not found');
         }
 
         $programId = session('current_program');
 
         // Verify that the document belongs to the current program
         if ($document->program_id != $programId) {
-            return redirect()->to('/program-documents')->with('error', 'You do not have access to this document');
+            return redirect()->to('/documents/program-documents')->with('error', 'You do not have access to this document');
+        }
+
+        // Validate required fields
+        $name = trim($this->request->getPost('name'));
+        $type = $this->request->getPost('type');
+        $driveUrl = trim($this->request->getPost('drive_url'));
+
+        if (empty($name) || empty($type)) {
+            return redirect()->to('/documents/program-documents')
+                ->with('error', 'Document name and type are required');
+        }
+
+        // Set is_upload and is_generated based on document type
+        $isUpload = 0;
+        $isGenerated = 0;
+        $finalDriveUrl = null;
+
+        if ($type === 'loa') {
+            // LOA is always system generated
+            $isGenerated = 1;
+            $finalDriveUrl = null; // No URL needed for generated documents
+        } else if ($type === 'agreement' || $type === 'complement') {
+            // Agreement and complement require drive URL
+            $isUpload = 1;
+            if (empty($driveUrl)) {
+                $docTypeName = ($type === 'agreement') ? 'Agreement letter' : 'Complementary document';
+                return redirect()->to('/documents/program-documents')
+                    ->with('error', $docTypeName . ' requires a document link');
+            }
+            $finalDriveUrl = $driveUrl;
         }
 
         // Get form data
         $data = [
-            'name' => $this->request->getPost('name'),
-            'type' => $this->request->getPost('type'),
-            'desc' => $this->request->getPost('desc'),
-            'visibility' => $this->request->getPost('visibility') ?? 1,
-            'is_active' => $this->request->getPost('is_active') ?? 1,
+            'name' => $name,
+            'type' => $type,
+            'desc' => trim($this->request->getPost('desc') ?? ''),
+            'drive_url' => $finalDriveUrl,
+            'is_upload' => $isUpload,
+            'is_generated' => $isGenerated,
+            'visibility' => (int)($this->request->getPost('visibility') ?? 1),
+            'is_active' => (int)($this->request->getPost('is_active') ?? 1),
+            'file_url' => null // Clear any existing file URL since we're using drive URL
         ];
 
-        // Handle file upload if it exists
-        $file = $this->request->getFile('document_file');
-
-        if ($file && $file->isValid() && !$file->hasMoved()) {
-            // Generate new file name
-            $newName = $file->getRandomName();
-
-            // Move file to uploads directory
-            $file->move(ROOTPATH . 'writable/uploads/documents', $newName);
-
-            // Set file URL
-            $data['file_url'] = base_url('uploads/documents/' . $newName);
-            $data['is_upload'] = 1;
-            $data['drive_url'] = null;
-        } else if ($this->request->getPost('drive_url') && $this->request->getPost('url_type') === 'drive') {
-            // Set Google Drive URL if provided instead
-            $data['drive_url'] = $this->request->getPost('drive_url');
-            $data['is_upload'] = 0;
-
-            // Only clear file_url if we're switching to drive link
-            if ($document->is_upload == 1) {
-                $data['file_url'] = null;
-            }
-        }
-
         // Update the document
-        if ($this->programDocumentModel->update($id, $data)) {
-            return redirect()->to('/program-documents/view/' . $id)
-                ->with('success', 'Document has been updated successfully');
-        } else {
-            return redirect()->to('/program-documents/edit/' . $id)
-                ->with('error', 'Failed to update document: ' . implode(', ', $this->programDocumentModel->errors()));
+        try {
+            if ($this->programDocumentModel->update($id, $data)) {
+                return redirect()->to('/documents/program-documents')
+                    ->with('success', 'Document has been updated successfully');
+            } else {
+                $errors = $this->programDocumentModel->errors();
+                return redirect()->to('/documents/program-documents')
+                    ->with('error', 'Failed to update document: ' . (empty($errors) ? 'Unknown error' : implode(', ', $errors)));
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Error updating document: ' . $e->getMessage());
+            return redirect()->to('/documents/program-documents')
+                ->with('error', 'Database error occurred while updating the document');
         }
-    }
-
-    /**
+    }/**
      * Delete a document
      * @param int $id Document ID
      * @return \CodeIgniter\HTTP\RedirectResponse
@@ -244,30 +281,36 @@ class ProgramDocuments extends BaseController
     public function delete($id = null)
     {
         if ($id === null) {
-            return redirect()->to('/program-documents')->with('error', 'Document ID is required');
+            return redirect()->to('/documents/program-documents')->with('error', 'Document ID is required');
         }
 
         // Get document by ID to check if it exists
         $document = $this->programDocumentModel->getProgramDocumentById($id);
 
         if (!$document) {
-            return redirect()->to('/program-documents')->with('error', 'Document not found');
+            return redirect()->to('/documents/program-documents')->with('error', 'Document not found');
         }
 
         $programId = session('current_program');
 
         // Verify that the document belongs to the current program
         if ($document->program_id != $programId) {
-            return redirect()->to('/program-documents')->with('error', 'You do not have access to this document');
+            return redirect()->to('/documents/program-documents')->with('error', 'You do not have access to this document');
         }
 
         // Soft delete by setting is_deleted = 1
-        if ($this->programDocumentModel->update($id, ['is_deleted' => 1])) {
-            return redirect()->to('/program-documents')
-                ->with('success', 'Document has been deleted successfully');
-        } else {
-            return redirect()->to('/program-documents')
-                ->with('error', 'Failed to delete document');
+        try {
+            if ($this->programDocumentModel->update($id, ['is_deleted' => 1])) {
+                return redirect()->to('/documents/program-documents')
+                    ->with('success', 'Document has been deleted successfully');
+            } else {
+                return redirect()->to('/documents/program-documents')
+                    ->with('error', 'Failed to delete document');
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Error deleting document: ' . $e->getMessage());
+            return redirect()->to('/documents/program-documents')
+                ->with('error', 'Database error occurred while deleting the document');
         }
     }
 

@@ -10,10 +10,10 @@ class ProgramDocumentModel extends Model
 
     protected $table = 'program_documents';
     protected $primaryKey = 'id';
-    protected $allowedFields = ['program_id', 'type', 'name', 'file_url', 'drive_url', 'desc', 'is_upload', 'is_generated', 'visibility', 'is_active', 'is_deleted', 'created_at', 'updated_at'];
+    protected $allowedFields = ['program_id', 'type', 'name', 'file_url', 'drive_url', 'desc', 'is_upload', 'is_generated', 'visibility', 'is_active', 'is_deleted'];
     protected $returnType = 'object';
     protected $useAutoIncrement = true;
-    public $timestamps = true;
+    protected $useTimestamps = true;
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
     protected $useSoftDeletes = false;
@@ -53,12 +53,12 @@ class ProgramDocumentModel extends Model
             ->where('is_deleted', 0)
             ->findAll();
     }
-    
+
 
     public function getProgramDocumentById($id)
     {
         return $this->where('id', $id)
-                    ->where('is_deleted', 0)
-                    ->first();
+            ->where('is_deleted', 0)
+            ->first();
     }
 }

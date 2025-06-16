@@ -20,17 +20,17 @@
 <script src="/assets/js/mobile-sidebar-fix.js"></script>
 
 <script>
-// Additional initialization to ensure mobile menu works
-document.addEventListener("DOMContentLoaded", function() {
-    if (window.innerWidth <= 767) {
-        // Initialize mobile menu
-        const hamburgerIcon = document.getElementById("topnav-hamburger-icon");
-        if (hamburgerIcon && typeof window.toggleMobileMenu === 'function') {
-            // Force reattach event listener after app.js has loaded
-            setTimeout(function() {
-                hamburgerIcon.addEventListener("click", window.toggleMobileMenu);
-            }, 500);
+    // Additional initialization to ensure mobile menu works
+    document.addEventListener("DOMContentLoaded", function() {
+        if (window.innerWidth <= 767) {
+            // Initialize mobile menu
+            const hamburgerIcon = document.getElementById("topnav-hamburger-icon");
+            if (hamburgerIcon && typeof window.toggleMobileMenu === 'function') {
+                // Force reattach event listener after app.js has loaded
+                setTimeout(function() {
+                    hamburgerIcon.addEventListener("click", window.toggleMobileMenu);
+                }, 500);
+            }
         }
-    }
-});
+    });
 </script>

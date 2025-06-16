@@ -163,20 +163,16 @@
                                                         </tbody>
                                                     </table>
                                                 </div>
-                                            </div>
-                                            <div class="d-flex gap-2 mt-4">
+                                            </div>                                            <div class="d-flex gap-2 mt-4">
                                                 <?php if ($document->type === 'loa'): ?>
                                                     <a href="/documents/program-documents/loa-settings/<?= $document->id ?>" class="btn btn-info">
                                                         <i class="ri-file-text-line align-middle me-1"></i>
                                                         <?= isset($hasLoaTemplate) && $hasLoaTemplate ? 'Edit LOA Template' : 'Create LOA Template' ?>
                                                     </a>
                                                 <?php endif; ?>
-                                                <a href="/documents/program-documents/edit/<?= $document->id ?>" class="btn btn-success">
-                                                    <i class="ri-pencil-fill align-middle me-1"></i> Edit
+                                                <a href="/documents/program-documents" class="btn btn-secondary">
+                                                    <i class="ri-arrow-left-line align-middle me-1"></i> Back to Documents
                                                 </a>
-                                                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
-                                                    <i class="ri-delete-bin-fill align-middle me-1"></i> Delete
-                                                </button>
                                             </div>
                                         </div>
 
@@ -216,29 +212,7 @@
         </div>
         <!-- end main content-->
     </div>
-    <!-- END layout-wrapper -->
-
-    <!-- Delete Modal -->
-    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="deleteModalLabel">Delete Document</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Are you sure you want to delete this document: <strong><?= $document->name ?></strong>?</p>
-                    <p class="text-danger">This action cannot be undone.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                    <a href="documents/program-documents/delete/<?= $document->id ?>" class="btn btn-danger">Delete</a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <?= $this->include('partials/vendor-scripts') ?>
+    <!-- END layout-wrapper -->    <?= $this->include('partials/vendor-scripts') ?>
 
     <!-- App js -->
     <script src="/assets/js/app.js"></script>

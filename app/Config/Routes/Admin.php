@@ -105,7 +105,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->get('edit/(:num)', 'ProgramDocuments::edit/$1');
             $routes->post('create', 'ProgramDocuments::create');
             $routes->post('update/(:num)', 'ProgramDocuments::update/$1');
-            $routes->get('delete/(:num)', 'ProgramDocuments::delete/$1');
+            $routes->post('delete/(:num)', 'ProgramDocuments::delete/$1');
             $routes->get('get-document/(:num)', 'ProgramDocuments::getDocument/$1');
 
             // LOA Template routes
