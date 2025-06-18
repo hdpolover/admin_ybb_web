@@ -1,6 +1,6 @@
 <?= $this->include('partials/main') ?>
 
-<head> <?php echo view('partials/title-meta', array('title' => 'Starter')); ?>    <!-- Sweet Alert css-->
+<head> <?php echo view('partials/title-meta', array('title' => 'Starter')); ?> <!-- Sweet Alert css-->
     <link href="/assets/libs/sweetalert2/sweetalert2.min.css" rel="stylesheet" type="text/css" />
 
     <!-- DataTables CSS -->
@@ -11,17 +11,17 @@
         .table td {
             white-space: nowrap;
         }
-        
+
         .table td.description-cell {
             max-width: 200px;
             white-space: normal;
             word-wrap: break-word;
         }
-        
+
         .dtr-details {
             width: 100%;
         }
-        
+
         @media (max-width: 768px) {
             .table-responsive {
                 border: none;
@@ -73,7 +73,8 @@
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>                                    <div class="table-responsive">
+                                    </div>
+                                    <div class="table-responsive">
                                         <table id="program-documents-table" class="table table-bordered dt-responsive nowrap table-striped align-middle" style="width:100%">
                                             <thead class="table-light">
                                                 <tr>
@@ -89,7 +90,8 @@
                                                 <?php if (!empty($programDocuments)): ?>
                                                     <?php foreach ($programDocuments as $index => $doc): ?>
                                                         <tr>
-                                                            <td><?= $index + 1 ?></td>                                            <td>
+                                                            <td><?= $index + 1 ?></td>
+                                                            <td>
                                                                 <div class="d-flex align-items-center">
                                                                     <div class="flex-grow-1">
                                                                         <?php if (!empty($doc->file_url) || !empty($doc->drive_url)): ?>
@@ -155,12 +157,13 @@
                                                                 </div>
                                                             </td>
                                                         </tr>
-                                                    <?php endforeach; ?>                                                <?php else: ?>
+                                                    <?php endforeach; ?> <?php else: ?>
                                                     <tr>
                                                         <td colspan="6" class="text-center">No documents found</td>
                                                     </tr>
                                                 <?php endif; ?>
-                                            </tbody>                                        </table>
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
                             </div>
@@ -433,15 +436,15 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
 
-    <script src="/assets/js/pages/datatables.init.js"></script>    <!-- Initialize DataTables -->
+    <script src="/assets/js/pages/datatables.init.js"></script> <!-- Initialize DataTables -->
     <script>
         $(document).ready(function() {
             console.log('jQuery loaded successfully');
-            console.log('Document ready fired');            // Test basic element selection
+            console.log('Document ready fired'); // Test basic element selection
             console.log('Document type dropdown found:', $('#document-type').length);
             console.log('Drive URL section found:', $('#drive-url-section').length);
             console.log('Type info section found:', $('#document-type-info').length);
-            
+
             // Test click event
             $('#document-type').click(function() {
                 console.log('Document type dropdown was clicked!');
@@ -451,20 +454,20 @@
             $('#document-type').change(function() {
                 var selectedType = $(this).val();
                 console.log('Document type selected:', selectedType);
-                
+
                 // Reset everything first
                 $('#drive-url-section').hide();
                 $('#document-type-info').hide();
                 $('#loa-info, #agreement-info, #complement-info').hide();
                 $('#drive-url').prop('required', false);
-                
+
                 if (selectedType === 'loa') {
                     console.log('Showing LOA configuration');
                     $('#document-type-info').show();
                     $('#loa-info').show();
                     $('#is-upload').val('0');
                     $('#is-generated').val('1');
-                    
+
                 } else if (selectedType === 'agreement') {
                     console.log('Showing Agreement configuration');
                     $('#drive-url-section').show();
@@ -475,7 +478,7 @@
                     $('#drive-url').prop('required', true);
                     $('#is-upload').val('1');
                     $('#is-generated').val('0');
-                    
+
                 } else if (selectedType === 'complement') {
                     console.log('Showing Complement configuration');
                     $('#drive-url-section').show();
@@ -493,19 +496,19 @@
             $('#edit-document-type').change(function() {
                 var selectedType = $(this).val();
                 console.log('Edit document type selected:', selectedType);
-                
+
                 // Reset everything first
                 $('#edit-drive-url-section').hide();
                 $('#edit-document-type-info').hide();
                 $('#edit-loa-info, #edit-agreement-info, #edit-complement-info').hide();
                 $('#edit-drive-url').prop('required', false);
-                
+
                 if (selectedType === 'loa') {
                     $('#edit-document-type-info').show();
                     $('#edit-loa-info').show();
                     $('#edit-is-upload').val('0');
                     $('#edit-is-generated').val('1');
-                    
+
                 } else if (selectedType === 'agreement') {
                     $('#edit-drive-url-section').show();
                     $('#edit-document-type-info').show();
@@ -515,7 +518,7 @@
                     $('#edit-drive-url').prop('required', true);
                     $('#edit-is-upload').val('1');
                     $('#edit-is-generated').val('0');
-                    
+
                 } else if (selectedType === 'complement') {
                     $('#edit-drive-url-section').show();
                     $('#edit-document-type-info').show();
@@ -714,16 +717,16 @@
             // Test if elements exist
             console.log('Document type element:', $('#document-type').length);
             console.log('Drive URL section:', $('#drive-url-section').length);
-            console.log('Type info section:', $('#document-type-info').length);            // Initialize DataTable
+            console.log('Type info section:', $('#document-type-info').length); // Initialize DataTable
             var documentTable = $('#program-documents-table').DataTable({
                 responsive: true,
                 lengthChange: false,
-                pageLength: 10,                searching: true,
+                pageLength: 10,
+                searching: true,
                 ordering: true,
                 autoWidth: false,
                 scrollX: false,
-                columnDefs: [
-                    {
+                columnDefs: [{
                         orderable: false,
                         targets: [5] // Actions column
                     },
@@ -753,14 +756,14 @@
                     var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
                         return new bootstrap.Tooltip(tooltipTriggerEl)
                     });
-                    
+
                     // Debug: Check if buttons exist after DataTable draw
                     console.log('DataTable drawn. Edit buttons found:', $('.edit-document').length);
                     console.log('DataTable drawn. Delete buttons found:', $('.delete-document').length);
                 }
             });
 
-            console.log('DataTable initialized successfully');// Form submission success handling for add document
+            console.log('DataTable initialized successfully'); // Form submission success handling for add document
             $('#add-document-form').on('submit', function(e) {
                 e.preventDefault();
                 var form = $(this);
@@ -846,7 +849,7 @@
                         submitBtn.prop('disabled', false).text(originalText);
                     }
                 });
-            });            // Enhanced Edit document button handler
+            }); // Enhanced Edit document button handler
             $(document).on('click', '.edit-document', function() {
                 console.log('Edit button clicked!');
                 var documentId = $(this).data('id');
@@ -898,7 +901,7 @@
                         btn.prop('disabled', false).html(originalHtml);
                     }
                 });
-            });            // Enhanced Delete confirmation with loading
+            }); // Enhanced Delete confirmation with loading
             $(document).on('click', '.delete-document', function() {
                 console.log('Delete button clicked!');
                 var documentId = $(this).data('id');

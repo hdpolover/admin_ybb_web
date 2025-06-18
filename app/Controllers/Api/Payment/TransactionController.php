@@ -116,8 +116,9 @@ class TransactionController extends BasePaymentController
                 return $this->respondError('Program payment not found', 404);
             }
             log_message('debug', 'TransactionController::createTransaction - Program payment found: ' . json_encode($programPayment));
+            log_message('debug', 'TransactionController::createTransaction - Program payment USD amount: ' . ($programPayment->usd_amount ?? 'NULL'));
 
-            // get program category data
+            // get program data using program_id from program_payment
             log_message('info', 'TransactionController::createTransaction - Getting program data for ID: ' . $programPayment->program_id);
             $program = $this->programModel->find($programPayment->program_id);
 
@@ -126,47 +127,49 @@ class TransactionController extends BasePaymentController
                 return $this->respondError('Program not found', 404);
             }
             log_message('debug', 'TransactionController::createTransaction - Program found: ' . json_encode($program));
-
-            // get web setting data
+            log_message('debug', 'TransactionController::createTransaction - Program ID: ' . $program->id . ', Program Category ID: ' . $program->program_category_id);// get web setting data using program category ID
             log_message('info', 'TransactionController::createTransaction - Getting web setting data for program category ID: ' . $program->program_category_id);
+            log_message('debug', 'TransactionController::createTransaction - Program data: ID=' . $program->id . ', Name=' . ($program->name ?? 'N/A') . ', Category_ID=' . $program->program_category_id);
+            
             $webSetting = $this->webSettingModel->find($program->program_category_id);
 
             if (!$webSetting) {
                 log_message('error', 'TransactionController::createTransaction - Web setting not found for program category ID: ' . $program->program_category_id);
-                return $this->respondError('Web setting not found', 404);
+                return $this->respondError('Web setting not found for program category ID: ' . $program->program_category_id, 404);
             }
-            log_message('debug', 'TransactionController::createTransaction - Web setting found: ' . json_encode($webSetting));
-
-            $usdInIdr = $webSetting->usd_in_idr ?? 0;
+            log_message('debug', 'TransactionController::createTransaction - Web setting found: ' . json_encode($webSetting));            $usdInIdr = $webSetting->usd_in_idr ?? 0;
+            log_message('debug', 'TransactionController::createTransaction - USD to IDR conversion rate extracted: ' . $usdInIdr);
 
             if ($usdInIdr <= 0) {
-                return $this->respondError('Invalid USD to IDR conversion rate', 400);
+                log_message('error', 'TransactionController::createTransaction - Invalid USD to IDR conversion rate: ' . $usdInIdr);
+                return $this->respondError('Invalid USD to IDR conversion rate: ' . $usdInIdr, 400);
             }
 
-            $amount = 0;
-            $usdAmount = 0;
-            $currency = 'IDR';
-
-            // Calculate amount in IDR and USD
-            $amount = $programPayment->idr_amount ?? 0;
+            // Get the USD amount from program payment
             $usdAmount = $programPayment->usd_amount ?? 0;
+            log_message('debug', 'TransactionController::createTransaction - USD amount from program payment: ' . $usdAmount);
 
-            // Convert USD amount to IDR
-            if ($usdAmount > 0) {
-                $amount = $usdAmount * $usdInIdr;
+            if ($usdAmount <= 0) {
+                log_message('error', 'TransactionController::createTransaction - USD amount must be greater than zero. USD Amount: ' . $usdAmount);
+                return $this->respondError('USD amount must be greater than zero', 400);
             }
 
-            // Ensure amount is greater than zero
-            if ($amount <= 0) {
-                log_message('error', 'TransactionController::createTransaction - Payment amount must be greater than zero. Amount: ' . $amount);
-                return $this->respondError('Payment amount must be greater than zero', 400);
-            }
+            // Convert USD amount to IDR using web setting conversion rate
+            $amount = $usdAmount * $usdInIdr;
+            $currency = 'IDR'; // Always use IDR for Midtrans transactions
 
-            $currency = $programPayment->currency ?? 'IDR';
-
-            if ($currency !== 'IDR' && $currency !== 'USD') {
-                return $this->respondError('Invalid currency type', 400);
-            }
+            log_message('info', 'TransactionController::createTransaction - USD to IDR conversion calculation:');
+            log_message('info', 'TransactionController::createTransaction - USD Amount: ' . $usdAmount);
+            log_message('info', 'TransactionController::createTransaction - Conversion Rate (USD to IDR): ' . $usdInIdr);
+            log_message('info', 'TransactionController::createTransaction - Final IDR Amount: ' . $amount . ' (' . $usdAmount . ' * ' . $usdInIdr . ')');
+            log_message('info', 'TransactionController::createTransaction - Currency: ' . $currency);            log_message('info', 'TransactionController::createTransaction - DATA FLOW SUMMARY:');
+            log_message('info', 'TransactionController::createTransaction - 1. Program Payment ID: ' . $data['program_payment_id']);
+            log_message('info', 'TransactionController::createTransaction - 2. Program Payment -> Program ID: ' . $programPayment->program_id);
+            log_message('info', 'TransactionController::createTransaction - 3. Program -> Program Category ID: ' . $program->program_category_id);
+            log_message('info', 'TransactionController::createTransaction - 4. Web Setting (by Program Category ID): Found = ' . ($webSetting ? 'YES' : 'NO'));
+            log_message('info', 'TransactionController::createTransaction - 5. USD Amount (from Program Payment): ' . $usdAmount);
+            log_message('info', 'TransactionController::createTransaction - 6. Conversion Rate (from Web Setting): ' . $usdInIdr);
+            log_message('info', 'TransactionController::createTransaction - 7. Final IDR Amount: ' . $amount);
 
             // Create payment record with status "created" (0)
             $paymentData = [
@@ -184,6 +187,11 @@ class TransactionController extends BasePaymentController
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s')
             ];
+
+            log_message('info', 'TransactionController::createTransaction - Payment data to be saved:');
+            log_message('info', 'TransactionController::createTransaction - Amount (IDR): ' . $paymentData['amount']);
+            log_message('info', 'TransactionController::createTransaction - USD Amount: ' . $paymentData['usd_amount']);
+            log_message('info', 'TransactionController::createTransaction - Currency: ' . $paymentData['currency']);
 
             // Save to database to get payment ID
             $paymentId = $this->paymentModel->insert($paymentData);
@@ -313,9 +321,11 @@ class TransactionController extends BasePaymentController
                 $serverKeyLength = strlen(\Midtrans\Config::$serverKey);
                 $maskedServerKey = substr(\Midtrans\Config::$serverKey, 0, 4) . str_repeat('*', $serverKeyLength - 8) . substr(\Midtrans\Config::$serverKey, -4);
                 log_message('debug', 'TransactionController::createTransaction - Configuring Midtrans with server key: ' . $maskedServerKey);
-                log_message('debug', 'TransactionController::createTransaction - Production mode: ' . (\Midtrans\Config::$isProduction ? 'true' : 'false'));
-
-                // Set transaction parameters for Midtrans
+                log_message('debug', 'TransactionController::createTransaction - Production mode: ' . (\Midtrans\Config::$isProduction ? 'true' : 'false'));                // Set transaction parameters for Midtrans
+                log_message('info', 'TransactionController::createTransaction - Preparing Midtrans transaction parameters:');
+                log_message('info', 'TransactionController::createTransaction - Order ID: ' . $orderId);
+                log_message('info', 'TransactionController::createTransaction - Gross Amount (IDR): ' . $amount);
+                
                 $params = [
                     'transaction_details' => [
                         'order_id' => $orderId,
@@ -330,10 +340,15 @@ class TransactionController extends BasePaymentController
                             'id' => $data['program_payment_id'],
                             'price' => (float) $amount,
                             'quantity' => 1,
-                            'name' => $data['description'] ?? 'Payment for YBB Program'
+                            'name' => $program->name ?? 'YBB Program Payment',
+                            'category' => $programPayment->category ?? 'registration'
                         ]
                     ],
+                    'custom_field1' => 'USD Amount: $' . number_format($usdAmount, 2),
+                    'custom_field2' => 'Conversion Rate: 1 USD = ' . number_format($usdInIdr, 0) . ' IDR'
                 ];
+
+                log_message('debug', 'TransactionController::createTransaction - Midtrans params: ' . json_encode($params));
 
                 // Add phone to customer_details only if it exists
                 if (!empty($participant->phone_number)) {
@@ -346,11 +361,13 @@ class TransactionController extends BasePaymentController
                     // remove non-numeric characters from phone number
                     $phoneNumber = preg_replace('/\D/', '', $phoneNumber);
                     $params['customer_details']['phone'] = $phoneNumber;
-                }
-
-                // Create Snap Token
-                $snapToken = \Midtrans\Snap::getSnapToken($params);
+                }                // Create Snap Token
+                log_message('info', 'TransactionController::createTransaction - Creating Midtrans Snap Token for Order ID: ' . $orderId . ', Amount: IDR ' . number_format($amount, 0) . ' (from USD ' . $usdAmount . ')');
+                log_message('info', 'TransactionController::createTransaction - FINAL VERIFICATION - USD: ' . $usdAmount . ' * Rate: ' . $usdInIdr . ' = IDR: ' . $amount);
                 
+                $snapToken = \Midtrans\Snap::getSnapToken($params);
+                log_message('info', 'TransactionController::createTransaction - Snap token created successfully: ' . $snapToken);
+
                 // Generate redirect URL based on environment
                 $redirectUrl = \Midtrans\Config::$isProduction
                     ? "https://app.midtrans.com/snap/v2/vtweb/{$snapToken}"
@@ -361,24 +378,31 @@ class TransactionController extends BasePaymentController
                     'status' => self::STATUS_PENDING,
                     'payment_url' => $redirectUrl
                 ]);
-
                 $returnData = [
                     'order_id' => $orderId,
                     'payment_id' => $paymentId,
                     'token' => $snapToken,
                     'redirect_url' => $redirectUrl,
-                ];
-
-                // Return success response with token
+                    'amount_details' => [
+                        'usd_amount' => $usdAmount,
+                        'idr_amount' => $amount,
+                        'conversion_rate' => $usdInIdr,
+                        'currency' => 'IDR'
+                    ],
+                    'program_details' => [
+                        'program_name' => $program->name ?? 'YBB Program',
+                        'payment_category' => $programPayment->category ?? 'registration'
+                    ]
+                ];                // Return success response with token
                 return $this->respondSuccess(
                     $returnData,
                     self::HTTP_OK,
-                    'Midtrans transaction created successfully'
+                    'Midtrans transaction created successfully. USD ' . $usdAmount . ' converted to IDR ' . number_format($amount, 0) . ' at rate 1:' . number_format($usdInIdr, 0)
                 );
             } catch (\Exception $e) {
                 // Delete the payment record if Midtrans transaction fails
                 $this->paymentModel->delete($paymentId);
-                
+
                 log_message('error', 'Midtrans API Error: ' . $e->getMessage());
                 return $this->fail('Payment failed. Please try again later. Error: ' . $e->getMessage(), 500);
             }
