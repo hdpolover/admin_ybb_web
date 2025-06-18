@@ -95,8 +95,14 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->get('getTopicsByProgram', 'AbstractPapers::getTopicsByProgram');
             $routes->get('getReviewerSubthemes', 'AbstractPapers::getReviewerSubthemes');
         });
+        $routes->group('agreements', function ($routes) {
+            $routes->get('/', 'Agreements::index');
+            $routes->post('update-status', 'Agreements::updateStatus');
+        });
+        
     });
     
+       
     // document routes
     $routes->group('documents', ['filter' => 'program_selection'], function ($routes) {        // Program Documents routes
         $routes->group('program-documents', ['filter' => 'auth'], function ($routes) {

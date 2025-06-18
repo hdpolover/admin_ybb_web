@@ -61,4 +61,14 @@ class ProgramDocumentModel extends Model
             ->where('is_deleted', 0)
             ->first();
     }
+    
+    public function getDocumentIdByName($programId, $documentName)
+    {
+        return $this->select('id')
+                    ->where('program_id', $programId)
+                    ->where('name', $documentName)
+                    ->where('is_deleted', 0)
+                    ->where('is_active', 1)
+                    ->first();
+    }
 }
