@@ -24,32 +24,12 @@ class Database extends Config
     /**
      * The default database connection.
      */
-    public array $default = [
-        'DSN'      => '',
-        'hostname' => '194.163.42.101',
-        'username' => 'u1437096_ybb_master_app_admin_user',
-        'password' => '7J8*^dFEa&lN',
-        'database' => 'u1437096_ybb_master_app_db',
-        'DBDriver' => 'MySQLi',
-        'DBPrefix' => '',
-        'pConnect' => false,
-        'DBDebug'  => true,
-        'charset'  => 'utf8',
-        'DBCollat' => 'utf8_general_ci',
-        'swapPre'  => '',
-        'encrypt'  => false,
-        'compress' => false,
-        'strictOn' => false,
-        'failover' => [],
-        'port'     => 3306,
-    ];
-
     // public array $default = [
     //     'DSN'      => '',
-    //     'hostname' => 'localhost',
-    //     'username' => 'root',
-    //     'password' => '',
-    //     'database' => 'admin_ybb',
+    //     'hostname' => '194.163.42.101',
+    //     'username' => 'u1437096_ybb_master_app_admin_user',
+    //     'password' => '7J8*^dFEa&lN',
+    //     'database' => 'u1437096_ybb_master_app_db',
     //     'DBDriver' => 'MySQLi',
     //     'DBPrefix' => '',
     //     'pConnect' => false,
@@ -63,6 +43,26 @@ class Database extends Config
     //     'failover' => [],
     //     'port'     => 3306,
     // ];
+
+    public array $default = [
+        'DSN'      => '',
+        'hostname' => 'localhost',
+        'username' => 'root',
+        'password' => '',
+        'database' => 'admin_ybb',
+        'DBDriver' => 'MySQLi',
+        'DBPrefix' => '',
+        'pConnect' => false,
+        'DBDebug'  => true,
+        'charset'  => 'utf8',
+        'DBCollat' => 'utf8_general_ci',
+        'swapPre'  => '',
+        'encrypt'  => false,
+        'compress' => false,
+        'strictOn' => false,
+        'failover' => [],
+        'port'     => 3306,
+    ];
     /**
      * This database connection is used when
      * running PHPUnit database tests.
