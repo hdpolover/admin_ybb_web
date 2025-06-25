@@ -22,9 +22,11 @@ class Agreements extends BaseController
         //get current program ID from session
         $programId = session('current_program');
         $documentName = 'Agreement Letter'; // Ganti sesuai kebutuhan
+        $type = 'agreement'; // Ganti sesuai kebutuhan
         // Get all FAQs
         
-        $document = $this->DocModel->getDocumentIdByName($programId, $documentName);
+        // $document = $this->DocModel->getDocumentIdByName($programId, $documentName);
+        $document = $this->DocModel->getDocumentIdByType($programId, $type);
         if ($document) {
             $programDocumentId = $document->id;
         } else {
