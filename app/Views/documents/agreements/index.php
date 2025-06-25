@@ -183,7 +183,8 @@
                                                                                     class="form-label mt-3">Notes</label>
                                                                                 <textarea class="form-control"
                                                                                     id="exampleFormControlTextarea5"
-                                                                                    rows="3" name="notes"></textarea>
+                                                                                    rows="3"
+                                                                                    name="notes"><?=$doc->notes?></textarea>
                                                                             </div>
                                                                     </div>
                                                                     <div class="modal-footer">
