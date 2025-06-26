@@ -110,9 +110,11 @@ class ProgramDocumentsApiController extends ApiBaseController
                             ->first();
 
             if ($existing) {
+                $existing = (array) $existing;
                 // Update jika sudah ada
                 $updateData = $data;
                 unset($updateData['created_at']); // Jangan overwrite created_at saat update
+                // $updateData['status'] = 'under_review';
                 $updateData['updated_at'] = date('Y-m-d H:i:s');
 
                 $model->update($existing['id'], $updateData);
@@ -146,7 +148,7 @@ class ProgramDocumentsApiController extends ApiBaseController
     }
 
     /**
-     * 🔍 Get Single Program Document (READ)
+     * Get Single Program Document (READ)
      * GET /api/program-documents/{id}
      */
     public function show($id = null)

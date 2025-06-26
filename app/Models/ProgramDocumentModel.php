@@ -71,4 +71,13 @@ class ProgramDocumentModel extends Model
                     ->where('is_active', 1)
                     ->first();
     }
+    public function getDocumentIdByType($programId, $type)
+    {
+        return $this->select('id')
+                    ->where('program_id', $programId)
+                    ->where('type', $type)
+                    ->where('is_deleted', 0)
+                    ->where('is_active', 1)
+                    ->first();
+    }
 }
