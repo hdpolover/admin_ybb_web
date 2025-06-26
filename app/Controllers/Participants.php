@@ -470,7 +470,8 @@ class Participants extends BaseController
 
     /**
      * Export participants data to Excel
-     */    public function export($id = null)
+     */
+    public function export($id = null)
     {
         try {
             log_message('debug', 'Starting participant export process');
@@ -478,27 +479,16 @@ class Participants extends BaseController
             // Set max execution time and memory limit for large exports
             ini_set('max_execution_time', 600); // 10 minutes
             ini_set('memory_limit', '1024M');   // 1 GB
-            log_message('debug', 'Set execution time to 600s and memory limit to 1024M');
-
-            // Clean output buffers to prevent any potential corruption in Excel output
-            while (ob_get_level()) {
-                ob_end_clean();
-            }
-            log_message('debug', 'Cleared output buffers');            // Set error handler to catch any errors
-            set_error_handler(function ($errno, $errstr, $errfile, $errline) {
-                log_message('error', "Excel export error: [$errno] $errstr in $errfile on line $errline");
-                return true; // Continue execution
-            });
-
-            log_message('debug', 'Custom error handler set up for Excel export');            // Check if this is an AJAX check or direct download request
-            $checkBatch = $this->request->getGet('check_batch') !== null;
-            $directDownload = $this->request->getPost('direct_download') !== null;
-            log_message('debug', 'Export request details - check_batch: ' . ($checkBatch ? 'yes' : 'no') . ', direct_download: ' . ($directDownload ? 'yes' : 'no'));
 
             $programId = session('current_program');
-            log_message('debug', 'Export for program ID: ' . $programId);
+            if (!$programId) {
+                return redirect()->to('/users/participants')->with('error', 'No program selected');
+            }
+
             $participants = [];
-            $db = \Config\Database::connect();            // If ID is provided, export just that participant
+            $db = \Config\Database::connect();
+
+            // If ID is provided, export just that participant
             if ($id) {
                 log_message('debug', 'Exporting single participant with ID: ' . $id);
                 $participant = $this->participantModel->find($id);
@@ -507,12 +497,9 @@ class Participants extends BaseController
                     log_message('error', 'Participant not found for export, ID: ' . $id);
                     return redirect()->to('/users/participants')->with('error', 'Participant not found');
                 }
-                log_message('debug', 'Found participant: ' . $participant->full_name);
 
                 // Get related data
                 $userId = $participant->user_id;
-
-                // Get user data
                 $user = $this->userModel->find($userId);
                 $participant->user = $user;
                 $participant->email = $user->email ?? '';
@@ -521,525 +508,315 @@ class Participants extends BaseController
                 $essays = $this->participantEssayModel->getParticipantEssayByParticipantId($id);
                 $participant->essays = $essays;
 
-                // Add to participants array
-                $participants[] = $participant;                // Set filename with participant name
+                $participants[] = $participant;
                 $filename = 'participant_' . url_title($participant->full_name, '-', true) . '_' . date('Ymd_His');
-                log_message('debug', 'Single participant export filename: ' . $filename);
             } else {
                 log_message('debug', 'Starting bulk participant export for program ID: ' . $programId);
-                // Get all participants for the current program
-                $query = $this->participantModel->select('participants.*')
-                    ->join('users', 'users.id = participants.user_id', 'left')
-                    ->join('participant_statuses', 'participant_statuses.participant_id = participants.id', 'left')
-                    ->where('participants.program_id', $programId)
-                    ->where('participants.is_deleted', 0);
-                log_message('debug', 'Base query created for participants');                // Apply export filters
-                log_message('debug', 'Starting to apply export filters');
-
-                // Limit records if specified
-                $limit = $this->request->getGet('limit');
-                if (!empty($limit) && is_numeric($limit)) {
-                    log_message('debug', 'Applying limit filter: ' . $limit);
-                    $query->limit((int)$limit);
-                }
-
-                // Filter by category if specified
-                $category = $this->request->getGet('category');
-                if (!empty($category)) {
-                    log_message('debug', 'Applying category filter: ' . $category);
-                    $query->where('participants.category', $category);
-                }
-
-                // Filter by form status if specified
-                $formStatus = $this->request->getGet('form_status');
-                if ($formStatus !== '' && $formStatus !== null) {
-                    log_message('debug', 'Applying form status filter: ' . $formStatus);
-                    $query->where('participant_statuses.form_status', $formStatus);
-                }
-
-                // Filter by date range if specified
-                $dateRange = $this->request->getGet('date_range');
-                if (!empty($dateRange)) {
-                    log_message('debug', 'Applying date range filter: ' . $dateRange);
-                    $dates = explode(' - ', $dateRange);
-                    if (count($dates) == 2) {
-                        $startDate = date('Y-m-d', strtotime($dates[0]));
-                        $endDate = date('Y-m-d', strtotime($dates[1]));
-                        log_message('debug', 'Date range parsed to: ' . $startDate . ' - ' . $endDate);
-                        $query->where('DATE(participants.created_at) >=', $startDate)
-                            ->where('DATE(participants.created_at) <=', $endDate);
+                
+                // Check if this is a batch size check request
+                $checkBatchSize = $this->request->getGet('check_batch_size') !== null;
+                
+                if ($checkBatchSize) {
+                    // Just count the records and return batch information
+                    $totalCount = $this->getParticipantCount($programId);
+                    $batchSize = 1000;
+                    
+                    if ($totalCount > $batchSize) {
+                        $batches = ceil($totalCount / $batchSize);
+                        return $this->response->setJSON([
+                            'success' => true,
+                            'needs_batching' => true,
+                            'total_records' => $totalCount,
+                            'batch_size' => $batchSize,
+                            'total_batches' => $batches,
+                            'message' => "Found {$totalCount} records. Will be exported in {$batches} separate files."
+                        ]);
+                    } else {
+                        return $this->response->setJSON([
+                            'success' => true,
+                            'needs_batching' => false,
+                            'total_records' => $totalCount,
+                            'message' => "Found {$totalCount} records. Will be exported in single file."
+                        ]);
                     }
                 }
 
-                // Filter by payment status if specified                $paymentStatus = $this->request->getGet('payment_status');
-                if (!empty($paymentStatus) && $paymentStatus == 'success') {
-                    log_message('debug', 'Applying payment status filter: success');
-                    // Subquery to get participants with successful payments
-                    $subQuery = $db->table('payments')
-                        ->select('participant_id')
-                        ->where('status', 2) // Successful payments have status 2
-                        ->where('is_deleted', 0);
+                // Get participants data
+                $participants = $this->getParticipantsForExport($programId);
 
-                    $query->whereIn('participants.id', $subQuery);
-                    log_message('debug', 'Added payment status subquery filter');
-                }                // Filter by specific program payment if specified
-                $programPaymentId = $this->request->getGet('program_payment_id');
-                if (!empty($programPaymentId) && is_numeric($programPaymentId)) {
-                    log_message('debug', 'Applying program payment filter for ID: ' . $programPaymentId);
-                    // Subquery to get participants who paid for this specific program payment
-                    $subQuery = $db->table('payments')
-                        ->select('participant_id')
-                        ->where('program_payment_id', $programPaymentId)
-                        ->where('status', 2) // Successful payments have status 2
-                        ->where('is_deleted', 0);
-
-                    $query->whereIn('participants.id', $subQuery);
-                    log_message('debug', 'Added program payment subquery filter');
-                }                // Get results as array of objects
-                $participantsList = $query->get()->getResult();
-                $participantCount = count($participantsList);
-                log_message('debug', 'Query returned ' . $participantCount . ' participants');
-
-                // Add related data to each participant
-                log_message('debug', 'Starting to process each participant record');
-                foreach ($participantsList as $participant) {
-                    // Get user data
-                    $userId = $participant->user_id;
-                    $user = $this->userModel->find($userId);
-                    $participant->user = $user;
-                    $participant->email = $user->email ?? '';
-
-                    // Get participant essays
-                    $essays = $this->participantEssayModel->getParticipantEssayByParticipantId($participant->id);
-                    $participant->essays = $essays;
-
-                    // Add to participants array
-                    $participants[] = $participant;
+                if (empty($participants)) {
+                    if ($this->request->isAJAX()) {
+                        return $this->response->setStatusCode(404)
+                            ->setJSON(['success' => false, 'message' => 'No participants found to export']);
+                    }
+                    return redirect()->to('/users/participants')->with('error', 'No participants found to export');
                 }
-                log_message('debug', 'Completed processing ' . count($participants) . ' participants with related data');
 
-                // Get program info for filename
+                // Generate filename
                 $program = $this->programModel->find($programId);
-                $programName = $program ? url_title($program->name, '-', true) : 'filtered-participants';
-
-                // Set filename with program name
+                $programName = $program ? url_title($program->name, '-', true) : 'participants';
                 $filename = 'participants_' . $programName . '_' . date('Ymd_His');
 
                 // Add filter info to filename
-                if (!empty($category)) {
-                    $filename .= '_' . $category;
+                $filters = $this->getExportFilters();
+                if (!empty($filters['category'])) {
+                    $filename .= '_' . $filters['category'];
                 }
-
-                if ($formStatus !== '' && $formStatus !== null) {
-                    $filename .= '_status' . $formStatus;
+                if ($filters['form_status'] !== '' && $filters['form_status'] !== null) {
+                    $filename .= '_status' . $filters['form_status'];
                 }
-
-                if (!empty($paymentStatus)) {
+                if (!empty($filters['payment_status'])) {
                     $filename .= '_paid';
                 }
-
-                if (!empty($programPaymentId)) {
-                    $filename .= '_payment' . $programPaymentId;
-                }
             }
-            if (empty($participants)) {
-                log_message('warning', 'No participants found matching export criteria');
-                // Handle AJAX request differently
-                if ($this->request->isAJAX()) {
-                    return $this->response->setStatusCode(404)
-                        ->setJSON(['success' => false, 'message' => 'No participants found to export']);
-                }
-                return redirect()->to('/users/participants')->with('error', 'No participants found to export');
+
+            log_message('debug', 'Exporting ' . count($participants) . ' participants to file: ' . $filename);
+
+            // Clean all output buffers
+            while (ob_get_level()) {
+                ob_end_clean();
             }
-            // Check if we need to split into batches - use 1000 as batch size
-            $batchSize = 1000;
-            $totalParticipants = count($participants);
-            log_message('debug', 'Total participants to export: ' . $totalParticipants . ' (batch size: ' . $batchSize . ')');
 
-            // If this is a direct form submission (not an AJAX check) and there are many records
-            $directDownload = $this->request->getPost('direct_download') || $this->request->getGet('direct_download');
-            log_message('debug', 'Direct download mode: ' . ($directDownload ? 'yes' : 'no'));
-            if ($totalParticipants > $batchSize && $directDownload) {
-                log_message('debug', 'Slicing data to first batch only for direct download');
-                // Get just the first batch for now
-                $participants = array_slice($participants, 0, $batchSize);
-                $batches = ceil($totalParticipants / $batchSize);
+            // Set headers for Excel download
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment; filename="' . $filename . '.xlsx"');
+            header('Cache-Control: no-cache');
+            header('Pragma: public');
 
-                // Modify filename to indicate it's just the first batch
-                $filename .= '_batch1of' . $batches;
-                log_message('debug', 'Adjusted for batch download: ' . $filename . ' (batch 1 of ' . $batches . ')');
-            }
-            // For AJAX requests that are just checking batch requirements
-            else if ($this->request->isAJAX() && $totalParticipants > $batchSize) {
-                $batches = ceil($totalParticipants / $batchSize);
-                log_message('debug', 'AJAX batch check found ' . $batches . ' total batches needed');
-                $batchInfo = [];                // Create batch info for response
-                log_message('debug', 'Creating batch info for frontend');
-                for ($i = 0; $i < $batches; $i++) {
-                    $start = $i * $batchSize;
-                    $count = min($batchSize, $totalParticipants - $start);
+            // Execute Excel export with proper error handling
+            $this->executeExcelExport($participants, $filename);
 
-                    $batchFilename = $filename . '_batch' . ($i + 1) . 'of' . $batches;                    // Create a filters array that includes both GET and POST parameters
-                    $allFilters = array_merge(
-                        $this->request->getGet() ?? [],
-                        $this->request->getPost() ?? []
-                    );
-
-                    // Make sure program_id is included
-                    if (empty($allFilters['program_id'])) {
-                        $allFilters['program_id'] = session('current_program');
-                    }
-
-                    log_message('debug', 'Creating batch with filters: ' . json_encode($allFilters));
-
-                    $batchInfo[] = [
-                        'batch' => $i + 1,
-                        'total_batches' => $batches,
-                        'start' => $start,
-                        'count' => $count,
-                        'filename' => $batchFilename . '.xlsx', // Add file extension for clarity in UI
-                        'url' => site_url('users/participants/export_batch') .
-                            '?' . http_build_query([
-                                'batch' => $i + 1,
-                                'total_batches' => $batches,
-                                'batch_size' => $batchSize,
-                                'filters' => base64_encode(json_encode($allFilters))
-                            ])
-                    ];
-
-                    log_message('debug', 'Created batch info for batch ' . ($i + 1) . ': ' . $count . ' records starting at ' . $start);
-                }                // Return batch information for the AJAX handler
-                log_message('debug', 'Returning batch info response to AJAX handler');
-                return $this->response->setJSON([
-                    'success' => true,
-                    'batches' => $batchInfo,
-                    'total_records' => $totalParticipants,
-                    'batch_size' => $batchSize,
-                    'message' => 'Export will be processed in ' . $batches . ' batches'
-                ]);
-            }
-            // For non-AJAX check requests or direct downloads, proceed with normal export
-            if (!$checkBatch || $directDownload) {
-                log_message('debug', 'Proceeding with direct Excel export');
-                // Clean output buffers to prevent any content before the Excel file
-                while (ob_get_level()) {
-                    ob_end_clean();
-                }
-                log_message('debug', 'Output buffers cleaned for direct export');                // Set headers for Excel download
-                log_message('debug', 'Setting headers for Excel download');
-                header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-                header('Content-Disposition: attachment; filename="' . $filename . '.xlsx"');
-                header('Cache-Control: no-cache');
-                header('Pragma: public');
-                log_message('debug', 'Headers set successfully, filename: ' . $filename . '.xlsx');
-
-                $excelExport = new ExcelExport();
-                log_message('debug', 'Initialized ExcelExport class, starting export with ' . count($participants) . ' records');
-                $excelExport->exportParticipants($participants, $filename);
-                // The script will exit inside the exportParticipants method
-                log_message('debug', 'Export completed successfully');
-            }
         } catch (\Exception $e) {
             log_message('error', 'Failed to export participants: ' . $e->getMessage());
-            log_message('error', 'Exception trace: ' . $e->getTraceAsString());
 
-            // Handle AJAX request differently
             if ($this->request->isAJAX()) {
-                log_message('debug', 'Returning error response to AJAX request');
                 return $this->response->setStatusCode(500)
                     ->setJSON(['success' => false, 'message' => 'Failed to export participants: ' . $e->getMessage()]);
             }
-            log_message('debug', 'Redirecting with error after export failure');
             return redirect()->to('/users/participants')->with('error', 'Failed to export participants: ' . $e->getMessage());
         }
     }
 
     /**
-     * Export a batch of participants to Excel
+     * Execute Excel export with proper error handling
      */
-    public function export_batch()
+    private function executeExcelExport($participants, $filename)
     {
-        // This function should never return JSON, only download the Excel file
-        // or redirect with an error message
-        log_message('debug', 'Starting batch export process');
-
-        // Set max execution time and memory limit for large exports
-        ini_set('max_execution_time', 600); // 10 minutes
-        ini_set('memory_limit', '1024M');   // 1 GB
-        log_message('debug', 'Set execution time to 600s and memory limit to 1024M');
-
-        // Turn off output buffering completely first thing
-        while (ob_get_level()) {
-            ob_end_clean();
-        }
-        log_message('debug', 'Output buffers cleared');            // Make sure nothing has been output yet
-        if (headers_sent($file, $line)) {
-            log_message('error', "Headers already sent in $file:$line");
-            // Redirect to an error page instead of returning JSON
-            return redirect()->to('/users/participants')->with('error', 'Export failed: Headers already sent');
-        }
-
         try {
-            // Set default timeout and memory limit
-            set_time_limit(600);  // 10 minutes
-            ini_set('memory_limit', '1024M');
-
-            // Register a shutdown function to catch fatal errors
-            register_shutdown_function(function () {
-                $error = error_get_last();
-                if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
-                    log_message('critical', 'Fatal error during export: ' . $error['message'] . ' in ' .
-                        $error['file'] . ' on line ' . $error['line']);
-
-                    // Try to send a clean response
-                    if (!headers_sent()) {
-                        header('Content-Type: text/plain');
-                        echo "Export Error: A fatal error occurred. Please check the logs or try again with fewer records.";
-                    }
-                }
-            });
-
-            log_message('debug', 'Setting up custom error handler for Excel export');
-            // Create a custom error handler that will log errors but not display them
-            set_error_handler(function ($errno, $errstr, $errfile, $errline) {
-                log_message('error', "PHP Error ($errno): $errstr in $errfile on line $errline");
-                return true; // Don't execute PHP's internal error handler
-            });
-
-            // Get batch parameters - support both GET and POST methods
-            $request = $this->request;
-            $batch = (int)($request->getGet('batch') ?? $request->getPost('batch'));
-            $totalBatches = (int)($request->getGet('total_batches') ?? $request->getPost('total_batches'));
-            $batchSize = (int)($request->getGet('batch_size') ?? $request->getPost('batch_size'));
-
-            log_message('debug', "Export request details - batch: $batch, total_batches: $totalBatches, batch_size: $batchSize");
-            // Decode filters - support both GET and POST methods
-            $encodedFilters = $request->getGet('filters') ?? $request->getPost('filters');
-            $filters = [];
-
-            if (!empty($encodedFilters)) {
-                try {
-                    log_message('debug', 'Attempting to decode filters from base64: ' . substr($encodedFilters, 0, 20) . '...');
-                    // Use @ to suppress warnings from base64_decode
-                    $decoded = @base64_decode($encodedFilters, true);
-                    if ($decoded !== false) {
-                        log_message('debug', 'Base64 decoded, attempting JSON decode');
-                        $jsonDecoded = json_decode($decoded, true);
-                        if (is_array($jsonDecoded)) {
-                            $filters = $jsonDecoded;
-                            log_message('debug', 'Filters decoded successfully: ' . json_encode($filters));
-                        } else {
-                            log_message('warning', 'JSON decode did not return an array: ' . json_last_error_msg());
-                        }
-                    } else {
-                        log_message('warning', 'Base64 decode failed for filters parameter: ' . $encodedFilters);
-                    }
-                } catch (\Exception $e) {
-                    log_message('error', 'Failed to decode filters: ' . $e->getMessage());
-                }
-            } else {
-                log_message('warning', 'No encoded filters parameter found in request');
+            log_message('debug', 'Starting Excel export with ' . count($participants) . ' participants');
+            
+            $excelExport = new ExcelExport();
+            $excelExport->exportParticipants($participants, $filename);
+            
+            // The script will exit inside the exportParticipants method
+            exit;
+        } catch (\Exception $exportException) {
+            log_message('error', 'Excel export failed: ' . $exportException->getMessage());
+            log_message('error', 'Export exception trace: ' . $exportException->getTraceAsString());
+            
+            // Clean output buffer
+            while (ob_get_level()) {
+                ob_end_clean();
             }
-            // If filters are empty, try to get parameters directly from request
-            if (empty($filters)) {
-                log_message('debug', 'No filters found in encoded data, getting form filters directly');
-                $filters = [
-                    'program_id' => $request->getGet('program_id') ?? $request->getPost('program_id'),
-                    'category' => $request->getGet('category') ?? $request->getPost('category'),
-                    'form_status' => $request->getGet('form_status') ?? $request->getPost('form_status'),
-                    'payment_status' => $request->getGet('payment_status') ?? $request->getPost('payment_status'),
-                    'limit' => $request->getGet('limit') ?? $request->getPost('limit'),
-                    'date_range' => $request->getGet('date_range') ?? $request->getPost('date_range')
-                ];
+            
+            if ($this->request->isAJAX()) {
+                return $this->response->setStatusCode(500)
+                    ->setJSON(['success' => false, 'message' => 'Export failed: ' . $exportException->getMessage()]);
+            }
+            return redirect()->to('/users/participants')->with('error', 'Export failed: ' . $exportException->getMessage());
+        }
+    }
+
+    /**
+     * Export participants in batches
+     */
+    public function exportBatch()
+    {
+        try {
+            $batch = (int)$this->request->getGet('batch', FILTER_SANITIZE_NUMBER_INT);
+            $batchSize = (int)$this->request->getGet('batch_size', FILTER_SANITIZE_NUMBER_INT) ?: 1000;
+            
+            if ($batch < 1) {
+                return redirect()->to('/users/participants')->with('error', 'Invalid batch number');
             }
 
-            // Log the filters received by the batch export function
-            log_message('debug', 'Batch export filters: ' . json_encode($filters));
-
-            // Additional safety check - make sure program_id exists in filters or get it from session
-            if (empty($filters['program_id'])) {
-                $filters['program_id'] = session('current_program');
-                log_message('debug', 'Using program_id from session: ' . $filters['program_id']);
-            }
-
-            // Get program ID from filters or session
-            $programId = $filters['program_id'] ?? session('current_program');
-
+            $programId = session('current_program');
             if (!$programId) {
-                // Don't return JSON, redirect with error message
-                return redirect()->to('/users/participants')
-                    ->with('error', 'Export failed: No program selected');
+                return redirect()->to('/users/participants')->with('error', 'No program selected');
             }
 
-            // Calculate offset for this batch
+            // Calculate offset
             $offset = ($batch - 1) * $batchSize;
 
-            // Create database query
-            $db = \Config\Database::connect();
-            $query = $db->table('participants')
-                ->select('participants.*, users.email, participant_statuses.form_status')
-                ->join('users', 'users.id = participants.user_id', 'left')
-                ->join('participant_statuses', 'participant_statuses.participant_id = participants.id', 'left')
-                ->where('participants.program_id', $programId)
-                ->where('participants.is_deleted', 0)
-                ->limit($batchSize, $offset);
+            // Get participants for this batch
+            $participants = $this->getParticipantsForExport($programId, $batchSize, $offset);
 
-            // Add filters from the original request
-            if (!empty($filters['category'])) {
-                $query->where('participants.category', $filters['category']);
-            }
-
-            if (isset($filters['form_status']) && $filters['form_status'] !== '') {
-                $query->where('participant_statuses.form_status', $filters['form_status']);
-            }
-
-            if (!empty($filters['date_range'])) {
-                $dates = explode(' - ', $filters['date_range']);
-                if (count($dates) == 2) {
-                    $startDate = date('Y-m-d', strtotime($dates[0]));
-                    $endDate = date('Y-m-d', strtotime($dates[1]));
-                    $query->where('DATE(participants.created_at) >=', $startDate)
-                        ->where('DATE(participants.created_at) <=', $endDate);
-                }
-            }
-
-            if (!empty($filters['payment_status']) && $filters['payment_status'] == 'success') {
-                $subQuery = $db->table('payments')
-                    ->select('participant_id')
-                    ->where('status', 2)
-                    ->where('is_deleted', 0);
-
-                $query->whereIn('participants.id', $subQuery);
-            }
-
-            if (!empty($filters['program_payment_id']) && is_numeric($filters['program_payment_id'])) {
-                $subQuery = $db->table('payments')
-                    ->select('participant_id')
-                    ->where('program_payment_id', $filters['program_payment_id'])
-                    ->where('status', 2)
-                    ->where('is_deleted', 0);
-
-                $query->whereIn('participants.id', $subQuery);
-            }
-
-            // Get results for this batch
-            $participantsList = $query->get()->getResult();
-            $participants = [];
-
-            // Add related data to each participant
-            foreach ($participantsList as $participant) {
-                // Get user data
-                $userId = $participant->user_id;
-                $user = $this->userModel->find($userId);
-                $participant->user = $user;
-                $participant->email = $user->email ?? '';
-
-                // Get participant essays
-                $essays = $this->participantEssayModel->getParticipantEssayByParticipantId($participant->id);
-                $participant->essays = $essays;
-
-                // Add to participants array
-                $participants[] = $participant;
-            }
             if (empty($participants)) {
-                // Don't return JSON, redirect with error message
-                return redirect()->to('/users/participants')
-                    ->with('error', 'Export failed: No participants found in this batch');
+                return redirect()->to('/users/participants')->with('error', 'No participants found for this batch');
             }
 
-            // Get program info for filename
+            // Generate filename with batch info
             $program = $this->programModel->find($programId);
-            $programName = $program ? url_title($program->name, '-', true) : 'filtered-participants';
-
-            // Set filename with batch info
+            $programName = $program ? url_title($program->name, '-', true) : 'participants';
+            $totalRecords = $this->getParticipantCount($programId);
+            $totalBatches = ceil($totalRecords / $batchSize);
+            
             $filename = 'participants_' . $programName . '_batch' . $batch . 'of' . $totalBatches . '_' . date('Ymd_His');
 
             // Add filter info to filename
+            $filters = $this->getExportFilters();
             if (!empty($filters['category'])) {
                 $filename .= '_' . $filters['category'];
             }
-
-            if (isset($filters['form_status']) && $filters['form_status'] !== '') {
+            if ($filters['form_status'] !== '' && $filters['form_status'] !== null) {
                 $filename .= '_status' . $filters['form_status'];
             }
 
-            if (!empty($filters['payment_status'])) {
-                $filename .= '_paid';
-            }
+            log_message('debug', 'Exporting batch ' . $batch . ' with ' . count($participants) . ' participants');
 
-            if (!empty($filters['program_payment_id'])) {
-                $filename .= '_payment' . $filters['program_payment_id'];
-            }                // Create Excel exporter
-            $excelExport = new \App\Services\ExcelExport();
-
-            // Make sure all output buffers are clean before exporting
+            // Clean all output buffers
             while (ob_get_level()) {
                 ob_end_clean();
-            }                // Make sure all output buffers are clean
-                while (ob_get_level()) {
-                    ob_end_clean();
-                }
-                
-                // Export to Excel and download - wrap in try-catch for additional protection
-                try {
-                    // Use our own error handling to diagnose any issues better
-                    set_error_handler(function ($severity, $message, $file, $line) {
-                        log_message('error', "PHP Error ($severity): $message in $file on line $line");
-                        return true;  // Don't execute PHP's internal error handler
-                    }, E_ALL);
-                    
-                    // Set PHP to not output compression headers
-                    ini_set('zlib.output_compression', 'Off');
-    
-                    // Make sure we do a deep clone of the participants data to prevent modifying the original objects
-                    $exportParticipants = array_map(function ($p) {
-                        // Create a plain stdClass with only the fields we need
-                        $simple = new \stdClass();
-                        $fields = [
-                            'id',
-                            'full_name',
-                            'email',
-                            'phone',
-                            'phone_number',
-                            'address',
-                            'nationality',
-                            'category',
-                            'form_status',
-                            'created_at'
-                        ];
-
-                    foreach ($fields as $field) {
-                        if (isset($p->$field)) {
-                            $simple->$field = $p->$field;
-                        }
-                    }
-                    return $simple;
-                }, $participants);
-
-                log_message('debug', 'Created simplified participant objects for export');
-                $excelExport->exportParticipants($exportParticipants, $filename);
-                // The script will exit inside the exportParticipants method
-            } catch (\Throwable $innerException) {
-                // Log detailed error message
-                log_message('critical', 'Final Excel export failure: ' . $innerException->getMessage());
-                log_message('critical', 'Exception class: ' . get_class($innerException));
-                log_message('critical', 'Stack trace: ' . $innerException->getTraceAsString());
-
-                // Clean up any output that might have started
-                while (ob_get_level()) {
-                    ob_end_clean();
-                }
-
-                // Return plain text error rather than redirect since headers may have been sent
-                header('Content-Type: text/plain');
-                echo "Export Error: Unable to generate Excel file. Please check the logs for details or try again with fewer records.";
-                exit;
             }
+
+            // Set headers for Excel download
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment; filename="' . $filename . '.xlsx"');
+            header('Cache-Control: no-cache');
+            header('Pragma: public');
+
+            // Execute Excel export with proper error handling
+            $this->executeExcelExport($participants, $filename);
+
         } catch (\Exception $e) {
             log_message('error', 'Failed to export participants batch: ' . $e->getMessage());
-            // Don't return JSON, redirect with error message
-            return redirect()->to('/users/participants')
-                ->with('error', 'Failed to export participants batch: ' . $e->getMessage());
+            return redirect()->to('/users/participants')->with('error', 'Failed to export batch: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get participants count for export with filters
+     */
+    private function getParticipantCount($programId)
+    {
+        $query = $this->participantModel->select('participants.id')
+            ->join('users', 'users.id = participants.user_id', 'left')
+            ->join('participant_statuses', 'participant_statuses.participant_id = participants.id', 'left')
+            ->where('participants.program_id', $programId)
+            ->where('participants.is_deleted', 0);
+
+        // Apply filters
+        $filters = $this->getExportFilters();
+        $this->applyExportFilters($query, $filters);
+
+        return $query->countAllResults();
+    }
+
+    /**
+     * Get participants data for export with filters
+     */
+    private function getParticipantsForExport($programId, $limit = null, $offset = null)
+    {
+        $query = $this->participantModel->select('participants.*')
+            ->join('users', 'users.id = participants.user_id', 'left')
+            ->join('participant_statuses', 'participant_statuses.participant_id = participants.id', 'left')
+            ->where('participants.program_id', $programId)
+            ->where('participants.is_deleted', 0);
+
+        // Apply filters
+        $filters = $this->getExportFilters();
+        $this->applyExportFilters($query, $filters);
+
+        // Apply limit and offset if provided
+        if ($limit !== null) {
+            $query->limit($limit, $offset ?: 0);
+        }
+
+        $participantsList = $query->get()->getResult();
+        $participants = [];
+
+        // Add related data to each participant
+        foreach ($participantsList as $participant) {
+            // Get user data
+            $user = $this->userModel->find($participant->user_id);
+            $participant->user = $user;
+            $participant->email = $user->email ?? '';
+
+            // Get participant essays
+            $essays = $this->participantEssayModel->getParticipantEssayByParticipantId($participant->id);
+            $participant->essays = $essays;
+
+            $participants[] = $participant;
+        }
+
+        return $participants;
+    }
+
+    /**
+     * Get export filters from request
+     */
+    private function getExportFilters()
+    {
+        return [
+            'category' => $this->request->getGet('category') ?: $this->request->getPost('category'),
+            'form_status' => $this->request->getGet('form_status') !== null ? $this->request->getGet('form_status') : $this->request->getPost('form_status'),
+            'payment_status' => $this->request->getGet('payment_status') ?: $this->request->getPost('payment_status'),
+            'date_range' => $this->request->getGet('date_range') ?: $this->request->getPost('date_range'),
+            'program_payment_id' => $this->request->getGet('program_payment_id') ?: $this->request->getPost('program_payment_id'),
+            'limit' => $this->request->getGet('limit') ?: $this->request->getPost('limit')
+        ];
+    }
+
+    /**
+     * Apply export filters to query
+     */
+    private function applyExportFilters($query, $filters)
+    {
+        // Category filter
+        if (!empty($filters['category'])) {
+            $query->where('participants.category', $filters['category']);
+        }
+
+        // Form status filter
+        if ($filters['form_status'] !== '' && $filters['form_status'] !== null) {
+            $query->where('participant_statuses.form_status', $filters['form_status']);
+        }
+
+        // Date range filter
+        if (!empty($filters['date_range'])) {
+            $dates = explode(' - ', $filters['date_range']);
+            if (count($dates) == 2) {
+                $startDate = date('Y-m-d', strtotime($dates[0]));
+                $endDate = date('Y-m-d', strtotime($dates[1]));
+                $query->where('DATE(participants.created_at) >=', $startDate)
+                    ->where('DATE(participants.created_at) <=', $endDate);
+            }
+        }
+
+        // Payment status filter
+        if (!empty($filters['payment_status']) && $filters['payment_status'] == 'success') {
+            $db = \Config\Database::connect();
+            $subQuery = $db->table('payments')
+                ->select('participant_id')
+                ->where('status', 2)
+                ->where('is_deleted', 0);
+            $query->whereIn('participants.id', $subQuery);
+        }
+
+        // Specific program payment filter
+        if (!empty($filters['program_payment_id']) && is_numeric($filters['program_payment_id'])) {
+            $db = \Config\Database::connect();
+            $subQuery = $db->table('payments')
+                ->select('participant_id')
+                ->where('program_payment_id', $filters['program_payment_id'])
+                ->where('status', 2)
+                ->where('is_deleted', 0);
+            $query->whereIn('participants.id', $subQuery);
+        }
+
+        // Limit filter
+        if (!empty($filters['limit']) && is_numeric($filters['limit'])) {
+            $query->limit((int)$filters['limit']);
         }
     }
 }

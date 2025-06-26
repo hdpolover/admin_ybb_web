@@ -2,6 +2,11 @@
 
 namespace App\Services;
 
+// Import PhpSpreadsheet classes for better IDE support
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+
 /**
  * ExcelExport Service
  *
@@ -9,6 +14,41 @@ namespace App\Services;
  */
 class ExcelExport
 {
+    public function __construct()
+    {
+        // Load Excel helper functions
+        helper('ExcelHelper');
+        
+        // Ensure composer autoloader is loaded
+        if (!class_exists('PhpOffice\PhpSpreadsheet\Spreadsheet')) {
+            $composerAutoload = ROOTPATH . 'vendor/autoload.php';
+            if (file_exists($composerAutoload)) {
+                require_once $composerAutoload;
+            }
+            
+            if (!class_exists('PhpOffice\PhpSpreadsheet\Spreadsheet')) {
+                log_message('error', 'PhpSpreadsheet not available for Excel export');
+                throw new \Exception('Excel export library not available. Please install phpoffice/phpspreadsheet');
+            }
+        }
+        
+        log_message('debug', 'ExcelExport service initialized successfully');
+        
+        // Verify all required classes are available
+        $requiredClasses = [
+            'PhpOffice\PhpSpreadsheet\Spreadsheet',
+            'PhpOffice\PhpSpreadsheet\Writer\Xlsx',
+            'PhpOffice\PhpSpreadsheet\Style\Fill'
+        ];
+        
+        foreach ($requiredClasses as $class) {
+            if (!class_exists($class)) {
+                log_message('error', "Required Excel class not found: {$class}");
+                throw new \Exception("Required Excel export class not available: {$class}");
+            }
+        }
+    }
+
     /**
      * Clean HTML and Quill editor tags from text
      * 
@@ -105,13 +145,60 @@ class ExcelExport
     }
 
     /**
-     * Export participants data to Excel
-     *
-     * @param array $participants Array of participants data
-     * @param string $filename Filename (without extension)
-     * @param bool $download Whether to download the file or save it locally
-     * @return string|bool File path if saved, true if downloaded, false on failure
-     */    /**
+     * Safe wrapper for clean_for_excel helper function
+     */
+    private function safeCleanForExcel($text)
+    {
+        // Check if helper function exists
+        if (function_exists('clean_for_excel')) {
+            return clean_for_excel($text);
+        }
+        
+        // Fallback implementation
+        if (empty($text)) {
+            return '';
+        }
+        
+        // Basic Excel-safe cleaning
+        $text = trim($text);
+        $text = str_replace(["\r\n", "\r", "\n"], ' ', $text);
+        $text = preg_replace('/\s+/', ' ', $text);
+        
+        return $text;
+    }
+    
+    /**
+     * Safe wrapper for format_excel_date helper function
+     */
+    private function safeFormatExcelDate($date, $format = 'd/m/Y')
+    {
+        // Check if helper function exists
+        if (function_exists('format_excel_date')) {
+            return format_excel_date($date, $format);
+        }
+        
+        // Fallback implementation
+        if (empty($date)) {
+            return '';
+        }
+        
+        try {
+            if (is_string($date)) {
+                $dateObj = new \DateTime($date);
+            } elseif ($date instanceof \DateTime) {
+                $dateObj = $date;
+            } else {
+                return '';
+            }
+            
+            return $dateObj->format($format);
+        } catch (\Exception $e) {
+            log_message('error', 'Date formatting error: ' . $e->getMessage());
+            return '';
+        }
+    }
+
+    /**
      * Validate and clean participant data to prevent Excel export issues
      * 
      * @param array &$participants Array of participant objects
@@ -236,8 +323,10 @@ class ExcelExport
      * @param string $filename Filename (without extension)
      * @param bool $download Whether to download the file or save it locally
      * @return string|bool File path if saved, true if downloaded, false on failure
-     */    public function exportParticipants(array $participants, string $filename = 'participants', bool $download = true)
-    {        // Clear any output buffers before starting
+     */
+    public function exportParticipants(array $participants, string $filename = 'participants', bool $download = true)
+    {
+        // Clear any output buffers before starting
         while (ob_get_level()) {
             ob_end_clean();
         }
@@ -263,10 +352,13 @@ class ExcelExport
                 'Category',
                 'Nationality',
                 'Form Status'
-            ];log_message('debug', 'Excel headers defined with ' . count($headers) . ' columns');
-        // Set column widths
-        $columnWidths = [5, 25, 25, 15, 30, 15, 15, 15, 15];
-        log_message('debug', 'Column widths configured');
+            ];
+            
+            log_message('debug', 'Excel headers defined with ' . count($headers) . ' columns');
+            
+            // Set column widths
+            $columnWidths = [5, 25, 25, 15, 30, 15, 15, 15, 15];
+            log_message('debug', 'Column widths configured');
 
         // Format data for Excel - using simple array structure that avoids complex objects
         $data = [];
@@ -314,6 +406,7 @@ class ExcelExport
                         default: $formStatusText = 'Unknown';
                     }
                 }
+                log_message('debug', 'Participant form status mapped: ' . $formStatus . ' -> ' . $formStatusText);
                 
                 // Map category to English - using direct access to avoid complex object issues
                 $category = $safeGetValue($participant, 'category');
@@ -329,48 +422,20 @@ class ExcelExport
                         $categoryText = $category;
                     }
                 }
-
-                // Map form status to text
-                $formStatusText = 'Unknown';
-                if (isset($participant->form_status)) {
-                    switch ($participant->form_status) {
-                        case 0:
-                            $formStatusText = 'Not Started';
-                            break;
-                        case 1:
-                            $formStatusText = 'On Progress';
-                            break;
-                        case 2:
-                            $formStatusText = 'Submitted';
-                            break;
-                        default:
-                            $formStatusText = 'Unknown';
-                    }
-                    log_message('debug', 'Participant form status mapped: ' . $participant->form_status . ' -> ' . $formStatusText);
-                }
-
-                // Map category to English
-                $categoryText = 'Unknown';
-                if (isset($participant->category)) {
-                    if (strtolower($participant->category) == 'fully_funded') {
-                        $categoryText = 'Fully Funded';
-                    } elseif (strtolower($participant->category) == 'self_funded') {
-                        $categoryText = 'Self Funded';
-                    } else {
-                        $categoryText = $participant->category;
-                    }
-                }                  // Prepare row data and sanitize text for Excel - clean HTML tags first
+                
+                // Prepare row data and sanitize text for Excel - clean HTML tags first
                 log_message('debug', 'Cleaning participant data for Excel export');
                 $rowData = [
                     $no++,
-                    clean_for_excel($this->cleanHtmlTags($participant->full_name ?? '')),
-                    clean_for_excel($participant->email ?? ''),
-                    clean_for_excel($this->cleanHtmlTags($participant->phone_number ?? $participant->phone ?? '')),
-                    clean_for_excel($this->cleanHtmlTags($participant->address ?? '')),
-                    isset($participant->created_at) ? format_excel_date($participant->created_at) : '',
+                    $this->safeCleanForExcel($this->cleanHtmlTags($participant->full_name ?? '')),
+                    $this->safeCleanForExcel($participant->email ?? ''),
+                    $this->safeCleanForExcel($this->cleanHtmlTags($participant->phone_number ?? $participant->phone ?? '')),
+                    $this->safeCleanForExcel($this->cleanHtmlTags($participant->address ?? '')),
+                    isset($participant->created_at) ? $this->safeFormatExcelDate($participant->created_at) : '',
                     $categoryText,
-                    clean_for_excel($this->cleanHtmlTags($participant->nationality ?? '')),
-                    $formStatusText                ];
+                    $this->safeCleanForExcel($this->cleanHtmlTags($participant->nationality ?? '')),
+                    $formStatusText
+                ];
                 
                 // Verify that all data is clean before adding to the array
                 foreach ($rowData as $key => $value) {
@@ -397,7 +462,8 @@ class ExcelExport
             log_message('error', 'No participant data was successfully processed for export');
             throw new \Exception('No data available for export');
         }
-          // Clean up output buffers to ensure clean download
+        
+        // Clean up output buffers to ensure clean download
         while (ob_get_level()) {
             ob_end_clean();
         }
@@ -405,7 +471,7 @@ class ExcelExport
         log_message('debug', 'Starting direct Excel file generation to browser');
         try {
             // Create a new spreadsheet directly here to avoid nested function issues
-            $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+            $spreadsheet = new Spreadsheet();
             $sheet = $spreadsheet->getActiveSheet();
             $sheet->setTitle('Participants');
             
@@ -425,7 +491,7 @@ class ExcelExport
             $lastCol = chr(64 + count($headers)); // ASCII 65 is 'A'
             $sheet->getStyle('A1:' . $lastCol . '1')->applyFromArray([
                 'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
-                'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => '4472C4']]
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4472C4']]
             ]);
             
             // Add data rows
@@ -446,7 +512,7 @@ class ExcelExport
             header('Cache-Control: post-check=0, pre-check=0', false);
             header('Pragma: no-cache');
             
-            $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+            $writer = new Xlsx($spreadsheet);
             $writer->save('php://output');
             
             log_message('debug', 'Excel export completed successfully with direct output');
