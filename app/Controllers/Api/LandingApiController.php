@@ -12,6 +12,7 @@ use App\Models\AnnouncementModel;
 // photo model
 use App\Models\ProgramPhotoModel;
 use App\Models\ParticipantModel;
+use App\Models\ProgramSubthemeModel;
 
 class LandingApiController extends ApiBaseController
 {
@@ -22,6 +23,7 @@ class LandingApiController extends ApiBaseController
     protected $announcementModel;
     protected $photoModel;
     protected $participantModel;
+    protected $programSubthemeModel;
     /**
      * Initialize controller, set models
      */
@@ -41,6 +43,7 @@ class LandingApiController extends ApiBaseController
         $this->announcementModel = new AnnouncementModel();
         $this->photoModel = new ProgramPhotoModel();
         $this->participantModel = new ParticipantModel();
+        $this->programSubthemeModel = new ProgramSubthemeModel();
     }
 
     /**
@@ -282,38 +285,47 @@ class LandingApiController extends ApiBaseController
             $normalizedWebUrl = normalize_web_url($webUrl);
 
             // Get program category by web_url
-            $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $normalizedWebUrl]);
+            $programCategory = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $normalizedWebUrl]);
 
-            if (!$category) {
+            if (!$programCategory) {
                 return $this->respondNotFound('Program category not found');
             }
 
-            // get latest program for this category
-            $activeProgram = $this->programModel->getActivePrograms($category->id);
+            // Get latest program for this category
+            $currentActiveProgram = $this->programModel->getActivePrograms($programCategory->id);
 
-            if (!$activeProgram) {
+            if (!$currentActiveProgram) {
                 return $this->respondNotFound('No active program found for this category');
-            }            // Get insights for the active program
-            $totalParticipants = $this->participantModel->getTotalParticipants($activeProgram->id);
-            $totalCountries = $this->participantModel->getTotalValidCountries($activeProgram->id);
-            $countriesData = $this->participantModel->getValidCountriesData($activeProgram->id);
+            }
 
-            $activeProgramInsights = [
-                'program' => $activeProgram,
-                'total_registered_participants' => $totalParticipants,
-                'total_countries' => $totalCountries,
-                'countries_data' => $countriesData,
+            // Get insights for the active program
+            $totalRegisteredParticipants = $this->participantModel->getTotalParticipants($currentActiveProgram->id);
+            $totalValidCountries = $this->participantModel->getTotalValidCountries($currentActiveProgram->id);
+            $validCountriesDataCollection = $this->participantModel->getValidCountriesData($currentActiveProgram->id);
+            
+            // Get program subthemes for the active program
+            $programSubthemes = $this->programSubthemeModel->getActiveSubthemes($currentActiveProgram->id);
+
+            // Add subthemes to the program object
+            $programWithSubthemes = clone $currentActiveProgram;
+            $programWithSubthemes->program_subthemes = $programSubthemes;
+
+            $activeProgramInsightsData = [
+                'program' => $programWithSubthemes,
+                'total_registered_participants' => $totalRegisteredParticipants,
+                'total_countries' => $totalValidCountries,
+                'countries_data' => $validCountriesDataCollection,
             ];
 
             // Get insights for this category
             // Note: You may need to create an InsightsModel to implement this functionality
-            $insightsData = [
-                'activeProgramInsights' => $activeProgramInsights,
+            $categoryInsightsData = [
+                'active_program_insights' => $activeProgramInsightsData,
             ];
 
             return $this->respondSuccess([
-                'category' => $category,
-                'insightsData' => $insightsData,
+                'category' => $programCategory,
+                'insightsData' => $categoryInsightsData,
             ]);
         } catch (\Exception $e) {
             return $this->respondError($e->getMessage());
@@ -643,42 +655,49 @@ class LandingApiController extends ApiBaseController
             $normalizedWebUrl = normalize_web_url($webUrl);
 
             // Get program category by web_url
-            $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $normalizedWebUrl]);
+            $programCategory = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $normalizedWebUrl]);
 
-            if (!$category) {
+            if (!$programCategory) {
                 return $this->respondNotFound('Program category not found');
             }
 
-            // get latest program for this category
-            $activeProgram = $this->programModel->getActivePrograms($category->id);
+            // Get latest program for this category
+            $currentActiveProgram = $this->programModel->getActivePrograms($programCategory->id);
 
-            if (!$activeProgram) {
+            if (!$currentActiveProgram) {
                 return $this->respondNotFound('No active program found for this category');
             }
 
             // Get insights for the active program
-            $totalParticipants = $this->participantModel->getTotalParticipants($activeProgram->id);
-            $totalValidCountries = $this->participantModel->getTotalValidCountries($activeProgram->id);
-            $validCountriesData = $this->participantModel->getValidCountriesData($activeProgram->id);
-            $invalidCountriesData = $this->participantModel->getInvalidCountriesData($activeProgram->id);
+            $totalRegisteredParticipants = $this->participantModel->getTotalParticipants($currentActiveProgram->id);
+            $totalValidCountries = $this->participantModel->getTotalValidCountries($currentActiveProgram->id);
+            $validCountriesDataCollection = $this->participantModel->getValidCountriesData($currentActiveProgram->id);
+            $invalidCountriesDataCollection = $this->participantModel->getInvalidCountriesData($currentActiveProgram->id);
             
             // Also get original data for comparison
-            $totalOriginalCountries = $this->participantModel->getTotalCountries($activeProgram->id);
-            $originalCountriesData = $this->participantModel->getCountriesData($activeProgram->id);
+            $totalOriginalCountries = $this->participantModel->getTotalCountries($currentActiveProgram->id);
+            $originalCountriesDataCollection = $this->participantModel->getCountriesData($currentActiveProgram->id);
+            
+            // Get program subthemes for the active program
+            $programSubthemes = $this->programSubthemeModel->getActiveSubthemes($currentActiveProgram->id);
 
-            $debugData = [
-                'program' => $activeProgram,
-                'total_registered_participants' => $totalParticipants,
+            // Add subthemes to the program object
+            $programWithSubthemes = clone $currentActiveProgram;
+            $programWithSubthemes->program_subthemes = $programSubthemes;
+
+            $debugInsightsData = [
+                'program' => $programWithSubthemes,
+                'total_registered_participants' => $totalRegisteredParticipants,
                 'original_total_countries' => $totalOriginalCountries,
                 'valid_total_countries' => $totalValidCountries,
-                'original_countries_data' => $originalCountriesData,
-                'valid_countries_data' => $validCountriesData,
-                'invalid_countries_data' => $invalidCountriesData,
+                'original_countries_data' => $originalCountriesDataCollection,
+                'valid_countries_data' => $validCountriesDataCollection,
+                'invalid_countries_data' => $invalidCountriesDataCollection,
             ];
 
             return $this->respondSuccess([
-                'category' => $category,
-                'debugData' => $debugData,
+                'category' => $programCategory,
+                'debugData' => $debugInsightsData,
             ]);
         } catch (\Exception $e) {
             return $this->respondError($e->getMessage());

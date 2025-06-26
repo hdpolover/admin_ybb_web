@@ -470,6 +470,7 @@
 
                 } else if (selectedType === 'agreement') {
                     console.log('Showing Agreement configuration');
+                    s
                     $('#drive-url-section').show();
                     $('#document-type-info').show();
                     $('#agreement-info').show();
@@ -478,7 +479,6 @@
                     $('#drive-url').prop('required', true);
                     $('#is-upload').val('1');
                     $('#is-generated').val('0');
-
                 } else if (selectedType === 'complement') {
                     console.log('Showing Complement configuration');
                     $('#drive-url-section').show();
@@ -487,7 +487,7 @@
                     $('#drive-url-label').text('Document Link*');
                     $('#drive-url-help').text('Enter Google Drive link to the complementary document');
                     $('#drive-url').prop('required', true);
-                    $('#is-upload').val('1');
+                    $('#is-upload').val('0');
                     $('#is-generated').val('0');
                 }
             });
@@ -608,7 +608,7 @@
 
                         urlLabel.text('Document Link*');
                         urlHelp.text('Enter Google Drive link to the complementary document');
-                        isUploadInput.val('1');
+                        isUploadInput.val('0');
                         isGeneratedInput.val('0');
                         urlInput.prop('required', true);
                     } else {

@@ -96,8 +96,8 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->get('getReviewerSubthemes', 'AbstractPapers::getReviewerSubthemes');
         });
         $routes->group('agreements', function ($routes) {
-            $routes->get('/', 'Agreements::index');
-            $routes->post('update-status', 'Agreements::updateStatus');
+            $routes->get('/', 'Submissions\Agreements::index');
+            $routes->post('update-status', 'Submissions\Agreements::updateStatus');
         });
         
     });

@@ -1,6 +1,9 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Controllers\Submissions;
+
+use App\Controllers\BaseController;
+use App\Models\FaqModel;
 
 class Agreements extends BaseController
 {
@@ -20,8 +23,8 @@ class Agreements extends BaseController
     {
         //get current program ID from session
         $programId = session('current_program');
-        $documentName = 'Agreement Letter';
-        $type = 'agreement';
+        $documentName = 'Agreement Letter'; // Ganti sesuai kebutuhan
+        $type = 'agreement'; // Ganti sesuai kebutuhan
         
         // $document = $this->DocModel->getDocumentIdByName($programId, $documentName);
         $document = $this->DocModel->getDocumentIdByType($programId, $type);
