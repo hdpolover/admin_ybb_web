@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Certificate AJAX Debug Test</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Certificate AJAX Debug Test</h1>
+    
+    <button onclick="testDirectAjax()">Test Direct AJAX Call</button>
+    <button onclick="testWithFetch()">Test with Fetch API</button>
+    
+    <div id="results" style="margin-top: 20px; padding: 20px; border: 1px solid #ccc;">
+        Results will appear here...
+    </div>
+
+    <script>
+        function testDirectAjax() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = 'Testing AJAX call...';
+            
+            $.ajax({
+                url: '/documents/certificates/getData',
+                type: 'GET',
+                beforeSend: function(xhr) {
+                    console.log('Making AJAX request...');
+                },
+                success: function(data) {
+                    console.log('Success:', data);
+                    resultsDiv.innerHTML = `
+                        <h3>✅ Success!</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error:', status, error);
+                    console.error('Response:', xhr.responseText);
+                    resultsDiv.innerHTML = `
+                        <h3>❌ Error</h3>
+                        <p><strong>Status:</strong> ${xhr.status}</p>
+                        <p><strong>Error:</strong> ${error}</p>
+                        <p><strong>Response Text (first 500 chars):</strong></p>
+                        <pre>${xhr.responseText.substring(0, 500)}</pre>
+                    `;
+                }
+            });
+        }
+        
+        function testWithFetch() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = 'Testing Fetch call...';
+            
+            fetch('/documents/certificates/getData')
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    console.log('Response ok:', response.ok);
+                    return response.text();
+                })
+                .then(data => {
+                    console.log('Raw response:', data);
+                    
+                    try {
+                        const jsonData = JSON.parse(data);
+                        resultsDiv.innerHTML = `
+                            <h3>✅ Fetch Success!</h3>
+                            <pre>${JSON.stringify(jsonData, null, 2)}</pre>
+                        `;
+                    } catch (e) {
+                        resultsDiv.innerHTML = `
+                            <h3>⚠️ Not JSON Response</h3>
+                            <p>Raw response (first 500 chars):</p>
+                            <pre>${data.substring(0, 500)}</pre>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Fetch error:', error);
+                    resultsDiv.innerHTML = `
+                        <h3>❌ Fetch Error</h3>
+                        <p>${error.message}</p>
+                    `;
+                });
+        }
+    </script>
+</body>
+</html>

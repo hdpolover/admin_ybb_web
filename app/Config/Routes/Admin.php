@@ -122,8 +122,13 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
 
         // certificates
         $routes->get('certificates', 'Certificates::index');
-        $routes->get('certificates/view/(:num)', 'Certificates::view/$1');
         $routes->get('certificates/getData', 'Certificates::getData');
+        $routes->get('certificates/getAwardDetails/(:num)', 'Certificates::getAwardDetails/$1');
+        $routes->get('certificates/getAvailableParticipants/(:num)', 'Certificates::getAvailableParticipants/$1');
+        $routes->post('certificates/assignParticipants', 'Certificates::assignParticipants');
+        $routes->post('certificates/removeParticipant', 'Certificates::removeParticipant');
+        $routes->post('certificates/issueCertificates', 'Certificates::issueCertificates');
+        $routes->post('certificates/revokeCertificate', 'Certificates::revokeCertificate');
 
         // configuration
         $routes->get('configuration', 'Configuration::index');
@@ -280,6 +285,35 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->post('reset', 'AbstractSettings::reset');
             $routes->post('deactivate', 'AbstractSettings::deactivate');
         });
+
+        // program awards
+        $routes->group('program-awards', function ($routes) {
+            $routes->get('/', 'ProgramAwards::index');
+            $routes->get('view/(:num)', 'ProgramAwards::view/$1');
+            $routes->get('getData', 'ProgramAwards::getData');
+            $routes->get('getAward/(:num)', 'ProgramAwards::getAward/$1');
+            $routes->post('create', 'ProgramAwards::create');
+            $routes->post('update/(:num)', 'ProgramAwards::update/$1');
+            $routes->get('delete/(:num)', 'ProgramAwards::delete/$1');
+            $routes->post('delete/(:num)', 'ProgramAwards::delete/$1');
+        });
+
+        // program certificates
+        $routes->group('program-certificates', function ($routes) {
+            $routes->get('/', 'ProgramCertificates::index');
+            $routes->get('add', 'ProgramCertificates::add');
+            $routes->get('edit/(:num)', 'ProgramCertificates::edit/$1');
+            $routes->get('view/(:num)', 'ProgramCertificates::view/$1');
+            $routes->get('getData', 'ProgramCertificates::getData');
+            $routes->get('getCertificate/(:num)', 'ProgramCertificates::getCertificate/$1');
+            $routes->post('create', 'ProgramCertificates::create');
+            $routes->post('update/(:num)', 'ProgramCertificates::update/$1');
+            $routes->get('delete/(:num)', 'ProgramCertificates::delete/$1');
+            $routes->post('delete/(:num)', 'ProgramCertificates::delete/$1');
+            $routes->post('publish/(:num)', 'ProgramCertificates::publish/$1');
+            $routes->get('content-blocks/(:num)', 'ProgramCertificates::contentBlocks/$1');
+            $routes->post('content-blocks/save', 'ProgramCertificates::saveContentBlocks');
+        });
     });
 
     // settings group
@@ -305,6 +339,12 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->get('delete/(:num)', 'Admin::delete/$1');
         });
     });
+});
+
+// Temporary debug routes (remove in production)
+$routes->group('debug', ['namespace' => 'App\Controllers'], function ($routes) {
+    $routes->get('certificates-data', 'Certificates::testGetData');
+    $routes->get('certificates-simple', 'Certificates::simpleTest');
 });
 
 // Remove excel route

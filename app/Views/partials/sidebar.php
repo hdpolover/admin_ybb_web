@@ -178,6 +178,12 @@
                                 </li>
                             <?php endif; ?>
                             <li class="nav-item">
+                                <a href="<?= base_url("master-data/program-awards") ?>" class="nav-link <?= url_is('master-data/program-awards*') ? 'active' : '' ?>"> <i class="ri-award-line"></i> Program Awards </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url("master-data/program-certificates") ?>" class="nav-link <?= url_is('master-data/program-certificates*') ? 'active' : '' ?>"> <i class="ri-file-shield-line"></i> Program Certificates </a>
+                            </li>
+                            <li class="nav-item">
                                 <a href="<?= base_url("master-data/faqs") ?>" class="nav-link <?= url_is('master-data/faqs*') ? 'active' : '' ?>"> <i class="ri-question-answer-line"></i> FAQs </a>
                             </li>
                         </ul>

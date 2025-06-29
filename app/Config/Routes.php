@@ -35,6 +35,10 @@ $routes->group('', ['namespace' => 'App\Controllers'], function ($routes) {
     // Simple Excel export routes
     $routes->get('simpleexport', 'SimpleExportController::index');
     $routes->get('simpleexport/exportSimple', 'SimpleExportController::exportSimple');
+    
+    // Test routes for certificate debugging
+    $routes->get('test-certificates', 'CertificateTest::testPage');
+    $routes->get('test-certificates/data', 'CertificateTest::testData');
 });
 
 // We get a performance increase by specifying the default
