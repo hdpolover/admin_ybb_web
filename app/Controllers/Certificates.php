@@ -60,27 +60,43 @@ class Certificates extends BaseController
         log_message('info', 'Certificates::getData - Program ID: ' . $programId);
 
         try {
-            // Get all awards for the current program with participant counts
-            $awards = $this->programAwardModel
-                ->select('program_awards.*, 
-                         COUNT(DISTINCT participant_awards.participant_id) as participants_count,
-                         COUNT(DISTINCT participant_certificates.participant_id) as certificates_issued')
-                ->join('participant_awards', 'participant_awards.award_id = program_awards.id AND participant_awards.is_active = 1 AND participant_awards.is_deleted = 0', 'left')
-                ->join('participant_certificates', 'participant_certificates.award_id = program_awards.id AND participant_certificates.is_active = 1 AND participant_certificates.is_deleted = 0', 'left')
-                ->where('program_awards.program_id', $programId)
-                ->where('program_awards.is_active', 1)
-                ->where('program_awards.is_deleted', 0)
-                ->groupBy('program_awards.id')
-                ->orderBy('program_awards.order_number', 'ASC')
-                ->findAll();
+            // First, get all program awards for the current program
+            $db = \Config\Database::connect();
+            
+            $query = "
+                SELECT 
+                    pa.*,
+                    COALESCE(participant_counts.participants_count, 0) as participants_count,
+                    COALESCE(certificate_counts.certificates_issued, 0) as certificates_issued
+                FROM program_awards pa
+                LEFT JOIN (
+                    SELECT 
+                        award_id,
+                        COUNT(DISTINCT participant_id) as participants_count
+                    FROM participant_awards 
+                    WHERE is_active = 1 AND is_deleted = 0
+                    GROUP BY award_id
+                ) participant_counts ON participant_counts.award_id = pa.id
+                LEFT JOIN (
+                    SELECT 
+                        award_id,
+                        COUNT(DISTINCT participant_id) as certificates_issued
+                    FROM participant_certificates 
+                    WHERE is_active = 1 AND is_deleted = 0
+                    GROUP BY award_id
+                ) certificate_counts ON certificate_counts.award_id = pa.id
+                WHERE pa.program_id = ? 
+                    AND pa.is_active = 1 
+                    AND pa.is_deleted = 0
+                ORDER BY pa.order_number ASC
+            ";
+            
+            $awards = $db->query($query, [$programId])->getResult();
+            
+            log_message('info', 'Certificates::getData - Found ' . count($awards) . ' awards for program ' . $programId);
 
             // Get certificate templates for each award
             foreach ($awards as &$award) {
-                // Convert array to object if needed
-                if (is_array($award)) {
-                    $award = (object) $award;
-                }
-                
                 $certificates = $this->programCertificateModel
                     ->where('award_id', $award->id)
                     ->where('is_active', 1)
@@ -89,6 +105,8 @@ class Certificates extends BaseController
                 
                 $award->certificate_templates = $certificates;
                 $award->has_certificate_template = count($certificates) > 0;
+                
+                log_message('info', 'Award: ' . $award->title . ' - Participants: ' . $award->participants_count . ' - Certificates: ' . $award->certificates_issued);
             }
 
             // Format data for DataTables
@@ -537,16 +555,159 @@ class Certificates extends BaseController
     }
 
     /**
+     * Test method without any authentication - for debugging only
+     */
+    public function testDataDirect()
+    {
+        // Force program ID to 8 (which we know has data)
+        $programId = 8;
+        
+        try {
+            $db = \Config\Database::connect();
+            
+            $query = "
+                SELECT 
+                    pa.*,
+                    COALESCE(participant_counts.participants_count, 0) as participants_count,
+                    COALESCE(certificate_counts.certificates_issued, 0) as certificates_issued
+                FROM program_awards pa
+                LEFT JOIN (
+                    SELECT 
+                        award_id,
+                        COUNT(DISTINCT participant_id) as participants_count
+                    FROM participant_awards 
+                    WHERE is_active = 1 AND is_deleted = 0
+                    GROUP BY award_id
+                ) participant_counts ON participant_counts.award_id = pa.id
+                LEFT JOIN (
+                    SELECT 
+                        award_id,
+                        COUNT(DISTINCT participant_id) as certificates_issued
+                    FROM participant_certificates 
+                    WHERE is_active = 1 AND is_deleted = 0
+                    GROUP BY award_id
+                ) certificate_counts ON certificate_counts.award_id = pa.id
+                WHERE pa.program_id = ? 
+                    AND pa.is_active = 1 
+                    AND pa.is_deleted = 0
+                ORDER BY pa.order_number ASC
+            ";
+            
+            $awards = $db->query($query, [$programId])->getResult();
+            
+            // Format data for DataTables
+            $data = [];
+            foreach ($awards as $award) {
+                $data[] = [
+                    'id' => $award->id,
+                    'title' => $award->title,
+                    'award_type' => ucfirst(str_replace('_', ' ', $award->award_type)),
+                    'description' => $award->description,
+                    'participants_count' => $award->participants_count,
+                    'certificates_issued' => $award->certificates_issued,
+                    'progress' => '<div class="progress" style="height: 20px;">
+                        <div class="progress-bar" role="progressbar" style="width: 0%;">
+                            0 / 0
+                        </div>
+                    </div>',
+                    'certificate_status' => '<span class="badge bg-warning">No Template</span>',
+                    'actions' => '<button class="btn btn-primary btn-sm">View</button>'
+                ];
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'program_id' => $programId,
+                'total_awards' => count($awards),
+                'data' => $data
+            ]);
+
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'error' => 'Failed to load data: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
      * Simple test endpoint
      */
     public function simpleTest()
     {
-        return $this->response->setJSON([
-            'success' => true,
-            'message' => 'Certificates controller is working!',
-            'timestamp' => date('Y-m-d H:i:s'),
-            'session_program' => session('current_program'),
-            'session_user' => session('user_id')
-        ]);
+        $programId = session('current_program');
+        
+        echo "<h2>Certificate Management Debug Test</h2>";
+        echo "<p>Session Program ID: " . $programId . "</p>";
+        echo "<p>User ID: " . (session('user_id') ?? 'Not Set') . "</p>";
+        
+        if (!$programId) {
+            echo "<p style='color:red;'>No program selected in session!</p>";
+            return;
+        }
+        
+        // Test direct SQL query
+        $db = \Config\Database::connect();
+        
+        echo "<h3>Direct Program Awards Query:</h3>";
+        $directQuery = "SELECT * FROM program_awards WHERE program_id = ? AND is_active = 1 AND is_deleted = 0";
+        $directResults = $db->query($directQuery, [$programId])->getResult();
+        echo "<p>Direct query found: " . count($directResults) . " awards</p>";
+        
+        foreach ($directResults as $award) {
+            echo "<div style='border:1px solid #ccc; margin:5px; padding:10px;'>";
+            echo "<strong>Award ID:</strong> " . $award->id . "<br>";
+            echo "<strong>Title:</strong> " . $award->title . "<br>";
+            echo "<strong>Order:</strong> " . $award->order_number . "<br>";
+            echo "</div>";
+        }
+        
+        echo "<h3>Complex Query with Joins:</h3>";
+        $complexQuery = "
+            SELECT 
+                pa.*,
+                COALESCE(participant_counts.participants_count, 0) as participants_count,
+                COALESCE(certificate_counts.certificates_issued, 0) as certificates_issued
+            FROM program_awards pa
+            LEFT JOIN (
+                SELECT 
+                    award_id,
+                    COUNT(DISTINCT participant_id) as participants_count
+                FROM participant_awards 
+                WHERE is_active = 1 AND is_deleted = 0
+                GROUP BY award_id
+            ) participant_counts ON participant_counts.award_id = pa.id
+            LEFT JOIN (
+                SELECT 
+                    award_id,
+                    COUNT(DISTINCT participant_id) as certificates_issued
+                FROM participant_certificates 
+                WHERE is_active = 1 AND is_deleted = 0
+                GROUP BY award_id
+            ) certificate_counts ON certificate_counts.award_id = pa.id
+            WHERE pa.program_id = ? 
+                AND pa.is_active = 1 
+                AND pa.is_deleted = 0
+            ORDER BY pa.order_number ASC
+        ";
+        
+        $complexResults = $db->query($complexQuery, [$programId])->getResult();
+        echo "<p>Complex query found: " . count($complexResults) . " awards</p>";
+        
+        foreach ($complexResults as $award) {
+            echo "<div style='border:1px solid #ccc; margin:5px; padding:10px;'>";
+            echo "<strong>Award ID:</strong> " . $award->id . "<br>";
+            echo "<strong>Title:</strong> " . $award->title . "<br>";
+            echo "<strong>Participants:</strong> " . $award->participants_count . "<br>";
+            echo "<strong>Certificates:</strong> " . $award->certificates_issued . "<br>";
+            echo "</div>";
+        }
+        
+        echo "<h3>Test getData() Method Response:</h3>";
+        try {
+            $testResult = $this->testGetData();
+            echo "<p>getData() test completed - check console for JSON response</p>";
+        } catch (\Exception $e) {
+            echo "<p style='color:red;'>Error in getData(): " . $e->getMessage() . "</p>";
+        }
     }
 }

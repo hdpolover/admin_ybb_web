@@ -150,7 +150,17 @@
                         <div class="col-lg-12">
                             <div class="card">
                                 <div class="card-header align-items-center d-flex">
-                                    <h4 class="card-title mb-0 flex-grow-1">Awards & Certificate Management</h4>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h4 class="card-title mb-0 flex-grow-1">Awards & Certificate Management</h4>
+                                        <div>
+                                            <button type="button" class="btn btn-info btn-sm me-2" onclick="testAjaxConnection()">
+                                                <i class="fas fa-network-wired"></i> Test Connection
+                                            </button>
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="refreshData()">
+                                                <i class="fas fa-sync-alt"></i> Refresh
+                                            </button>
+                                        </div>
+                                    </div>
                                     <div class="flex-shrink-0">
                                         <button type="button" class="btn btn-primary" onclick="refreshData()">
                                             <i class="ri-refresh-line align-bottom me-1"></i> Refresh
@@ -317,25 +327,72 @@
 
         function initializeDataTable() {
             console.log('📊 Initializing DataTable...');
+            console.log('🔗 AJAX URL:', '<?= base_url('documents/certificates/getData') ?>');
+            
+            // Test AJAX call first
+            console.log('🧪 Testing direct AJAX call...');
+            $.ajax({
+                url: '<?= base_url('documents/certificates/getData') ?>',
+                type: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                    console.log('🎯 Direct AJAX Success:', response);
+                    if (response.data && response.data.length > 0) {
+                        console.log('📊 Found', response.data.length, 'awards');
+                    } else {
+                        console.warn('⚠️ No data array or empty data array');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('❌ Direct AJAX Failed:', {
+                        status: xhr.status,
+                        statusText: xhr.statusText,
+                        error: error,
+                        responseText: xhr.responseText
+                    });
+                }
+            });
             
             certificatesTable = $('#certificates-table').DataTable({
                 ajax: {
-                    url: '/documents/certificates/getData',
+                    url: '<?= base_url('documents/certificates/getData') ?>',
                     type: 'GET',
+                    dataSrc: function(json) {
+                        console.log('🔄 DataTable dataSrc function called with:', json);
+                        
+                        if (json.error) {
+                            console.error('❌ Server returned error:', json.error);
+                            Swal.fire('Error', json.error, 'error');
+                            return [];
+                        }
+                        
+                        if (!json.data) {
+                            console.error('❌ No data property in response');
+                            return [];
+                        }
+                        
+                        console.log('✅ Returning', json.data.length, 'rows to DataTable');
+                        return json.data;
+                    },
                     beforeSend: function(xhr) {
-                        console.log('🌐 Making AJAX request to:', '/documents/certificates/getData');
+                        console.log('🌐 DataTable making AJAX request to:', '<?= base_url('documents/certificates/getData') ?>');
                     },
                     success: function(data) {
-                        console.log('✅ AJAX success, received data:', data);
+                        console.log('✅ DataTable AJAX success:', data);
                     },
                     error: function(xhr, error, thrown) {
-                        console.error('❌ DataTable AJAX error:', error);
-                        console.error('📄 Response status:', xhr.status);
-                        console.error('📝 Response text:', xhr.responseText);
+                        console.error('❌ DataTable AJAX error:', {
+                            error: error,
+                            thrown: thrown,
+                            status: xhr.status,
+                            statusText: xhr.statusText,
+                            responseText: xhr.responseText
+                        });
+                        
                         Swal.fire({
                             icon: 'error',
-                            title: 'Error',
-                            text: 'Failed to load certificate data. Status: ' + xhr.status
+                            title: 'DataTable Error',
+                            text: 'Failed to load certificate data. Status: ' + xhr.status + ' - ' + error
                         });
                     }
                 },
@@ -946,6 +1003,62 @@
                     });
                 }
             });
+        }
+
+        // Test functions for debugging
+        function testAjaxConnection() {
+            console.log('🔧 Testing AJAX connection...');
+            
+            $.ajax({
+                url: '<?= base_url('documents/certificates/getData') ?>',
+                type: 'GET',
+                dataType: 'json',
+                beforeSend: function() {
+                    console.log('📤 Sending test request to:', '<?= base_url('documents/certificates/getData') ?>');
+                },
+                success: function(response) {
+                    console.log('✅ Test AJAX Success:', response);
+                    
+                    let message = 'Connection successful!\n';
+                    if (response && response.data) {
+                        message += `Found ${response.data.length} awards\n`;
+                        if (response.statistics) {
+                            message += `Statistics: ${JSON.stringify(response.statistics)}`;
+                        }
+                    } else if (response.error) {
+                        message += `Error: ${response.error}`;
+                    }
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Connection Test',
+                        text: message,
+                        confirmButtonText: 'OK'
+                    });
+                },
+                error: function(xhr, status, error) {
+                    console.error('❌ Test AJAX Error:', {
+                        status: status,
+                        error: error,
+                        responseText: xhr.responseText,
+                        statusCode: xhr.status
+                    });
+                    
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Connection Test Failed',
+                        text: `Status: ${xhr.status}\nError: ${error}\nResponse: ${xhr.responseText}`,
+                        confirmButtonText: 'OK'
+                    });
+                }
+            });
+        }
+
+        function refreshData() {
+            console.log('🔄 Refreshing data...');
+            if (certificatesTable) {
+                certificatesTable.ajax.reload();
+            }
         }
 
         // Handle flash messages with SweetAlert

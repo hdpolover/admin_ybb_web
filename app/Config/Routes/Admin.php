@@ -345,6 +345,13 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
 $routes->group('debug', ['namespace' => 'App\Controllers'], function ($routes) {
     $routes->get('certificates-data', 'Certificates::testGetData');
     $routes->get('certificates-simple', 'Certificates::simpleTest');
+    $routes->get('certificates-direct', 'Certificates::testDataDirect');
+});
+
+// Session test routes
+$routes->group('session-test', ['namespace' => 'App\Controllers'], function ($routes) {
+    $routes->get('set-program', 'SessionTest::setProgram');
+    $routes->get('select-program/(:num)', 'SessionTest::selectProgram/$1');
 });
 
 // Remove excel route
