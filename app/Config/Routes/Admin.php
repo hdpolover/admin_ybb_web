@@ -194,10 +194,10 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->get('get-category-by-id/(:num)', 'SubmissionForm::getCategoryById/$1');
 
             // SubTheme Management Routes
-            $routes->post('add-sub-theme', 'SubmissionForm::addSubTheme');
-            $routes->post('update-sub-theme/(:num)', 'SubmissionForm::updateSubTheme/$1');
-            $routes->post('delete-sub-theme/(:num)', 'SubmissionForm::deleteSubTheme/$1');
-            $routes->get('get-sub-theme-by-id/(:num)', 'SubmissionForm::getSubThemeById/$1');
+            $routes->post('add-subtheme', 'SubmissionForm::addSubTheme');
+            $routes->post('update-subtheme/(:num)', 'SubmissionForm::updateSubTheme/$1');
+            $routes->post('delete-subtheme/(:num)', 'SubmissionForm::deleteSubTheme/$1');
+            $routes->get('get-subtheme-by-id/(:num)', 'SubmissionForm::getSubThemeById/$1');
 
             // Essay Management Routes
             $routes->post('add-essay', 'SubmissionForm::addEssay');
