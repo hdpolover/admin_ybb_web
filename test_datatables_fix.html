@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DataTables Fix Test</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+    <h1>DataTables Fix Test</h1>
+    
+    <div id="test-results">
+        <h2>Test Results:</h2>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        // Test the certificate DataTable endpoints
+        async function testDataTables() {
+            const results = $('#results');
+            results.append('<p>Testing DataTable endpoints...</p>');
+
+            // Test available participants endpoint
+            try {
+                const response = await fetch('http://localhost:8080/certificates/getAvailableParticipantsData/1', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        draw: 1,
+                        start: 0,
+                        length: 10
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    results.append('<p style="color: green;">✓ Available participants endpoint responding</p>');
+                    results.append('<p>Response: ' + JSON.stringify(data, null, 2) + '</p>');
+                } else {
+                    results.append('<p style="color: red;">✗ Available participants endpoint failed: ' + response.status + '</p>');
+                    const text = await response.text();
+                    results.append('<p>Error: ' + text + '</p>');
+                }
+            } catch (error) {
+                results.append('<p style="color: red;">✗ Available participants endpoint error: ' + error.message + '</p>');
+            }
+
+            // Test assigned participants endpoint
+            try {
+                const response = await fetch('http://localhost:8080/certificates/getAssignedParticipantsData/1', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        draw: 1,
+                        start: 0,
+                        length: 10
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    results.append('<p style="color: green;">✓ Assigned participants endpoint responding</p>');
+                    results.append('<p>Response: ' + JSON.stringify(data, null, 2) + '</p>');
+                } else {
+                    results.append('<p style="color: red;">✗ Assigned participants endpoint failed: ' + response.status + '</p>');
+                    const text = await response.text();
+                    results.append('<p>Error: ' + text + '</p>');
+                }
+            } catch (error) {
+                results.append('<p style="color: red;">✗ Assigned participants endpoint error: ' + error.message + '</p>');
+            }
+        }
+
+        // Run tests when page loads
+        $(document).ready(function() {
+            testDataTables();
+        });
+    </script>
+</body>
+</html>

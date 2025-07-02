@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DataTable Debug Test</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>DataTable Debug Test</h1>
+    
+    <div id="debug-info">
+        <h2>Debug Information:</h2>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        async function debugDataTableEndpoints() {
+            const results = $('#results');
+            results.append('<h3>Testing Certificate DataTable Endpoints</h3>');
+
+            // Test 1: Check if the endpoints exist
+            const endpoints = [
+                {
+                    name: 'Available Participants (GET)',
+                    url: 'http://localhost:8080/certificates/getAvailableParticipantsData/1?draw=1&start=0&length=10&search[value]='
+                },
+                {
+                    name: 'Assigned Participants (GET)', 
+                    url: 'http://localhost:8080/certificates/getAssignedParticipantsData/1?draw=1&start=0&length=10&search[value]='
+                }
+            ];
+
+            for (const endpoint of endpoints) {
+                results.append(`<h4>Testing: ${endpoint.name}</h4>`);
+                
+                try {
+                    const response = await fetch(endpoint.url, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+
+                    results.append(`<p><strong>Status:</strong> ${response.status} ${response.statusText}</p>`);
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        results.append('<p style="color: green;">✓ Response received successfully</p>');
+                        results.append(`<p><strong>Response structure:</strong></p>`);
+                        results.append(`<pre>${JSON.stringify(data, null, 2)}</pre>`);
+                    } else {
+                        const text = await response.text();
+                        results.append('<p style="color: red;">✗ Error response</p>');
+                        results.append(`<p><strong>Error content:</strong></p>`);
+                        results.append(`<pre>${text.substring(0, 1000)}...</pre>`);
+                    }
+                } catch (error) {
+                    results.append('<p style="color: red;">✗ Network error: ' + error.message + '</p>');
+                }
+                
+                results.append('<hr>');
+            }
+
+            // Test 2: Check certificate view page
+            results.append('<h3>Testing Certificate View Page</h3>');
+            try {
+                const response = await fetch('http://localhost:8080/certificates/view/1', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'text/html',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                results.append(`<p><strong>View Page Status:</strong> ${response.status} ${response.statusText}</p>`);
+                
+                if (response.ok) {
+                    results.append('<p style="color: green;">✓ Certificate view page accessible</p>');
+                } else {
+                    const text = await response.text();
+                    results.append('<p style="color: red;">✗ View page error</p>');
+                    results.append(`<pre>${text.substring(0, 500)}...</pre>`);
+                }
+            } catch (error) {
+                results.append('<p style="color: red;">✗ View page network error: ' + error.message + '</p>');
+            }
+        }
+
+        $(document).ready(function() {
+            debugDataTableEndpoints();
+        });
+    </script>
+</body>
+</html>

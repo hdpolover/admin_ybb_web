@@ -8,6 +8,7 @@ class ProgramAwardModel extends Model
 {
     protected $table = 'program_awards';
     protected $primaryKey = 'id';
+    protected $returnType = 'object';  // Force return as object
     protected $allowedFields = [
         'program_id',
         'title',

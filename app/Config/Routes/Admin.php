@@ -122,9 +122,17 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
 
         // certificates
         $routes->get('certificates', 'Certificates::index');
+        $routes->get('certificates/test', 'Certificates::testIndex');
+        $routes->get('certificates/debug', 'Certificates::debugData');
+        $routes->get('certificates/testParticipants/(:num)', 'Certificates::testParticipantsData/$1');
+        $routes->get('certificates/view/(:num)', 'Certificates::view/$1');
         $routes->get('certificates/getData', 'Certificates::getData');
         $routes->get('certificates/getAwardDetails/(:num)', 'Certificates::getAwardDetails/$1');
         $routes->get('certificates/getAvailableParticipants/(:num)', 'Certificates::getAvailableParticipants/$1');
+        $routes->get('certificates/getAvailableParticipantsData/(:num)', 'Certificates::getAvailableParticipantsData/$1');
+        $routes->post('certificates/getAvailableParticipantsData/(:num)', 'Certificates::getAvailableParticipantsData/$1');
+        $routes->get('certificates/getAssignedParticipantsData/(:num)', 'Certificates::getAssignedParticipantsData/$1');
+        $routes->post('certificates/getAssignedParticipantsData/(:num)', 'Certificates::getAssignedParticipantsData/$1');
         $routes->post('certificates/assignParticipants', 'Certificates::assignParticipants');
         $routes->post('certificates/removeParticipant', 'Certificates::removeParticipant');
         $routes->post('certificates/issueCertificates', 'Certificates::issueCertificates');
@@ -194,10 +202,10 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->get('get-category-by-id/(:num)', 'SubmissionForm::getCategoryById/$1');
 
             // SubTheme Management Routes
-            $routes->post('add-sub-theme', 'SubmissionForm::addSubTheme');
-            $routes->post('update-sub-theme/(:num)', 'SubmissionForm::updateSubTheme/$1');
-            $routes->post('delete-sub-theme/(:num)', 'SubmissionForm::deleteSubTheme/$1');
-            $routes->get('get-sub-theme-by-id/(:num)', 'SubmissionForm::getSubThemeById/$1');
+            $routes->post('add-subtheme', 'SubmissionForm::addSubTheme');
+            $routes->post('update-subtheme/(:num)', 'SubmissionForm::updateSubTheme/$1');
+            $routes->post('delete-subtheme/(:num)', 'SubmissionForm::deleteSubTheme/$1');
+            $routes->get('get-subtheme-by-id/(:num)', 'SubmissionForm::getSubThemeById/$1');
 
             // Essay Management Routes
             $routes->post('add-essay', 'SubmissionForm::addEssay');
@@ -346,6 +354,7 @@ $routes->group('debug', ['namespace' => 'App\Controllers'], function ($routes) {
     $routes->get('certificates-data', 'Certificates::testGetData');
     $routes->get('certificates-simple', 'Certificates::simpleTest');
     $routes->get('certificates-direct', 'Certificates::testDataDirect');
+    $routes->get('certificates-view/(:num)', 'Certificates::debugView/$1');
 });
 
 // Session test routes

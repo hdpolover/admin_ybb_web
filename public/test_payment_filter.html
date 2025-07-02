@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Payment Filter</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Payment Filter Test</h1>
+    <button id="test-all">Test All Participants</button>
+    <button id="test-paid">Test Paid Participants</button>
+    <button id="test-registration">Test Registration Fee</button>
+    
+    <div id="result"></div>
+
+    <script>
+        $('#test-all').click(function() {
+            testFilter('all');
+        });
+        
+        $('#test-paid').click(function() {
+            testFilter('any_payment');
+        });
+        
+        $('#test-registration').click(function() {
+            testFilter('registration');
+        });
+        
+        function testFilter(filterType) {
+            $.ajax({
+                url: '/admin_ybb_web/documents/certificates/getAvailableParticipantsData/1',
+                method: 'GET',
+                data: {
+                    draw: 1,
+                    start: 0,
+                    length: 25,
+                    payment_filter: filterType
+                },
+                success: function(response) {
+                    $('#result').html('<h3>Filter: ' + filterType + '</h3><pre>' + JSON.stringify(response, null, 2) + '</pre>');
+                },
+                error: function(xhr, status, error) {
+                    $('#result').html('<h3>Error for filter: ' + filterType + '</h3><p>' + error + '</p><pre>' + xhr.responseText + '</pre>');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

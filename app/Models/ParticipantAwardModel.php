@@ -86,11 +86,18 @@ class ParticipantAwardModel extends Model
      */
     public function hasParticipantAward($participantId, $awardId)
     {
-        return $this->where('participant_id', $participantId)
+        log_message('info', "Checking if participant ID: $participantId has award ID: $awardId");
+        
+        $result = $this->where('participant_id', $participantId)
                    ->where('award_id', $awardId)
                    ->where('is_active', 1)
                    ->where('is_deleted', 0)
-                   ->first() !== null;
+                   ->first();
+                   
+        $hasAward = $result !== null;
+        log_message('info', "Participant ID: $participantId has award ID: $awardId - " . ($hasAward ? 'YES' : 'NO'));
+        
+        return $hasAward;
     }
 
     /**

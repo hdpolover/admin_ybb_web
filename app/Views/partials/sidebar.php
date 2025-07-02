@@ -166,10 +166,9 @@
                             </li>
                             <li class="nav-item">
                                 <a href="<?= base_url("master-data/program-rundowns") ?>" class="nav-link <?= url_is('master-data/program-rundowns*') ? 'active' : '' ?>"> <i class="ri-calendar-event-line"></i> Program Rundowns </a>
-                            </li>                            <?php if (session('topbar_data')['isJournalType'] ?? false): ?>
-                                <li class="nav-item">
-                                    <a href="<?= base_url("master-data/abstract-topics") ?>" class="nav-link <?= url_is('master-data/abstract-topics*') ? 'active' : '' ?>"> <i class="ri-list-check"></i> Abstract Topics <span class="text-success">(YAF Only)</span></a>
-                                </li>
+                            </li>
+                            <?php if (session('topbar_data')['isJournalType'] ?? false): ?>
+
                                 <li class="nav-item">
                                     <a href="<?= base_url("master-data/abstract-reviewers") ?>" class="nav-link <?= url_is('master-data/abstract-reviewers*') ? 'active' : '' ?>"> <i class="ri-user-star-line"></i> Abstract Reviewers <span class="text-success">(YAF Only)</span></a>
                                 </li>
