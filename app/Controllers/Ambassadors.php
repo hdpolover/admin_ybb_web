@@ -41,7 +41,8 @@ class Ambassadors extends BaseController
      * Get ambassadors data for DataTables
      */
     public function getData()
-    {        $programId = session('current_program');
+    {        
+        $programId = session('current_program');
 
         // Process DataTables server-side request
         $request = $this->request->getGet();
@@ -55,44 +56,82 @@ class Ambassadors extends BaseController
             'dir' => $request['order'][0]['dir']
         ] : ['column' => 0, 'dir' => 'desc'];
 
-        // Column names
+        // Additional filters
+        $statusFilter = $request['status'] ?? '';
+
+        // Column names mapping to actual database columns
         $columns = [
-            'name',
-            'email',
-            'institution',
-            'is_active',
-            'created_at',
-            'ref_code',
-            'referral_count',
+            0 => 'ambassadors.id',        // # column
+            1 => 'ambassadors.name',      // Details column (sorted by name)
+            2 => 'ambassadors.ref_code',  // Referral Code column
+            3 => 'referral_count',        // Referrals column (virtual)
+            4 => 'ambassadors.id'         // Actions column (not sortable)
         ];
 
-        $orderColumn = $columns[$order['column']] ?? '#';
+        $orderColumn = $columns[$order['column']] ?? 'ambassadors.created_at';
 
-        // Get data from database 
+        // Get comprehensive referral counts first for sorting
+        $referralCounts = $this->ambassadorModel->getComprehensiveReferralCounts($programId);
+        
+        // Get data from database - Build query
         $builder = $this->ambassadorModel->select('ambassadors.*')
             ->where('ambassadors.program_id', $programId)
             ->where('ambassadors.is_deleted', 0);
 
+        // Apply status filter
+        if (!empty($statusFilter)) {
+            $builder->where('ambassadors.is_active', $statusFilter);
+        }
+
         // Apply search
         if (!empty($search)) {
             $builder->groupStart()
-                ->like('name', $search)
-                ->orLike('email', $search)
-                ->orLike('institution', $search)
-                ->orLike('ref_code', $search)
-                ->groupEnd();
+                ->like('ambassadors.name', $search)
+                ->orLike('ambassadors.email', $search)
+                ->orLike('ambassadors.institution', $search)
+                ->orLike('ambassadors.ref_code', $search);
+            
+            // Only search phone number if it's not null
+            if (!empty($search)) {
+                $builder->orLike('ambassadors.phone_number', $search);
+            }
+            
+            $builder->groupEnd();
         }
 
-        // Get total count
-        $totalRecords = $builder->countAllResults(false);
+        // Get total count before ordering and limiting
+        $builderClone = clone $builder;
+        $totalRecords = $builderClone->countAllResults();
         
-        // Order and limit
-        $result = $builder->orderBy($orderColumn, $order['dir'])
-            ->limit($length, $start)
-            ->get()->getResult();
+        // If sorting by referral count, we need to sort in PHP
+        if ($orderColumn === 'referral_count') {
+            // Get all results for sorting
+            $allResults = $builder->get()->getResult();
             
-        // Get comprehensive referral counts that include both old and new referral structures
-        $referralCounts = $this->ambassadorModel->getComprehensiveReferralCounts($programId);        // Format data for DataTable
+            // Add referral count to each result
+            foreach ($allResults as $row) {
+                $row->referral_count = $referralCounts[$row->id] ?? 0;
+            }
+            
+            // Sort by referral count
+            usort($allResults, function($a, $b) use ($order) {
+                if ($order['dir'] === 'asc') {
+                    return $a->referral_count <=> $b->referral_count;
+                } else {
+                    return $b->referral_count <=> $a->referral_count;
+                }
+            });
+            
+            // Apply pagination
+            $result = array_slice($allResults, $start, $length);
+        } else {
+            // Regular database sorting
+            $result = $builder->orderBy($orderColumn, $order['dir'])
+                ->limit($length, $start)
+                ->get()->getResult();
+        }
+        
+        // Format data for DataTable
         $data = [];
         foreach ($result as $row) {
             // Get the referral count from our comprehensive count array

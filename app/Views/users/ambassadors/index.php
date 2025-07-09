@@ -121,7 +121,7 @@
                                                     <i class="ri-search-line text-muted"></i>
                                                 </span>
                                                 <input type="text" id="search-box" class="form-control border-start-0 ps-0"
-                                                    placeholder="Search by name, email, phone, referral code..."
+                                                    placeholder="Search by name, email, phone, institution, referral code..."
                                                     autocomplete="off">
                                                 <button class="btn btn-primary" id="search-button" type="button">
                                                     <i class="ri-search-line me-1"></i> Search
@@ -145,9 +145,10 @@
                                             <select id="sort-by" class="form-select">
                                                 <option value="created_at-desc">Registration Date (Newest)</option>
                                                 <option value="created_at-asc">Registration Date (Oldest)</option>
-                                                <option value="full_name-asc">Name (A-Z)</option>
-                                                <option value="full_name-desc">Name (Z-A)</option>
-                                                <option value="referral_count-desc">Most Referrals</option>
+                                                <option value="name-asc">Name (A-Z)</option>
+                                                <option value="name-desc">Name (Z-A)</option>
+                                                <option value="referral_count-desc" selected>Most Referrals</option>
+                                                <option value="referral_count-asc">Fewest Referrals</option>
                                             </select>
                                         </div>
                                         <div class="col-md-3 d-flex align-items-end mb-2">
@@ -392,13 +393,18 @@
                 },
                 columns: [{
                         data: null,
+                        name: 'row_number',
+                        orderable: false,
+                        searchable: false,
                         render: function(data, type, row, meta) {
                             // Using DataTables' row counter for sequential numbering
-                            return meta.row + 1;
+                            return meta.row + meta.settings._iDisplayStart + 1;
                         }
                     },
                     {
                         data: 'details',
+                        name: 'name',
+                        orderable: true,
                         render: function(data, type, row) {
                             if (!data) return '<div class="text-muted">N/A</div>';
 
@@ -433,6 +439,8 @@
                     },
                     {
                         data: 'ref_code',
+                        name: 'ref_code',
+                        orderable: true,
                         render: function(data, type, row) {
                             return '<div class="d-flex align-items-center">' +
                                 '<span class="badge bg-info-subtle text-info fs-6 p-2 user-select-all" ' +
@@ -443,12 +451,15 @@
                                 '<i class="ri-file-copy-line"></i></button>' +
                                 '</div>';
                         }
-                    }, {
+                    }, 
+                    {
                         data: 'referral_count',
+                        name: 'referral_count',
+                        orderable: true,
                         render: function(data, type, row) {
                             // For sorting, just return the number
                             if (type === 'sort' || type === 'type') {
-                                return data;
+                                return data || 0;
                             }
 
                             // For display, create a visual representation
@@ -478,12 +489,13 @@
                     },
                     {
                         data: 'actions',
+                        name: 'actions',
                         orderable: false,
                         searchable: false
                     }
                 ],
                 order: [
-                    [3, 'desc'] // Sort by referral count (column 3) in descending order
+                    [3, 'desc'] // Sort by referral count (column 3) in descending order by default
                 ],
                 pageLength: 10,
                 lengthMenu: [
@@ -496,16 +508,17 @@
             // Helper function to map column names to DataTable column indices
             function getColumnIndex(columnName) {
                 switch (columnName) {
-                    case '#':
-                        return 0; // This would map to the 'details' column which likely contains date info
-                    case 'details':
-                        return 1; // Maps to the 'details' column which contains name
+                    case 'created_at':
+                        return 0; // Maps to # column (row number, but we can use ID for sorting)
+                    case 'full_name':
+                    case 'name':
+                        return 1; // Maps to Details column
                     case 'ref_code':
-                        return 2; // Maps to the referral code column
+                        return 2; // Maps to Referral Code column
                     case 'referral_count':
-                        return 3; // Maps to the referrals count column
+                        return 3; // Maps to Referrals column
                     default:
-                        return 0; // Default to 0 for unknown columns
+                        return 0; // Default to first column
                 }
             }
 
@@ -531,6 +544,24 @@
                 performSearch();
             });
 
+            // Optional: Auto-search with debounce for better UX
+            let searchTimeout;
+            $('#search-box').on('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(function() {
+                    performSearch();
+                }, 500); // 500ms debounce
+            });
+
+            // Handle filter change events
+            $('#filter-status').on('change', function() {
+                ambassadorsTable.ajax.reload();
+            });
+
+            $('#sort-by').on('change', function() {
+                ambassadorsTable.ajax.reload();
+            });
+
             // Handle filter buttons
             document.getElementById('apply-filters').addEventListener('click', function() {
                 ambassadorsTable.ajax.reload();
@@ -540,7 +571,7 @@
                 // Reset all filter select values
                 document.getElementById('filter-status').value = '';
                 document.getElementById('search-box').value = '';
-                document.getElementById('sort-by').value = 'created_at-desc';
+                document.getElementById('sort-by').value = 'referral_count-desc';
 
                 // Reload the table with reset filters
                 ambassadorsTable.search('').draw(); // Clear the search
