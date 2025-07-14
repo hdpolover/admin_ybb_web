@@ -300,6 +300,33 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->group('abstract-settings', function ($routes) {
         $routes->get('program/(:num)', 'AbstractSettingsApiController::getAbstractSettingsByProgramId/$1');
     });
+
+    // Certificate API routes
+    $routes->group('certificates', function ($routes) {
+        // Get participant certificates (based on participant_awards)
+        $routes->get('participant/(:num)', 'CertificatesApiController::getParticipantCertificates/$1');
+        
+        // Get participants assigned to an award (eligible for certificates)
+        $routes->get('award/(:num)/participants', 'CertificatesApiController::getCertificateParticipants/$1');
+        
+        // Get program certificates (awards available for certificates)
+        $routes->get('program/(:num)', 'CertificatesApiController::getProgramCertificates/$1');
+        
+        // Get single certificate details
+        $routes->get('(:num)', 'CertificatesApiController::getCertificateDetails/$1');
+        
+        // Generate new certificate
+        $routes->post('generate', 'CertificatesApiController::generateCertificate');
+        
+        // Revoke certificate (soft delete)
+        $routes->delete('(:num)', 'CertificatesApiController::revokeCertificate/$1');
+        
+        // Get certificate statistics for participant
+        $routes->get('stats/(:num)', 'CertificatesApiController::getCertificateStats/$1');
+        
+        // Regenerate existing certificate
+        $routes->post('(:num)/regenerate', 'CertificatesApiController::regenerateCertificate/$1');
+    });
 });
 
 // Landing API Routes

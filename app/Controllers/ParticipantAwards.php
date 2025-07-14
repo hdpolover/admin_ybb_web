@@ -27,7 +27,7 @@ class ParticipantAwards extends BaseController
             } elseif ($awardId) {
                 $awards = $this->participantAwardModel->getAwardParticipants($awardId);
             } else {
-                $awards = $this->participantAwardModel->select('participant_awards.*, program_awards.title as award_title, participants.full_name, users.username as assigned_by_name')
+                $awards = $this->participantAwardModel->select('participant_awards.*, program_awards.title as award_title, participants.full_name, users.full_name as assigned_by_name')
                                                       ->join('program_awards', 'program_awards.id = participant_awards.award_id', 'left')
                                                       ->join('participants', 'participants.id = participant_awards.participant_id', 'left')
                                                       ->join('users', 'users.id = participant_awards.assigned_by', 'left')

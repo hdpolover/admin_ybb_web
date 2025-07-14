@@ -56,7 +56,7 @@ class ParticipantAwardModel extends Model
      */
     public function getParticipantAwards($participantId)
     {
-        return $this->select('participant_awards.*, program_awards.title as award_title, program_awards.award_type, users.username as assigned_by_name')
+        return $this->select('participant_awards.*, program_awards.title as award_title, program_awards.award_type, users.full_name as assigned_by_name')
                    ->join('program_awards', 'program_awards.id = participant_awards.award_id', 'left')
                    ->join('users', 'users.id = participant_awards.assigned_by', 'left')
                    ->where('participant_awards.participant_id', $participantId)
@@ -105,7 +105,7 @@ class ParticipantAwardModel extends Model
      */
     public function getParticipantAwardWithDetails($id)
     {
-        return $this->select('participant_awards.*, program_awards.title as award_title, program_awards.award_type, participants.full_name, users.username as assigned_by_name')
+        return $this->select('participant_awards.*, program_awards.title as award_title, program_awards.award_type, participants.full_name, users.full_name as assigned_by_name')
                    ->join('program_awards', 'program_awards.id = participant_awards.award_id', 'left')
                    ->join('participants', 'participants.id = participant_awards.participant_id', 'left')
                    ->join('users', 'users.id = participant_awards.assigned_by', 'left')

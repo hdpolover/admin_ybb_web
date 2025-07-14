@@ -400,12 +400,6 @@ class Certificates extends BaseController
                         '<i class="ri-group-line"></i>' .
                     '</button>';
 
-                if ($award->has_certificate_template) {
-                    $actions .= '<button type="button" class="btn btn-info btn-sm" onclick="issueCertificates(' . $award->id . ')" title="Issue Certificates">' .
-                        '<i class="ri-award-line"></i>' .
-                    '</button>';
-                }
-
                 $actions .= '</div>';
 
                 $progressHtml = '<div class="progress" style="height: 20px;">' .
@@ -734,11 +728,9 @@ class Certificates extends BaseController
             $assignedParticipants = $this->participantAwardModel
                 ->select('participant_awards.id as participant_award_id, participant_awards.assigned_at, participant_awards.notes,
                          participants.id as participant_id, participants.full_name, participants.account_id,
-                         users.email, participants.nationality as country,
-                         participant_certificates.id as certificate_id, participant_certificates.generated_at')
+                         users.email, participants.nationality as country')
                 ->join('participants', 'participants.id = participant_awards.participant_id', 'left')
                 ->join('users', 'users.id = participants.user_id', 'left')
-                ->join('participant_certificates', 'participant_certificates.participant_id = participant_awards.participant_id AND participant_certificates.award_id = participant_awards.award_id AND participant_certificates.is_active = 1 AND participant_certificates.is_deleted = 0', 'left')
                 ->where('participant_awards.award_id', $awardId)
                 ->where('participant_awards.is_active', 1)
                 ->where('participant_awards.is_deleted', 0);
@@ -769,9 +761,7 @@ class Certificates extends BaseController
                 // Log the data type for debugging
                 log_message('info', "Participant data type: " . ($isArray ? 'Array' : 'Object'));
                 
-                // Access certificate_id properly based on data type
-                $certificateId = $isArray ? $participant['certificate_id'] : $participant->certificate_id;
-                $generatedAt = $isArray ? ($participant['generated_at'] ?? '') : ($participant->generated_at ?? '');
+                // Access properties properly based on data type
                 $participantId = $isArray ? $participant['participant_id'] : $participant->participant_id;
                 $participantAwardId = $isArray ? $participant['participant_award_id'] : $participant->participant_award_id;
                 $fullName = $isArray ? $participant['full_name'] : $participant->full_name;
@@ -780,18 +770,8 @@ class Certificates extends BaseController
                 $country = $isArray ? ($participant['country'] ?? 'Unknown') : ($participant->country ?? 'Unknown');
                 $assignedAt = $isArray ? $participant['assigned_at'] : $participant->assigned_at;
 
-                // Create certificate status HTML
-                $certificateStatus = $certificateId ? 
-                    '<span class="badge certificate-status-badge bg-success"><i class="ri-shield-check-line me-1"></i>Issued</span><br><small class="text-muted">' . date('M d, Y', strtotime($generatedAt)) . '</small>' :
-                    '<span class="badge certificate-status-badge bg-warning"><i class="ri-time-line me-1"></i>Pending</span>';
-                
                 // Create actions HTML
                 $actions = '';
-                if (!$certificateId) {
-                    $actions .= '<button type="button" class="btn btn-sm btn-success me-1" onclick="issueSingleCertificate(' . $participantId . ')" title="Issue Certificate"><i class="ri-file-text-line"></i></button>';
-                } else {
-                    $actions .= '<button type="button" class="btn btn-sm btn-warning me-1" onclick="revokeCertificate(' . $certificateId . ')" title="Revoke Certificate"><i class="ri-close-circle-line"></i></button>';
-                }
                 $actions .= '<button type="button" class="btn btn-sm btn-danger" onclick="removeParticipantFromAward(' . $participantAwardId . ')" title="Remove from Award"><i class="ri-user-unfollow-line"></i></button>';
                 
                 $data[] = [
@@ -801,7 +781,6 @@ class Certificates extends BaseController
                     'account_id' => '<code>' . esc($accountId) . '</code>',
                     'email' => esc($email),
                     'country' => esc($country),
-                    'certificate_status' => $certificateStatus,
                     'assigned_date' => date('M d, Y', strtotime($assignedAt)),
                     'actions' => $actions
                 ];
@@ -1182,12 +1161,6 @@ class Certificates extends BaseController
                     <button type="button" class="btn btn-success btn-sm" onclick="manageParticipants(' . $award->id . ')" title="Manage Participants">
                         <i class="ri-group-line"></i>
                     </button>';
-
-                if ($award->has_certificate_template) {
-                    $actions .= '<button type="button" class="btn btn-info btn-sm" onclick="issueCertificates(' . $award->id . ')" title="Issue Certificates">
-                        <i class="ri-award-line"></i>
-                    </button>';
-                }
 
                 $actions .= '</div>';
 

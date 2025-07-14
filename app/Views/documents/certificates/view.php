@@ -47,11 +47,6 @@
             display: block;
         }
 
-        .certificate-status-badge {
-            font-size: 0.75rem;
-            padding: 0.25rem 0.5rem;
-        }
-
         .funding-type-badge {
             font-size: 0.7rem;
             padding: 0.2rem 0.4rem;
@@ -147,8 +142,8 @@
                                         <div class="col-md-6 text-md-end">
                                             <button type="button" class="btn btn-primary" id="assign-selected-btn" disabled>
                                                 <i class="ri-user-add-line me-1"></i> Assign Selected
-                                            </button>
                                             <a href="/documents/certificates" class="btn btn-secondary">
+                                            </button>
                                                 <i class="ri-arrow-left-line me-1"></i> Back to List
                                             </a>
                                         </div>
@@ -262,7 +257,6 @@
                                                             <th>Account ID</th>
                                                             <th>Email</th>
                                                             <th>Country</th>
-                                                            <th>Certificate Status</th>
                                                             <th>Assigned Date</th>
                                                             <th width="120">Actions</th>
                                                         </tr>
@@ -682,13 +676,12 @@
                     { data: 'account_id', name: 'participants.account_id' },
                     { data: 'email', name: 'users.email' },
                     { data: 'country', name: 'participants.nationality' },
-                    { data: 'certificate_status', orderable: false, searchable: false },
                     { data: 'assigned_date', name: 'participant_awards.assigned_at' },
                     { data: 'actions', orderable: false, searchable: false }
                 ],
                 responsive: true,
                 pageLength: 25,
-                order: [[7, 'desc']],
+                order: [[6, 'desc']],
                 language: {
                     processing: '<i class="ri-loader-2-line spinner-border spinner-border-sm text-primary"></i> Loading assigned participants...',
                     emptyTable: "No participants assigned to this award yet",
