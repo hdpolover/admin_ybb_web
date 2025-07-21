@@ -74,6 +74,9 @@ class Welcome extends BaseController
     {
         session()->set('current_program', $program_id);
 
+        // Clear the topbar cache when a program is selected to force reload of topbar data
+        $this->clearTopbarCache();
+
         // Set a cookie to indicate a program has been selected (for JavaScript detection)
         // Set to / path and no specific domain to ensure it's available everywhere
         $this->response->setCookie('has_program_selected', 'true', 0, '/', '', false, false);

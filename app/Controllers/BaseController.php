@@ -125,6 +125,8 @@ abstract class BaseController extends Controller
                 foreach ($category->programs as $program) {
                     if ($program->id == $currentProgramId) {
                         $selectedProgram = $program;
+                        // Add logo URL from category to the selected program
+                        $selectedProgram->logo_url = $category->logo_url ?? null;
                         break 2; // Break out of both loops
                     }
                 }
@@ -191,6 +193,8 @@ abstract class BaseController extends Controller
         // Set the current_program session for reviewers to prevent any conflicts
         if ($reviewerProgramId && !session()->has('current_program')) {
             session()->set('current_program', $reviewerProgramId);
+            // Clear any existing cache when setting program for reviewers
+            $this->clearTopbarCache();
         }
         
         // Set cookie to indicate program is "selected" for reviewers (if not already set)
@@ -231,5 +235,25 @@ abstract class BaseController extends Controller
         
         // Share simplified data for reviewers
         $this->session->set('topbar_data', $topbarData);
+    }
+
+    /**
+     * Clear topbar cache for current user
+     * Useful when program selection changes or data needs to be refreshed
+     */
+    protected function clearTopbarCache()
+    {
+        $cache = \Config\Services::cache();
+        $userId = session()->get('userId') ?? 'guest';
+        $userType = session()->get('userType');
+        
+        if ($userType === 'reviewer') {
+            $reviewerId = session()->get('reviewerId');
+            $cacheKey = "reviewer_topbar_data_{$reviewerId}";
+        } else {
+            $cacheKey = "topbar_data_{$userId}";
+        }
+        
+        return $cache->delete($cacheKey);
     }
 }

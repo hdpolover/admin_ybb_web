@@ -59,7 +59,9 @@ class ProgramPaymentsApiController extends ApiBaseController
             return $this->respondValidationErrors('Program ID is required');
         }
 
-        $programPayments = $this->model->getByProgramId($programId);
+        // Get all payments (active and inactive, but exclude deleted)
+        // Frontend will handle filtering, so we return all available payments
+        $programPayments = $this->model->getByProgramId($programId, false, false);
 
         if (!$programPayments) {
             return $this->respondNotFound('Program payments not found for this program ID');
