@@ -41,26 +41,101 @@ class ProgramCategoryModel extends Model
         'created_at',
         'updated_at'
     ];
+    
+    /**
+     * Constructor to register cache hooks
+     */
+    public function __construct()
+    {
+        parent::__construct();
+        
+        // Load cache helper
+        helper(['cache']);
+        
+        // Register cache invalidation hook
+        if (function_exists('register_cache_clear_hook')) {
+            register_cache_clear_hook($this, 'program_category');
+        }
+    }
 
     // get program category by id
     public function getProgramCategoryById($id)
     {
+        // Create a cache key for this category
+        $cacheKey = "program_category_{$id}";
+        
+        // Try to get from cache
+        $cache = \Config\Services::cache();
+        $category = $cache->get($cacheKey);
+        
+        if ($category !== null) {
+            log_message('info', "ProgramCategoryModel::getProgramCategoryById - Returning cached category for ID: {$id}");
+            return $category;
+        }
+        
+        // Cache miss - get from database
+        log_message('info', "ProgramCategoryModel::getProgramCategoryById - Cache miss for ID: {$id}");
+        
         $builder = $this->builder();
         $builder->select('*')
             ->where('id', $id);
-        return $builder->get()->getRow();
+        $category = $builder->get()->getRow();
+        
+        // Cache for 24 hours (86400 seconds) if category found
+        if ($category) {
+            $cache->save($cacheKey, $category, 86400);
+        }
+        
+        return $category;
     }
 
     // get program category id by web_url
     public function getProgramCategoryIdByWebUrl($web_url)
     {
+        // Create a cache key for this lookup
+        $cacheKey = "program_category_web_url_" . md5($web_url);
+        
+        // Try to get from cache
+        $cache = \Config\Services::cache();
+        $categoryId = $cache->get($cacheKey);
+        
+        if ($categoryId !== null) {
+            log_message('info', "ProgramCategoryModel::getProgramCategoryIdByWebUrl - Returning cached category ID for URL: {$web_url}");
+            return $categoryId;
+        }
+        
+        // Cache miss - get from database
+        log_message('info', "ProgramCategoryModel::getProgramCategoryIdByWebUrl - Cache miss for URL: {$web_url}");
+        
         $builder = $this->builder();
         $builder->select('id')
             ->where('web_url', $web_url);
-        return $builder->get()->getRowArray();
+        $categoryId = $builder->get()->getRowArray();
+        
+        // Cache for 24 hours (86400 seconds) if category found
+        if ($categoryId) {
+            $cache->save($cacheKey, $categoryId, 86400);
+        }
+        
+        return $categoryId;
     }
 
     public function getAllCategoriesWithPrograms() {
+        // Create a cache key for all categories with programs
+        $cacheKey = "all_categories_with_programs";
+        
+        // Try to get from cache
+        $cache = \Config\Services::cache();
+        $categories = $cache->get($cacheKey);
+        
+        if ($categories !== null) {
+            log_message('info', "ProgramCategoryModel::getAllCategoriesWithPrograms - Returning cached categories with programs");
+            return $categories;
+        }
+        
+        // Cache miss - get from database
+        log_message('info', "ProgramCategoryModel::getAllCategoriesWithPrograms - Cache miss, fetching all categories with programs");
+        
         $builder = $this->builder('program_categories pc');
         $builder->select('pc.*, pt.name as program_type_name')
             ->join('program_types pt', 'pt.id = pc.program_type_id', 'left');
@@ -80,6 +155,9 @@ class ProgramCategoryModel extends Model
                         
             $category->programs = $programs;
         }
+        
+        // Cache for 24 hours (86400 seconds)
+        $cache->save($cacheKey, $categories, 86400);
 
         return $categories;
     }
@@ -135,10 +213,32 @@ class ProgramCategoryModel extends Model
      */
     public function getProgramCategoryByParams($params)
     {
+        // Create a cache key based on params
+        $cacheKey = "program_category_params_" . md5(json_encode($params));
+        
+        // Try to get from cache
+        $cache = \Config\Services::cache();
+        $category = $cache->get($cacheKey);
+        
+        if ($category !== null) {
+            log_message('info', "ProgramCategoryModel::getProgramCategoryByParams - Returning cached category for params: " . json_encode($params));
+            return $category;
+        }
+        
+        // Cache miss - get from database
+        log_message('info', "ProgramCategoryModel::getProgramCategoryByParams - Cache miss for params: " . json_encode($params));
+        
         $builder = $this->builder();
         $builder->select('*')
             ->where($params);
         
-        return $builder->get()->getRow();
+        $category = $builder->get()->getRow();
+        
+        // Cache for 24 hours (86400 seconds) if category found
+        if ($category) {
+            $cache->save($cacheKey, $category, 86400);
+        }
+        
+        return $category;
     }
 }

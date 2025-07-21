@@ -22,7 +22,6 @@ class Certificates extends BaseController
         $this->programAwardModel = new ProgramAwardModel();
         $this->programCertificateModel = new ProgramCertificateModel();
         $this->participantAwardModel = new ParticipantAwardModel();
-        $this->participantCertificateModel = new ParticipantCertificateModel();
         $this->participantModel = new ParticipantModel();
     }
 
@@ -136,8 +135,8 @@ class Certificates extends BaseController
             
             log_message('info', 'Certificates count: ' . count($certificates));
 
-            // Get certificate issuance count
-            $certificatesIssued = $this->participantCertificateModel
+            // Get certificate issuance count (participants assigned to this award)
+            $certificatesIssued = $this->participantAwardModel
                 ->where('award_id', $awardId)
                 ->where('is_active', 1)
                 ->where('is_deleted', 0)
@@ -261,6 +260,20 @@ class Certificates extends BaseController
     private function getAwardsData($programId)
     {
         try {
+            // Create a cache key for awards data
+            $cacheKey = "awards_data_{$programId}";
+            
+            // Try to get from cache
+            $cache = \Config\Services::cache();
+            $awards = $cache->get($cacheKey);
+            
+            if ($awards !== null) {
+                log_message('info', 'Certificates::getAwardsData - Returning cached awards data for program ID: ' . $programId);
+                return $awards;
+            }
+            
+            // Cache miss - generate from database
+            log_message('info', 'Certificates::getAwardsData - Cache miss, getting from database for program ID: ' . $programId);
             $db = \Config\Database::connect();
             
             $query = "
@@ -304,6 +317,9 @@ class Certificates extends BaseController
                 $award->certificate_templates = $certificates;
                 $award->has_certificate_template = count($certificates) > 0;
             }
+            
+            // Cache for 1 hour (3600 seconds)
+            $cache->save($cacheKey, $awards, 3600);
 
             return $awards;
             
@@ -450,6 +466,21 @@ class Certificates extends BaseController
     public function getAwardDetails($awardId)
     {
         try {
+            // Create a cache key for award details
+            $cacheKey = "award_details_{$awardId}";
+            
+            // Try to get from cache
+            $cache = \Config\Services::cache();
+            $cachedData = $cache->get($cacheKey);
+            
+            if ($cachedData !== null) {
+                log_message('info', "Certificates::getAwardDetails - Returning cached data for award ID: {$awardId}");
+                return $this->response->setJSON($cachedData);
+            }
+            
+            // Cache miss - get from database
+            log_message('info', "Certificates::getAwardDetails - Cache miss, getting from database for award ID: {$awardId}");
+            
             // Get award details
             $award = $this->programAwardModel->find($awardId);
             if (!$award) {
@@ -475,12 +506,17 @@ class Certificates extends BaseController
                 ->where('is_active', 1)
                 ->where('is_deleted', 0)
                 ->findAll();
-
-            return $this->response->setJSON([
+                
+            $responseData = [
                 'award' => $award,
                 'participants' => $participants,
                 'certificates' => $certificates
-            ]);
+            ];
+            
+            // Cache for 30 minutes (1800 seconds)
+            $cache->save($cacheKey, $responseData, 1800);
+
+            return $this->response->setJSON($responseData);
 
         } catch (\Exception $e) {
             log_message('error', 'Error in Certificates::getAwardDetails: ' . $e->getMessage());
@@ -932,11 +968,8 @@ class Certificates extends BaseController
                 // Also remove any issued certificates for this participant-award combination
                 $participantAward = $this->participantAwardModel->find($participantAwardId);
                 if ($participantAward) {
-                    $this->participantCertificateModel
-                        ->where('participant_id', $participantAward->participant_id)
-                        ->where('award_id', $participantAward->award_id)
-                        ->set(['is_deleted' => 1, 'is_active' => 0])
-                        ->update();
+                    // When removing participant from award, we just remove the assignment
+                    // No certificate tracking fields to clear
                 }
 
                 return $this->response->setJSON(['success' => true, 'message' => 'Participant removed from award']);
@@ -991,22 +1024,20 @@ class Certificates extends BaseController
             }
 
             foreach ($participantIds as $participantId) {
-                // Check if certificate already issued
-                if (!$this->participantCertificateModel->hasParticipantCertificate($participantId, $certificate->id)) {
-                    $certificateData = [
-                        'participant_id' => $participantId,
-                        'award_id' => $awardId,
-                        'certificate_id' => $certificate->id,
-                        'generated_at' => date('Y-m-d H:i:s'),
-                        'is_active' => 1,
-                        'is_deleted' => 0
-                    ];
-
-                    if ($this->participantCertificateModel->insert($certificateData)) {
-                        $issuedCount++;
-                    } else {
-                        $errors[] = "Failed to issue certificate to participant ID: $participantId";
-                    }
+                // Check if participant is already assigned to this award
+                $existingAward = $this->participantAwardModel
+                    ->where('participant_id', $participantId)
+                    ->where('award_id', $awardId)
+                    ->where('is_active', 1)
+                    ->where('is_deleted', 0)
+                    ->first();
+                    
+                if (!$existingAward) {
+                    // Participant not assigned to award yet, so no certificate eligibility
+                    $errors[] = "Participant ID: $participantId is not assigned to this award";
+                } else {
+                    // Participant is assigned, certificate can be generated on demand
+                    $issuedCount++;
                 }
             }
 
@@ -1033,21 +1064,24 @@ class Certificates extends BaseController
     {
         try {
             $data = $this->request->getJSON(true);
-            $participantCertificateId = $data['participant_certificate_id'] ?? null;
+            $participantAwardId = $data['participant_award_id'] ?? null;
 
-            if (!$participantCertificateId) {
-                return $this->response->setJSON(['error' => 'Participant certificate ID is required']);
+            if (!$participantAwardId) {
+                return $this->response->setJSON(['error' => 'Participant award ID is required']);
             }
 
-            if ($this->participantCertificateModel->softDelete($participantCertificateId)) {
-                return $this->response->setJSON(['success' => true, 'message' => 'Certificate revoked successfully']);
+            // Since we don't track certificate generation, revoking means removing the award assignment
+            $updated = $this->participantAwardModel->softDelete($participantAwardId);
+
+            if ($updated) {
+                return $this->response->setJSON(['success' => true, 'message' => 'Award assignment revoked successfully']);
             } else {
-                return $this->response->setJSON(['error' => 'Failed to revoke certificate']);
+                return $this->response->setJSON(['error' => 'Failed to revoke award assignment']);
             }
 
         } catch (\Exception $e) {
             log_message('error', 'Error in Certificates::revokeCertificate: ' . $e->getMessage());
-            return $this->response->setJSON(['error' => 'Failed to revoke certificate']);
+            return $this->response->setJSON(['error' => 'Failed to revoke award assignment']);
         }
     }
 

@@ -6,6 +6,12 @@ use CodeIgniter\Model;
 
 class ParticipantModel extends Model
 {
+    public function __construct()
+    {
+        parent::__construct();
+        helper(['cache_helper', 'general']);
+    }
+    
     protected $table = 'participants';
     protected $primaryKey = 'id';
     protected $returnType = 'object';
@@ -415,8 +421,20 @@ class ParticipantModel extends Model
 
     public function getTotalCountries($programId)
     {
+        // Create a cache key based on program ID
+        $cacheKey = "total_countries_{$programId}";
+        
+        // Try to get from cache first
+        $cache = \Config\Services::cache();
+        $totalCountries = $cache->get($cacheKey);
+        
+        if ($totalCountries !== null) {
+            return $totalCountries;
+        }
+        
+        // Cache miss - calculate from database
         // Use case-insensitive distinct count and handle empty/null values
-        return $this->select('COUNT(DISTINCT CASE 
+        $totalCountries = $this->select('COUNT(DISTINCT CASE 
                 WHEN nationality IS NULL OR TRIM(nationality) = "" THEN "Unknown" 
                 ELSE UPPER(TRIM(nationality)) 
             END) as total_countries')
@@ -426,12 +444,29 @@ class ParticipantModel extends Model
             ->get()
             ->getRow()
             ->total_countries;
+            
+        // Save to cache for 4 hours (14400 seconds)
+        $cache->save($cacheKey, $totalCountries, 14400);
+        
+        return $totalCountries;
     }
 
     public function getCountriesData($programId)
     {
+        // Create a cache key based on program ID
+        $cacheKey = "countries_data_{$programId}";
+        
+        // Try to get from cache first
+        $cache = \Config\Services::cache();
+        $countriesData = $cache->get($cacheKey);
+        
+        if ($countriesData !== null) {
+            return $countriesData;
+        }
+        
+        // Cache miss - calculate from database
         // Group by normalized country names (case-insensitive, handle empty values)
-        return $this->select('
+        $countriesData = $this->select('
                 CASE 
                     WHEN nationality IS NULL OR TRIM(nationality) = "" THEN "Unknown" 
                     ELSE TRIM(nationality)
@@ -448,6 +483,11 @@ class ParticipantModel extends Model
             ->orderBy('participants_count', 'DESC')
             ->get()
             ->getResult();
+            
+        // Save to cache for 4 hours (14400 seconds)
+        $cache->save($cacheKey, $countriesData, 14400);
+        
+        return $countriesData;
     }
 
     /**
@@ -458,6 +498,19 @@ class ParticipantModel extends Model
      */
     public function getParticipantStats($programId)
     {
+        // Create a cache key based on program ID and today's date (for daily refresh)
+        $cacheKey = "participant_stats_{$programId}_" . date('Ymd');
+        
+        // Try to get from cache first
+        $cache = \Config\Services::cache();
+        $stats = $cache->get($cacheKey);
+        
+        if ($stats !== null) {
+            // Return cached stats
+            return $stats;
+        }
+        
+        // Cache miss - calculate stats from database
         // Count participants by category: full_funded or self_funded
         $builder = $this->db->table($this->table);
         $results = $builder->select('COUNT(*) as count, category')
@@ -493,11 +546,16 @@ class ParticipantModel extends Model
             ->where('created_at >=', $thirtyDaysAgo)
             ->countAllResults();
 
-        return (object) [
+        $stats = (object) [
             'total' => $totalParticipants,
             'recent' => $recentParticipants,
             'category_counts' => $categoryCounts
         ];
+        
+        // Save to cache for 1 hour (3600 seconds)
+        $cache->save($cacheKey, $stats, 3600);
+        
+        return $stats;
     }
     /**
      * Search participants by custom parameters with users table join
@@ -510,6 +568,19 @@ class ParticipantModel extends Model
      */
     public function searchParticipants($searchParams, $limit = 10, $page = 1, $includeOptions = [])
     {
+        // Create a unique cache key based on search parameters
+        $cacheKey = "participant_search_" . md5(json_encode($searchParams) . "_limit_{$limit}_page_{$page}_includes_" . json_encode($includeOptions));
+        
+        // Try to get from cache
+        $cache = \Config\Services::cache();
+        $results = $cache->get($cacheKey);
+        
+        if ($results !== null) {
+            // Return cached results
+            return $results;
+        }
+        
+        // Cache miss - perform the search
         $builder = $this->builder();
         $offset = ($page - 1) * $limit;
         // Join with users table and programs table to enable search on user fields and program_category_id
@@ -650,10 +721,16 @@ class ParticipantModel extends Model
             $participants[] = $participant;
         }
 
-        return [
+        $searchResults = [
             'data' => $participants,
             'total' => $total
         ];
+        
+        // Cache the search results for 30 minutes (1800 seconds)
+        // For search results, we use a shorter cache time since the data might change
+        $cache->save($cacheKey, $searchResults, 1800);
+        
+        return $searchResults;
     }
 
     /**
@@ -812,5 +889,83 @@ class ParticipantModel extends Model
             ->orderBy('participants_count', 'DESC')
             ->get()
             ->getResult();
+    }
+    
+    /**
+     * Cache invalidation hooks
+     */
+    protected function afterInsert(array $data)
+    {
+        // Get the program ID from the inserted data
+        $programId = $data['data']['program_id'] ?? null;
+        
+        // Invalidate the cache for this participant's program
+        if ($programId) {
+            // Invalidate export cache
+            if (function_exists('invalidate_export_cache')) {
+                invalidate_export_cache($programId);
+            }
+            
+            // Invalidate participant stats cache
+            if (function_exists('invalidate_participant_cache')) {
+                invalidate_participant_cache($programId);
+            }
+        }
+        
+        return $data;
+    }
+    
+    protected function afterUpdate(array $data)
+    {
+        // If the whole record is available
+        if (isset($data['id'])) {
+            $participant = $this->find($data['id']);
+            $programId = $participant->program_id ?? null;
+        } 
+        // Otherwise, try to get it from the data
+        else {
+            $programId = $data['data']['program_id'] ?? null;
+        }
+        
+        // Invalidate the cache for this participant's program
+        if ($programId) {
+            // Invalidate export cache
+            if (function_exists('invalidate_export_cache')) {
+                invalidate_export_cache($programId);
+            }
+            
+            // Invalidate participant stats cache
+            if (function_exists('invalidate_participant_cache')) {
+                invalidate_participant_cache($programId);
+            }
+        }
+        
+        return $data;
+    }
+    
+    protected function afterDelete(array $data)
+    {
+        // Similar cache invalidation as afterUpdate
+        if (isset($data['id'])) {
+            $participant = $this->find($data['id']);
+            $programId = $participant->program_id ?? null;
+        } else {
+            $programId = $data['data']['program_id'] ?? null;
+        }
+        
+        // Invalidate the cache for this participant's program
+        if ($programId) {
+            // Invalidate export cache
+            if (function_exists('invalidate_export_cache')) {
+                invalidate_export_cache($programId);
+            }
+            
+            // Invalidate participant stats cache
+            if (function_exists('invalidate_participant_cache')) {
+                invalidate_participant_cache($programId);
+            }
+        }
+        
+        return $data;
     }
 }

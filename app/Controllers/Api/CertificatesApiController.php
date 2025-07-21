@@ -90,6 +90,16 @@ class CertificatesApiController extends ApiBaseController
             if ($programId === null) {
                 return $this->failValidationErrors('Program ID is required');
             }
+            
+            // Try to get from cache
+            $cache = \Config\Services::cache();
+            $cacheKey = "program_certificates_{$programId}";
+            $cachedData = $cache->get($cacheKey);
+            
+            if ($cachedData !== null) {
+                log_message('info', "[Certificate API] Returning cached certificates for program ID: {$programId}");
+                return $this->respondSuccess($cachedData);
+            }
 
             // Check if program exists
             $program = $this->programModel->find($programId);
@@ -104,15 +114,20 @@ class CertificatesApiController extends ApiBaseController
                                              ->findAll();
 
             log_message('info', "[Certificate API] Found " . count($awards) . " awards for program ID: {$programId}");
-
-            return $this->respondSuccess([
+            
+            $responseData = [
                 'program' => [
                     'id' => $program->id,
                     'name' => $program->name
                 ],
                 'awards' => $awards,
                 'total_count' => count($awards)
-            ]);
+            ];
+            
+            // Cache the result for 2 hours (7200 seconds)
+            $cache->save($cacheKey, $responseData, 7200);
+
+            return $this->respondSuccess($responseData);
 
         } catch (\Exception $e) {
             log_message('error', "[Certificate API] Error getting program certificates: " . $e->getMessage());
@@ -179,11 +194,12 @@ class CertificatesApiController extends ApiBaseController
             $certificate = $this->participantAwardModel
                                 ->select('participant_awards.*, program_awards.title as award_title, program_awards.description as award_description,
                                          program_awards.award_type, participants.full_name, participants.account_id,
-                                         program_certificates.template_data')
+                                         program_certificates.template_url, program_certificates.template_type')
                                 ->join('program_awards', 'program_awards.id = participant_awards.award_id', 'left')
                                 ->join('participants', 'participants.id = participant_awards.participant_id', 'left')
                                 ->join('program_certificates', 'program_certificates.award_id = participant_awards.award_id', 'left')
                                 ->where('participant_awards.id', $certificateId)
+                                ->where('participant_awards.is_active', 1)
                                 ->where('participant_awards.is_deleted', 0)
                                 ->first();
 
@@ -247,19 +263,15 @@ class CertificatesApiController extends ApiBaseController
                 return $this->failNotFound('Participant is not assigned to this award');
             }
 
-            // Check if certificate has already been generated (by checking certificate_path)
-            $existingCertificate = $this->participantAwardModel->where('participant_id', $participantId)
-                                                               ->where('award_id', $awardId)
-                                                               ->where('certificate_path IS NOT NULL')
-                                                               ->where('is_deleted', 0)
-                                                               ->first();
+            // Check if certificate has already been generated (certificates are generated on-demand, so this is just checking assignment)
+            $existingCertificate = null; // No certificate tracking, always allow generation for assigned participants
 
             if ($existingCertificate) {
                 log_message('info', "[Certificate API] Certificate already exists for participant ID: {$participantId}, award ID: {$awardId}");
                 return $this->respondSuccess([
                     'message' => 'Certificate already exists',
                     'certificate_id' => $existingCertificate->id,
-                    'generated_at' => $existingCertificate->generated_at
+                    'generated_at' => $existingCertificate->assigned_at // Use assignment date
                 ]);
             }
 
@@ -276,22 +288,8 @@ class CertificatesApiController extends ApiBaseController
             $filename = 'Certificate-' . $participant->full_name . '-' . $award->title . '-' . date('Ymd') . '.pdf';
             $pdfContent = $this->generateCertificatePdf($certificateContent, null);
 
-            // Save certificate record to database
-            // Update participant award with certificate path and generated timestamp
-            $updateData = [
-                'certificate_path' => $filename,
-                'certificate_generated_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s')
-            ];
-
-            $result = $this->participantAwardModel->where('participant_id', $participantId)
-                                                  ->where('award_id', $awardId)
-                                                  ->set($updateData)
-                                                  ->update();
-
-            if (!$result) {
-                return $this->fail('Failed to update certificate record', 500);
-            }
+            // Certificate generated successfully - no need to update database since we don't track generation
+            // Certificate is generated on-demand based on participant_awards assignment
 
             // Encode PDF as base64
             $encodedPdf = base64_encode($pdfContent);
@@ -327,18 +325,14 @@ class CertificatesApiController extends ApiBaseController
                 return $this->failValidationErrors('Certificate ID is required');
             }
 
-            // Check if certificate exists
+            // Check if certificate exists (participant award assignment)
             $certificate = $this->participantAwardModel->find($certificateId);
             if (!$certificate) {
                 return $this->failNotFound('Certificate not found');
             }
 
-            // Clear certificate data (revoke certificate)
-            $result = $this->participantAwardModel->update($certificateId, [
-                'certificate_path' => null,
-                'certificate_generated_at' => null,
-                'updated_at' => date('Y-m-d H:i:s')
-            ]);
+            // Revoke certificate by removing the award assignment
+            $result = $this->participantAwardModel->softDelete($certificateId);
 
             if (!$result) {
                 return $this->fail('Failed to revoke certificate', 500);
@@ -347,7 +341,7 @@ class CertificatesApiController extends ApiBaseController
             log_message('info', "[Certificate API] Certificate revoked successfully: {$certificateId}");
 
             return $this->respondSuccess([
-                'message' => 'Certificate revoked successfully',
+                'message' => 'Certificate revoked successfully (award assignment removed)',
                 'certificate_id' => $certificateId
             ]);
 
@@ -377,28 +371,29 @@ class CertificatesApiController extends ApiBaseController
                 return $this->failNotFound('Participant not found');
             }
 
-            // Get all certificates for participant (awards with certificate data)
+            // Get all certificates for participant (awards with certificate templates)
             $certificates = $this->participantAwardModel
                 ->select('participant_awards.*, program_awards.title as award_title, 
                          program_awards.description as award_description, program_awards.award_type,
-                         programs.name as program_name, program_certificates.template_data')
+                         programs.name as program_name, program_certificates.template_url')
                 ->join('program_awards', 'program_awards.id = participant_awards.award_id')
                 ->join('programs', 'programs.id = program_awards.program_id')
                 ->join('program_certificates', 'program_certificates.award_id = participant_awards.award_id', 'left')
                 ->where('participant_awards.participant_id', $participantId)
+                ->where('participant_awards.is_active', 1)
                 ->where('participant_awards.is_deleted', 0)
                 ->findAll();
 
             // Calculate stats
             $stats = [
                 'total_certificates' => count($certificates),
-                'generated_certificates' => count(array_filter($certificates, function($cert) {
-                    return !empty($cert->certificate_path);
+                'available_certificates' => count(array_filter($certificates, function($cert) {
+                    return !empty($cert->template_url); // Has certificate template
                 })),
-                'pending_certificates' => count(array_filter($certificates, function($cert) {
-                    return empty($cert->certificate_path);
+                'awards_without_certificates' => count(array_filter($certificates, function($cert) {
+                    return empty($cert->template_url); // No certificate template
                 })),
-                'latest_certificate' => !empty($certificates) ? $certificates[0] : null,
+                'latest_award' => !empty($certificates) ? $certificates[0] : null,
                 'certificate_list' => $certificates
             ];
 
@@ -444,18 +439,8 @@ class CertificatesApiController extends ApiBaseController
             $filename = 'Certificate-' . $participant->full_name . '-' . $award->title . '-' . date('Ymd') . '.pdf';
             $pdfContent = $this->generateCertificatePdf($certificateContent, null);
 
-            // Update certificate record
-            $updateData = [
-                'certificate_path' => $filename,
-                'certificate_generated_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s')
-            ];
-
-            $result = $this->participantAwardModel->update($certificateId, $updateData);
-
-            if (!$result) {
-                return $this->fail('Failed to update certificate record', 500);
-            }
+            // Update certificate record - regenerate doesn't require database updates since certificates are generated on-demand
+            // The certificate is regenerated fresh each time
 
             // Encode PDF as base64
             $encodedPdf = base64_encode($pdfContent);

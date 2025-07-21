@@ -35,7 +35,7 @@ abstract class BaseController extends Controller
      *
      * @var array
      */
-    protected $helpers = ["url", "excel_helper", "date_helper"];
+    protected $helpers = ["url", "excel_helper", "date_helper", "cache_helper"];
 
     /**
      * Be sure to declare properties for any property fetch you initialized.
@@ -70,6 +70,21 @@ abstract class BaseController extends Controller
             $this->loadReviewerTopbarData();
             return;
         }
+
+        // Try to get the topbar data from cache
+        $cache = \Config\Services::cache();
+        $userId = session()->get('userId') ?? 'guest';
+        $cacheKey = "topbar_data_{$userId}";
+        $topbarData = $cache->get($cacheKey);
+        
+        if ($topbarData !== null) {
+            // Cache hit - use cached topbar data
+            $this->session->set('topbar_data', $topbarData);
+            return;
+        }
+        
+        // Cache miss - generate topbar data
+        log_message('info', 'BaseController::loadTopbarData - Cache miss, generating topbar data');
 
         // Get program category with categoryWithPrograms
         $categoryWithPrograms = $this->programCategoryModel->getAllCategoriesWithPrograms();
@@ -133,14 +148,23 @@ abstract class BaseController extends Controller
             }
         }
 
-        // Share this data with all views
-        $this->session->set('topbar_data', [
+        // Prepare topbar data
+        $topbarData = [
             'selectedProgram' => $selectedProgram,
             'activePrograms' => $activePrograms,
             'inactivePrograms' => $inactivePrograms,
             'categoryWithPrograms' => $categoryWithPrograms,
             'isJournalType' => $isJournalType,
-        ]);
+        ];
+        
+        // Save to cache with 24-hour TTL (86400 seconds)
+        // This data changes infrequently, so a longer TTL is appropriate
+        $userId = session()->get('userId') ?? 'guest';
+        $cacheKey = "topbar_data_{$userId}";
+        $cache->save($cacheKey, $topbarData, 86400);
+
+        // Share this data with all views
+        $this->session->set('topbar_data', $topbarData);
     }    /**
      * Load program data for reviewers
      * Reviewers are tied to a specific program, so we just load their program data
@@ -149,6 +173,20 @@ abstract class BaseController extends Controller
     {
         $reviewerId = session()->get('reviewerId');
         $reviewerProgramId = session()->get('reviewerProgramId');
+        
+        // Try to get the reviewer topbar data from cache
+        $cache = \Config\Services::cache();
+        $cacheKey = "reviewer_topbar_data_{$reviewerId}";
+        $topbarData = $cache->get($cacheKey);
+        
+        if ($topbarData !== null) {
+            // Cache hit - use cached topbar data
+            $this->session->set('topbar_data', $topbarData);
+            return;
+        }
+        
+        // Cache miss - generate reviewer topbar data
+        log_message('info', "BaseController::loadReviewerTopbarData - Cache miss, generating data for reviewer {$reviewerId}");
         
         // Set the current_program session for reviewers to prevent any conflicts
         if ($reviewerProgramId && !session()->has('current_program')) {
@@ -179,13 +217,19 @@ abstract class BaseController extends Controller
             $selectedProgram = $this->programModel->find($reviewerProgramId);
         }
         
-        // Share simplified data for reviewers
-        $this->session->set('topbar_data', [
+        // Prepare reviewer topbar data
+        $topbarData = [
             'selectedProgram' => $selectedProgram,
             'activePrograms' => [], // Reviewers don't need to see other programs
             'inactivePrograms' => [],
             'categoryWithPrograms' => [],
             'isJournalType' => false, // We can add this logic later if needed for reviewers
-        ]);
+        ];
+        
+        // Save to cache with 24-hour TTL (86400 seconds)
+        $cache->save($cacheKey, $topbarData, 86400);
+        
+        // Share simplified data for reviewers
+        $this->session->set('topbar_data', $topbarData);
     }
 }

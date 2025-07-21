@@ -85,8 +85,26 @@ class ParticipantsApiController extends ApiBaseController
             if (!$id) {
                 return $this->respondError('Participant ID is required', self::HTTP_BAD_REQUEST);
             }
-
-            $participant = $this->model->getParticipant($id);
+            
+            // Create a cache key for the participant
+            $cacheKey = "participant_details_{$id}";
+            
+            // Try to get from cache
+            $cache = \Config\Services::cache();
+            $participant = $cache->get($cacheKey);
+            
+            if ($participant === null) {
+                // Cache miss - get from database
+                log_message('info', "ParticipantsApiController::show - Cache miss, getting from database for participant ID: {$id}");
+                $participant = $this->model->getParticipant($id);
+                
+                if ($participant) {
+                    // Cache for 1 hour (3600 seconds)
+                    $cache->save($cacheKey, $participant, 3600);
+                }
+            } else {
+                log_message('info', "ParticipantsApiController::show - Returning cached data for participant ID: {$id}");
+            }
 
             if (!$participant) {
                 return $this->respondNotFound("Participant not found");
@@ -648,14 +666,33 @@ class ParticipantsApiController extends ApiBaseController
                 return $this->respondError('At least one search parameter is required', self::HTTP_BAD_REQUEST);
             }
             
-            // Parse include parameter
-            $includeOptions = [];
-            if (!empty($include)) {
-                $includeOptions = array_map('trim', explode(',', $include));
-            }
+            // Create a cache key based on search parameters, page, limit and include options
+            $cacheKey = "participants_search_" . md5(json_encode($searchParams) . "_p{$page}_l{$limit}_i{$include}");
             
-            // Call model method to search participants
-            $result = $this->model->searchParticipants($searchParams, $limit, $page, $includeOptions);
+            // Try to get from cache
+            $cache = \Config\Services::cache();
+            $cachedResult = $cache->get($cacheKey);
+            
+            if ($cachedResult !== null) {
+                log_message('info', "ParticipantsApiController::search - Returning cached search results");
+                $result = $cachedResult;
+            } else {
+                // Cache miss - perform search from database
+                log_message('info', "ParticipantsApiController::search - Cache miss, performing database search");
+                
+                // Parse include parameter
+                $includeOptions = [];
+                if (!empty($include)) {
+                    $includeOptions = array_map('trim', explode(',', $include));
+                }
+                
+                // Call model method to search participants
+                $result = $this->model->searchParticipants($searchParams, $limit, $page, $includeOptions);
+                
+                // Cache the result for 30 minutes (1800 seconds)
+                // Using a shorter TTL since search results may change more frequently
+                $cache->save($cacheKey, $result, 1800);
+            }
             
             // If no results found
             if (empty($result['data'])) {

@@ -65,7 +65,18 @@ class PaymentModel extends Model
      */
     public function getPaymentsWithDetails($programId)
     {
-        return $this->select('
+        $cacheKey = "payments_with_details_{$programId}";
+        
+        // Try to get from cache
+        $cache = \Config\Services::cache();
+        $payments = $cache->get($cacheKey);
+        
+        if ($payments !== null) {
+            return $payments;
+        }
+        
+        // Cache miss - query database
+        $payments = $this->select('
                 payments.*, 
                 participants.full_name as participant_name,
                 users.email as participant_email,
@@ -76,6 +87,11 @@ class PaymentModel extends Model
             ->where('participants.program_id', $programId)
             ->orderBy('payment_date', 'DESC')
             ->findAll();
+            
+        // Cache for 30 minutes (1800 seconds)
+        $cache->save($cacheKey, $payments, 1800);
+            
+        return $payments;
     }
 
     /**
@@ -106,6 +122,19 @@ class PaymentModel extends Model
      */
     public function getPaymentStats($programId)
     {
+        // Create a cache key for payment stats
+        $cacheKey = "payment_stats_{$programId}";
+        
+        // Try to get from cache
+        $cache = \Config\Services::cache();
+        $stats = $cache->get($cacheKey);
+        
+        if ($stats !== null) {
+            // Return cached stats
+            return $stats;
+        }
+        
+        // Cache miss - calculate payment stats from database
         $stats = new \stdClass();
 
         // Total amount received
@@ -147,6 +176,9 @@ class PaymentModel extends Model
             GROUP BY payments.payment_method_id
         ", [$programId]);
         $stats->payment_methods = $query->getResult();
+        
+        // Cache for 1 hour (3600 seconds)
+        $cache->save($cacheKey, $stats, 3600);
 
         return $stats;
     }
@@ -159,6 +191,19 @@ class PaymentModel extends Model
      */
     public function getPaymentStatsByCurrency($programId)
     {
+        // Create a cache key for currency stats
+        $cacheKey = "payment_stats_currency_{$programId}";
+        
+        // Try to get from cache
+        $cache = \Config\Services::cache();
+        $stats = $cache->get($cacheKey);
+        
+        if ($stats !== null) {
+            // Return cached stats
+            return $stats;
+        }
+        
+        // Cache miss - calculate from database
         $stats = new \stdClass();
 
         // Total amount received in IDR
@@ -182,6 +227,9 @@ class PaymentModel extends Model
             AND payments.currency = 'USD'
         ", [$programId]);
         $stats->total_usd = $query->getRow()->total_amount ?? 0;
+        
+        // Cache for 2 hours (7200 seconds)
+        $cache->save($cacheKey, $stats, 7200);
 
         return $stats;
     }
@@ -194,7 +242,19 @@ class PaymentModel extends Model
      */
     public function getPendingManualPayments($programId)
     {
-        return $this->select('
+        // Short cache time since this is critical payment info that admins need to see quickly
+        $cacheKey = "pending_manual_payments_{$programId}";
+        
+        // Try to get from cache with short TTL since this needs to be updated frequently
+        $cache = \Config\Services::cache();
+        $pendingPayments = $cache->get($cacheKey);
+        
+        if ($pendingPayments !== null) {
+            return $pendingPayments;
+        }
+        
+        // Cache miss - get from database
+        $pendingPayments = $this->select('
                 payments.*, 
                 participants.full_name as participant_name,
                 users.email as participant_email,
@@ -208,6 +268,11 @@ class PaymentModel extends Model
             ->where('payments.payment_proof IS NOT NULL')
             ->orderBy('payment_date', 'DESC')
             ->findAll();
+            
+        // Cache for a shorter time (15 minutes) since pending payments are time-sensitive
+        $cache->save($cacheKey, $pendingPayments, 900);
+            
+        return $pendingPayments;
     }
 
     /**
@@ -230,6 +295,10 @@ class PaymentModel extends Model
             throw new \InvalidArgumentException('Rejection reason is required for rejected status');
         }
 
+        // Get payment data to find associated participant for cache invalidation
+        $payment = $this->find($id);
+        $participantId = $payment->participant_id ?? null;
+
         // Prepare data for update
         $data = [
             'status' => $status,
@@ -242,13 +311,27 @@ class PaymentModel extends Model
         }
 
         if (!empty($notes)) {
-            $payment = $this->find($id);
             $existingNotes = $payment->notes ?? '';
             $combinedNotes = $existingNotes . "\n\n" . date('Y-m-d H:i:s') . " - Status updated: " . $notes;
             $data['notes'] = trim($combinedNotes);
         }
+        
+        // Update the payment
+        $result = $this->update($id, $data);
+        
+        // Invalidate related caches if update was successful
+        if ($result) {
+            // Load helper if not already loaded
+            helper(['cache']);
+            
+            // Invalidate payment caches
+            invalidate_payment_cache($id, $participantId);
+            
+            // Log cache invalidation
+            log_message('info', "PaymentModel::updatePaymentStatus - Invalidated cache for payment ID {$id} and participant ID {$participantId}");
+        }
 
-        return $this->update($id, $data);
+        return $result;
     }
 
     /**
@@ -287,6 +370,18 @@ class PaymentModel extends Model
      */
     public function hasSuccessfulPayments($participantId, $programId)
     {
+        // Create cache key
+        $cacheKey = "has_payments_{$participantId}_{$programId}";
+        
+        // Try to get from cache
+        $cache = \Config\Services::cache();
+        $hasPayments = $cache->get($cacheKey);
+        
+        if ($hasPayments !== null) {
+            return (bool)$hasPayments;
+        }
+        
+        // Cache miss - check database
         $result = $this->select('COUNT(*) as payment_count')
             ->join('participants', 'participants.id = payments.participant_id')
             ->where('payments.participant_id', $participantId)
@@ -295,6 +390,11 @@ class PaymentModel extends Model
             ->where('payments.is_deleted', 0)
             ->first();
 
-        return ($result && $result->payment_count > 0);
+        $hasPayments = ($result && $result->payment_count > 0);
+        
+        // Cache for 4 hours (14400 seconds) since payment status rarely changes once successful
+        $cache->save($cacheKey, $hasPayments, 14400);
+        
+        return $hasPayments;
     }
 }

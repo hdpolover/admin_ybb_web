@@ -102,5 +102,6 @@ class Autoload extends AutoloadConfig
         'web_url',
         'menu',
         'date',
+        'cache',
     ];
 }
