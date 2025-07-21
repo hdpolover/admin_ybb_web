@@ -300,6 +300,53 @@ if (!function_exists('invalidate_topbar_data_cache')) {
     }
 }
 
+if (!function_exists('invalidate_dashboard_cache')) {
+    /**
+     * Invalidate dashboard-related caches
+     * 
+     * @param int|null $programId Optional program ID
+     * @return void
+     */
+    function invalidate_dashboard_cache($programId = null)
+    {
+        $cache = \Config\Services::cache();
+        
+        if ($programId) {
+            // Invalidate specific program dashboard caches
+            $cache->delete("dashboard_summary_{$programId}");
+            
+            // Clear registration stats for all periods
+            foreach (['day', 'week', 'month'] as $period) {
+                for ($limit = 10; $limit <= 60; $limit += 10) {
+                    $cache->delete("dashboard_registration_stats_{$programId}_{$period}_{$limit}");
+                }
+            }
+            
+            // Clear gender statistics
+            $cache->delete("dashboard_gender_stats_{$programId}");
+            
+            // Clear nationality statistics for different limits
+            for ($limit = 5; $limit <= 50; $limit += 5) {
+                $cache->delete("dashboard_nationality_stats_{$programId}_{$limit}");
+            }
+            
+            // Clear age statistics
+            $cache->delete("dashboard_age_stats_{$programId}");
+            
+            // Clear ambassador statistics for different limits
+            for ($limit = 5; $limit <= 20; $limit += 5) {
+                $cache->delete("dashboard_ambassador_stats_{$programId}_{$limit}");
+            }
+            
+            log_message('info', "Invalidated dashboard cache for program ID {$programId}");
+        } else {
+            // Set an invalidation flag for all dashboard caches
+            $cache->save('dashboard_cache_invalid_flag', time(), 3600);
+            log_message('info', 'Set dashboard cache invalid flag');
+        }
+    }
+}
+
 if (!function_exists('register_cache_clear_hook')) {
     /**
      * Register a hook to clear cache after model operations
@@ -329,6 +376,13 @@ if (!function_exists('register_cache_clear_hook')) {
                 case 'participant':
                     invalidate_participant_cache($id);
                     invalidate_search_cache();
+                    
+                    // If we have a program ID, invalidate dashboard stats too
+                    $model = \Config\Services::modelFactory()->createModel('\App\Models\ParticipantModel');
+                    $participant = $model->find($id);
+                    if ($participant && isset($participant->program_id)) {
+                        invalidate_dashboard_cache($participant->program_id);
+                    }
                     break;
                     
                 case 'payment':
@@ -345,6 +399,7 @@ if (!function_exists('register_cache_clear_hook')) {
                     
                 case 'program':
                     invalidate_program_cache($id);
+                    invalidate_dashboard_cache($id); // Clear dashboard data when program changes
                     invalidate_topbar_data_cache(); // Clear topbar data when program changes
                     break;
                     

@@ -59,6 +59,8 @@ class ProgramSubthemeModel extends Model
     public function getAllSubthemes($programId)
     {
         return $this->where('program_id', $programId)
+                    ->where('is_active', 1)
+                    ->where('is_deleted', 0)
                     ->findAll();
     }
 
@@ -71,6 +73,7 @@ class ProgramSubthemeModel extends Model
     public function getSubthemesByProgramId($programId)
     {
         return $this->where('program_id', $programId)
+                    ->where('is_active', 1)
                     ->where('is_deleted', 0)
                     ->findAll();
     }

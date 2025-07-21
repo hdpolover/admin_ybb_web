@@ -11,6 +11,7 @@ class DashboardModel extends Model
     public function __construct()
     {
         $this->db = \Config\Database::connect();
+        helper(['cache_helper']);
     }
 
     /**
@@ -20,8 +21,24 @@ class DashboardModel extends Model
      * @param string $period Period (day, week, month)
      * @param int $limit Number of periods to fetch
      * @return array
-     */    public function getParticipantRegistrationStats($programId, $period = 'day', $limit = 30)
+     */    
+    public function getParticipantRegistrationStats($programId, $period = 'day', $limit = 30)
     {
+        // Create a cache key including parameters
+        $cacheKey = "dashboard_registration_stats_{$programId}_{$period}_{$limit}";
+        
+        // Try to get from cache
+        $cache = \Config\Services::cache();
+        $result = $cache->get($cacheKey);
+        
+        if ($result !== null) {
+            log_message('info', "DashboardModel::getParticipantRegistrationStats - Returning cached stats for program ID: {$programId}, period: {$period}");
+            return $result;
+        }
+        
+        // Cache miss - calculate from database
+        log_message('info', "DashboardModel::getParticipantRegistrationStats - Cache miss, calculating stats for program ID: {$programId}, period: {$period}");
+        
         $groupFormat = '';
         switch ($period) {
             case 'week':
@@ -67,7 +84,10 @@ class DashboardModel extends Model
         }
 
         $result = $query->getResult();
-
+        
+        // Cache for 15 minutes (900 seconds)
+        $cache->save($cacheKey, $result, 900);
+        
         // Reverse to show oldest first for timeline charts
         return array_reverse($result);
     }
@@ -80,6 +100,21 @@ class DashboardModel extends Model
      */
     public function getGenderDistribution($programId)
     {
+        // Create a cache key
+        $cacheKey = "dashboard_gender_stats_{$programId}";
+        
+        // Try to get from cache
+        $cache = \Config\Services::cache();
+        $result = $cache->get($cacheKey);
+        
+        if ($result !== null) {
+            log_message('info', "DashboardModel::getGenderDistribution - Returning cached stats for program ID: {$programId}");
+            return $result;
+        }
+        
+        // Cache miss - calculate from database
+        log_message('info', "DashboardModel::getGenderDistribution - Cache miss, calculating stats for program ID: {$programId}");
+        
         $query = $this->db->query("
             SELECT 
                 CASE
@@ -96,7 +131,12 @@ class DashboardModel extends Model
             ORDER BY total DESC
         ", [$programId]);
 
-        return $query->getResult();
+        $result = $query->getResult();
+        
+        // Cache for 15 minutes (900 seconds)
+        $cache->save($cacheKey, $result, 900);
+        
+        return $result;
     }
 
     /**
@@ -108,6 +148,21 @@ class DashboardModel extends Model
      */
     public function getNationalityDistribution($programId, $limit = 10)
     {
+        // Create a cache key including parameters
+        $cacheKey = "dashboard_nationality_stats_{$programId}_{$limit}";
+        
+        // Try to get from cache
+        $cache = \Config\Services::cache();
+        $result = $cache->get($cacheKey);
+        
+        if ($result !== null) {
+            log_message('info', "DashboardModel::getNationalityDistribution - Returning cached stats for program ID: {$programId}, limit: {$limit}");
+            return $result;
+        }
+        
+        // Cache miss - calculate from database
+        log_message('info', "DashboardModel::getNationalityDistribution - Cache miss, calculating stats for program ID: {$programId}, limit: {$limit}");
+        
         $query = $this->db->query("
             SELECT 
                 CASE
@@ -125,7 +180,12 @@ class DashboardModel extends Model
             LIMIT ?
         ", [$programId, $limit]);
 
-        return $query->getResult();
+        $result = $query->getResult();
+        
+        // Cache for 15 minutes (900 seconds)
+        $cache->save($cacheKey, $result, 900);
+        
+        return $result;
     }
 
     /**
@@ -136,6 +196,21 @@ class DashboardModel extends Model
      */
     public function getAgeDistribution($programId)
     {
+        // Create a cache key
+        $cacheKey = "dashboard_age_stats_{$programId}";
+        
+        // Try to get from cache
+        $cache = \Config\Services::cache();
+        $result = $cache->get($cacheKey);
+        
+        if ($result !== null) {
+            log_message('info', "DashboardModel::getAgeDistribution - Returning cached stats for program ID: {$programId}");
+            return $result;
+        }
+        
+        // Cache miss - calculate from database
+        log_message('info', "DashboardModel::getAgeDistribution - Cache miss, calculating stats for program ID: {$programId}");
+        
         $query = $this->db->query("
             SELECT 
                 CASE
@@ -154,7 +229,12 @@ class DashboardModel extends Model
             ORDER BY FIELD(age_group, 'Under 18', '18-24', '25-34', '35-44', '45-54', '55+', 'Unknown')
         ", [$programId]);
 
-        return $query->getResult();
+        $result = $query->getResult();
+        
+        // Cache for 15 minutes (900 seconds)
+        $cache->save($cacheKey, $result, 900);
+        
+        return $result;
     }
 
     /**
@@ -166,6 +246,21 @@ class DashboardModel extends Model
      */
     public function getAmbassadorReferrals($programId, $limit = 10)
     {
+        // Create a cache key including parameters
+        $cacheKey = "dashboard_ambassador_stats_{$programId}_{$limit}";
+        
+        // Try to get from cache
+        $cache = \Config\Services::cache();
+        $result = $cache->get($cacheKey);
+        
+        if ($result !== null) {
+            log_message('info', "DashboardModel::getAmbassadorReferrals - Returning cached stats for program ID: {$programId}, limit: {$limit}");
+            return $result;
+        }
+        
+        // Cache miss - calculate from database
+        log_message('info', "DashboardModel::getAmbassadorReferrals - Cache miss, calculating stats for program ID: {$programId}, limit: {$limit}");
+        
         $query = $this->db->query("
             SELECT 
                 a.name AS ambassador_name,
@@ -178,7 +273,12 @@ class DashboardModel extends Model
             LIMIT ?
         ", [$programId, $programId, $limit]);
 
-        return $query->getResult();
+        $result = $query->getResult();
+        
+        // Cache for 15 minutes (900 seconds)
+        $cache->save($cacheKey, $result, 900);
+        
+        return $result;
     }
 
     /**
@@ -189,6 +289,21 @@ class DashboardModel extends Model
      */
     public function getProgramSummary($programId)
     {
+        // Create a cache key
+        $cacheKey = "dashboard_summary_{$programId}";
+        
+        // Try to get from cache
+        $cache = \Config\Services::cache();
+        $stats = $cache->get($cacheKey);
+        
+        if ($stats !== null) {
+            log_message('info', "DashboardModel::getProgramSummary - Returning cached summary for program ID: {$programId}");
+            return $stats;
+        }
+        
+        // Cache miss - calculate from database
+        log_message('info', "DashboardModel::getProgramSummary - Cache miss, calculating summary for program ID: {$programId}");
+        
         $stats = new \stdClass();
 
         // Total participants
@@ -221,6 +336,9 @@ class DashboardModel extends Model
         $stats->referral_percentage = ($stats->total_participants > 0)
             ? round(($stats->total_referred / $stats->total_participants) * 100, 1)
             : 0;
+            
+        // Cache for 15 minutes (900 seconds)
+        $cache->save($cacheKey, $stats, 900);
 
         return $stats;
     }

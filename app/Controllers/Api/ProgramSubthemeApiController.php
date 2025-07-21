@@ -30,7 +30,9 @@ class ProgramSubthemeApiController extends ApiBaseController
      */
     public function index()
     {
-        $programSubthemes = $this->model->findAll();
+        $programSubthemes = $this->model->where('is_active', 1)
+                                        ->where('is_deleted', 0)
+                                        ->findAll();
         return $this->respondSuccess($programSubthemes, self::HTTP_OK, 'Program subthemes retrieved successfully');
     }
 
@@ -40,7 +42,10 @@ class ProgramSubthemeApiController extends ApiBaseController
      */
     public function show($id = null)
     {
-        $programSubtheme = $this->model->find($id);
+        $programSubtheme = $this->model->where('id', $id)
+                                      ->where('is_active', 1)
+                                      ->where('is_deleted', 0)
+                                      ->first();
 
         if (!$programSubtheme) {
             return $this->respondNotFound('Program subtheme not found');
