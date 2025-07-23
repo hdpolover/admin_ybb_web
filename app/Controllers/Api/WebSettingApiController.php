@@ -27,6 +27,7 @@ class WebSettingApiController extends ApiBaseController
     /**
      * Get All Web Settings
      * GET /api/web-settings
+     * High Priority Cache: 2 hours TTL
      */
     public function index()
     {
@@ -37,17 +38,24 @@ class WebSettingApiController extends ApiBaseController
             $url = normalize_web_url($url);
         }
         
-        if ($url) {
-            $webSetting = $this->model->getSettingByWebUrl($url);
-            if (!$webSetting) {
-                return $this->respondNotFound('Web setting not found for the given URL');
+        $result = $this->cacheResponse(function() use ($url) {
+            if ($url) {
+                $webSetting = $this->model->getSettingByWebUrl($url);
+                if (!$webSetting) {
+                    return null; // This will not be cached
+                }
+                return $webSetting;
             }
-            return $this->respondSuccess($webSetting, self::HTTP_OK, 'Web setting retrieved successfully');
-        }
 
-        // If no URL is provided, return all web settings
-        $webSettings = $this->model->findAll();
-        return $this->respondSuccess($webSettings, self::HTTP_OK, 'Web settings retrieved successfully');
+            // If no URL is provided, return all web settings
+            return $this->model->findAll();
+        }, ['url' => $url], null, 7200); // 2 hours cache for web settings
+        
+        if ($result === null && $url) {
+            return $this->respondNotFound('Web setting not found for the given URL');
+        }
+        
+        return $this->respondSuccess($result, self::HTTP_OK, 'Web setting retrieved successfully');
     }
 
  

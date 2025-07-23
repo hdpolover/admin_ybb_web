@@ -8,10 +8,11 @@ use CodeIgniter\HTTP\ResponseInterface;
 use CodeIgniter\HTTP\RequestInterface;
 use Psr\Log\LoggerInterface;
 use Config\Services;
+use App\Traits\Cacheable;
 
 class ApiBaseController extends ResourceController
 {
-    use ResponseTrait;
+    use ResponseTrait, Cacheable;
 
     protected $format = 'json';
     protected $request;

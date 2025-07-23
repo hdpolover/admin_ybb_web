@@ -76,8 +76,7 @@ class ParticipantsApiController extends ApiBaseController
     /**
      * 🔍 Get Single Participant (READ)
      * GET /api/participants/{id}
-     * 
-
+     * Low Priority Cache: 5 minutes TTL
      */
     public function show($id = null)
     {
@@ -86,25 +85,9 @@ class ParticipantsApiController extends ApiBaseController
                 return $this->respondError('Participant ID is required', self::HTTP_BAD_REQUEST);
             }
             
-            // Create a cache key for the participant
-            $cacheKey = "participant_details_{$id}";
-            
-            // Try to get from cache
-            $cache = \Config\Services::cache();
-            $participant = $cache->get($cacheKey);
-            
-            if ($participant === null) {
-                // Cache miss - get from database
-                log_message('info', "ParticipantsApiController::show - Cache miss, getting from database for participant ID: {$id}");
-                $participant = $this->model->getParticipant($id);
-                
-                if ($participant) {
-                    // Cache for 1 hour (3600 seconds)
-                    $cache->save($cacheKey, $participant, 3600);
-                }
-            } else {
-                log_message('info', "ParticipantsApiController::show - Returning cached data for participant ID: {$id}");
-            }
+            $participant = $this->cacheParticipantData(function() use ($id) {
+                return $this->model->getParticipant($id);
+            }, $id);
 
             if (!$participant) {
                 return $this->respondNotFound("Participant not found");
@@ -119,8 +102,7 @@ class ParticipantsApiController extends ApiBaseController
     /**
      * 🆕 Create New Participant (CREATE)
      * POST /api/participants
-     * 
-
+     * Invalidates user cache after creation
      */
     public function create()
     {
@@ -148,6 +130,10 @@ class ParticipantsApiController extends ApiBaseController
                 return $this->respondError('Failed to create participant', self::HTTP_INTERNAL_ERROR);
             }
 
+            // Invalidate user and program cache after creation
+            $this->invalidateUserCache($data['user_id']);
+            $this->invalidateProgramCache($data['program_id']);
+
             // Get the newly created participant
             $participant = $this->model->getParticipant($participantId);
 
@@ -160,8 +146,7 @@ class ParticipantsApiController extends ApiBaseController
     /**
      * ✏️ Update Participant (UPDATE)
      * PUT /api/participants/{id}
-     * 
-
+     * Invalidates participant and user cache after update
      */
     public function update($id = null)
     {
@@ -197,6 +182,10 @@ class ParticipantsApiController extends ApiBaseController
             if (!$updated) {
                 return $this->respondError('Failed to update participant', self::HTTP_INTERNAL_ERROR);
             }
+
+            // Invalidate related cache after update
+            $this->invalidateUserCache($participant->user_id);
+            $this->invalidateProgramCache($participant->program_id);
 
             // Get the updated participant
             $updatedParticipant = $this->model->getParticipant($id);
@@ -333,7 +322,7 @@ class ParticipantsApiController extends ApiBaseController
     /**
      * 🔍 Get Participant by User ID
      * GET /api/participants/user/{userId}
-     * 
+     * Medium Priority Cache: 15 minutes TTL
      **/
     public function getByUserId($userId = null)
     {
@@ -342,7 +331,9 @@ class ParticipantsApiController extends ApiBaseController
                 return $this->respondError('User ID is required', self::HTTP_BAD_REQUEST);
             }
 
-            $participant = $this->model->getParticipantsByUserId($userId);
+            $participant = $this->cacheUserData(function() use ($userId) {
+                return $this->model->getParticipantsByUserId($userId);
+            }, $userId);
 
             if (!$participant) {
                 return $this->respondNotFound("Participant not found for this user");
@@ -636,6 +627,7 @@ class ParticipantsApiController extends ApiBaseController
     }    /**
      * 🔍 Search Participants by Custom Parameters (READ)
      * GET /api/participants/search
+     * Low Priority Cache: 10 minutes TTL for search results
      *     * Query Parameters:
      * @param string email Filter by user email
      * @param string full_name Filter by participant full name (partial match)
@@ -666,20 +658,7 @@ class ParticipantsApiController extends ApiBaseController
                 return $this->respondError('At least one search parameter is required', self::HTTP_BAD_REQUEST);
             }
             
-            // Create a cache key based on search parameters, page, limit and include options
-            $cacheKey = "participants_search_" . md5(json_encode($searchParams) . "_p{$page}_l{$limit}_i{$include}");
-            
-            // Try to get from cache
-            $cache = \Config\Services::cache();
-            $cachedResult = $cache->get($cacheKey);
-            
-            if ($cachedResult !== null) {
-                log_message('info', "ParticipantsApiController::search - Returning cached search results");
-                $result = $cachedResult;
-            } else {
-                // Cache miss - perform search from database
-                log_message('info', "ParticipantsApiController::search - Cache miss, performing database search");
-                
+            $result = $this->cacheResponse(function() use ($searchParams, $limit, $page, $include) {
                 // Parse include parameter
                 $includeOptions = [];
                 if (!empty($include)) {
@@ -687,12 +666,8 @@ class ParticipantsApiController extends ApiBaseController
                 }
                 
                 // Call model method to search participants
-                $result = $this->model->searchParticipants($searchParams, $limit, $page, $includeOptions);
-                
-                // Cache the result for 30 minutes (1800 seconds)
-                // Using a shorter TTL since search results may change more frequently
-                $cache->save($cacheKey, $result, 1800);
-            }
+                return $this->model->searchParticipants($searchParams, $limit, $page, $includeOptions);
+            }, array_merge($searchParams, ['page' => $page, 'limit' => $limit, 'include' => $include]), null, 600); // 10 minutes cache
             
             // If no results found
             if (empty($result['data'])) {

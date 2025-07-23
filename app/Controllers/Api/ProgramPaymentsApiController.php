@@ -25,23 +25,30 @@ class ProgramPaymentsApiController extends ApiBaseController
     }
 
     /**
-     * Get All Program Schedules
+     * Get All Program Payments
      * GET /api/program-payments
+     * Medium Priority Cache: 30 minutes TTL
      * @return \CodeIgniter\HTTP\ResponseInterface
      */
     public function index()
     {
-        $programPayments = $this->model->findAll();
+        $programPayments = $this->cacheResponse(function() {
+            return $this->model->findAll();
+        }, [], null, 1800); // 30 minutes cache
+
         return $this->respondSuccess($programPayments, self::HTTP_OK, 'Program payments retrieved successfully');
     }
 
     /**
      * Get Single Program Payment
      * GET /api/program-payments/{id}
+     * Medium Priority Cache: 30 minutes TTL
      */
     public function show($id = null)
     {
-        $programPayment = $this->model->find($id);
+        $programPayment = $this->cacheResponse(function() use ($id) {
+            return $this->model->find($id);
+        }, ['program_payment_id' => $id], null, 1800); // 30 minutes cache
 
         if (!$programPayment) {
             return $this->respondNotFound('Program payment not found');
@@ -49,9 +56,11 @@ class ProgramPaymentsApiController extends ApiBaseController
 
         return $this->respondSuccess($programPayment, self::HTTP_OK, 'Program payment retrieved successfully');
     }
+
     /**
      * Get program payments by program ID
      * GET /api/program-payments/program/{programId}
+     * Medium Priority Cache: 30 minutes TTL
      */
     public function getByProgramId($programId = null)
     {
@@ -59,9 +68,11 @@ class ProgramPaymentsApiController extends ApiBaseController
             return $this->respondValidationErrors('Program ID is required');
         }
 
-        // Get all payments (active and inactive, but exclude deleted)
-        // Frontend will handle filtering, so we return all available payments
-        $programPayments = $this->model->getByProgramId($programId, false, false);
+        $programPayments = $this->cacheProgramData(function() use ($programId) {
+            // Get all payments (active and inactive, but exclude deleted)
+            // Frontend will handle filtering, so we return all available payments
+            return $this->model->getByProgramId($programId, false, false);
+        }, $programId);
 
         if (!$programPayments) {
             return $this->respondNotFound('Program payments not found for this program ID');

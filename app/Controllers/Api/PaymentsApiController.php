@@ -46,6 +46,7 @@ class PaymentsApiController extends ApiBaseController
 
     /**
      * Get payment details by payment ID
+     * Low Priority Cache: 5 minutes TTL
      *
      * @param int|null $id Payment ID
      * @return ResponseInterface
@@ -59,7 +60,9 @@ class PaymentsApiController extends ApiBaseController
         $paymentModel = new \App\Models\PaymentModel();
 
         try {
-            $payment = $paymentModel->find($id);
+            $payment = $this->cacheResponse(function() use ($paymentModel, $id) {
+                return $paymentModel->find($id);
+            }, ['payment_id' => $id], null, 300); // 5 minutes cache
 
             if (!$payment) {
                 return $this->respondNotFound('Payment not found');
@@ -129,6 +132,7 @@ class PaymentsApiController extends ApiBaseController
 
     /**
      * Get payments by participant ID
+     * Low Priority Cache: 5 minutes TTL
      *
      * @param int|null $participantId
      * @return ResponseInterface
@@ -142,7 +146,9 @@ class PaymentsApiController extends ApiBaseController
         $paymentModel = new \App\Models\PaymentModel();
 
         try {
-            $payments = $paymentModel->getPaymentsByParticipantId($participantId);
+            $payments = $this->cacheParticipantData(function() use ($paymentModel, $participantId) {
+                return $paymentModel->getPaymentsByParticipantId($participantId);
+            }, $participantId);
 
             if (!$payments) {
                 return $this->respondNotFound('No payments found for this participant ID');
@@ -156,6 +162,7 @@ class PaymentsApiController extends ApiBaseController
 
     /**
      * Get payments by program payment ID and participant ID
+     * Low Priority Cache: 5 minutes TTL
      * @param int|null $programPaymentId
      * @param int|null $participantId
      * @return ResponseInterface
@@ -170,23 +177,29 @@ class PaymentsApiController extends ApiBaseController
         $paymentModel = new \App\Models\PaymentModel();
         $programPaymentModel = new \App\Models\ProgramPaymentModel();
 
-        $payments = $paymentModel->getPaymentsByParticipantIdAndProgramPaymentId($participantId, $programPaymentId);
+        $data = $this->cacheResponse(function() use ($paymentModel, $programPaymentModel, $programPaymentId, $participantId) {
+            $payments = $paymentModel->getPaymentsByParticipantIdAndProgramPaymentId($participantId, $programPaymentId);
 
-        // if no payments found, return empty array
-        if (!$payments) {
-            $payments = [];
-        }
+            // if no payments found, return empty array
+            if (!$payments) {
+                $payments = [];
+            }
 
-        $programPayment = $programPaymentModel->find($programPaymentId);
+            $programPayment = $programPaymentModel->find($programPaymentId);
 
-        if (!$programPayment) {
+            if (!$programPayment) {
+                return null;
+            }
+
+            return [
+                'program_payment' => $programPayment,
+                'payments' => $payments
+            ];
+        }, ['program_payment_id' => $programPaymentId, 'participant_id' => $participantId], null, 300); // 5 minutes cache
+
+        if ($data === null) {
             return $this->respondNotFound('Program payment not found');
         }
-
-        $data = [
-            'program_payment' => $programPayment,
-            'payments' => $payments
-        ];
 
         return $this->respondSuccess($data, self::HTTP_OK, 'Payments retrieved successfully');
     }
