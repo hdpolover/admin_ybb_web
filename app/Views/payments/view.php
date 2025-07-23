@@ -18,6 +18,31 @@
                 <div class="container-fluid">
                     <?php echo view('partials/page-title', array('pagetitle' => 'Payments', 'title' => 'Payment Details')); ?>
 
+                    <!-- Flash Messages -->
+                    <?php if (session()->getFlashdata('success')): ?>
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="ri-check-double-line me-2"></i>
+                            <?= session()->getFlashdata('success') ?>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if (session()->getFlashdata('error')): ?>
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="ri-error-warning-line me-2"></i>
+                            <?= session()->getFlashdata('error') ?>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if (session()->getFlashdata('warning')): ?>
+                        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                            <i class="ri-alert-line me-2"></i>
+                            <?= session()->getFlashdata('warning') ?>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    <?php endif; ?>
+
                     <div class="row">
                         <div class="col-lg-12">
                             <div class="card">
@@ -522,6 +547,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form action="<?= site_url('payments/update-status/' . $payment->id) ?>" method="post">
+                    <?= csrf_field() ?>
                     <div class="modal-body">
                         <div class="mb-3">
                             <label for="paymentStatus" class="form-label">Status</label>
@@ -551,6 +577,27 @@
 
     <!-- App js -->
     <script src="<?= base_url('assets/js/app.js') ?>"></script>
+    
+    <script>
+    // Handle rejection reason requirement
+    document.getElementById('paymentStatus').addEventListener('change', function() {
+        const notesField = document.getElementById('statusNotes');
+        const notesLabel = document.querySelector('label[for="statusNotes"]');
+        
+        if (this.value == '4') { // Rejected status
+            notesField.setAttribute('required', 'required');
+            notesLabel.innerHTML = 'Rejection Reason <span class="text-danger">*</span>';
+            notesField.placeholder = 'Please provide a reason for rejecting this payment';
+        } else {
+            notesField.removeAttribute('required');
+            notesLabel.innerHTML = 'Additional Notes';
+            notesField.placeholder = 'Add notes about this status change (optional)';
+        }
+    });
+    
+    // Trigger change event on load to set initial state
+    document.getElementById('paymentStatus').dispatchEvent(new Event('change'));
+    </script>
 </body>
 
 </html>

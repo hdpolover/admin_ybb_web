@@ -292,7 +292,8 @@ class PaymentModel extends Model
 
         // Validate rejection reason for rejected status
         if ($status == 4 && empty($rejectionReason)) {
-            throw new \InvalidArgumentException('Rejection reason is required for rejected status');
+            // For rejected status, we'll use a default reason if none provided
+            $rejectionReason = 'No specific reason provided';
         }
 
         // Get payment data to find associated participant for cache invalidation
@@ -321,11 +322,18 @@ class PaymentModel extends Model
         
         // Invalidate related caches if update was successful
         if ($result) {
-            // Load helper if not already loaded
-            helper(['cache']);
+            // Invalidate payment caches using direct cache service
+            $cache = \Config\Services::cache();
             
-            // Invalidate payment caches
-            invalidate_payment_cache($id, $participantId);
+            // Delete payment stats caches
+            $cache->delete('payment_stats');
+            $cache->delete('payment_stats_by_currency');
+            $cache->delete('pending_manual_payments');
+            
+            if ($participantId) {
+                $cache->delete("participant_payments_{$participantId}");
+                $cache->delete("has_successful_payments_{$participantId}");
+            }
             
             // Log cache invalidation
             log_message('info', "PaymentModel::updatePaymentStatus - Invalidated cache for payment ID {$id} and participant ID {$participantId}");

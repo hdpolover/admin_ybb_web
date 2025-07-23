@@ -455,66 +455,81 @@ class Payments extends BaseController
      */
     public function updateStatus($id)
     {
-        // Validate required fields
-        $rules = [
-            'status' => 'required|integer|in_list[0,1,2,3,4]',
-            'notes' => 'permit_empty|string'
-        ];
+        try {
+            // Validate required fields
+            $rules = [
+                'status' => 'required|integer|in_list[0,1,2,3,4]',
+                'notes' => 'permit_empty|string'
+            ];
 
-        if (!$this->validate($rules)) {
-            return redirect()->back()
-                ->with('error', 'Invalid input: ' . implode(', ', $this->validator->getErrors()));
-        }
-
-        // Get payment data
-        $payment = $this->paymentModel->getPaymentById($id);
-
-        // Check if payment exists and belongs to the current program
-        if (!$payment || $payment->program_id != session('current_program')) {
-            return redirect()->to('payments')->with('error', 'Payment not found');
-        }
-
-        $status = $this->request->getPost('status');
-        $notes = $this->request->getPost('notes');
-
-        // Get status name for the message
-        $statusNames = [
-            0 => 'Created',
-            1 => 'Pending',
-            2 => 'Success',
-            3 => 'Cancelled',
-            4 => 'Rejected'
-        ];
-
-        // Get status name for the message  
-        $statusName = $statusNames[$status] ?? 'Unknown';
-
-        // Create notes for the update
-        $statusUpdateNote = "Status updated to '{$statusName}'";
-        $rejectionReason = null; // Initialize rejection reason
-
-        // if rejected, add rejection reason if provided
-        if ($status == 4) {
-            $rejectionReason = $notes ?? '';
-        } else {
-            $statusUpdateNote .= ". Additional notes: {$notes}";
-        }
-
-        // Update payment status using model method which handles notes concatenation
-        $updated = $this->paymentModel->updatePaymentStatus($id, $status, $statusUpdateNote, $rejectionReason);
-
-        if ($updated) {
-            // If payment was successful, you might want to trigger some additional actions
-            if ($status == 2) {
-                // E.g., Update participant status, send confirmation email, etc.
-                $this->handleSuccessfulPaymentActions($payment);
+            if (!$this->validate($rules)) {
+                return redirect()->back()
+                    ->with('error', 'Invalid input: ' . implode(', ', $this->validator->getErrors()));
             }
 
-            return redirect()->to('payments/view/' . $id)
-                ->with('success', "Payment status updated to '{$statusName}' successfully");
-        } else {
+            // Get payment data
+            $payment = $this->paymentModel->getPaymentById($id);
+
+            // Check if payment exists and belongs to the current program
+            if (!$payment || $payment->program_id != session('current_program')) {
+                return redirect()->to('payments')->with('error', 'Payment not found');
+            }
+
+            $status = $this->request->getPost('status');
+            $notes = $this->request->getPost('notes');
+
+            // Get status name for the message
+            $statusNames = [
+                0 => 'Created',
+                1 => 'Pending',
+                2 => 'Success',
+                3 => 'Cancelled',
+                4 => 'Rejected'
+            ];
+
+            // Get status name for the message  
+            $statusName = $statusNames[$status] ?? 'Unknown';
+
+            // Create notes for the update
+            $statusUpdateNote = "Status updated to '{$statusName}'";
+            $rejectionReason = null; // Initialize rejection reason
+
+            // if rejected, add rejection reason if provided
+            if ($status == 4) {
+                $rejectionReason = $notes ?? '';
+                if (!empty($notes)) {
+                    $statusUpdateNote .= ". Rejection reason: {$notes}";
+                }
+            } else {
+                if (!empty($notes)) {
+                    $statusUpdateNote .= ". Additional notes: {$notes}";
+                }
+            }
+
+            // Update payment status using model method which handles notes concatenation
+            $updated = $this->paymentModel->updatePaymentStatus($id, $status, $statusUpdateNote, $rejectionReason);
+
+            if ($updated) {
+                // If payment was successful, you might want to trigger some additional actions
+                if ($status == 2) {
+                    // E.g., Update participant status, send confirmation email, etc.
+                    $this->handleSuccessfulPaymentActions($payment);
+                }
+
+                return redirect()->to('payments/view/' . $id)
+                    ->with('success', "Payment status updated to '{$statusName}' successfully");
+            } else {
+                return redirect()->back()
+                    ->with('error', 'Failed to update payment status');
+            }
+            
+        } catch (\Exception $e) {
+            // Log the error for debugging
+            log_message('error', 'Payment status update failed: ' . $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine());
+            
+            // Return user-friendly error message
             return redirect()->back()
-                ->with('error', 'Failed to update payment status');
+                ->with('error', 'An error occurred while updating the payment status. Please try again.');
         }
     }
 
