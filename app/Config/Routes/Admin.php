@@ -49,6 +49,17 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->get('ambassadors/getAmbassadorData/(:num)', 'Ambassadors::getAmbassadorData/$1');
     });
 
+    //Scoring
+    $routes->group('scorings', ['filter' => 'program_selection'], function ($routes) {
+        $routes->get('fully_funded', 'Scorings::index');
+        $routes->get('fully_funded/view/(:num)', 'Scorings::view/$1');
+        $routes->get('fully_funded/edit/(:num)', 'Scorings::edit/$1');
+        $routes->get('fully_funded/getData', 'Scorings::getData');
+        $routes->post('fully_funded/export', 'Scorings::export');
+        $routes->get('fully_funded/export/(:num)', 'Scorings::export/$1');
+        $routes->get('fully_funded/export_batch', 'Scorings::export_batch');
+    });
+
     // announcements group
     $routes->group('announcements', ['filter' => 'program_selection'], function ($routes) {
         $routes->get('', 'Announcements::index');
