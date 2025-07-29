@@ -280,153 +280,116 @@ class Payments extends BaseController
     }
 
     /**
-     * Export payments data
+     * Export payments data using YBB Export API
      */
     public function export()
     {
-        $programId = $this->request->getPost('program_id');
-        if (!$programId) {
-            $programId = session('current_program');
-            $programId = session('current_program');
-        }
-
-        // Get export parameters
-        $exportType = $this->request->getPost('export_type') ?? 'excel';
-        $dateRange = $this->request->getPost('date_range');
-        $status = $this->request->getPost('status');
-
-        // Build query
-        $db = \Config\Database::connect();
-        $builder = $db->table('payments')
-            ->select('
-                payments.id,
-                payments.id,
-                payments.amount,
-                payments.payment_method_id,
-                payments.created_at,
-                payments.status,
-                participants.full_name as participant_name,
-                users.email as participant_email,
-
-            ')
-            ->join('participants', 'participants.id = payments.participant_id')
-            ->join('users', 'users.id = participants.user_id')
-            ->where('participants.program_id', $programId);
-
-        // Apply filters if provided
-        if ($dateRange) {
-            $dates = explode(' - ', $dateRange);
-            if (count($dates) == 2) {
-                $startDate = date('Y-m-d', strtotime($dates[0]));
-                $endDate = date('Y-m-d', strtotime($dates[1]));
-                $builder->where('DATE(payments.created_at) >=', $startDate)
-                    ->where('DATE(payments.created_at) <=', $endDate);
+        try {
+            $programId = $this->request->getPost('program_id');
+            if (!$programId) {
+                $programId = session('current_program');
             }
-        }
 
-        if ($status !== '') {
-            $builder->where('payments.status', $status);
-        }
+            if (!$programId) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'No program selected'
+                ]);
+            }
 
-        // Get data// Get data
-        $payments = $builder->orderBy('payments.created_at', 'DESC')->get()->getResult();
+            // Get export parameters and filters
+            $dateRange = $this->request->getPost('date_range');
+            $status = $this->request->getPost('status');
 
-        // Set the headers for download// Set the headers for download
-        $filename = 'payments_export_' . date('Ymd_His');
+            // Build query
+            $db = \Config\Database::connect();
+            $builder = $db->table('payments')
+                ->select('
+                    payments.id,
+                    payments.amount,
+                    payments.payment_method_id,
+                    payments.created_at,
+                    payments.status,
+                    payments.transaction_id,
+                    participants.full_name as participant_name,
+                    users.email as participant_email,
+                    program_payments.title as payment_title
+                ')
+                ->join('participants', 'participants.id = payments.participant_id')
+                ->join('users', 'users.id = participants.user_id')
+                ->join('program_payments', 'program_payments.id = payments.program_payment_id', 'left')
+                ->where('participants.program_id', $programId)
+                ->where('payments.is_deleted', 0);
 
-        // Process based on export typed on export type
-        switch ($exportType) {
-            case 'csv':
-                return $this->exportCSV($payments, $filename);
-            case 'pdf':
-                return $this->exportPDF($payments, $filename);
-            default:
-                return $this->exportExcel($payments, $filename);
-        }
-    }
+            // Apply filters if provided
+            if ($dateRange) {
+                $dates = explode(' - ', $dateRange);
+                if (count($dates) == 2) {
+                    $startDate = date('Y-m-d', strtotime($dates[0]));
+                    $endDate = date('Y-m-d', strtotime($dates[1]));
+                    $builder->where('DATE(payments.created_at) >=', $startDate)
+                        ->where('DATE(payments.created_at) <=', $endDate);
+                }
+            }
 
-    /**
-     * Export data to CSV
-     */
-    private function exportCSV($data, $filename)
-    {
-        // Set headers
-        header('Content-Type: text/csv');
-        header('Content-Type: text/csv');
-        header('Content-Disposition: attachment; filename="' . $filename . '.csv"');
+            if ($status !== '' && $status !== null) {
+                $builder->where('payments.status', $status);
+            }
 
-        // Open output stream// Open output stream
-        $output = fopen('php://output', 'w');
+            // Get data
+            $payments = $builder->orderBy('payments.created_at', 'DESC')->get()->getResultArray();
 
-        // Add headers// Add headers
-        fputcsv($output, ['Transaction ID', 'Participant', 'Email', 'Amount', 'Payment Method', 'Date', 'Status']);
+            if (empty($payments)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'No payments found for export'
+                ]);
+            }
 
-        // Add data rows
-        foreach ($data as $row) {
-            fputcsv($output, [
-                $row->transaction_id,
-                $row->participant_name,
-                $row->participant_email,
-                $row->amount,
-                $row->payment_method,
-                date('Y-m-d H:i:s', strtotime($row->payment_date)),
-                $row->status
+            // Prepare export options
+            $options = [
+                'template' => 'payments',
+                'format' => 'excel',
+                'program_id' => $programId,
+                'filters' => [
+                    'date_range' => $dateRange,
+                    'status' => $status
+                ]
+            ];
+
+            // Create export using YBB Export API
+            $ybbExport = new \App\Libraries\YbbExport();
+            $result = $ybbExport->exportPayments($payments, $options);
+
+            if ($result['success']) {
+                log_message('info', 'Payments export initiated successfully: ' . json_encode($result));
+                
+                return $this->response->setJSON([
+                    'success' => true,
+                    'exportId' => $result['data']['export_id'],
+                    'message' => 'Export initiated successfully',
+                    'estimatedTime' => $result['data']['estimated_time'] ?? null,
+                    'recordCount' => count($payments)
+                ]);
+            } else {
+                log_message('error', 'Payments export failed: ' . $result['message']);
+                
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => $result['message']
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            log_message('error', 'Failed to export payments: ' . $e->getMessage());
+            
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to export payments: ' . $e->getMessage()
             ]);
         }
-
-        // Close and returnose and return
-        fclose($output);
-        exit;
     }
 
-    /**
-     * Placeholder method for Excel exportPlaceholder method for Excel export
-     * You'll need a library like PhpSpreadsheet for proper Excel exportor proper Excel export
-     */
-    private function exportExcel($data, $filename)
-    {
-        // This is a simplified example that outputs CSV but with Excel extension// This is a simplified example that outputs CSV but with Excel extension
-        // For a complete implementation, you would use a library like PhpSpreadsheetete implementation, you would use a library like PhpSpreadsheet
-
-        // Set headers
-        header('Content-Type: application/vnd.ms-excel');
-        header('Content-Disposition: attachment; filename="' . $filename . '.xls"');
-
-        // Open output stream// Open output stream
-        $output = fopen('php://output', 'w');
-
-        // Add headers// Add headers
-        fputcsv($output, ['Transaction ID', 'Participant', 'Email', 'Amount', 'Payment Method', 'Date', 'Status']);
-
-        // Add data rows
-        foreach ($data as $row) {
-            fputcsv($output, [
-                $row->transaction_id,
-                $row->participant_name,
-                $row->participant_email,
-                $row->amount,
-                $row->payment_method,
-                date('Y-m-d H:i:s', strtotime($row->payment_date)),
-                date('Y-m-d H:i:s', strtotime($row->payment_date)),
-                $row->status
-            ]);
-        }
-
-        // Close and returnose and return
-        fclose($output);
-        exit;
-    }
-
-    /**
-     * Placeholder method for PDF exportPlaceholder method for PDF export
-     * You'll need a library like TCPDF or MPDF for proper PDF exportfor proper PDF export
-     */
-    function exportPDF($data, $filename)
-    {
-        // This example simply redirects with a message   // This example simply redirects with a message
-        return redirect()->to('payments')->with('error', 'PDF export requires additional libraries. Please use Excel or CSV export.');
-        return redirect()->to('payments')->with('error', 'PDF export requires additional libraries. Please use Excel or CSV export.');
-    }
     /**
      * Show the payment form
      */

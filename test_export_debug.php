@@ -1,64 +1,44 @@
 <?php
 
-// Test the export functionality outside of the web context
 require_once 'vendor/autoload.php';
 
-// Set up basic CodeIgniter environment
-define('SYSTEMPATH', __DIR__ . '/system/');
+// Set up basic CodeIgniter environment for testing
 define('APPPATH', __DIR__ . '/app/');
-define('FCPATH', __DIR__ . '/public/');
-define('WRITEPATH', __DIR__ . '/writable/');
+define('SYSTEMPATH', __DIR__ . '/system/');
 define('ROOTPATH', __DIR__ . '/');
+define('WRITEPATH', __DIR__ . '/writable/');
 
-// Load CodeIgniter bootstrap
-require_once SYSTEMPATH . 'bootstrap.php';
-
-// Initialize basic services
-$config = new \Config\App();
-$request = \Config\Services::request($config);
-
-echo "Testing Excel Export Service...\n";
-
+// Simple test to simulate what happens in the export controller
 try {
-    // Test if PhpSpreadsheet is available
-    if (!class_exists('PhpOffice\PhpSpreadsheet\Spreadsheet')) {
-        throw new Exception('PhpSpreadsheet not available');
-    }
-    echo "✓ PhpSpreadsheet is available\n";
-
-    // Test ExcelExport service
-    $excelService = new \App\Services\ExcelExport();
-    echo "✓ ExcelExport service instantiated\n";
-
-    // Test with simple data
-    $testParticipants = [
-        (object)[
-            'id' => 1,
-            'full_name' => 'John Doe',
-            'email' => 'john@example.com',
-            'phone_number' => '123456789',
-            'address' => 'Test Address',
-            'created_at' => '2024-01-01 10:00:00',
-            'category' => 'fully_funded',
-            'nationality' => 'Indonesia',
-            'form_status' => 2
-        ]
-    ];
-
-    echo "✓ Test data created\n";
-
-    // Test if we can call the method without errors (don't actually export)
-    echo "Testing export method preparation...\n";
+    echo "Testing YBB Export Controller simulation...\n";
     
-    // Create a simple test spreadsheet to verify the library works
-    $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
-    $sheet = $spreadsheet->getActiveSheet();
-    $sheet->setCellValue('A1', 'Test');
-    echo "✓ PhpSpreadsheet basic functionality works\n";
+    // Simulate session data
+    $_SESSION['current_program'] = 1;
+    $_POST['template'] = 'standard';
+    
+    echo "Session program ID: " . (isset($_SESSION['current_program']) ? $_SESSION['current_program'] : 'NOT SET') . "\n";
+    echo "POST data: " . print_r($_POST, true) . "\n";
+    
+    // Test database connection with actual config
+    $host = '194.163.42.101';
+    $database = 'u1437096_ybb_master_app_db';
+    $username = 'u1437096_ybb_master_app_admin_user';
+    $password = '7J8*^dFEa&lN';
 
-    echo "All tests passed! Export should work now.\n";
-
+    echo "Testing database connection to: $host\n";
+    
+    $pdo = new PDO("mysql:host=$host;dbname=$database;charset=utf8mb4", $username, $password);
+    echo "Database connection: SUCCESS\n";
+    
+    // Test a simple query
+    $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM participants WHERE program_id = ?");
+    $stmt->execute([1]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    echo "Participants found for program 1: " . $result['count'] . "\n";
+    
 } catch (Exception $e) {
-    echo "✗ Error: " . $e->getMessage() . "\n";
+    echo "ERROR: " . $e->getMessage() . "\n";
     echo "Stack trace: " . $e->getTraceAsString() . "\n";
 }
+
+echo "\nTest completed.\n";

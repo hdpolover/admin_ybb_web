@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interval Clearing Test</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 800px; 
+            margin: 20px auto; 
+            padding: 20px; 
+        }
+        .test-section { 
+            margin: 20px 0; 
+            padding: 15px; 
+            border: 1px solid #ddd; 
+            border-radius: 5px; 
+        }
+        button { 
+            margin: 5px; 
+            padding: 10px 15px; 
+            background: #007bff; 
+            color: white; 
+            border: none; 
+            border-radius: 3px; 
+            cursor: pointer; 
+        }
+        button:hover { background: #0056b3; }
+        .emergency { background: #dc3545 !important; }
+        .emergency:hover { background: #c82333 !important; }
+        #log { 
+            height: 300px; 
+            overflow-y: auto; 
+            background: #f8f9fa; 
+            padding: 10px; 
+            border: 1px solid #ddd; 
+            font-family: monospace; 
+            font-size: 12px; 
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Interval Clearing Test</h1>
+    
+    <div class="test-section">
+        <h3>Test Interval Creation</h3>
+        <button onclick="createTestIntervals()">Create Test Intervals</button>
+        <button onclick="showActiveIntervals()">Show Active Intervals</button>
+        <button onclick="testCompletionResponse()">Test Completion Response</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>Emergency Controls</h3>
+        <button class="emergency" onclick="forceStopAll()">🚨 Force Stop All Intervals</button>
+        <button class="emergency" onclick="nuclearClear()">💥 Nuclear Clear (1-10000)</button>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>Console Log</h3>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        // Global interval registry to track all active intervals
+        window.activeIntervals = window.activeIntervals || new Set();
+        
+        // Override setInterval to track all intervals
+        const originalSetInterval = window.setInterval;
+        window.setInterval = function(callback, delay) {
+            const intervalId = originalSetInterval(callback, delay);
+            window.activeIntervals.add(intervalId);
+            log(`Created interval ${intervalId} with delay ${delay}ms`);
+            return intervalId;
+        };
+
+        // Override clearInterval to remove from tracking
+        const originalClearInterval = window.clearInterval;
+        window.clearInterval = function(intervalId) {
+            originalClearInterval(intervalId);
+            window.activeIntervals.delete(intervalId);
+            log(`Cleared interval ${intervalId}`);
+        };
+
+        // Function to force clear all active intervals
+        window.forceStopAllIntervals = function() {
+            log(`🚨 Force stopping ${window.activeIntervals.size} active intervals: ${Array.from(window.activeIntervals).join(', ')}`);
+            window.activeIntervals.forEach(intervalId => {
+                originalClearInterval(intervalId);
+            });
+            window.activeIntervals.clear();
+        };
+        
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        function createTestIntervals() {
+            log('Creating test intervals...');
+            
+            // Simulate export polling intervals
+            for (let i = 0; i < 3; i++) {
+                setInterval(() => {
+                    log(`Test interval ${i + 1} tick`);
+                }, 2000 + (i * 500));
+            }
+            
+            log(`Created 3 test intervals. Total active: ${window.activeIntervals.size}`);
+        }
+        
+        function showActiveIntervals() {
+            log(`Active intervals: ${Array.from(window.activeIntervals).join(', ')} (Total: ${window.activeIntervals.size})`);
+        }
+        
+        function testCompletionResponse() {
+            log('Testing completion response simulation...');
+            
+            // Simulate the completion response that should trigger stopping
+            const mockResponse = {
+                success: true,
+                exportId: "test-export-123",
+                status: "completed",
+                fileName: "test.xlsx",
+                downloadUrl: "http://localhost:8080/admin/exports/download/test-export-123"
+            };
+            
+            log('Mock completion response:');
+            log(JSON.stringify(mockResponse, null, 2));
+            
+            // Simulate the completion detection logic
+            if (mockResponse.status === 'completed' || mockResponse.status === 'ready' || mockResponse.downloadUrl) {
+                log('🚨 COMPLETION DETECTED - STOPPING ALL INTERVALS');
+                forceStopAll();
+            }
+        }
+        
+        function forceStopAll() {
+            log('🚨 FORCE STOP ALL - Starting nuclear shutdown...');
+            
+            if (window.forceStopAllIntervals) {
+                window.forceStopAllIntervals();
+            }
+            
+            log(`After force stop: ${window.activeIntervals.size} intervals remaining`);
+        }
+        
+        function nuclearClear() {
+            log('💥 NUCLEAR CLEAR - Clearing intervals 1-10000...');
+            let cleared = 0;
+            
+            for (let i = 1; i < 10000; i++) {
+                try {
+                    clearInterval(i);
+                    cleared++;
+                } catch (e) {
+                    // Ignore errors
+                }
+            }
+            
+            log(`Nuclear clear completed. Attempted to clear ${cleared} intervals.`);
+            log(`Active intervals after nuclear clear: ${window.activeIntervals.size}`);
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        // Initialize
+        log('Interval Clearing Test initialized');
+        log('Click "Create Test Intervals" to start, then test clearing methods');
+    </script>
+</body>
+</html>

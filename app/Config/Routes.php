@@ -39,6 +39,18 @@ $routes->group('', ['namespace' => 'App\Controllers'], function ($routes) {
     // Test routes for certificate debugging
     $routes->get('test-certificates', 'CertificateTest::testPage');
     $routes->get('test-certificates/data', 'CertificateTest::testData');
+    
+    // YBB Export Test Routes
+    $routes->group('test-export', function ($routes) {
+        $routes->get('/', 'TestExportController::index');
+        $routes->get('test-connection', 'TestExportController::testConnection');
+        $routes->post('test-participant-export', 'TestExportController::testParticipantExport');
+        $routes->post('test-payment-export', 'TestExportController::testPaymentExport');
+        $routes->get('get-templates', 'TestExportController::getTemplates');
+        $routes->get('get-templates/(:any)', 'TestExportController::getTemplates/$1');
+        $routes->get('status/(:any)', 'TestExportController::getExportStatus/$1');
+        $routes->get('download/(:any)', 'TestExportController::downloadExport/$1');
+    });
 });
 
 // We get a performance increase by specifying the default

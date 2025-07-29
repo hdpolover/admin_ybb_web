@@ -13,20 +13,22 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
     $routes->get('welcome/set-program/(:num)', 'Welcome::setProgram/$1');
     $routes->get('sign-out', 'Auth::signOut');
 
-    // Excel Export routes
+    // YBB Export API routes (Python Flask service integration)
     $routes->group('exports', function ($routes) {
-        $routes->get('/', 'ExportController::index');
-        $routes->get('participants', 'ExportController::exportParticipants');
-        $routes->post('participants/filtered', 'ExportController::exportFilteredParticipants');
-        $routes->get('participants/filtered', 'ExportController::exportFilteredParticipants');
-        $routes->post('participants/by-payment', 'ExportController::exportParticipantsByPaymentStatus');
-        $routes->get('payments', 'ExportController::exportPayments');
-        $routes->get('custom', 'ExportController::exportCustomData');
-    });
-
-    // Explicitly add POST routes outside the group to ensure they're registered
-    $routes->post('exports/participants/filtered', 'ExportController::exportFilteredParticipants');
-    $routes->post('exports/participants/by-payment', 'ExportController::exportParticipantsByPaymentStatus');    // Users group    
+        $routes->get('/', 'YbbExportController::index');
+        $routes->post('participants', 'YbbExportController::exportParticipants');
+        $routes->post('payments', 'YbbExportController::exportPayments');
+        $routes->post('ambassadors', 'YbbExportController::exportAmbassadors');
+        $routes->get('status/(:any)', 'YbbExportController::getExportStatus/$1');
+        $routes->get('download/(:any)', 'YbbExportController::downloadExport/$1');
+        $routes->get('download/(:any)/zip', 'YbbExportController::downloadExportZip/$1');
+        $routes->get('download/(:any)/batch/(:num)', 'YbbExportController::downloadBatchFile/$1/$2');
+        $routes->get('templates', 'YbbExportController::getTemplates');
+        $routes->get('templates/(:any)', 'YbbExportController::getTemplates/$1');
+        $routes->post('estimate', 'YbbExportController::estimateExport');
+        $routes->get('test-connection', 'YbbExportController::testConnection');
+        $routes->get('storage-info', 'YbbExportController::getStorageInfo');
+    });    // Users group    
 
     $routes->group('users', ['filter' => 'program_selection'], function ($routes) {
         // participants

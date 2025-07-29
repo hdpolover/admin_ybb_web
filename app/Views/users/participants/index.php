@@ -10,12 +10,13 @@
     <!--datatable responsive css-->
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.dataTables.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" /> <!-- Added missing link -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.9/css/responsive.bootstrap.min.css" /> <!-- Added missing link -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.dataTables.min.css">
 
     <!-- Date Range Picker -->
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+
+    <!-- SweetAlert2 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.3/dist/sweetalert2.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.3/dist/sweetalert2.all.min.js"></script>
 
     <!-- Custom CSS for participant table -->
     <style>
@@ -33,6 +34,147 @@
 
         #participants-datatable td {
             vertical-align: middle;
+        }
+
+        /* Enhanced Export SweetAlert Styles */
+        .export-success-popup .export-success-details {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .export-success-popup .export-stats .stat-item {
+            padding: 10px;
+            border-radius: 8px;
+            background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease;
+        }
+
+        .export-success-popup .export-stats .stat-item:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Enhanced Metrics Styling */
+        .export-success-popup .enhanced-metrics .metric-card {
+            background: linear-gradient(135deg, #ffffff, #f8f9fa);
+            border: 1px solid #dee2e6;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+
+        .export-success-popup .enhanced-metrics .metric-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.12);
+            border-color: #adb5bd;
+        }
+
+        .export-success-popup .enhanced-metrics .metric-value {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .export-success-popup .enhanced-metrics .metric-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+        }
+
+        .export-success-popup .export-metadata .metadata-item {
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #28a745;
+            margin-bottom: 8px;
+        }
+
+        .export-completion-popup .completion-stats .stat-badge {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .export-completion-popup .completion-stats .stat-badge:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        /* Enhanced Metrics for Completion Popup */
+        .export-completion-popup .metric-badge {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+        }
+
+        .export-completion-popup .metric-badge:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.18);
+        }
+
+        .export-completion-popup .metric-number {
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .export-completion-popup .completion-metadata .metadata-row {
+            padding: 6px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .export-completion-popup .completion-metadata .metadata-row:last-child {
+            border-bottom: none;
+        }
+
+        .export-completion-popup .completion-icon {
+            animation: bounceIn 0.8s ease-out;
+        }
+
+        /* Enhanced Metrics for Export Result Tables */
+        .export-result .enhanced-metrics-row .metric-card {
+            background: linear-gradient(135deg, #ffffff, #f8f9fa);
+            border: 1px solid #dee2e6;
+            transition: all 0.3s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+
+        .export-result .enhanced-metrics-row .metric-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.12);
+            border-color: #adb5bd;
+        }
+
+        .export-result .enhanced-metrics-row .metric-value {
+            font-weight: 600;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .export-result .enhanced-metrics-row .metric-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Loading SweetAlert enhancement */
+        .swal2-loading .swal2-progress-bar {
+            background: linear-gradient(90deg, #28a745, #20c997, #17a2b8);
+            animation: progressShimmer 2s linear infinite;
+        }
+
+        @keyframes progressShimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
         }
     </style>
 </head>
@@ -147,7 +289,8 @@
                                             <div class="input-group search-box">
                                                 <span class="input-group-text bg-light border-end-0">
                                                     <i class="ri-search-line text-muted"></i>
-                                                </span> <input type="text" id="search-box" class="form-control border-start-0 ps-0"
+                                                </span>
+                                                <input type="text" id="search-box" class="form-control border-start-0 ps-0"
                                                     placeholder="Search by name, email, account ID, nationality..."
                                                     autocomplete="off">
                                                 <button class="btn btn-primary" id="search-button" type="button">
@@ -224,22 +367,11 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 
-    <script src="/assets/js/pages/datatables.init.js"></script> <!-- App js -->
+    <script src="/assets/js/pages/datatables.init.js"></script>
     <script src="/assets/js/app.js"></script>
-
-    <!-- Excel Export Helper -->
-    <script src="/assets/js/excel-export.js"></script>
-
-    <!-- Override Excel Export Helper for this page -->
-    <script>
-        // Override the setupExcelExport function from excel-export.js for this page
-        // This ensures our custom implementation takes precedence
-        function setupExcelExport() {
-            console.log('Using custom export implementation for participants');
-            // Implementation is in the page-specific script below
-            return false;
-        }
-    </script>
+    
+    <!-- Enhanced Export Manager with Nuclear Interval Clearing -->
+    <script src="/assets/js/enhanced-export-manager.js?v=<?= time() ?>&bust=<?= uniqid() ?>"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -254,7 +386,7 @@
                         // Add filter parameters
                         d.category = $('#filter-category').val();
                         d.form_status = $('#filter-form-status').val();
-                        d.search.value = $('#search-box').val(); // Add search term
+                        d.search.value = $('#search-box').val();
                         return d;
                     }
                 },
@@ -357,7 +489,7 @@
                 document.getElementById('search-box').value = '';
 
                 // Reload the table with reset filters
-                participantsTable.search('').draw(); // Clear the search
+                participantsTable.search('').draw();
                 participantsTable.ajax.reload();
             });
 
@@ -403,572 +535,44 @@
             $('#export-date-range').on('cancel.daterangepicker', function(ev, picker) {
                 $(this).val('');
                 updateExportSummary();
-            }); // Handle export button click
-            $('#btn-do-export').off('click').on('click', function() {
-                // Show loading alert
-                Swal.fire({
-                    title: 'Preparing Export',
-                    html: 'Please wait while we analyze the data...',
-                    allowOutsideClick: false,
-                    allowEscapeKey: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                }); // First make a regular AJAX call to check if batching is needed
-                console.log('Starting export request with form data:', $('#exportForm').serialize());
-                $.ajax({
-                    url: $('#exportForm').attr('action'),
-                    method: 'POST', // Use POST to handle larger form data
-                    data: $('#exportForm').serialize() + '&check_batch=1', // Add parameter to indicate we're just checking
-                    dataType: 'json',
-                    success: function(response) {
-                        // Check if we received batch information
-                        if (response && response.success && response.batches) {
-                            // Multiple batches needed
-                            handleBatchedExport(response);
-                        } else {
-                            // Small dataset, handle as a single file
-                            downloadSingleExport();
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        // Show error message
-                        let errorMessage = 'There was an error processing your export';
-                        let errorDetail = '';
+            });
 
-                        try {
-                            // Try to parse the response as JSON
-                            const response = JSON.parse(xhr.responseText);
-                            if (response.message) {
-                                errorMessage = response.message;
-                            }
-
-                            // If there's additional error detail, capture it
-                            if (response.detail || response.error) {
-                                errorDetail = response.detail || response.error;
-                            }
-                        } catch (e) {
-                            // If not valid JSON, use the raw response text if available
-                            if (xhr.responseText && xhr.responseText.length > 0) {
-                                errorDetail = xhr.responseText.substring(0, 500);
-                            } else {
-                                errorDetail = 'Status: ' + status + ', Error: ' + error;
-                            }
-                        }
-
-                        // Log the full error for debugging
-                        console.error('Export error:', {
-                            status: xhr.status,
-                            statusText: xhr.statusText,
-                            response: xhr.responseText,
-                            error: error
+            // Enhanced Export Manager Integration - Convert button to work with EnhancedExportManager
+            function initializeEnhancedExport() {
+                if (typeof EnhancedExportManager !== 'undefined') {
+                    console.log('Enhanced Export Manager class available, initializing...');
+                    window.enhancedExportManager = new EnhancedExportManager();
+                    console.log('Enhanced Export Manager initialized:', window.enhancedExportManager);
+                    
+                    // Convert the existing export button to work with EnhancedExportManager
+                    const exportBtn = document.getElementById('btn-do-export');
+                    if (exportBtn) {
+                        // Add the required classes and data attributes
+                        exportBtn.classList.add('export-btn');
+                        exportBtn.setAttribute('data-export-type', 'participants');
+                        exportBtn.setAttribute('data-url', '/exports/participants');
+                        
+                        // IMPORTANT: Add data attribute to specify which form to use for CSRF token
+                        exportBtn.setAttribute('data-form-selector', '#exportForm');
+                        
+                        console.log('Participants export button configured for EnhancedExportManager');
+                        console.log('Button classes:', exportBtn.className);
+                        console.log('Button data attributes:', {
+                            exportType: exportBtn.dataset.exportType,
+                            url: exportBtn.dataset.url,
+                            formSelector: exportBtn.dataset.formSelector
                         });
-
-                        // Show a nice error message to the user
-                        Swal.fire({
-                            title: 'Export Failed',
-                            html: errorMessage +
-                                (errorDetail ? '<br><br><div class="text-start"><strong>Technical details:</strong>' +
-                                    '<div class="alert alert-danger mt-2 small" style="max-height:200px;overflow-y:auto">' +
-                                    errorDetail + '</div></div>' : ''),
-                            icon: 'error',
-                            confirmButtonColor: '#f06548'
-                        });
+                    } else {
+                        console.error('Export button #btn-do-export not found!');
                     }
-                });
-            }); // Function to handle single file export                  
-            function downloadSingleExport() {
-                // Show processing message
-                Swal.update({
-                    title: 'Processing Export',
-                    html: 'Generating your Excel file, please wait...',
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
-
-                // Create an iframe for download to avoid page navigation
-                const iframe = document.createElement('iframe');
-                iframe.style.display = 'none';
-                iframe.name = 'download_iframe';
-                document.body.appendChild(iframe);
-
-                // Create a form for traditional form submission (avoids AJAX JSON parsing issues)
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = $('#exportForm').attr('action');
-                form.target = 'download_iframe'; // Target the iframe instead of _blank
-                form.style.display = 'none';
-
-                // Copy all form fields
-                const formData = new FormData(document.getElementById('exportForm'));
-                for (const [key, value] of formData.entries()) {
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = key;
-                    input.value = value;
-                    form.appendChild(input);
-                }
-
-                // Add direct download parameter
-                const directDownload = document.createElement('input');
-                directDownload.type = 'hidden';
-                directDownload.name = 'direct_download';
-                directDownload.value = '1';
-                form.appendChild(directDownload);
-
-                // Add to document and submit
-                document.body.appendChild(form);
-
-                // Set a timeout to detect if the download fails or takes too long
-                let downloadSuccess = false;
-                // Handle iframe load events
-                iframe.onload = function() {
-                    // Check if the iframe content contains an error message
-                    try {
-                        const iframeContent = iframe.contentDocument || iframe.contentWindow.document;
-                        const responseText = iframeContent.body.textContent || '';
-
-                        // Try to parse response as JSON first                         
-                        try {
-                            // Check for binary content first - Excel files start with PK signature bytes
-                            // There are multiple ways to detect Excel content showing up as text
-                            const isProbablyExcel = (
-                                // Check for ZIP file signature (Excel files are ZIP containers)
-                                responseText.startsWith('PK') || 
-                                // Check for XML markers common in Excel files
-                                responseText.includes('Content_Types') || 
-                                responseText.includes('workbook.xml') ||
-                                responseText.includes('xl/worksheets') ||
-                                // Or if it's long binary content without HTML markers
-                                (responseText.length > 1000 && 
-                                !responseText.includes('<!DOCTYPE') && 
-                                !responseText.includes('<html'))
-                            );
-                                
-                            if (isProbablyExcel) {
-                                console.log('Detected Excel binary data in iframe - download successful');
-                                downloadSuccess = true;
-                                
-                                // Close the modal
-                                $('#exportModal').modal('hide');
-                                
-                                // Show success message
-                                Swal.fire({
-                                    title: 'Export Successful',
-                                    text: 'Your Excel file has been downloaded successfully.',
-                                    icon: 'success',
-                                    confirmButtonColor: '#0ab39c'
-                                });
-                                
-                                // Clean up resources
-                                cleanupResources();
-                                return;
-                            }
-
-                            const jsonResponse = JSON.parse(responseText);
-                            if (!jsonResponse.success) {
-                                // JSON error response
-                                console.error('Export error detected (JSON):', jsonResponse.message || 'Unknown error');
-                                Swal.fire({
-                                    title: 'Export Failed',
-                                    html: 'There was an error processing your export:<br>' +
-                                        (jsonResponse.message || 'Unknown error. Please try again or contact support.'),
-                                    icon: 'error',
-                                    confirmButtonColor: '#f06548'
-                                });
-                                // Clean up but don't mark as success
-                                cleanupResources();
-                                return;
-                            }
-                        } catch (jsonError) {
-                            // Not JSON or invalid JSON, check for error strings
-                            if ((responseText.includes('error') ||
-                                    responseText.includes('Error') ||
-                                    responseText.includes('failed') ||
-                                    responseText.includes('Exception') ||
-                                    responseText.includes('Fatal')) &&
-                                !responseText.startsWith('PK')) { // Skip if it's binary Excel data
-
-                                console.error('Export error detected (text):', responseText);
-                                Swal.fire({
-                                    title: 'Export Failed',
-                                    html: 'There was an error processing your export.<br>Error details:<br>' +
-                                        '<div class="alert alert-danger mt-2">' +
-                                        responseText.substring(0, 300) +
-                                        (responseText.length > 300 ? '...' : '') + '</div>',
-                                    icon: 'error',
-                                    confirmButtonColor: '#f06548'
-                                });
-                                // Clean up but don't mark as success
-                                cleanupResources();
-                                return;
-                            } else if (responseText && !responseText.includes('<!DOCTYPE')) {
-                                // This is likely not HTML, and possibly XLSX data viewed as text
-                                console.log('Iframe contains non-HTML content, likely Excel data - download successful');
-                                downloadSuccess = true;
-                            }
-                        }
-                    } catch (e) {
-                        // If we can't access iframe content, it's probably a successful download
-                        // due to cross-origin restrictions after the browser initiates a download
-                        console.log('Download appears successful (access blocked due to cross-origin policy)');
-                    }
-
-                    downloadSuccess = true;
-
-                    // Close the modal
-                    $('#exportModal').modal('hide');
-
-                    Swal.fire({
-                        title: 'Export Started',
-                        text: 'Your file download has started. Please check your downloads folder.',
-                        icon: 'success',
-                        confirmButtonColor: '#0ab39c'
-                    });
-
-                    // Clean up
-                    cleanupResources();
-                };
-
-                // Submit the form
-                form.submit(); // Set a timeout to check if download succeeded
-                setTimeout(() => {
-                    // Only show message if we haven't marked success yet and not already processed
-                    if (!downloadSuccess && !isProcessed) {
-                        console.log('Export timeout reached without success');
-                        isProcessed = true;
-
-                        Swal.fire({
-                            title: 'Export Taking Longer Than Expected',
-                            html: `
-                                <p>The export is taking longer than expected.</p>
-                                <p>This might be due to:</p>
-                                <ul class="text-start">
-                                    <li>Large amount of data being processed</li>
-                                    <li>Server processing delay</li>
-                                </ul>
-                                <p>Please wait a bit longer for your download to start. If it doesn't appear within a minute, 
-                                try again with a smaller date range or using batch exports.</p>
-                            `,
-                            icon: 'info',
-                            confirmButtonColor: '#3085d6'
-                        });
-
-                        // Only clean up resources if we haven't already
-                        cleanupResources();
-                    }
-                }, 15000);
-
-                function cleanupResources() {
-                    // Clean up the form and iframe
-                    if (document.body.contains(form)) {
-                        document.body.removeChild(form);
-                    }
-                    if (document.body.contains(iframe)) {
-                        document.body.removeChild(iframe);
-                    }
+                } else {
+                    console.log('Enhanced Export Manager not yet available, retrying in 100ms...');
+                    setTimeout(initializeEnhancedExport, 100);
                 }
             }
-
-            // Function to handle batched export
-            function handleBatchedExport(response) {
-                const batches = response.batches;
-                const totalBatches = batches.length;
-                const totalRecords = response.total_records;
-                const batchSize = response.batch_size;
-                const downloadedFiles = [];
-
-                // Get form data to include filters in each batch
-                const formData = new FormData(document.getElementById('exportForm'));
-                const formParams = {};
-                for (const [key, value] of formData.entries()) {
-                    formParams[key] = value;
-                }
-
-                // Prepare filters as base64 encoded JSON
-                const filters = {};
-                // Add all form parameters to the filters object
-                for (const key in formParams) {
-                    if (formParams.hasOwnProperty(key) && formParams[key] !== '') {
-                        filters[key] = formParams[key];
-                    }
-                }
-
-                // Make sure program_id is always included
-                if (!filters.program_id) {
-                    // Try to get it from the current URL or page context
-                    const currentProgramId = $('#current-program-id').val() ||
-                        $('input[name="program_id"]').val() ||
-                        $('.program-selector.active').data('program-id');
-
-                    if (currentProgramId) {
-                        filters.program_id = currentProgramId;
-                        console.log('Added program_id from page context:', currentProgramId);
-                    }
-                }
-                // Ensure program_id is in the URL to avoid any issues with base64 encoding
-                const currentProgramId = filters.program_id;
-
-                // Add form data to each batch
-                for (let i = 0; i < batches.length; i++) {
-                    try {
-                        // Create clean filtered parameters with only non-empty values
-                        const cleanFilters = {};
-                        for (const key in filters) {
-                            if (filters[key] !== '' && filters[key] !== null && filters[key] !== undefined) {
-                                cleanFilters[key] = filters[key];
-                            }
-                        }
-
-                        // Encode filters as base64
-                        const encodedFilters = btoa(JSON.stringify(cleanFilters));
-
-                        // Create parameters for the batch
-                        batches[i].params = {
-                            batch: i + 1,
-                            total_batches: totalBatches,
-                            batch_size: batchSize,
-                            program_id: currentProgramId, // Ensure program_id is always included directly
-                            filters: encodedFilters,
-                            direct_download: 1
-                        };
-
-                        // Log the batch params for debugging
-                        console.log(`Batch ${i+1} parameters:`, batches[i].params);
-                        console.log(`Encoded filters for batch ${i+1}:`, encodedFilters);
-                    } catch (err) {
-                        console.error(`Error preparing batch ${i+1}:`, err);
-                    }
-                }
-
-                // Close the modal now that we're handling with SweetAlert
-                $('#exportModal').modal('hide');
-
-                // Create a progress tracking dialog
-                Swal.fire({
-                    title: 'Processing Large Export',
-                    html: `
-                        <div class="text-start mb-3">
-                            <p>Exporting ${totalRecords} records in ${totalBatches} files (${batchSize} records per file).</p>
-                            <p>Files will be downloaded one by one. Please wait until all downloads are complete.</p>
-                            <div class="progress" style="height: 20px;">
-                                <div class="progress-bar bg-success" role="progressbar" style="width: 0%;" 
-                                     aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
-                            </div>
-                            <p class="mt-2 mb-0"><small>File <span id="current-batch">0</span> of ${totalBatches}</small></p>
-                            <p class="mt-1" id="current-file-name">Preparing...</p>
-                        </div>
-                    `,
-                    allowOutsideClick: false,
-                    allowEscapeKey: false,
-                    showConfirmButton: false
-                });
-
-                // Process each batch sequentially
-                downloadBatch(batches, 0, totalBatches, downloadedFiles);
-            }
-
-            // Function to download each batch sequentially using AJAX
-            function downloadBatch(batches, currentIndex, totalBatches, downloadedFiles) {
-                if (currentIndex >= batches.length) {
-                    // All batches are completed
-                    Swal.fire({
-                        title: 'Export Completed!',
-                        html: `
-                            <div class="text-start">
-                                <p>All ${totalBatches} files have been exported successfully.</p>
-                                <p><strong>Downloaded files:</strong></p>
-                                <ul class="text-start">
-                                    ${downloadedFiles.map(file => `<li>${file}</li>`).join('')}
-                                </ul>
-                            </div>
-                        `,
-                        icon: 'success',
-                        confirmButtonColor: '#0ab39c'
-                    });
-                    return;
-                }
-                const batch = batches[currentIndex];
-                const progress = Math.round(((currentIndex + 1) / totalBatches) * 100);
-                const fileNumber = currentIndex + 1;
-                const filename = batch.filename || `batch_${fileNumber}_of_${totalBatches}.xlsx`;
-
-                // Update the progress
-                $('.progress-bar').css('width', progress + '%');
-                $('.progress-bar').attr('aria-valuenow', progress);
-                $('.progress-bar').text(progress + '%');
-                $('#current-batch').text(fileNumber);
-
-                // Display status message and record the filename
-                $('#current-file-name').text('Downloading: ' + filename);
-
-                console.log(`Processing batch ${fileNumber}/${totalBatches}: ${filename}`);
-                downloadedFiles.push(filename); // Create a hidden iframe for downloading
-                const iframe = document.createElement('iframe');
-                iframe.style.display = 'none';
-                iframe.name = 'download_iframe_' + currentIndex;
-                document.body.appendChild(iframe); // Create and submit a form targeting the iframe
-                const batchForm = document.createElement('form');
-                batchForm.method = 'POST'; // Use POST instead of GET for larger data
-
-                // Use site_url to ensure we have a full URL with correct domain
-                const baseUrl = '<?= site_url('users/participants/export_batch') ?>';
-                batchForm.action = baseUrl;
-                batchForm.target = iframe.name;
-                batchForm.style.display = 'none';
-                batchForm.enctype = 'application/x-www-form-urlencoded';
-
-                console.log(`Creating form for batch ${fileNumber}, posting to: ${baseUrl}`);
-
-                // Add all the necessary parameters from the batch object
-                for (const key in batch.params) {
-                    if (batch.params.hasOwnProperty(key)) {
-                        const input = document.createElement('input');
-                        input.type = 'hidden';
-                        input.name = key;
-                        input.value = batch.params[key];
-                        batchForm.appendChild(input);
-                        console.log(`Added form parameter: ${key}=${batch.params[key].toString().substring(0, 50)}${batch.params[key].toString().length > 50 ? '...' : ''}`);
-                    }
-                }
-
-                // Add CSRF token if needed
-                const tokenInput = document.createElement('input');
-                tokenInput.type = 'hidden';
-                tokenInput.name = '<?= csrf_token() ?>';
-                tokenInput.value = '<?= csrf_hash() ?>';
-                batchForm.appendChild(tokenInput);
-
-                // Append form to body and submit
-                document.body.appendChild(batchForm);
-                batchForm.submit(); // Handle iframe load event to proceed to next batch                iframe.onload = function() {
-                console.log(`Batch ${fileNumber}/${totalBatches} loaded`);
-
-                // Set a flag to track if we've processed this batch already
-                let processed = false;
-
-                // Check if there's an error message in the iframe
-                try {
-                    // Access might fail due to cross-origin policy if download started
-                    const iframeContent = iframe.contentDocument || iframe.contentWindow.document;
-                    const bodyText = iframeContent.body.textContent || '';
-                    console.log(`Batch ${fileNumber} content length: ${bodyText.length} chars`);                    // Check for binary content (Excel file)
-                    const isProbablyExcel = (
-                        // Check for ZIP file signature (Excel files are ZIP containers)
-                        bodyText.startsWith('PK') || 
-                        // Check for XML markers common in Excel files
-                        bodyText.includes('Content_Types') || 
-                        bodyText.includes('workbook.xml') ||
-                        bodyText.includes('xl/worksheets') ||
-                        // Or if it's long binary content without HTML markers
-                        (bodyText.length > 1000 && 
-                         !bodyText.includes('<!DOCTYPE') && 
-                         !bodyText.includes('<html'))
-                    );
-                        
-                    if (isProbablyExcel) {
-                        console.log(`Batch ${fileNumber}: Binary content detected - Excel download successful`);
-                        // Mark this batch as processed
-                        processed = true;
-                        
-                        // Add the file to the list in the UI
-                        const listItems = document.querySelectorAll('ul.text-start');
-                        if (listItems && listItems.length > 0) {
-                            const li = document.createElement('li');
-                            li.textContent = filename;
-                            listItems[0].appendChild(li);
-                        }
-                        
-                        // Proceed to next batch after a short delay to let the download initialize
-                        setTimeout(() => {
-                            downloadBatch(batches, currentIndex + 1, totalBatches, downloadedFiles);
-                        }, 800);
-                        return;
-                    }
-
-                    // Check if the content is JSON
-                    try {
-                        const jsonResponse = JSON.parse(bodyText);
-                        if (!jsonResponse.success) {
-                            throw new Error(jsonResponse.message || "Unknown error in JSON response");
-                        }
-                    } catch (jsonError) {
-                        // Not valid JSON or JSON with error, check for error text
-                        if (bodyText.includes('Error:') ||
-                            bodyText.includes('error') ||
-                            bodyText.includes('failed') ||
-                            bodyText.includes('Exception') ||
-                            bodyText.includes('Fatal')) {
-
-                            console.error(`Batch ${fileNumber} failed:`, bodyText);
-                            Swal.fire({
-                                title: 'Batch Export Error',
-                                html: `There was an error processing batch ${fileNumber}. <br>The system will continue with the next batch.<br><strong>Error details:</strong> ${bodyText.substring(0, 200)}...`,
-                                icon: 'warning',
-                                confirmButtonColor: '#f06548'
-                            });
-                            return; // Return early to indicate error
-                        }
-                    } // If we got here without errors, log success
-                    console.log(`Batch ${fileNumber} appears to be successful`);
-                    processed = true;
-                } catch (e) {
-                    // If we can't access the iframe content due to cross-origin policy,
-                    // it's likely a download has started (which is good)
-                    console.log(`Access to iframe content blocked (likely successful download): ${e.message}`);
-                    processed = true;
-                }
-
-                if (processed) {
-                    // Wait a bit to ensure the browser starts the download
-                    setTimeout(function() {
-                        // Clean up resources
-                        if (document.body.contains(batchForm)) {
-                            document.body.removeChild(batchForm);
-                        }
-
-                        // Clean up iframe
-                        if (document.body.contains(iframe)) {
-                            document.body.removeChild(iframe);
-                        }
-
-                        // Proceed to next batch
-                        downloadBatch(batches, currentIndex + 1, totalBatches, downloadedFiles);
-                    }, 1500);
-                }
-            };
-
-            // Add a timeout in case the iframe load event doesn't fire or gets stuck
-            const timeoutId = setTimeout(function() {
-                // Check if the iframe still exists and if the processed flag hasn't been set
-                if (document.body.contains(iframe) && !processed) {
-                    console.log(`Timeout reached for batch ${fileNumber}/${totalBatches}, moving to next batch`);
-
-                    // Prevent the original onload from doing anything if it fires later
-                    iframe.onload = function() {
-                        console.log(`Ignored late onload for batch ${fileNumber}`);
-                    };
-
-                    // Mark as processed to prevent double-processing
-                    processed = true;
-
-                    // Clean up resources
-                    if (document.body.contains(batchForm)) {
-                        document.body.removeChild(batchForm);
-                    }
-
-                    if (document.body.contains(iframe)) {
-                        document.body.removeChild(iframe);
-                    }
-
-                    // Log a warning about the timeout
-                    console.warn(`Batch ${fileNumber} timed out, but still moving to next batch`);
-
-                    // Move to next batch
-                    downloadBatch(batches, currentIndex + 1, totalBatches, downloadedFiles);
-                }
-            }, 15000); // Give even more time for very large batches
+            
+            // Start initialization after a short delay to ensure scripts are loaded
+            setTimeout(initializeEnhancedExport, 200);
 
             // Setup filter change handlers to update the summary
             $('#export-limit, #export-category, #export-form-status, #export-payment-status, #export-program-payment').on('change', function() {
@@ -986,11 +590,11 @@
                     summaryText += "All participants ";
                 }
 
-                summaryText += "will be exported";
+                summaryText += "will be exported using YBB Export API";
 
-                // Add info about batch processing for large exports
-                if (!limit || parseInt(limit) > 1000) {
-                    summaryText += " (large exports will be processed automatically)";
+                // Add info about automatic processing for large exports
+                if (!limit || parseInt(limit) > 5000) {
+                    summaryText += " (large exports will be automatically processed and optimized)";
                 }
 
                 // Check for category filter
@@ -1018,12 +622,13 @@
                     summaryText += `, with form status: ${statusText}`;
                 }
 
-
                 // Check for payment status filter
                 const paymentStatus = $('#export-payment-status').val();
                 if (paymentStatus === 'success') {
                     summaryText += `, who have made successful payments`;
-                } // Check for program payment filter
+                }
+
+                // Check for program payment filter
                 const programPayment = $('#export-program-payment').val();
                 if (programPayment) {
                     const programPaymentOption = document.querySelector(`#export-program-payment option[value="${programPayment}"]`);
@@ -1056,10 +661,31 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="exportForm" action="<?= site_url('users/participants/export') ?>" method="post">
+                    <form id="exportForm" action="<?= site_url('exports/participants') ?>" method="post">
                         <?= csrf_field() ?>
                         <!-- Hidden field for program_id -->
                         <input type="hidden" name="program_id" id="export-program-id" value="<?= session('current_program') ?>">
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="export-template" class="form-label">Export Template</label>
+                                <select id="export-template" name="template" class="form-select">
+                                    <option value="standard">Standard Export</option>
+                                    <option value="detailed">Detailed Export</option>
+                                    <option value="summary">Summary Export</option>
+                                    <option value="complete">Complete Export</option>
+                                </select>
+                                <div class="form-text text-muted">Choose the level of detail for the export</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="export-format" class="form-label">Export Format</label>
+                                <select id="export-format" name="format" class="form-select">
+                                    <option value="excel">Excel (.xlsx)</option>
+                                    <option value="csv">CSV</option>
+                                </select>
+                                <div class="form-text text-muted">File format for the export</div>
+                            </div>
+                        </div>
 
                         <div class="row mb-3">
                             <div class="col-md-6">
@@ -1082,6 +708,7 @@
                                 </select>
                             </div>
                         </div>
+
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label for="export-form-status" class="form-label">Form Status</label>
@@ -1098,6 +725,7 @@
                                 <div class="form-text text-muted">Filter by registration date range</div>
                             </div>
                         </div>
+
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label for="export-payment-status" class="form-label">Payment Status</label>
@@ -1127,34 +755,36 @@
                                 <div class="form-text text-muted">Filter by specific program payment type</div>
                             </div>
                         </div>
+
                         <div id="exportSummary" class="alert alert-info mt-3">
                             <h6 class="alert-heading">Export Summary</h6>
-                            <p id="exportCount" class="mb-0">All participants will be exported. Use filters above to limit the export.</p>
+                            <p id="exportCount" class="mb-0">All participants will be exported using YBB Export API. Use filters above to limit the export.</p>
                         </div>
 
-                        <div class="card border border-warning shadow-sm mt-4">
-                            <div class="card-header bg-warning bg-opacity-10">
+                        <div class="card border border-info shadow-sm mt-4">
+                            <div class="card-header bg-info bg-opacity-10">
                                 <h5 class="card-title mb-0">
-                                    <i class="ri-information-line me-1 fs-18 align-middle text-warning"></i>
-                                    <span class="align-middle text-dark fw-semibold">Important! Export Process Information</span>
+                                    <i class="ri-cloud-line me-1 fs-18 align-middle text-info"></i>
+                                    <span class="align-middle text-dark fw-semibold">YBB Export API Integration</span>
                                 </h5>
                             </div>
                             <div class="card-body">
                                 <div class="d-flex">
                                     <div class="flex-shrink-0">
-                                        <i class="ri-file-excel-2-line fs-24 text-success me-3"></i>
+                                        <i class="ri-server-line fs-24 text-info me-3"></i>
                                     </div>
                                     <div class="flex-grow-1">
-                                        <h6 class="mb-2">Processing Steps:</h6>
-                                        <ol class="ps-3 mb-2">
-                                            <li>Click "Export Data" to start the process</li>
-                                            <li>Wait while data is being processed - <strong>do not close this window</strong></li>
-                                            <li>For large datasets (>1000 records), files will be split automatically</li>
-                                            <li>Progress will be shown with status updates via notifications</li>
-                                        </ol>
-                                        <div class="alert alert-warning py-2">
-                                            <i class="ri-alert-line me-1"></i>
-                                            <strong>Important:</strong> The system will handle the download process. Please do not navigate away from the page until all files are downloaded.
+                                        <h6 class="mb-2">Advanced Export Features:</h6>
+                                        <ul class="ps-3 mb-2">
+                                            <li>Professional Excel formatting with auto-sized columns</li>
+                                            <li>Automatic chunking for large datasets (5,000+ records)</li>
+                                            <li>ZIP compression for multi-file exports</li>
+                                            <li>Real-time status updates and progress tracking</li>
+                                            <li>Optimized memory usage and processing</li>
+                                        </ul>
+                                        <div class="alert alert-success py-2">
+                                            <i class="ri-check-line me-1"></i>
+                                            <strong>Ready:</strong> The system will automatically handle the export process and provide download options when complete.
                                         </div>
                                     </div>
                                 </div>
@@ -1165,11 +795,16 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-success" id="btn-do-export">
-                        <i class="ri-file-excel-2-line align-middle me-1"></i> Export Data
+                        <i class="ri-cloud-upload-line align-middle me-1"></i> Start Export
                     </button>
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Export Results Container -->
+    <div class="container-fluid mt-4">
+        <div id="export-results"></div>
     </div>
 </body>
 

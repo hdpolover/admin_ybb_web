@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Export Polling</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Export Polling Debug Test</h1>
+    <button id="testBtn">Test Polling</button>
+    <button id="stopBtn">Stop Polling</button>
+    <div id="output"></div>
+
+    <script>
+        class TestPolling {
+            constructor() {
+                this.intervalId = null;
+                this.counter = 0;
+            }
+
+            start() {
+                console.log('Starting polling...');
+                this.stop(); // Clear any existing interval
+                
+                this.intervalId = setInterval(() => {
+                    this.counter++;
+                    console.log('Polling iteration:', this.counter);
+                    $('#output').append(`<p>Poll ${this.counter} at ${new Date().toLocaleTimeString()}</p>`);
+                    
+                    // Simulate completion after 5 iterations
+                    if (this.counter >= 5) {
+                        console.log('Simulated completion, stopping...');
+                        this.stop();
+                    }
+                }, 2000);
+                
+                console.log('Polling started with interval ID:', this.intervalId);
+            }
+
+            stop() {
+                console.log('Stopping polling...');
+                console.log('Current interval ID:', this.intervalId);
+                
+                if (this.intervalId) {
+                    clearInterval(this.intervalId);
+                    this.intervalId = null;
+                    console.log('Polling stopped');
+                    $('#output').append(`<p><strong>POLLING STOPPED at ${new Date().toLocaleTimeString()}</strong></p>`);
+                } else {
+                    console.log('No active polling to stop');
+                }
+            }
+        }
+
+        const testPoller = new TestPolling();
+
+        $('#testBtn').click(() => {
+            testPoller.start();
+        });
+
+        $('#stopBtn').click(() => {
+            testPoller.stop();
+        });
+    </script>
+</body>
+</html>
