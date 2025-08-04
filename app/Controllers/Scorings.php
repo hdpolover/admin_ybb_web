@@ -214,10 +214,10 @@ class Scorings extends BaseController
             
             $participant->subtheme = $participantSubtheme;
 
-            return view('users/participants/view', ['participant' => $participant]);
+            return view('scorings/fully_funded/view', ['participant' => $participant]);
         } catch (\Exception $e) {
             log_message('error', 'Failed to retrieve participant: ' . $id);
-            return redirect()->to('/users/participants')->with('error', 'Failed to retrieve participant: ' . $e->getMessage());
+            return redirect()->to('/scorings/fully_funded')->with('error', 'Failed to retrieve participant: ' . $e->getMessage());
         }
     }
 
