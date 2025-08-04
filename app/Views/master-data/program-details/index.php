@@ -105,7 +105,11 @@
                         <div class="card">
                             <div class="card-header align-items-center d-flex">
                                 <h4 class="card-title mb-0 flex-grow-1"><?= $currentProgram->name ?> Program Details</h4>
-
+                                <div class="flex-shrink-0">
+                                    <button type="button" class="btn btn-warning btn-sm me-2" onclick="clearProgramCache()">
+                                        <i class="ri-refresh-line"></i> Clear Cache
+                                    </button>
+                                </div>
                             </div>
                             <div class="card-body">
                                 <!-- Nav tabs -->
@@ -636,6 +640,67 @@
             const shareDescEditor = new Quill('#edit_share_desc', quillToolbarOptions);
             const confirmationDescEditor = new Quill('#edit_confirmation_desc', quillToolbarOptions);
         });
+
+        // Cache management function
+        function clearProgramCache() {
+            Swal.fire({
+                title: 'Clear Website Cache?',
+                text: "This will clear the cache so that any updates will be immediately visible on the website. This action is safe and recommended after making changes.",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, Clear Cache',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show loading
+                    Swal.fire({
+                        title: 'Clearing Cache...',
+                        text: 'Please wait while we clear the website cache.',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    // Clear cache via AJAX
+                    fetch('/cache/clear/programs', {
+                        method: 'GET',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Cache Cleared!',
+                                text: 'Website cache has been cleared successfully. Changes should now be visible on the website.',
+                                confirmButtonColor: '#3085d6'
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error!',
+                                text: data.message || 'Failed to clear cache',
+                                confirmButtonColor: '#3085d6'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: 'An unexpected error occurred while clearing cache',
+                            confirmButtonColor: '#3085d6'
+                        });
+                    });
+                }
+            });
+        }
     </script>
 </body>
 

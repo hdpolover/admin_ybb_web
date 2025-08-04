@@ -5,9 +5,12 @@ namespace App\Controllers;
 use App\Models\ProgramModel;
 use App\Models\ProgramCategoryModel;
 use App\Models\ProgramTypeModel;
+use App\Traits\Cacheable;
 
 class ProgramDetails extends BaseController
 {
+    use Cacheable;
+    
     protected $programModel;
     protected $programCategoryModel;
     protected $programTypeModel;
@@ -17,6 +20,9 @@ class ProgramDetails extends BaseController
         $this->programModel = new ProgramModel();
         $this->programCategoryModel = new ProgramCategoryModel();
         $this->programTypeModel = new ProgramTypeModel();
+        
+        // Initialize request for cache trait
+        $this->request = \Config\Services::request();
     }
 
     public function index()
@@ -169,6 +175,9 @@ class ProgramDetails extends BaseController
                 }
             }            // Save data
             if ($this->programCategoryModel->update($id, $data)) {
+                // Invalidate related caches after successful update
+                $this->invalidateRelatedCaches($id);
+                
                 return $this->response->setJSON([
                     'success' => true,
                     'message' => 'Program category updated successfully'
@@ -282,6 +291,9 @@ class ProgramDetails extends BaseController
 
             // Save data
             if ($this->programModel->update($id, $data)) {
+                // Invalidate related caches after successful update
+                $this->invalidateProgramSpecificCaches($id);
+                
                 // Verify the update by retrieving the updated record
                 $updatedProgram = $this->programModel->find($id);
                 log_message('debug', 'Updated program data: ' . json_encode($updatedProgram));
@@ -302,5 +314,52 @@ class ProgramDetails extends BaseController
 
         // If not AJAX request, redirect with message
         return redirect()->to('/program-details')->with('message', 'Invalid request method');
+    }
+
+    /**
+     * Invalidate all related caches when program category is updated
+     * 
+     * @param int $programCategoryId
+     * @return void
+     */
+    private function invalidateRelatedCaches($programCategoryId = null)
+    {
+        try {
+            // Get all programs for this category to invalidate their caches
+            if ($programCategoryId) {
+                $programs = $this->programModel->where('program_category_id', $programCategoryId)->findAll();
+                foreach ($programs as $program) {
+                    $this->invalidateProgramCache($program->id);
+                }
+            }
+            
+            // Invalidate landing page cache (covers category data)
+            $this->invalidateLandingCache();
+            
+            log_message('info', 'Cache invalidated for program category: ' . $programCategoryId);
+        } catch (\Exception $e) {
+            log_message('error', 'Failed to invalidate cache: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Invalidate caches for a specific program
+     * 
+     * @param int $programId
+     * @return void
+     */
+    private function invalidateProgramSpecificCaches($programId)
+    {
+        try {
+            // Invalidate program-specific cache
+            $this->invalidateProgramCache($programId);
+            
+            // Invalidate landing page cache
+            $this->invalidateLandingCache();
+            
+            log_message('info', 'Cache invalidated for program: ' . $programId);
+        } catch (\Exception $e) {
+            log_message('error', 'Failed to invalidate program cache: ' . $e->getMessage());
+        }
     }
 }

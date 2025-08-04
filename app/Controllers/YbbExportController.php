@@ -929,488 +929,54 @@ class YbbExportController extends BaseController
     }
 
     /**
-     * Get participants data based on filters
+     * Get participants data based on filters with normalized status translations and relevant essays only
      */
     private function _getParticipantsData(array $filters): array
     {
         try {
-            // Use export database connection with extended timeout
-            $db = \Config\Database::connect('export');
-            
-            $builder = $this->participantModel->builder();
-            
-            // Check if we need to join with participant_statuses table for status data or filtering
-            $needsStatusJoin = isset($filters['form_status']) || isset($filters['payment_status']) || isset($filters['general_status']);
-            
-            // Build SELECT clause based on what joins we need
-            if ($needsStatusJoin) {
-                // Include status fields in SELECT
-                $builder->select('
-                    participants.*,
-                    users.email as user_email,
-                    users.full_name as user_full_name,
-                    users.is_verified as user_is_verified,
-                    users.created_at as user_created_at,
-                    programs.name as program_name,
-                    programs.start_date as program_start_date,
-                    programs.end_date as program_end_date,
-                    programs.theme as program_theme,
-                    ps.form_status as participant_form_status,
-                    ps.payment_status as participant_payment_status,
-                    ps.general_status as participant_general_status,
-                    ps.document_status as participant_document_status,
-                    MAX(CASE WHEN e.rn = 1 THEN e.answer END) AS question_1,
-                    MAX(CASE WHEN e.rn = 2 THEN e.answer END) AS question_2,
-                    MAX(CASE WHEN e.rn = 3 THEN e.answer END) AS question_3,
-                    MAX(CASE WHEN e.rn = 4 THEN e.answer END) AS question_4,
-                    MAX(CASE WHEN e.rn = 5 THEN e.answer END) AS question_5,
-                    MAX(CASE WHEN e.rn = 6 THEN e.answer END) AS question_6,
-                    MAX(CASE WHEN e.rn = 7 THEN e.answer END) AS question_7,
-                    MAX(CASE WHEN e.rn = 8 THEN e.answer END) AS question_8,
-                    MAX(CASE WHEN e.rn = 9 THEN e.answer END) AS question_9,
-                    MAX(CASE WHEN e.rn = 10 THEN e.answer END) AS question_10
-                ');
-                log_message('info', 'Participant export: Using extended SELECT with status fields and essays');
-            } else {
-                // Basic SELECT without status fields but with essays
-                $builder->select('
-                    participants.*,
-                    users.email as user_email,
-                    users.full_name as user_full_name,
-                    users.is_verified as user_is_verified,
-                    users.created_at as user_created_at,
-                    programs.name as program_name,
-                    programs.start_date as program_start_date,
-                    programs.end_date as program_end_date,
-                    programs.theme as program_theme,
-                    MAX(CASE WHEN e.rn = 1 THEN e.answer END) AS question_1,
-                    MAX(CASE WHEN e.rn = 2 THEN e.answer END) AS question_2,
-                    MAX(CASE WHEN e.rn = 3 THEN e.answer END) AS question_3,
-                    MAX(CASE WHEN e.rn = 4 THEN e.answer END) AS question_4,
-                    MAX(CASE WHEN e.rn = 5 THEN e.answer END) AS question_5,
-                    MAX(CASE WHEN e.rn = 6 THEN e.answer END) AS question_6,
-                    MAX(CASE WHEN e.rn = 7 THEN e.answer END) AS question_7,
-                    MAX(CASE WHEN e.rn = 8 THEN e.answer END) AS question_8,
-                    MAX(CASE WHEN e.rn = 9 THEN e.answer END) AS question_9,
-                    MAX(CASE WHEN e.rn = 10 THEN e.answer END) AS question_10
-                ');
-                log_message('info', 'Participant export: Using basic SELECT with essays but without status fields');
-            }
-            
-            // Add JOINs only once
-            $builder->join('users', 'users.id = participants.user_id', 'left')
-                   ->join('programs', 'programs.id = participants.program_id', 'left');
-            
-            // Add status join if needed
-            if ($needsStatusJoin) {
-                $builder->join('participant_statuses ps', 'ps.participant_id = participants.id', 'left');
-                log_message('info', 'Participant export: Added join with participant_statuses table for comprehensive status data');
-            }
-            
             // CRITICAL: Apply program filter FIRST - this is mandatory
             if (!isset($filters['program_id']) || empty($filters['program_id'])) {
                 throw new \RuntimeException('Program ID filter is required for participant export');
             }
+
+            log_message('info', "Starting normalized participant export for program {$filters['program_id']}");
             
-            $builder->where('participants.program_id', $filters['program_id']);
-            log_message('info', 'Participant export: Filtering by program_id = ' . $filters['program_id']);
+            // Use the new normalized participant export method from ParticipantModel
+            $result = $this->participantModel->getNormalizedParticipantsForExport($filters);
             
-            // Add essay join using subquery approach (always include essays for the specific program)
-            $essaySubquery = "(
-                SELECT 
-                    pae.participant_id,
-                    pae.answer,
-                    ROW_NUMBER() OVER (PARTITION BY pae.participant_id ORDER BY pae.id) AS rn
-                FROM participant_essays pae
-                JOIN program_essays pe 
-                    ON pe.id = pae.program_essay_id 
-                    AND pe.program_id = {$filters['program_id']}
-                    AND pe.is_deleted = 0
-                WHERE pae.is_deleted = 0
-            )";
+            log_message('info', "Completed normalized participant export for program {$filters['program_id']}: " . count($result) . " records with human-readable status translations and relevant essays only");
             
-            $builder->join("{$essaySubquery} e", 'e.participant_id = participants.id', 'left');
-            log_message('info', "Participant export: Added essays join for program {$filters['program_id']}");
-            
-            // Add GROUP BY clause since we're using MAX() functions for essays
-            $builder->groupBy([
-                'participants.id', 'participants.user_id', 'participants.account_id', 'participants.full_name',
-                'participants.gender', 'participants.birthdate', 'participants.nationality', 'participants.nationality_flag',
-                'participants.nationality_code', 'participants.occupation', 'participants.education_level',
-                'participants.major', 'participants.institution', 'participants.organizations', 'participants.phone_number',
-                'participants.country_code', 'participants.phone_flag', 'participants.current_address', 'participants.origin_address',
-                'participants.picture_url', 'participants.instagram_account', 'participants.emergency_account',
-                'participants.emergency_country_code', 'participants.emergency_phone_flag', 'participants.contact_relation', 'participants.disease_history', 'participants.tshirt_size',
-                'participants.category', 'participants.experiences', 'participants.achievements', 'participants.resume_url',
-                'participants.knowledge_source', 'participants.source_account_name', 'participants.twibbon_link',
-                'participants.requirement_link', 'participants.ref_code_ambassador', 'participants.program_id',
-                'participants.is_active', 'participants.is_deleted', 'participants.created_at', 'participants.updated_at',
-                'users.email', 'users.full_name', 'users.is_verified', 'users.created_at',
-                'programs.name', 'programs.start_date', 'programs.end_date', 'programs.theme'
-            ]);
-            
-            // Add status fields to GROUP BY if needed
-            if ($needsStatusJoin) {
-                $builder->groupBy([
-                    'ps.form_status', 'ps.payment_status', 'ps.general_status', 'ps.document_status'
-                ]);
-            }
-            
-            // Apply other filters as needed
-            if (isset($filters['status'])) {
-                $builder->where('participants.status', $filters['status']);
-                log_message('info', 'Participant export: Filtering by status = ' . $filters['status']);
-            }
-            
-            if (isset($filters['payment_status'])) {
-                if ($needsStatusJoin) {
-                    $builder->where('ps.payment_status', $filters['payment_status']);
-                    log_message('info', 'Participant export: Filtering by payment_status = ' . $filters['payment_status']);
-                } else {
-                    log_message('warning', 'Participant export: payment_status filter ignored - requires participant_statuses join');
-                }
-            }
-            
-            if (isset($filters['category'])) {
-                $builder->where('participants.category', $filters['category']);
-                log_message('info', 'Participant export: Filtering by category = ' . $filters['category']);
-            }
-            
-            if (isset($filters['form_status'])) {
-                if ($needsStatusJoin) {
-                    $builder->where('ps.form_status', $filters['form_status']);
-                    log_message('info', 'Participant export: Filtering by form_status = ' . $filters['form_status']);
-                } else {
-                    log_message('warning', 'Participant export: form_status filter ignored - requires participant_statuses join');
-                }
-            }
-            
-            if (isset($filters['general_status'])) {
-                if ($needsStatusJoin) {
-                    $builder->where('ps.general_status', $filters['general_status']);
-                    log_message('info', 'Participant export: Filtering by general_status = ' . $filters['general_status']);
-                } else {
-                    log_message('warning', 'Participant export: general_status filter ignored - requires participant_statuses join');
-                }
-            }
-            
-            if (isset($filters['date_from'])) {
-                $builder->where('participants.created_at >=', $filters['date_from']);
-                log_message('info', 'Participant export: Filtering by date_from = ' . $filters['date_from']);
-            }
-            
-            if (isset($filters['date_to'])) {
-                $builder->where('participants.created_at <=', $filters['date_to']);
-                log_message('info', 'Participant export: Filtering by date_to = ' . $filters['date_to']);
-            }
-            
-            // Handle payment status filter (only paid participants)
-            if (isset($filters['payment_status']) && $filters['payment_status'] === 'success') {
-                $subQuery = $db->table('payments')
-                    ->select('participant_id')
-                    ->where('status', 2)
-                    ->where('is_deleted', 0);
-                $builder->whereIn('participants.id', $subQuery);
-                log_message('info', 'Participant export: Filtering by payment_status = success (only paid participants)');
-            }
-            
-            // Handle specific program payment filter
-            if (isset($filters['program_payment_id']) && !empty($filters['program_payment_id']) && is_numeric($filters['program_payment_id'])) {
-                $subQuery = $db->table('payments')
-                    ->select('participant_id')
-                    ->where('program_payment_id', $filters['program_payment_id'])
-                    ->where('status', 2)
-                    ->where('is_deleted', 0);
-                $builder->whereIn('participants.id', $subQuery);
-                log_message('info', 'Participant export: Filtering by program_payment_id = ' . $filters['program_payment_id']);
-            }
-            
-            // Handle limit filter - apply before count to get accurate total for limited export
-            $limitCount = null;
-            if (isset($filters['limit']) && !empty($filters['limit']) && is_numeric($filters['limit'])) {
-                $limitCount = (int)$filters['limit'];
-                log_message('info', 'Participant export: Applying limit = ' . $limitCount);
-            }
-            
-            // Get total count first with all filters applied
-            // For GROUP BY queries, we need to count distinct participants
-            $countBuilder = clone $builder;
-            $countBuilder->select('COUNT(DISTINCT participants.id) as total_count');
-            $countResult = $countBuilder->get()->getRowArray();
-            $totalCount = $countResult['total_count'] ?? 0;
-            
-            // If limit is specified and less than total count, use the limit
-            if ($limitCount !== null && $limitCount < $totalCount) {
-                $totalCount = $limitCount;
-                log_message('info', "Participant export: Limited to {$limitCount} records (from {$countResult['total_count']} total available)");
-            }
-            
-            log_message('info', "Starting participant export for program {$filters['program_id']}: $totalCount records found");
-            log_message('info', "Found $totalCount records for program {$filters['program_id']}");
-            
-            // Sanity check - if we have too many records, something is wrong with filtering
-            if ($totalCount > 50000) {
-                log_message('error', "WARNING: Participant export found $totalCount records for program {$filters['program_id']} - this seems too high, please verify program filter is working");
-            }
-            
-            // If dataset is small or limited, use direct query
-            if ($totalCount <= 1000) {
-                // Apply limit if specified
-                if ($limitCount !== null) {
-                    $builder->limit($limitCount);
-                }
-                $result = $builder->get()->getResultArray();
-                log_message('info', "Completed small participant export with essays: " . count($result) . " records");
-                
-                // Clean data for Excel compatibility before returning
-                $result = $this->_cleanDataForExcel($result);
-                log_message('info', "Applied Excel data cleaning for small export: " . count($result) . " records");
-                
-                return $result;
-            }
-            
-            // For large datasets, use chunked processing
-            // Note: With GROUP BY and essays, we need to be more careful with chunking
-            $chunkSize = 500; // Smaller chunks for better memory management
-            $allData = [];
-            
-            // Apply limit to total count for chunked processing
-            $actualTotalCount = $limitCount !== null ? min($limitCount, $totalCount) : $totalCount;
-            
-            // For GROUP BY queries, we need to use LIMIT with OFFSET differently
-            for ($offset = 0; $offset < $actualTotalCount; $offset += $chunkSize) {
-                try {
-                    // Calculate chunk size for this iteration (handle limit)
-                    $currentChunkSize = min($chunkSize, $actualTotalCount - $offset);
-                    
-                    // Reconnect database for each chunk to prevent timeout
-                    $db->reconnect();
-                    
-                    // Clone builder and apply limit/offset
-                    $chunkBuilder = clone $builder;
-                    $chunkData = $chunkBuilder->limit($currentChunkSize, $offset)->get()->getResultArray();
-                    $allData = array_merge($allData, $chunkData);
-                    
-                    // Log progress
-                    log_message('info', "Processed " . count($allData) . " of $actualTotalCount participants with essays for program {$filters['program_id']}");
-                    
-                    // Small delay to prevent overwhelming the database
-                    usleep(100000); // 0.1 second
-                    
-                } catch (\Exception $chunkError) {
-                    log_message('error', "Error processing chunk at offset $offset: " . $chunkError->getMessage());
-                    // Try to reconnect and continue
-                    $db->reconnect();
-                    throw $chunkError;
-                }
-            }
-            
-            log_message('info', "Completed participant export with essays for program {$filters['program_id']}: " . count($allData) . " records");
-            
-            // Clean data for Excel compatibility before returning
-            $allData = $this->_cleanDataForExcel($allData);
-            log_message('info', "Applied Excel data cleaning for chunked export: " . count($allData) . " records");
-            
-            return $allData;
+            return $result;
             
         } catch (\Exception $e) {
-            log_message('error', 'Error getting participants data: ' . $e->getMessage());
-            throw new \RuntimeException('Failed to retrieve participants data: ' . $e->getMessage());
+            log_message('error', 'Error getting normalized participants data: ' . $e->getMessage());
+            throw new \RuntimeException('Failed to retrieve normalized participants data: ' . $e->getMessage());
         }
     }
 
     /**
-     * Get payments data based on filters
+     * Get payments data based on filters with normalized status translations
      */
     private function _getPaymentsData(array $filters): array
     {
         try {
-            // Use export database connection with extended timeout
-            $db = \Config\Database::connect('export');
-            
-            $builder = $this->paymentModel->builder();
-            
-            // Comprehensive SELECT for payment export with properly ordered fields
-            $builder->select('
-                payments.id as payment_id,
-                payments.participant_id,
-                payments.transaction_code,
-                payments.order_id,
-                payments.payment_date,
-                payments.status as payment_status,
-                payments.amount as payment_amount,
-                payments.usd_amount as payment_usd_amount,
-                payments.currency as payment_currency,
-                payments.proof_url as payment_proof_url,
-                payments.account_name as payment_account_name,
-                payments.source_name as payment_source_name,
-                payments.payment_url,
-                payments.notes as payment_notes,
-                payments.rejection_reason as payment_rejection_reason,
-                payments.is_active as payment_is_active,
-                payments.created_at as payment_created_at,
-                payments.updated_at as payment_updated_at,
-                participants.full_name as participant_full_name,
-                participants.account_id as participant_account_id,
-                participants.gender as participant_gender,
-                participants.birthdate as participant_birthdate,
-                participants.nationality as participant_nationality,
-                participants.nationality_code as participant_nationality_code,
-                participants.phone_number as participant_phone,
-                participants.country_code as participant_country_code,
-                participants.category as participant_category,
-                participants.occupation as participant_occupation,
-                participants.education_level as participant_education_level,
-                participants.institution as participant_institution,
-                participants.current_address as participant_current_address,
-                participants.instagram_account as participant_instagram,
-                participants.tshirt_size as participant_tshirt_size,
-                participants.created_at as participant_registered_at,
-                users.email as participant_email,
-                users.full_name as user_full_name,
-                users.is_verified as user_is_verified,
-                users.created_at as user_created_at,
-                programs.name as program_name,
-                programs.start_date as program_start_date,
-                programs.end_date as program_end_date,
-                programs.theme as program_theme,
-                pp.name as program_payment_name,
-                pp.description as program_payment_description,
-                pp.idr_amount as program_payment_idr_amount,
-                pp.usd_amount as program_payment_usd_amount,
-                pp.category as program_payment_category,
-                pp.type as program_payment_type,
-                pp.start_date as program_payment_start_date,
-                pp.end_date as program_payment_end_date,
-                pp.order_number as program_payment_order,
-                pm.name as payment_method_name,
-                pm.type as payment_method_type,
-                pm.description as payment_method_description
-            ')
-            ->join('participants', 'participants.id = payments.participant_id', 'left')
-            ->join('users', 'users.id = participants.user_id', 'left')
-            ->join('programs', 'programs.id = participants.program_id', 'left')
-            ->join('program_payments pp', 'pp.id = payments.program_payment_id', 'left')
-            ->join('payment_methods pm', 'pm.id = payments.payment_method_id', 'left');
-            
-            log_message('info', 'Payment export: Added comprehensive joins with participants, users, programs, program_payments, and payment_methods tables');
-            
             // CRITICAL: Apply program filter FIRST - this is mandatory
             if (!isset($filters['program_id']) || empty($filters['program_id'])) {
                 throw new \RuntimeException('Program ID filter is required for payment export');
             }
+
+            log_message('info', "Starting normalized payment export for program {$filters['program_id']}");
             
-            $builder->where('participants.program_id', $filters['program_id']);
-            log_message('info', 'Payment export: Filtering by program_id = ' . $filters['program_id']);
+            // Use the new normalized payment export method from PaymentModel
+            $result = $this->paymentModel->getNormalizedPaymentsForExport($filters);
             
-            // Ensure we only get non-deleted records
-            $builder->where('payments.is_deleted', 0)
-                   ->where('participants.is_deleted', 0);
+            log_message('info', "Completed normalized payment export for program {$filters['program_id']}: " . count($result) . " records with human-readable status translations");
             
-            // Apply other filters as needed
-            if (isset($filters['status'])) {
-                $builder->where('payments.status', $filters['status']);
-                log_message('info', 'Payment export: Filtering by payment status = ' . $filters['status']);
-            }
-            
-            if (isset($filters['payment_status'])) {
-                $builder->where('payments.status', $filters['payment_status']);
-                log_message('info', 'Payment export: Filtering by payment_status = ' . $filters['payment_status']);
-            }
-            
-            if (isset($filters['payment_method_id'])) {
-                $builder->where('payments.payment_method_id', $filters['payment_method_id']);
-                log_message('info', 'Payment export: Filtering by payment_method_id = ' . $filters['payment_method_id']);
-            }
-            
-            if (isset($filters['currency'])) {
-                $builder->where('payments.currency', $filters['currency']);
-                log_message('info', 'Payment export: Filtering by currency = ' . $filters['currency']);
-            }
-            
-            if (isset($filters['participant_category'])) {
-                $builder->where('participants.category', $filters['participant_category']);
-                log_message('info', 'Payment export: Filtering by participant category = ' . $filters['participant_category']);
-            }
-            
-            if (isset($filters['date_from'])) {
-                $builder->where('payments.created_at >=', $filters['date_from']);
-                log_message('info', 'Payment export: Filtering by date_from = ' . $filters['date_from']);
-            }
-            
-            if (isset($filters['date_to'])) {
-                $builder->where('payments.created_at <=', $filters['date_to']);
-                log_message('info', 'Payment export: Filtering by date_to = ' . $filters['date_to']);
-            }
-            
-            if (isset($filters['payment_date_from'])) {
-                $builder->where('payments.payment_date >=', $filters['payment_date_from']);
-                log_message('info', 'Payment export: Filtering by payment_date_from = ' . $filters['payment_date_from']);
-            }
-            
-            if (isset($filters['payment_date_to'])) {
-                $builder->where('payments.payment_date <=', $filters['payment_date_to']);
-                log_message('info', 'Payment export: Filtering by payment_date_to = ' . $filters['payment_date_to']);
-            }
-            
-            // Add order by payment date (most recent first) for better organization
-            $builder->orderBy('payments.payment_date', 'DESC')
-                   ->orderBy('payments.created_at', 'DESC');
-            
-            // Get total count first
-            $countBuilder = clone $builder;
-            $countBuilder->select('COUNT(payments.id) as total_count');
-            $countResult = $countBuilder->get()->getRowArray();
-            $totalCount = $countResult['total_count'] ?? 0;
-            
-            log_message('info', "Starting payment export for program {$filters['program_id']}: $totalCount records found");
-            
-            // Sanity check - if we have too many records, log a warning
-            if ($totalCount > 20000) {
-                log_message('warning', "Payment export found $totalCount records for program {$filters['program_id']} - this is a large dataset");
-            }
-            
-            // If dataset is small, use direct query
-            if ($totalCount <= 1000) {
-                $result = $builder->get()->getResultArray();
-                log_message('info', "Completed small payment export: " . count($result) . " records");
-                return $result;
-            }
-            
-            // For large datasets, use chunked processing
-            $chunkSize = 1000; // Larger chunks for payments since they're simpler than participants with essays
-            $allData = [];
-            
-            for ($offset = 0; $offset < $totalCount; $offset += $chunkSize) {
-                try {
-                    // Reconnect database for each chunk to prevent timeout
-                    $db->reconnect();
-                    
-                    // Clone builder and apply limit/offset
-                    $chunkBuilder = clone $builder;
-                    $chunkData = $chunkBuilder->limit($chunkSize, $offset)->get()->getResultArray();
-                    $allData = array_merge($allData, $chunkData);
-                    
-                    // Log progress
-                    log_message('info', "Processed " . count($allData) . " of $totalCount payments for program {$filters['program_id']}");
-                    
-                    // Small delay to prevent overwhelming the database
-                    usleep(50000); // 0.05 second - shorter delay for payments
-                    
-                } catch (\Exception $chunkError) {
-                    log_message('error', "Error processing payment chunk at offset $offset: " . $chunkError->getMessage());
-                    // Try to reconnect and continue
-                    $db->reconnect();
-                    throw $chunkError;
-                }
-            }
-            
-            log_message('info', "Completed payment export for program {$filters['program_id']}: " . count($allData) . " records");
-            return $allData;
+            return $result;
             
         } catch (\Exception $e) {
-            log_message('error', 'Error getting payments data: ' . $e->getMessage());
-            throw new \RuntimeException('Failed to retrieve payments data: ' . $e->getMessage());
+            log_message('error', 'Error getting normalized payments data: ' . $e->getMessage());
+            throw new \RuntimeException('Failed to retrieve normalized payments data: ' . $e->getMessage());
         }
     }
 

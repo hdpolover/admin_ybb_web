@@ -968,4 +968,338 @@ class ParticipantModel extends Model
         
         return $data;
     }
+
+    /**
+     * Get normalized participants data for export with proper essay handling
+     * Only includes relevant fields and dynamically loads essays based on program configuration
+     */
+    public function getNormalizedParticipantsForExport(array $filters): array
+    {
+        try {
+            // CRITICAL: Program ID is required
+            if (!isset($filters['program_id']) || empty($filters['program_id'])) {
+                throw new \RuntimeException('Program ID filter is required for participant export');
+            }
+
+            $programId = $filters['program_id'];
+            log_message('info', "Starting normalized participant export for program $programId");
+
+            // Get program essays configuration first to determine how many essays this program has
+            $programEssayModel = new \App\Models\ProgramEssayModel();
+            $programEssays = $programEssayModel->getActiveEssays($programId);
+            $essayCount = count($programEssays);
+            
+            log_message('info', "Program $programId has $essayCount essays configured");
+
+            // Use export database connection with extended timeout
+            $db = \Config\Database::connect('export');
+            $builder = $this->builder();
+
+            // Build dynamic SELECT clause with only relevant fields
+            $selectFields = [
+                // Participant core fields
+                'participants.id as participant_id',
+                'participants.account_id as participant_account_id', 
+                'participants.full_name as participant_full_name',
+                'participants.gender as participant_gender',
+                'participants.birthdate as participant_birthdate',
+                'participants.nationality as participant_nationality',
+                'participants.nationality_code as participant_nationality_code',
+                'participants.phone_number as participant_phone',
+                'participants.country_code as participant_country_code',
+                'participants.category as participant_category',
+                'participants.occupation as participant_occupation',
+                'participants.education_level as participant_education_level',
+                'participants.major as participant_major',
+                'participants.institution as participant_institution',
+                'participants.current_address as participant_current_address',
+                'participants.instagram_account as participant_instagram',
+                'participants.tshirt_size as participant_tshirt_size',
+                'participants.created_at as participant_registered_at',
+                
+                // User fields
+                'users.email as participant_email',
+                'users.is_verified as user_is_verified',
+                
+                // Program fields
+                'programs.name as program_name',
+                'programs.start_date as program_start_date',
+                'programs.end_date as program_end_date',
+                'programs.theme as program_theme',
+                
+                // Status fields (with left join)
+                'ps.form_status as form_status_code',
+                'ps.payment_status as payment_status_code', 
+                'ps.general_status as general_status_code',
+                'ps.document_status as document_status_code'
+            ];
+
+            // Add essay fields dynamically based on program configuration
+            for ($i = 1; $i <= $essayCount; $i++) {
+                $selectFields[] = "MAX(CASE WHEN e.essay_order = $i THEN e.answer END) AS essay_$i";
+                $selectFields[] = "MAX(CASE WHEN e.essay_order = $i THEN e.question END) AS essay_{$i}_question";
+            }
+
+            $builder->select(implode(', ', $selectFields));
+
+            // Add necessary joins
+            $builder->join('users', 'users.id = participants.user_id', 'left')
+                   ->join('programs', 'programs.id = participants.program_id', 'left')
+                   ->join('participant_statuses ps', 'ps.participant_id = participants.id', 'left');
+
+            // Add essay join with proper ordering based on program essays
+            if ($essayCount > 0) {
+                $essaySubquery = "(
+                    SELECT 
+                        pae.participant_id,
+                        pae.answer,
+                        pe.questions as question,
+                        ROW_NUMBER() OVER (PARTITION BY pae.participant_id ORDER BY pe.id) AS essay_order
+                    FROM participant_essays pae
+                    JOIN program_essays pe ON pe.id = pae.program_essay_id 
+                    WHERE pe.program_id = $programId 
+                      AND pe.is_deleted = 0 
+                      AND pe.is_active = 1
+                      AND pae.is_deleted = 0
+                )";
+                
+                $builder->join("{$essaySubquery} e", 'e.participant_id = participants.id', 'left');
+                log_message('info', "Added essay join for $essayCount essays in program $programId");
+            }
+
+            // Apply filters
+            $builder->where('participants.program_id', $programId)
+                   ->where('participants.is_deleted', 0);
+
+            // Apply additional filters
+            if (isset($filters['category'])) {
+                $builder->where('participants.category', $filters['category']);
+            }
+
+            if (isset($filters['form_status'])) {
+                $builder->where('ps.form_status', $filters['form_status']);
+            }
+
+            if (isset($filters['payment_status'])) {
+                $builder->where('ps.payment_status', $filters['payment_status']);
+            }
+
+            if (isset($filters['general_status'])) {
+                $builder->where('ps.general_status', $filters['general_status']);
+            }
+
+            if (isset($filters['date_from'])) {
+                $builder->where('participants.created_at >=', $filters['date_from']);
+            }
+
+            if (isset($filters['date_to'])) {
+                $builder->where('participants.created_at <=', $filters['date_to']);
+            }
+
+            // Handle payment-based filtering
+            if (isset($filters['only_paid']) && $filters['only_paid']) {
+                $subQuery = $db->table('payments')
+                    ->select('participant_id')
+                    ->where('status', 1) // Approved payments
+                    ->where('is_deleted', 0);
+                $builder->whereIn('participants.id', $subQuery);
+            }
+
+            // Add GROUP BY for essay aggregation
+            $groupByFields = [
+                'participants.id', 'participants.account_id', 'participants.full_name',
+                'participants.gender', 'participants.birthdate', 'participants.nationality',
+                'participants.nationality_code', 'participants.phone_number', 'participants.country_code',
+                'participants.category', 'participants.occupation', 'participants.education_level',
+                'participants.major', 'participants.institution', 'participants.current_address',
+                'participants.instagram_account', 'participants.tshirt_size', 'participants.created_at',
+                'users.email', 'users.is_verified', 'programs.name', 'programs.start_date',
+                'programs.end_date', 'programs.theme', 'ps.form_status', 'ps.payment_status',
+                'ps.general_status', 'ps.document_status'
+            ];
+            
+            $builder->groupBy($groupByFields);
+
+            // Order by registration date
+            $builder->orderBy('participants.created_at', 'DESC');
+
+            // Get total count
+            $countBuilder = clone $builder;
+            $countBuilder->select('COUNT(DISTINCT participants.id) as total_count');
+            $countResult = $countBuilder->get()->getRowArray();
+            $totalCount = $countResult['total_count'] ?? 0;
+
+            log_message('info', "Found $totalCount participants for export from program $programId");
+
+            // Handle chunked processing for large datasets
+            if ($totalCount <= 1000) {
+                $result = $builder->get()->getResultArray();
+            } else {
+                // Process in chunks
+                $chunkSize = 500;
+                $result = [];
+                
+                for ($offset = 0; $offset < $totalCount; $offset += $chunkSize) {
+                    $db->reconnect();
+                    $chunkBuilder = clone $builder;
+                    $chunkData = $chunkBuilder->limit($chunkSize, $offset)->get()->getResultArray();
+                    $result = array_merge($result, $chunkData);
+                    
+                    log_message('info', "Processed " . count($result) . " of $totalCount participants for program $programId");
+                    usleep(100000); // 0.1 second delay
+                }
+            }
+
+            // Normalize the data
+            $normalizedResult = [];
+            foreach ($result as $participant) {
+                $normalizedResult[] = $this->normalizeParticipantForExport($participant, $essayCount);
+            }
+
+            log_message('info', "Completed normalized participant export for program $programId: " . count($normalizedResult) . " records");
+            return $normalizedResult;
+
+        } catch (\Exception $e) {
+            log_message('error', 'Error in getNormalizedParticipantsForExport: ' . $e->getMessage());
+            throw new \RuntimeException('Failed to retrieve normalized participants data: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Normalize a single participant record for export
+     * Adds human-readable status translations and cleans data
+     */
+    public function normalizeParticipantForExport(array $participant, int $essayCount): array
+    {
+        // Add human-readable status translations
+        $participant['form_status_text'] = $this->getFormStatusText($participant['form_status_code'] ?? 0);
+        $participant['payment_status_text'] = $this->getPaymentStatusText($participant['payment_status_code'] ?? 0);
+        $participant['general_status_text'] = $this->getGeneralStatusText($participant['general_status_code'] ?? 0);
+        $participant['document_status_text'] = $this->getDocumentStatusText($participant['document_status_code'] ?? 0);
+
+        // Clean and format data
+        $participant['participant_birthdate'] = isset($participant['participant_birthdate']) ? 
+            date('Y-m-d', strtotime($participant['participant_birthdate'])) : '';
+        $participant['participant_registered_at'] = isset($participant['participant_registered_at']) ? 
+            date('Y-m-d H:i:s', strtotime($participant['participant_registered_at'])) : '';
+        $participant['user_is_verified'] = $participant['user_is_verified'] ? 'Yes' : 'No';
+
+        // Format phone number with country code
+        if (!empty($participant['participant_phone']) && !empty($participant['participant_country_code'])) {
+            $participant['participant_phone_full'] = $participant['participant_country_code'] . $participant['participant_phone'];
+        } else {
+            $participant['participant_phone_full'] = $participant['participant_phone'] ?? '';
+        }
+
+        // Clean essay data - remove empty essay fields for programs with fewer essays
+        for ($i = $essayCount + 1; $i <= 10; $i++) {
+            unset($participant["essay_$i"]);
+            unset($participant["essay_{$i}_question"]);
+        }
+
+        return $participant;
+    }
+
+    /**
+     * Get human-readable form status text
+     */
+    public function getFormStatusText(int $status): string
+    {
+        switch ($status) {
+            case 0: return 'Incomplete';
+            case 1: return 'Complete';
+            case 2: return 'Under Review';
+            case 3: return 'Approved';
+            case 4: return 'Rejected';
+            default: return 'Unknown';
+        }
+    }
+
+    /**
+     * Get human-readable payment status text  
+     */
+    public function getPaymentStatusText(int $status): string
+    {
+        switch ($status) {
+            case 0: return 'Not Paid';
+            case 1: return 'Paid';
+            case 2: return 'Partial Payment';
+            case 3: return 'Refunded';
+            default: return 'Unknown';
+        }
+    }
+
+    /**
+     * Get human-readable general status text
+     */
+    public function getGeneralStatusText(int $status): string
+    {
+        switch ($status) {
+            case 0: return 'Registered';
+            case 1: return 'Active';
+            case 2: return 'Completed';
+            case 3: return 'Withdrawn';
+            case 4: return 'Suspended';
+            default: return 'Unknown';
+        }
+    }
+
+    /**
+     * Get human-readable document status text
+     */
+    public function getDocumentStatusText(int $status): string
+    {
+        switch ($status) {
+            case 0: return 'Not Submitted';
+            case 1: return 'Submitted';
+            case 2: return 'Under Review';
+            case 3: return 'Approved';
+            case 4: return 'Rejected';
+            default: return 'Unknown';
+        }
+    }
+
+    /**
+     * Invalidate participant caches - enhanced for comprehensive coverage
+     */
+    public function invalidateParticipantCaches($participantId = null, $programId = null): void
+    {
+        if (!function_exists('cache')) {
+            return;
+        }
+
+        $cache = \Config\Services::cache();
+        
+        // Comprehensive participant cache patterns
+        $patterns = [
+            "participants",
+            "participants_list",
+            "export_participants", 
+            "participant_essays",
+            "participant_statuses",
+            "program_participants"
+        ];
+
+        if ($participantId) {
+            $patterns = array_merge($patterns, [
+                "participant_$participantId",
+                "essays_participant_$participantId",
+                "status_participant_$participantId"
+            ]);
+        }
+
+        if ($programId) {
+            $patterns = array_merge($patterns, [
+                "participants_program_$programId",
+                "export_program_$programId",
+                "stats_program_$programId"
+            ]);
+        }
+
+        foreach ($patterns as $pattern) {
+            $cache->delete($pattern);
+        }
+
+        log_message('info', 'Invalidated participant caches for participant: ' . ($participantId ?? 'all') . ', program: ' . ($programId ?? 'all'));
+    }
 }

@@ -7,6 +7,12 @@ use CodeIgniter\Model;
 
 class PaymentModel extends Model
 {
+    public function __construct()
+    {
+        parent::__construct();
+        helper(['cache']);
+    }
+    
     protected $table      = 'payments';
     protected $primaryKey = 'id';
 
@@ -322,21 +328,11 @@ class PaymentModel extends Model
         
         // Invalidate related caches if update was successful
         if ($result) {
-            // Invalidate payment caches using direct cache service
-            $cache = \Config\Services::cache();
+            // Use centralized cache invalidation
+            $paymentData = ['participant_id' => $participantId];
+            $this->invalidatePaymentCaches($paymentData);
             
-            // Delete payment stats caches
-            $cache->delete('payment_stats');
-            $cache->delete('payment_stats_by_currency');
-            $cache->delete('pending_manual_payments');
-            
-            if ($participantId) {
-                $cache->delete("participant_payments_{$participantId}");
-                $cache->delete("has_successful_payments_{$participantId}");
-            }
-            
-            // Log cache invalidation
-            log_message('info', "PaymentModel::updatePaymentStatus - Invalidated cache for payment ID {$id} and participant ID {$participantId}");
+            log_message('info', "PaymentModel::updatePaymentStatus - Updated payment ID {$id} and invalidated related caches");
         }
 
         return $result;
@@ -404,5 +400,469 @@ class PaymentModel extends Model
         $cache->save($cacheKey, $hasPayments, 14400);
         
         return $hasPayments;
+    }
+
+    /**
+     * Override insert method to invalidate cache after creating new payment
+     * 
+     * @param array $data
+     * @return bool|int
+     */
+    public function insert($data = null, bool $returnID = true)
+    {
+        $result = parent::insert($data, $returnID);
+        
+        if ($result) {
+            $this->invalidatePaymentCaches($data);
+        }
+        
+        return $result;
+    }
+
+    /**
+     * Override update method to invalidate cache after updating payment
+     * 
+     * @param mixed $id
+     * @param array $data
+     * @return bool
+     */
+    public function update($id = null, $data = null): bool
+    {
+        $result = parent::update($id, $data);
+        
+        if ($result) {
+            // Get payment data for cache invalidation
+            $payment = $this->find($id);
+            if ($payment) {
+                $paymentData = [
+                    'participant_id' => $payment->participant_id
+                ];
+                $this->invalidatePaymentCaches($paymentData);
+            }
+        }
+        
+        return $result;
+    }
+
+    /**
+     * Override delete method to invalidate cache after deleting payment
+     * 
+     * @param mixed $id
+     * @param bool $purge
+     * @return bool
+     */
+    public function delete($id = null, bool $purge = false)
+    {
+        // Get payment data before deletion for cache invalidation
+        $payment = $this->find($id);
+        
+        $result = parent::delete($id, $purge);
+        
+        if ($result && $payment) {
+            $paymentData = [
+                'participant_id' => $payment->participant_id
+            ];
+            $this->invalidatePaymentCaches($paymentData);
+        }
+        
+        return $result;
+    }
+
+    /**
+     * Centralized cache invalidation for payment-related operations
+     * 
+     * @param array $paymentData
+     * @return void
+     */
+    private function invalidatePaymentCaches($paymentData)
+    {
+        $cache = \Config\Services::cache();
+        $participantId = $paymentData['participant_id'] ?? null;
+        
+        if ($participantId) {
+            // Get program ID
+            $participantModel = new \App\Models\ParticipantModel();
+            $participant = $participantModel->find($participantId);
+            $programId = $participant->program_id ?? null;
+            
+            if ($programId) {
+                // Delete program-specific payment caches
+                $cache->delete("payment_stats_{$programId}");
+                $cache->delete("payment_stats_currency_{$programId}");
+                $cache->delete("pending_manual_payments_{$programId}");
+                $cache->delete("payments_with_details_{$programId}");
+                
+                // Delete dashboard-related caches that might include payment data
+                $cache->delete("dashboard_summary_{$programId}");
+                
+                // Clear other dashboard caches that might be affected by payment changes
+                $dashboardCachePatterns = [
+                    "dashboard_registration_stats_{$programId}_day_30",
+                    "dashboard_registration_stats_{$programId}_week_12", 
+                    "dashboard_registration_stats_{$programId}_month_12",
+                    "dashboard_gender_stats_{$programId}",
+                    "dashboard_age_stats_{$programId}",
+                    "dashboard_nationality_stats_{$programId}_10",
+                    "dashboard_ambassador_stats_{$programId}_10"
+                ];
+                
+                foreach ($dashboardCachePatterns as $cacheKey) {
+                    $cache->delete($cacheKey);
+                }
+                
+                // Invalidate participant-related caches that might be affected
+                $cache->delete("total_countries_{$programId}");
+                $cache->delete("countries_data_{$programId}");
+                $cache->delete("participant_stats_{$programId}_" . date('Ymd'));
+                $cache->delete("participant_stats_{$programId}_" . date('Ymd', strtotime('-1 day')));
+                
+                // Invalidate export caches as payment status affects export data
+                $cache->delete("participants_export_{$programId}");
+                
+                // Use helper function to invalidate additional caches
+                if (function_exists('invalidate_dashboard_cache')) {
+                    invalidate_dashboard_cache($programId);
+                }
+                
+                if (function_exists('invalidate_export_cache')) {
+                    invalidate_export_cache($programId);
+                }
+                
+                log_message('info', "PaymentModel::invalidatePaymentCaches - Invalidated payment and related caches for program ID {$programId}");
+            }
+            
+            // Delete participant-specific caches
+            $cache->delete("participant_payments_{$participantId}");
+            $cache->delete("has_successful_payments_{$participantId}");
+            $cache->delete("participant_{$participantId}");
+            $cache->delete("participant_details_{$participantId}");
+            
+            if ($programId) {
+                $cache->delete("has_payments_{$participantId}_{$programId}");
+            }
+            
+            // Invalidate search caches that might include participant payment status
+            if (function_exists('invalidate_search_cache')) {
+                invalidate_search_cache();
+            }
+            
+            // Invalidate participant-specific cache using helper
+            if (function_exists('invalidate_participant_cache')) {
+                invalidate_participant_cache($participantId, $programId);
+            }
+            
+            log_message('info', "PaymentModel::invalidatePaymentCaches - Invalidated cache for participant ID {$participantId}");
+        }
+        
+        // Invalidate general payment caches regardless of participant ID
+        $cache->delete('payment_stats');
+        $cache->delete('payment_stats_by_currency');
+        $cache->delete('pending_manual_payments');
+        
+        // Use helper function for payment cache invalidation
+        if (function_exists('invalidate_payment_cache')) {
+            invalidate_payment_cache(null, $participantId);
+        }
+    }
+    
+    /**
+     * Get normalized payments data for export
+     * This method provides clean, human-readable data optimized for export purposes
+     * 
+     * @param int $programId Program ID
+     * @param array $filters Additional filters
+     * @return array Normalized payment data
+     */
+    public function getNormalizedPaymentsForExport($programId, $filters = [])
+    {
+        try {
+            $builder = $this->db->table('payments');
+            
+            // Select only the most relevant fields for export
+            $builder->select('
+                payments.id as payment_id,
+                payments.transaction_code,
+                payments.order_id,
+                payments.payment_date,
+                payments.status as payment_status_code,
+                payments.amount as payment_amount,
+                payments.usd_amount as payment_usd_amount,
+                payments.currency as payment_currency,
+                payments.proof_url as payment_proof_url,
+                payments.account_name as payment_account_name,
+                payments.source_name as payment_source_name,
+                payments.notes as payment_notes,
+                payments.rejection_reason as payment_rejection_reason,
+                payments.created_at as payment_created_at,
+                payments.updated_at as payment_updated_at,
+                
+                participants.id as participant_id,
+                participants.full_name as participant_name,
+                participants.account_id as participant_account_id,
+                participants.nationality as participant_nationality,
+                participants.phone_number as participant_phone,
+                participants.category as participant_category,
+                
+                users.email as participant_email,
+                
+                programs.name as program_name,
+                
+                pp.name as program_payment_name,
+                pp.idr_amount as program_payment_idr_amount,
+                pp.usd_amount as program_payment_usd_amount,
+                pp.category as program_payment_category,
+                
+                pm.name as payment_method_name,
+                pm.type as payment_method_type
+            ')
+            ->join('participants', 'participants.id = payments.participant_id', 'inner')
+            ->join('users', 'users.id = participants.user_id', 'left')
+            ->join('programs', 'programs.id = participants.program_id', 'left')
+            ->join('program_payments pp', 'pp.id = payments.program_payment_id', 'left')
+            ->join('payment_methods pm', 'pm.id = payments.payment_method_id', 'left');
+            
+            // Apply program filter (mandatory)
+            $builder->where('participants.program_id', $programId);
+            
+            // Only get non-deleted records
+            $builder->where('payments.is_deleted', 0)
+                   ->where('participants.is_deleted', 0);
+            
+            // Apply additional filters
+            if (isset($filters['status']) && $filters['status'] !== '') {
+                $builder->where('payments.status', $filters['status']);
+            }
+            
+            if (isset($filters['payment_method_id']) && $filters['payment_method_id'] !== '') {
+                $builder->where('payments.payment_method_id', $filters['payment_method_id']);
+            }
+            
+            if (isset($filters['program_payment_id']) && $filters['program_payment_id'] !== '') {
+                $builder->where('payments.program_payment_id', $filters['program_payment_id']);
+            }
+            
+            // Date range filter
+            if (isset($filters['start_date']) && $filters['start_date'] !== '') {
+                $builder->where('DATE(payments.created_at) >=', $filters['start_date']);
+            }
+            
+            if (isset($filters['end_date']) && $filters['end_date'] !== '') {
+                $builder->where('DATE(payments.created_at) <=', $filters['end_date']);
+            }
+            
+            // Order by payment date descending
+            $builder->orderBy('payments.created_at', 'DESC');
+            
+            $payments = $builder->get()->getResult();
+            
+            // Normalize the data for export
+            $normalizedPayments = [];
+            
+            foreach ($payments as $payment) {
+                $normalizedPayments[] = $this->normalizePaymentForExport($payment);
+            }
+            
+            return $normalizedPayments;
+            
+        } catch (\Exception $e) {
+            log_message('error', 'Error getting normalized payments for export: ' . $e->getMessage());
+            throw new \RuntimeException('Failed to retrieve payments data: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Normalize a single payment record for export
+     * 
+     * @param object $payment Raw payment data from database
+     * @return array Normalized payment data
+     */
+    private function normalizePaymentForExport($payment)
+    {
+        return [
+            // Payment identification
+            'payment_id' => $payment->payment_id ?? 'Not Available',
+            'transaction_code' => $payment->transaction_code ?? 'Not Available',
+            'order_id' => $payment->order_id ?? 'Not Available',
+            
+            // Payment dates (normalized format)
+            'payment_date' => $this->normalizeDate($payment->payment_date),
+            'payment_created_at' => $this->normalizeDateTime($payment->payment_created_at),
+            'payment_updated_at' => $this->normalizeDateTime($payment->payment_updated_at),
+            
+            // Payment status (human-readable)
+            'payment_status' => $this->getPaymentStatusText($payment->payment_status_code),
+            'payment_status_code' => $payment->payment_status_code ?? 'Unknown',
+            
+            // Payment amounts (normalized)
+            'payment_amount' => $this->normalizeAmount($payment->payment_amount),
+            'payment_currency' => strtoupper($payment->payment_currency ?? 'IDR'),
+            'payment_amount_formatted' => $this->formatCurrencyForExport($payment->payment_amount, $payment->payment_currency),
+            'payment_usd_amount' => $this->normalizeAmount($payment->payment_usd_amount),
+            'payment_usd_amount_formatted' => $this->formatCurrencyForExport($payment->payment_usd_amount, 'USD'),
+            
+            // Payment details
+            'payment_account_name' => $payment->payment_account_name ?? 'Not Provided',
+            'payment_source_name' => $payment->payment_source_name ?? 'Not Provided', 
+            'payment_proof_url' => $payment->payment_proof_url ? 'Available' : 'Not Provided',
+            'payment_notes' => $payment->payment_notes ?? 'No Notes',
+            'payment_rejection_reason' => $payment->payment_rejection_reason ?? 'N/A',
+            
+            // Participant information
+            'participant_id' => $payment->participant_id ?? 'Not Available',
+            'participant_name' => $payment->participant_name ?? 'Not Available',
+            'participant_account_id' => $payment->participant_account_id ?? 'Not Available',
+            'participant_email' => $payment->participant_email ?? 'Not Available',
+            'participant_nationality' => $payment->participant_nationality ?? 'Not Specified',
+            'participant_phone' => $payment->participant_phone ?? 'Not Provided',
+            'participant_category' => $this->getParticipantCategoryText($payment->participant_category),
+            
+            // Program information
+            'program_name' => $payment->program_name ?? 'Not Available',
+            'program_payment_name' => $payment->program_payment_name ?? 'General Payment',
+            'program_payment_category' => $payment->program_payment_category ?? 'Not Specified',
+            
+            // Program payment amounts (normalized)
+            'program_payment_idr_amount' => $this->normalizeAmount($payment->program_payment_idr_amount),
+            'program_payment_idr_amount_formatted' => $this->formatCurrencyForExport($payment->program_payment_idr_amount, 'IDR'),
+            'program_payment_usd_amount' => $this->normalizeAmount($payment->program_payment_usd_amount),
+            'program_payment_usd_amount_formatted' => $this->formatCurrencyForExport($payment->program_payment_usd_amount, 'USD'),
+            
+            // Payment method (clean, without codes)
+            'payment_method_name' => $payment->payment_method_name ?? 'Not Specified',
+            'payment_method_type' => $payment->payment_method_type ?? 'Not Specified',
+        ];
+    }
+    
+    /**
+     * Get human-readable payment status text
+     * 
+     * @param int|null $statusCode
+     * @return string
+     */
+    private function getPaymentStatusText($statusCode)
+    {
+        $statuses = [
+            0 => 'Created',
+            1 => 'Pending Review',
+            2 => 'Success/Approved',
+            3 => 'Cancelled',
+            4 => 'Rejected'
+        ];
+        
+        return $statuses[$statusCode] ?? 'Unknown Status';
+    }
+    
+    /**
+     * Get human-readable participant category text
+     * 
+     * @param string|null $category
+     * @return string
+     */
+    private function getParticipantCategoryText($category)
+    {
+        $categories = [
+            'fully_funded' => 'Fully Funded',
+            'self_funded' => 'Self Funded'
+        ];
+        
+        return $categories[$category] ?? ($category ?? 'Not Specified');
+    }
+    
+    /**
+     * Normalize date for export (handle null/empty dates)
+     * 
+     * @param string|null $date
+     * @return string
+     */
+    private function normalizeDate($date)
+    {
+        if (empty($date) || $date === '0000-00-00' || $date === '0000-00-00 00:00:00') {
+            return 'Not Specified';
+        }
+        
+        try {
+            return date('Y-m-d', strtotime($date));
+        } catch (\Exception $e) {
+            return 'Invalid Date';
+        }
+    }
+    
+    /**
+     * Normalize datetime for export (handle null/empty dates)
+     * 
+     * @param string|null $datetime
+     * @return string
+     */
+    private function normalizeDateTime($datetime)
+    {
+        if (empty($datetime) || $datetime === '0000-00-00 00:00:00') {
+            return 'Not Specified';
+        }
+        
+        try {
+            return date('Y-m-d H:i:s', strtotime($datetime));
+        } catch (\Exception $e) {
+            return 'Invalid DateTime';
+        }
+    }
+    
+    /**
+     * Normalize amount (handle null/empty/invalid amounts)
+     * 
+     * @param mixed $amount
+     * @return string
+     */
+    private function normalizeAmount($amount)
+    {
+        if ($amount === null || $amount === '' || !is_numeric($amount)) {
+            return '0.00';
+        }
+        
+        return number_format((float)$amount, 2, '.', '');
+    }
+    
+    /**
+     * Format currency for export with proper symbols and formatting
+     * 
+     * @param mixed $amount
+     * @param string $currency
+     * @return string
+     */
+    private function formatCurrencyForExport($amount, $currency = 'IDR')
+    {
+        if ($amount === null || $amount === '' || !is_numeric($amount)) {
+            return $this->getCurrencySymbol($currency) . ' 0.00';
+        }
+        
+        $normalizedAmount = (float)$amount;
+        $symbol = $this->getCurrencySymbol($currency);
+        
+        // Format based on currency
+        if (strtoupper($currency) === 'IDR') {
+            return $symbol . ' ' . number_format($normalizedAmount, 0, ',', '.');
+        } else {
+            return $symbol . ' ' . number_format($normalizedAmount, 2, '.', ',');
+        }
+    }
+    
+    /**
+     * Get currency symbol
+     * 
+     * @param string $currency
+     * @return string
+     */
+    private function getCurrencySymbol($currency)
+    {
+        $symbols = [
+            'IDR' => 'Rp',
+            'USD' => '$',
+            'EUR' => '€',
+            'GBP' => '£',
+            'JPY' => '¥',
+            'SGD' => 'S$',
+            'MYR' => 'RM'
+        ];
+        
+        return $symbols[strtoupper($currency)] ?? strtoupper($currency);
     }
 }

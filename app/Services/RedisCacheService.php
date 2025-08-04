@@ -54,18 +54,46 @@ class RedisCacheService
     {
         $this->cache = Services::cache();
         $this->logger = Services::logger();
-        $this->domain = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $this->domain = $this->sanitizeDomain($_SERVER['HTTP_HOST'] ?? 'localhost');
+    }
+
+    /**
+     * Sanitize domain name for use in cache keys
+     * Remove or replace reserved characters
+     */
+    private function sanitizeDomain(string $domain): string
+    {
+        // Remove port number and replace reserved characters
+        $domain = preg_replace('/:\d+$/', '', $domain); // Remove port
+        $domain = preg_replace('/[{}()\\/\\@:]/', '_', $domain); // Replace reserved chars
+        $domain = preg_replace('/[^a-zA-Z0-9_.-]/', '_', $domain); // Keep only safe chars
+        return $domain;
+    }
+
+    /**
+     * Sanitize cache key to remove reserved characters
+     * CodeIgniter cache doesn't allow: {}()/\@:
+     */
+    private function sanitizeKey(string $key): string
+    {
+        // Replace reserved characters with underscores
+        $key = preg_replace('/[{}()\\/\\@:]/', '_', $key);
+        // Ensure no double underscores
+        $key = preg_replace('/_+/', '_', $key);
+        // Remove leading/trailing underscores
+        $key = trim($key, '_');
+        return $key;
     }
 
     /**
      * Generate cache key based on endpoint and parameters
-     * Format: {domain}:{endpoint}:{parameters}:{version}
+     * Format: {domain}_{endpoint}_{parameters}_v{version}
      */
     public function generateKey(string $endpoint, array $parameters = [], ?string $userId = null): string
     {
         // Clean endpoint (remove leading slash and normalize)
         $endpoint = ltrim($endpoint, '/');
-        $endpoint = str_replace('/', ':', $endpoint);
+        $endpoint = str_replace('/', '_', $endpoint);
         
         // Add user context if provided (for user-specific caching)
         if ($userId) {
@@ -74,9 +102,13 @@ class RedisCacheService
         
         // Sort parameters for consistent key generation
         ksort($parameters);
-        $paramString = empty($parameters) ? '' : ':' . md5(serialize($parameters));
+        $paramString = empty($parameters) ? '' : '_' . md5(serialize($parameters));
         
-        return sprintf('%s:%s%s:v%d', $this->domain, $endpoint, $paramString, $this->version);
+        // Create initial key
+        $key = sprintf('%s_%s%s_v%d', $this->domain, $endpoint, $paramString, $this->version);
+        
+        // Sanitize the final key
+        return $this->sanitizeKey($key);
     }
 
     /**
@@ -85,9 +117,11 @@ class RedisCacheService
     public function getTtl(string $endpoint): int
     {
         $endpoint = ltrim($endpoint, '/');
+        $endpoint = str_replace('/', '_', $endpoint); // Convert to underscore format
         
         // Check high priority endpoints
         foreach (self::HIGH_PRIORITY_ENDPOINTS as $pattern) {
+            $pattern = str_replace('/', '_', $pattern); // Convert pattern to underscore format
             if (strpos($endpoint, $pattern) !== false) {
                 return self::HIGH_PRIORITY_TTL;
             }
@@ -95,6 +129,7 @@ class RedisCacheService
         
         // Check medium priority endpoints
         foreach (self::MEDIUM_PRIORITY_ENDPOINTS as $pattern) {
+            $pattern = str_replace('/', '_', $pattern);
             if (strpos($endpoint, $pattern) !== false) {
                 return self::MEDIUM_PRIORITY_TTL;
             }
@@ -102,6 +137,7 @@ class RedisCacheService
         
         // Check low priority endpoints
         foreach (self::LOW_PRIORITY_ENDPOINTS as $pattern) {
+            $pattern = str_replace('/', '_', $pattern);
             if (strpos($endpoint, $pattern) !== false) {
                 return self::LOW_PRIORITY_TTL;
             }
@@ -138,10 +174,18 @@ class RedisCacheService
         try {
             if ($ttl === null) {
                 // Extract endpoint from key to determine TTL
-                $keyParts = explode(':', $key);
+                $keyParts = explode('_', $key);
                 if (count($keyParts) >= 2) {
-                    $endpoint = $keyParts[1];
-                    $ttl = $this->getTtl($endpoint);
+                    // Remove domain part and version part, get endpoint
+                    $endpointParts = array_slice($keyParts, 1, -1); // Remove first (domain) and last (version)
+                    if (!empty($endpointParts)) {
+                        $endpoint = implode('_', $endpointParts);
+                        // Remove hash part if present
+                        $endpoint = preg_replace('/_[a-f0-9]{32}$/', '', $endpoint);
+                        $ttl = $this->getTtl($endpoint);
+                    } else {
+                        $ttl = self::LOW_PRIORITY_TTL;
+                    }
                 } else {
                     $ttl = self::LOW_PRIORITY_TTL;
                 }
@@ -219,9 +263,9 @@ class RedisCacheService
     public function invalidateUserSpecificCache(string $userId): bool
     {
         $patterns = [
-            "participants:user:{$userId}",
-            "payments:participants:{$userId}",
-            "api:user:current",
+            "participants_user_{$userId}",
+            "payments_participants_{$userId}",
+            "api_user_current",
         ];
         
         foreach ($patterns as $pattern) {
@@ -234,11 +278,11 @@ class RedisCacheService
     public function invalidateProgramCache(string $programId): bool
     {
         $patterns = [
-            "programs:category",
-            "programs:{$programId}",
-            "program-payments:program:{$programId}",
-            "payment-methods:program:{$programId}",
-            "documents:program:{$programId}",
+            "programs_category",
+            "programs_{$programId}",
+            "program-payments_program_{$programId}",
+            "payment-methods_program_{$programId}",
+            "documents_program_{$programId}",
         ];
         
         foreach ($patterns as $pattern) {
@@ -251,8 +295,8 @@ class RedisCacheService
     public function invalidatePaymentCache(string $participantId): bool
     {
         $patterns = [
-            "payments:participants:{$participantId}",
-            "payments:participant",
+            "payments_participants_{$participantId}",
+            "payments_participant",
         ];
         
         foreach ($patterns as $pattern) {

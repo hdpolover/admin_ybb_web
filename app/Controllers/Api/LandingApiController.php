@@ -361,7 +361,9 @@ class LandingApiController extends ApiBaseController
     }
 
     /**
-     * Get announcements data
+     * Get announcements data from all programs in the category
+     * Shows announcements from both active and inactive programs within the same category,
+     * but only active and non-deleted announcements are returned.
      * Medium Priority Cache: 30 minutes TTL
      * 
      * @return \CodeIgniter\HTTP\ResponseInterface
@@ -385,36 +387,37 @@ class LandingApiController extends ApiBaseController
                     return null;
                 }
 
-                // get programs
-                $programs = $this->programModel->getActivePrograms($category->id);
+                // get all programs for this category (both active and inactive)
+                $allPrograms = $this->programModel->getAllPrograms($category->id);
+                
+                // get active programs for fallback
+                $activePrograms = $this->programModel->getActivePrograms($category->id);
 
-                if (!$programs) {
-                    return ['category' => $category, 'error' => 'No active program found'];
-                }
-
-                // get latest program for this category from $programs based on end date
+                // get latest program for this category from active programs based on end date
                 $latestProgram = null;
 
-                // Check if programs is an array or object and process accordingly
-                if (is_object($programs) && !is_array($programs)) {
-                    // Handle single object case
-                    $latestProgram = $programs;
-                } else if (is_array($programs)) {
-                    // Handle array case
-                    if (count($programs) == 1) {
-                        $latestProgram = $programs[0];
-                    } else {
-                        // find the latest program based on end date
-                        foreach ($programs as $program) {
-                            if ($latestProgram === null || strtotime($program->end_date) > strtotime($latestProgram->end_date)) {
-                                $latestProgram = $program;
+                // Check if active programs exist and process accordingly
+                if ($activePrograms) {
+                    if (is_object($activePrograms) && !is_array($activePrograms)) {
+                        // Handle single object case
+                        $latestProgram = $activePrograms;
+                    } else if (is_array($activePrograms)) {
+                        // Handle array case
+                        if (count($activePrograms) == 1) {
+                            $latestProgram = $activePrograms[0];
+                        } else {
+                            // find the latest program based on end date
+                            foreach ($activePrograms as $program) {
+                                if ($latestProgram === null || strtotime($program->end_date) > strtotime($latestProgram->end_date)) {
+                                    $latestProgram = $program;
+                                }
                             }
                         }
                     }
                 }
 
-                // get news for this category
-                $news = $this->announcementModel->getByProgramId($latestProgram->id, true, false);
+                // get announcements from all programs in this category (active and inactive programs, but only active announcements)
+                $news = $this->announcementModel->getAnnouncementsByProgramCategory($category->id);
 
                 // only return news with visible_to = 1
                 $news = array_filter($news, function ($announcement) {
@@ -425,19 +428,16 @@ class LandingApiController extends ApiBaseController
 
                 return [
                     'category' => $category,
-                    'programs' => $programs,
+                    'programs' => $activePrograms,
                     'latestProgram' => $latestProgram,
                     'announcements' => $news,
                     'visible_announcements_count' => $visibleAnnouncementsCount,
+                    'all_programs' => $allPrograms, // Include all programs for reference
                 ];
             }, ['web_url' => $normalizedWebUrl], null, 1800); // 30 minutes cache
 
             if ($data === null) {
                 return $this->respondNotFound('Program category not found');
-            }
-
-            if (isset($data['error'])) {
-                return $this->respondNotFound($data['error']);
             }
 
             return $this->respondSuccess($data, self::HTTP_OK, 'Announcements data retrieved successfully');

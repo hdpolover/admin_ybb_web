@@ -360,6 +360,14 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->get('delete/(:num)', 'Admin::delete/$1');
         });
     });
+
+    // Cache management routes
+    $routes->group('cache', function ($routes) {
+        $routes->get('clear/programs', 'CacheManager::clearProgramCaches');
+        $routes->get('clear/program/(:num)', 'CacheManager::clearProgramCache/$1');
+        $routes->get('clear/landing', 'CacheManager::clearLandingCache');
+        $routes->get('stats', 'CacheManager::stats');
+    });
 });
 
 // Temporary debug routes (remove in production)
