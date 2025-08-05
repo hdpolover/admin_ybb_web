@@ -253,7 +253,8 @@ class Scorings extends BaseController
                     'component_name' => $c1->description,
                     'weight'         => $c1->weight,
                     'weight2'        => $c1->weight2,
-                    'value'          => $score ? $score->score_input : 0
+                    'value'          => $score ? $score->score_input : 0,
+                    'calc'           => $score ? $score->score_calculated : 0
                 ];
             }
 
@@ -269,7 +270,8 @@ class Scorings extends BaseController
                     'component_name' => $c2->description,
                     'weight'         => $c2->weight,
                     'weight2'        => $c2->weight2,
-                    'value'          => $score ? $score->score_input : 0
+                    'value'          => $score ? $score->score_input : 0,
+                    'calc'           => $score ? $score->score_calculated : 0
                 ];
             }
 
@@ -284,146 +286,61 @@ class Scorings extends BaseController
         }
     }
 
-    /**
-     * Create a new participant form
-     */
-    public function new()
+    public function saveScore()
     {
-        return view('users/participants/create');
-    }
-    /**
-     * Create a new participant (process the form)
-     */
-    public function create()
-    {
-        try {
-            // Get form data
-            $data = $this->request->getPost();
+        $participantId     = $this->request->getPost('participant_id');
+        $scoreWeightIds    = $this->request->getPost('score_weight_id');
+        $scoreInputs       = $this->request->getPost('score_input');
+        $weights           = $this->request->getPost('weight'); // ambil bobot 1
+        $weights2          = $this->request->getPost('weight2'); // ambil bobot 2
 
-            // Validate required fields
-            $validation = \Config\Services::validation();
-            $validation->setRules([
-                'user_id' => 'required|integer',
-                'program_id' => 'required|integer',
-                'full_name' => 'required|string|max_length[255]'
-            ]);
+        $dataToInsert = [];
 
-            if (!$validation->run($data)) {
-                return redirect()->back()
-                    ->with('error', 'Validation failed: ' . implode(', ', $validation->getErrors()))
-                    ->withInput();
-            }
-
-            // Create new participant
-            $participant = $this->participantModel->createParticipant($data);
-
-            if ($participant) {
-                return redirect()->to('/participants')
-                    ->with('success', 'Participant created successfully');
-            } else {
-                return redirect()->back()
-                    ->with('error', 'Failed to create participant')
-                    ->withInput();
-            }
-        } catch (\Exception $e) {
-            return redirect()->back()
-                ->with('error', 'Error creating participant: ' . $e->getMessage())
-                ->withInput();
+        foreach ($scoreWeightIds as $index => $weightId) {
+        $val    = floatval($scoreInputs[$index] ?? 0);
+        $we = floatval($weights[$index] ?? 0);
+        $we2 = floatval($weights2[$index] ?? 0);
+            $dataToInsert[] = [
+                'participant_id'  => $participantId,
+                'program_id'      => session('current_program'),
+                'score_weight_id' => $weightId,
+                'score_input'     => $val,
+                'score_calculated'=> ($val*$we)*$we2,  // jika mau dihitung nanti
+                'is_active'       => 1,
+                'is_deleted'      => 0,
+                'created_at'      => date('Y-m-d H:i:s')
+            ];
         }
-    }
-    /**
-     * Edit participant form
-     */
-    public function edit($id)
-    {
-        try {
-            // Get participant data directly from model
-            $participant = $this->participantModel->getById($id);
 
-            if (!$participant) {
-                return redirect()->to('/participants')
-                    ->with('error', 'Participant not found');
-            }
+        // hapus skor lama agar replace
+        $this->scoreModel
+            ->where('participant_id', $participantId)
+            ->whereIn('score_weight_id', $scoreWeightIds)
+            ->delete();
+            
+        // insert yg baru secara batch
+        $this->scoreModel->insertBatch($dataToInsert);
 
-            // Get user data
-            $userId = $participant['user_id'];
-            $user = $this->userModel->find($userId);
-            $participant['user'] = $user;
-
-            return view('users/participants/edit', ['participant' => $participant]);
-        } catch (\Exception $e) {
-            return redirect()->to('/participants')
-                ->with('error', 'Failed to retrieve participant data: ' . $e->getMessage());
+        // 1. Hitung total score_input milik peserta ini
+        $total = $this->scoreModel
+                    ->selectSum('score_calculated')
+                    ->where('participant_id', $participantId)
+                    ->first()
+                    ->score_calculated;   // hasilnya akan jadi property object
+        $statusp = '';
+        if ($total < 75.00){
+            $statusp = 'rejected';
+        }else if (($total >= 75.00) && ($total <= 100.00)){
+            $statusp = 'go_to_interview';
+        }else{
+            $statusp = 'no_score';
         }
-    }
-    /**
-     * Update participant (process the form)
-     */
-    public function update($id)
-    {
-        try {
-            // Check if participant exists
-            $participant = $this->participantModel->find($id);
-
-            if (!$participant) {
-                return redirect()->to('/participants')
-                    ->with('error', 'Participant not found');
-            }
-
-            // Get form data
-            $data = $this->request->getPost();
-
-            // Validate data
-            $validation = \Config\Services::validation();
-            $validation->setRules([
-                'full_name' => 'required|string|max_length[255]',
-                'program_id' => 'required|integer',
-            ]);
-
-            if (!$validation->run($data)) {
-                return redirect()->back()
-                    ->with('error', 'Validation failed: ' . implode(', ', $validation->getErrors()))
-                    ->withInput();
-            }
-
-            // Update participant
-            $this->participantModel->update($id, $data);
-
-            return redirect()->to('/participants')
-                ->with('success', 'Participant updated successfully');
-        } catch (\Exception $e) {
-            return redirect()->back()
-                ->with('error', 'Error updating participant: ' . $e->getMessage())
-                ->withInput();
-        }
-    }
-    /**
-     * Delete participant
-     */
-    public function delete($id)
-    {
-        try {
-            // Check if participant exists
-            $participant = $this->participantModel->find($id);
-
-            if (!$participant) {
-                return redirect()->to('/participants')
-                    ->with('error', 'Participant not found');
-            }
-
-            // Soft delete by updating is_deleted field
-            $this->participantModel->update($id, [
-                'is_deleted' => 1,
-                'is_active' => 0,
-                'updated_at' => date('Y-m-d H:i:s')
-            ]);
-
-            return redirect()->to('/participants')
-                ->with('success', 'Participant deleted successfully');
-        } catch (\Exception $e) {
-            return redirect()->to('/participants')
-                ->with('error', 'Error deleting participant: ' . $e->getMessage());
-        }
+        // 2. Update ke table participants kolom score_total
+        $this->participantModel->update($participantId, [
+            'score_total' => $total,
+            'score_status' => $statusp
+        ]);
+        return redirect()->back()->with('success', 'Scoring berhasil disimpan.');
     }
     /**
      * Get participants for a specific program

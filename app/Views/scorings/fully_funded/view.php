@@ -346,46 +346,60 @@
                                             <div class="row">
                                                 <div class="col-md-7">
                                                     <h5 class="card-title mb-3">Assessment Form</h5>
-                                                    <table class="table table-bordered">
-                                                        <thead>
-                                                            <tr>
-                                                                <th>Component</th>
-                                                                <th>Weight (%)</th>
-                                                                <th width="15%">Score</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            <?php if (!empty($participant->scores1)): ?>
-                                                            <?php 
+                                                    <form action="<?= base_url('scorings/fully_funded/saveScore') ?>"
+                                                        method="post">
+                                                        <table class="table table-bordered">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>Component</th>
+                                                                    <th>Weight (%)</th>
+                                                                    <th width="15%">Score</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                <?php if (!empty($participant->scores1)): ?>
+                                                                <?php 
                                                                 $no = 0;
                                                                 foreach ($participant->scores1 as $score): 
                                                                 $no++;
                                                                 ?>
-                                                            <tr>
-                                                                <td>A.<?=$no?> &emsp;<?= esc($score->component_name) ?>
-                                                                </td>
-                                                                <td><?= esc($score->weight)*100 ?>%</td>
-                                                                <td><input type="text" class="form-control"
-                                                                        id="basiInput"
-                                                                        value="<?= esc($score->value) ?>">
-                                                                </td>
-                                                            </tr>
-                                                            <?php endforeach ?>
-                                                            <tr>
-                                                                <td colspan="2"></td>
-                                                                <td>
-                                                                    <button type="submit"
-                                                                        class="btn btn-primary">Submit</button>
-                                                                </td>
-                                                            </tr>
-                                                            <?php else: ?>
-                                                            <tr>
-                                                                <td colspan="3" class="text-center">Belum ada komponen
-                                                                    penilaian</td>
-                                                            </tr>
-                                                            <?php endif ?>
-                                                        </tbody>
-                                                    </table>
+                                                                <tr>
+                                                                    <td>A.<?=$no?>
+                                                                        &emsp;<?= esc($score->component_name) ?>
+                                                                    </td>
+                                                                    <td><?= esc($score->weight)*100 ?>%</td>
+                                                                    <td>
+                                                                        <input type="hidden" name="participant_id"
+                                                                            value="<?= $participant->id ?>">
+                                                                        <input type="hidden" name="score_weight_id[]"
+                                                                            value="<?= $score->component_id ?>">
+                                                                        <input type="hidden" name="weight[]"
+                                                                            value="<?= $score->weight ?>">
+                                                                        <input type="hidden" name="weight2[]"
+                                                                            value="<?= $score->weight2 ?>">
+                                                                        <input type="number" class="form-control"
+                                                                            id="basiInput" name="score_input[]"
+                                                                            value="<?= esc($score->value) ?>">
+                                                                    </td>
+                                                                </tr>
+                                                                <?php endforeach ?>
+                                                                <tr>
+                                                                    <td colspan="2"></td>
+                                                                    <td>
+                                                                        <button type="submit"
+                                                                            class="btn btn-primary">Submit</button>
+                                                                    </td>
+                                                                </tr>
+                                                                <?php else: ?>
+                                                                <tr>
+                                                                    <td colspan="3" class="text-center">Belum ada
+                                                                        komponen
+                                                                        penilaian</td>
+                                                                </tr>
+                                                                <?php endif ?>
+                                                            </tbody>
+                                                        </table>
+                                                    </form>
                                                 </div>
                                             </div>
                                         </div>
@@ -522,46 +536,60 @@
                                             <div class="row">
                                                 <div class="col-md-7">
                                                     <h5 class="card-title mb-3">Assessment Form</h5>
-                                                    <table class="table table-bordered">
-                                                        <thead>
-                                                            <tr>
-                                                                <th>Component</th>
-                                                                <th>Weight (%)</th>
-                                                                <th width="15%">Score</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            <?php if (!empty($participant->scores2)): ?>
-                                                            <?php 
+                                                    <form action="<?= base_url('scorings/fully_funded/saveScore') ?>"
+                                                        method="post">
+                                                        <table class="table table-bordered">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>Component</th>
+                                                                    <th>Weight (%)</th>
+                                                                    <th width="15%">Score</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                <?php if (!empty($participant->scores2)): ?>
+                                                                <?php 
                                                                 $no = 0;
                                                                 foreach ($participant->scores2 as $score): 
                                                                 $no++;
                                                                 ?>
-                                                            <tr>
-                                                                <td>B.<?=$no?> &emsp;<?= esc($score->component_name) ?>
-                                                                </td>
-                                                                <td><?= esc($score->weight)*100 ?>%</td>
-                                                                <td><input type="text" class="form-control"
-                                                                        id="basiInput"
-                                                                        value="<?= esc($score->value) ?>">
-                                                                </td>
-                                                            </tr>
-                                                            <?php endforeach ?>
-                                                            <tr>
-                                                                <td colspan="2"></td>
-                                                                <td>
-                                                                    <button type="submit"
-                                                                        class="btn btn-primary">Submit</button>
-                                                                </td>
-                                                            </tr>
-                                                            <?php else: ?>
-                                                            <tr>
-                                                                <td colspan="3" class="text-center">Belum ada komponen
-                                                                    penilaian</td>
-                                                            </tr>
-                                                            <?php endif ?>
-                                                        </tbody>
-                                                    </table>
+                                                                <tr>
+                                                                    <td>B.<?=$no?>
+                                                                        &emsp;<?= esc($score->component_name) ?>
+                                                                    </td>
+                                                                    <td><?= esc($score->weight)*100 ?>%</td>
+                                                                    <td>
+                                                                        <input type="hidden" name="participant_id"
+                                                                            value="<?= $participant->id ?>">
+                                                                        <input type="hidden" name="score_weight_id[]"
+                                                                            value="<?= $score->component_id ?>">
+                                                                        <input type="hidden" name="weight[]"
+                                                                            value="<?= $score->weight ?>">
+                                                                        <input type="hidden" name="weight2[]"
+                                                                            value="<?= $score->weight2 ?>">
+                                                                        <input type="number" class="form-control"
+                                                                            id="basiInput" name="score_input[]"
+                                                                            value="<?= esc($score->value) ?>">
+                                                                    </td>
+                                                                </tr>
+                                                                <?php endforeach ?>
+                                                                <tr>
+                                                                    <td colspan="2"></td>
+                                                                    <td>
+                                                                        <button type="submit"
+                                                                            class="btn btn-primary">Submit</button>
+                                                                    </td>
+                                                                </tr>
+                                                                <?php else: ?>
+                                                                <tr>
+                                                                    <td colspan="3" class="text-center">Belum ada
+                                                                        komponen
+                                                                        penilaian</td>
+                                                                </tr>
+                                                                <?php endif ?>
+                                                            </tbody>
+                                                        </table>
+                                                    </form>
                                                 </div>
                                             </div>
                                         </div>
@@ -569,7 +597,7 @@
                                             <div class="row">
                                                 <div class="col-md-8">
                                                     <div class="mb-3">
-                                                        <h5 class="card-title mb-3">Form Penilaian</h5>
+                                                        <h5 class="card-title mb-3">Assessment Form</h5>
                                                         <div class="table">
                                                             <table class="table table-borderless mb-0">
                                                                 <tbody>
@@ -594,7 +622,7 @@
                                                                                     <input type="text"
                                                                                         class="form-control" id="nama"
                                                                                         placeholder="score"
-                                                                                        value="<?= esc($score->value) ?>"
+                                                                                        value="<?= esc($score->calc) ?>"
                                                                                         name="a<?=$no?>">
                                                                                 </div>
                                                                                 <label for="nama"
@@ -626,7 +654,7 @@
                                                                                     <input type="text"
                                                                                         class="form-control" id="nama"
                                                                                         placeholder="score"
-                                                                                        value="<?= esc($score->value) ?>"
+                                                                                        value="<?= esc($score->calc) ?>"
                                                                                         name="b<?=$no?>">
                                                                                 </div>
                                                                                 <label for="nama"
@@ -654,7 +682,8 @@
                                                                                 <div class="col-4 col-xl-4">
                                                                                     <input type="text"
                                                                                         class="form-control" id="nama"
-                                                                                        placeholder="score" value="0">
+                                                                                        placeholder="score"
+                                                                                        value="<?=$participant->score_total?>">
                                                                                 </div>
                                                                                 <label for="nama"
                                                                                     class="col-6 col-xl-6 col-form-label">
@@ -671,7 +700,7 @@
                                                                                 </label>
                                                                                 <div class="col-4 col-xl-4">
                                                                                     <span
-                                                                                        class="badge bg-success-subtle text-success"><b>Status</b></span>
+                                                                                        class="badge bg-success-subtle text-success"><b><?=$participant->score_status?></b></span>
                                                                                 </div>
                                                                                 <label for="nama"
                                                                                     class="col-6 col-xl-6 col-form-label">

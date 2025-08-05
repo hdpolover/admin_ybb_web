@@ -52,6 +52,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
     //Scoring
     $routes->group('scorings', ['filter' => 'program_selection'], function ($routes) {
         $routes->get('fully_funded', 'Scorings::index');
+        $routes->post('fully_funded/saveScore', 'Scorings::saveScore');
         $routes->get('fully_funded/view/(:num)', 'Scorings::view/$1');
         $routes->get('fully_funded/edit/(:num)', 'Scorings::edit/$1');
         $routes->get('fully_funded/getData', 'Scorings::getData');

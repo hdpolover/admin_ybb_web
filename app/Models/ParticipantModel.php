@@ -59,6 +59,8 @@ class ParticipantModel extends Model
         'source_account_name',
         'twibbon_link',
         'requirement_link',
+        'score_total',
+        'score_status',
         'is_active',
         'is_deleted'
     ];

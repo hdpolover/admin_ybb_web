@@ -53,7 +53,7 @@
                     <?php echo view('partials/page-title', array('pagetitle' => 'Scorings', 'title' => 'Fully Funded')); ?>
 
                     <!-- Participant Stats -->
-                    <div class="row">
+                    <!-- <div class="row">
                         <div class="col-xl-3 col-md-6">
                             <div class="card card-animate">
                                 <div class="card-body">
@@ -131,7 +131,7 @@
                             </div>
                         </div>
 
-                    </div>
+                    </div> -->
 
                     <!-- Participants Table -->
                     <div class="row">
@@ -169,7 +169,7 @@
                                                 <small>Press Enter or click Search to filter results</small>
                                             </div>
                                         </div>
-                                        <div class="col-md-3 mb-2">
+                                        <!-- <div class="col-md-3 mb-2">
                                             <label class="form-label">Category</label>
                                             <select id="filter-category" class="form-select">
                                                 <option value="">All Categories</option>
@@ -190,7 +190,7 @@
                                             <button id="apply-filters" class="btn btn-primary me-2">Apply
                                                 Filters</button>
                                             <button id="reset-filters" class="btn btn-light">Reset</button>
-                                        </div>
+                                        </div> -->
                                     </div>
                                     <table id="participants-datatable"
                                         class="table table-bordered dt-responsive nowrap table-striped align-middle"
