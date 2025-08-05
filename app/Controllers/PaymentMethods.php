@@ -6,9 +6,12 @@ namespace App\Controllers;
 use App\Models\PaymentMethodModel;
 use App\Models\ProgramModel;
 use App\Models\WebSettingModel;
+use App\Traits\Cacheable;
 
 class PaymentMethods extends BaseController
 {
+    use Cacheable;
+    
     protected $paymentMethodModel;
     protected $programModel;
     protected $webSettingModel;
@@ -145,6 +148,9 @@ class PaymentMethods extends BaseController
 
         // Create the payment method
         if ($this->paymentMethodModel->insert($data)) {
+            // Invalidate program cache after successful payment method creation
+            $this->invalidateProgramCache($programId);
+            
             return redirect()->to('/master-data/payment-methods')
                 ->with('success', 'Payment method created successfully');
         } else {
@@ -237,6 +243,9 @@ class PaymentMethods extends BaseController
 
         // Update the payment method
         if ($this->paymentMethodModel->update($id, $data)) {
+            // Invalidate program cache after successful payment method update
+            $this->invalidateProgramCache($paymentMethod->program_id);
+            
             return redirect()->to('/master-data/payment-methods')
                 ->with('success', 'Payment method updated successfully');
         } else {
@@ -275,6 +284,9 @@ class PaymentMethods extends BaseController
 
         // Soft delete the payment method
         if ($this->paymentMethodModel->update($id, ['is_deleted' => 1, 'is_active' => 0])) {
+            // Invalidate program cache after successful payment method deletion
+            $this->invalidateProgramCache($paymentMethod->program_id);
+            
             return redirect()->to('/master-data/payment-methods')
                 ->with('success', 'Payment method deleted successfully');
         } else {

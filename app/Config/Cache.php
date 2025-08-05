@@ -151,6 +151,21 @@ class Cache extends BaseConfig
 
     /**
      * --------------------------------------------------------------------------
+     * Cache Fallback Settings
+     * --------------------------------------------------------------------------
+     * 
+     * Enable automatic fallback to direct API calls when caching fails
+     * This ensures the application continues to work even if Redis is unavailable
+     */
+    public bool $enableFallback = true;
+
+    /**
+     * Log cache fallback events for monitoring
+     */
+    public bool $logFallbacks = true;
+
+    /**
+     * --------------------------------------------------------------------------
      * Available Cache Handlers
      * --------------------------------------------------------------------------
      *

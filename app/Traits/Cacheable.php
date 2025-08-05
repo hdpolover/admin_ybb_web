@@ -24,7 +24,7 @@ trait Cacheable
     }
 
     /**
-     * Cache response data with automatic endpoint detection
+     * Cache response data with automatic endpoint detection and fallback mechanism
      * 
      * @param callable $callback Function that returns data to cache
      * @param array $parameters Additional parameters for cache key
@@ -41,25 +41,32 @@ trait Cacheable
             return $callback();
         }
         
+        // Check if cache is available
+        if (!$this->cacheService->isCacheAvailable()) {
+            // Log fallback and call API directly
+            log_message('warning', 'Cache unavailable, calling API directly without caching');
+            return $callback();
+        }
+        
         // Get current endpoint from request
         $endpoint = $this->request->getUri()->getPath();
         
         // Generate cache key
         $key = $this->cacheService->generateKey($endpoint, $parameters, $userId);
         
-        // Try to get from cache
-        $cached = $this->cacheService->get($key);
+        // Try to get from cache with fallback
+        $cached = $this->cacheService->getWithFallback($key);
         if ($cached !== null) {
             return $cached;
         }
         
-        // Execute callback and cache result
+        // Execute callback and cache result with fallback
         $data = $callback();
         if ($data !== null) {
             if ($customTtl) {
-                $this->cacheService->set($key, $data, $customTtl);
+                $this->cacheService->setWithFallback($key, $data, $customTtl);
             } else {
-                $this->cacheService->set($key, $data);
+                $this->cacheService->setWithFallback($key, $data);
             }
         }
         

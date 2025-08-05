@@ -5,9 +5,12 @@ namespace App\Controllers;
 use App\Models\ProgramPaymentModel;
 use App\Models\ProgramModel;
 use App\Models\WebSettingModel;
+use App\Traits\Cacheable;
 
 class ProgramPayments extends BaseController
 {
+    use Cacheable;
+    
     protected $programPaymentModel;
     protected $programModel;
     protected $webSettingModel;
@@ -133,6 +136,10 @@ class ProgramPayments extends BaseController
         
         // Create the payment option
         if ($this->programPaymentModel->insert($data)) {
+            // Invalidate program and landing cache after successful payment option creation
+            $this->invalidateProgramCache($programId);
+            $this->invalidateLandingCache();
+            
             return redirect()->to('/master-data/program-payments')
                 ->with('success', 'Payment option created successfully');
         } else {
@@ -208,6 +215,10 @@ class ProgramPayments extends BaseController
         
         // Update the payment option
         if ($this->programPaymentModel->update($id, $data)) {
+            // Invalidate program and landing cache after successful payment option update
+            $this->invalidateProgramCache($paymentOption->program_id);
+            $this->invalidateLandingCache();
+            
             return redirect()->to('/master-data/program-payments')
                 ->with('success', 'Payment option updated successfully');
         } else {
@@ -246,6 +257,10 @@ class ProgramPayments extends BaseController
         
         // Soft delete the payment option
         if ($this->programPaymentModel->update($id, ['is_deleted' => 1])) {
+            // Invalidate program and landing cache after successful payment option deletion
+            $this->invalidateProgramCache($programId);
+            $this->invalidateLandingCache();
+            
             return redirect()->to('/master-data/program-payments')
                 ->with('success', 'Payment option deleted successfully');
         } else {

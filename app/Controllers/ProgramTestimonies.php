@@ -4,9 +4,12 @@ namespace App\Controllers;
 use App\Models\ProgramTestimonyModel;
 // Program model for getting program category id
 use App\Models\ProgramModel;
+use App\Traits\Cacheable;
 
 class ProgramTestimonies extends BaseController
 {
+    use Cacheable;
+    
     protected $programTestimonyModel;
     protected $programModel;
 
@@ -142,6 +145,10 @@ class ProgramTestimonies extends BaseController
         // Insert data
         try {
             $this->programTestimonyModel->insert($data);
+            
+            // Invalidate landing page cache after successful testimony creation
+            $this->invalidateLandingCache();
+            
             return redirect()->to('master-data/program-testimonies')->with('success', 'Testimony from "' . $this->request->getPost('person_name') . '" has been added successfully!');
         } catch (\Exception $e) {
             return redirect()->back()->withInput()->with('error', 'Failed to add testimony: ' . $e->getMessage());
@@ -240,6 +247,10 @@ class ProgramTestimonies extends BaseController
         // Update data
         try {
             $this->programTestimonyModel->update($id, $data);
+            
+            // Invalidate landing page cache after successful testimony update
+            $this->invalidateLandingCache();
+            
             return redirect()->to('master-data/program-testimonies')->with('success', 'Testimony from "' . $this->request->getPost('person_name') . '" has been updated successfully!');
         } catch (\Exception $e) {
             return redirect()->back()->withInput()->with('error', 'Failed to update testimony: ' . $e->getMessage());
@@ -261,6 +272,10 @@ class ProgramTestimonies extends BaseController
         // Perform soft delete by setting is_deleted to 1
         try {
             $this->programTestimonyModel->update($id, ['is_deleted' => 1, 'is_active' => 0]);
+            
+            // Invalidate landing page cache after successful testimony deletion
+            $this->invalidateLandingCache();
+            
             return redirect()->to('master-data/program-testimonies')->with('success', 'Testimony from "' . $personName . '" has been deleted successfully!');
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Failed to delete testimony: ' . $e->getMessage());

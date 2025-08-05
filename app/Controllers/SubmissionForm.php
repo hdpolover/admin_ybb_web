@@ -9,9 +9,12 @@ use App\Models\CompetitionCategoryModel;
 use App\Models\ProgramEssayModel;
 // program submtheme
 use App\Models\ProgramSubthemeModel;
+use App\Traits\Cacheable;
 
 class SubmissionForm extends BaseController
 {
+    use Cacheable;
+    
     protected $programModel;
     protected $competitionCategoryModel;
     protected $programEssayModel;
@@ -195,6 +198,10 @@ class SubmissionForm extends BaseController
         // Update data
         try {
             $this->competitionCategoryModel->update($id, $data);
+            
+            // Invalidate program cache after successful category update
+            $this->invalidateProgramCache($category->program_id);
+            
             return $this->response->setJSON([
                 'success' => true,
                 'message' => 'Category updated successfully'
@@ -235,6 +242,10 @@ class SubmissionForm extends BaseController
             ];
 
             $this->competitionCategoryModel->update($id, $data);
+            
+            // Invalidate program cache after successful category deletion
+            $this->invalidateProgramCache($category->program_id);
+            
             return $this->response->setJSON([
                 'success' => true,
                 'message' => 'Category deleted successfully'

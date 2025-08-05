@@ -4,9 +4,12 @@ namespace App\Controllers;
 
 use App\Models\ProgramScheduleModel;
 use App\Models\ProgramModel;
+use App\Traits\Cacheable;
 
 class ProgramSchedules extends BaseController
 {
+    use Cacheable;
+    
     protected $programScheduleModel;
     protected $programModel;
     
@@ -108,6 +111,10 @@ class ProgramSchedules extends BaseController
         // Create new schedule
         try {
             $this->programScheduleModel->insert($data);
+            
+            // Invalidate program cache after successful schedule creation
+            $this->invalidateProgramCache($programId);
+            
             return redirect()->to('/master-data/timelines')
                 ->with('success', 'Schedule created successfully');
         } catch (\Exception $e) {
@@ -171,6 +178,10 @@ class ProgramSchedules extends BaseController
         // Update schedule
         try {
             $this->programScheduleModel->update($id, $data);
+            
+            // Invalidate program cache after successful schedule update
+            $this->invalidateProgramCache($schedule->program_id);
+            
             return redirect()->to('/master-data/timelines')
                 ->with('success', 'Schedule updated successfully');
         } catch (\Exception $e) {
@@ -210,6 +221,10 @@ class ProgramSchedules extends BaseController
         // Soft delete the schedule
         try {
             $this->programScheduleModel->update($id, ['is_deleted' => 1]);
+            
+            // Invalidate program cache after successful schedule deletion
+            $this->invalidateProgramCache($programId);
+            
             return redirect()->to('/master-data/timelines')
                 ->with('success', 'Schedule deleted successfully');
         } catch (\Exception $e) {

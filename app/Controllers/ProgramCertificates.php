@@ -5,10 +5,13 @@ namespace App\Controllers;
 use App\Models\ProgramCertificateModel;
 use App\Models\ProgramAwardModel;
 use App\Models\ProgramCertificateContentBlockModel;
+use App\Traits\Cacheable;
 use Exception;
 
 class ProgramCertificates extends BaseController
 {
+    use Cacheable;
+    
     protected $programCertificateModel;
     protected $programAwardModel;
     protected $contentBlockModel;
@@ -323,6 +326,9 @@ class ProgramCertificates extends BaseController
             if ($certificateId = $this->programCertificateModel->insert($data)) {
                 log_message('info', 'Certificate created with ID: ' . $certificateId);
                 
+                // Invalidate program cache after successful creation
+                $this->invalidateProgramCache($programId);
+                
                 // Save content blocks
                 $savedBlocks = 0;
                 foreach ($contentBlocks as $index => $block) {
@@ -446,6 +452,9 @@ class ProgramCertificates extends BaseController
             unset($data['content_blocks']);
 
             if ($this->programCertificateModel->update($id, $data)) {
+                // Invalidate program cache after successful update
+                $this->invalidateProgramCache($certificate['program_id']);
+                
                 // Delete existing content blocks for this certificate
                 $this->contentBlockModel->deleteBlocksByCertificate($id);
 
@@ -486,6 +495,9 @@ class ProgramCertificates extends BaseController
             }
 
             if ($this->programCertificateModel->softDelete($id)) {
+                // Invalidate program cache after successful deletion
+                $this->invalidateProgramCache($certificate['program_id']);
+                
                 return redirect()->to('/master-data/program-certificates')
                                 ->with('success', 'Certificate deleted successfully');
             } else {

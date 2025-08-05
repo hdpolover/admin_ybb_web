@@ -5,9 +5,12 @@ namespace App\Controllers;
 use App\Models\AbstractTopicModel;
 use App\Models\ProgramModel;
 use App\Models\WebSettingModel;
+use App\Traits\Cacheable;
 
 class AbstractTopics extends BaseController
 {
+    use Cacheable;
+    
     protected $abstractTopicModel;
     protected $programModel;
     protected $webSettingModel;
@@ -148,6 +151,9 @@ class AbstractTopics extends BaseController
         try {
             $this->abstractTopicModel->insert($data);
 
+            // Invalidate program cache after successful creation
+            $this->invalidateProgramCache($programId);
+
             // Check if request is AJAX
             if ($this->request->isAJAX()) {
                 return $this->response->setJSON([
@@ -255,6 +261,9 @@ class AbstractTopics extends BaseController
         try {
             $this->abstractTopicModel->update($id, $data);
 
+            // Invalidate program cache after successful update
+            $this->invalidateProgramCache($abstractTopic->program_id);
+
             // Check if request is AJAX
             if ($this->request->isAJAX()) {
                 return $this->response->setJSON([
@@ -338,6 +347,9 @@ class AbstractTopics extends BaseController
                 'is_active' => 0,
                 'updated_at' => date('Y-m-d H:i:s')
             ]);
+
+            // Invalidate program cache after successful deletion
+            $this->invalidateProgramCache($abstractTopic->program_id);
 
             // Check if request is AJAX
             if ($this->request->isAJAX()) {

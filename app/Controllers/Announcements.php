@@ -3,9 +3,12 @@
 namespace App\Controllers;
 // announcement model
 use App\Models\AnnouncementModel;
+use App\Traits\Cacheable;
 
 class Announcements extends BaseController
 {
+    use Cacheable;
+    
     protected $announcementModel;
 
     public function __construct()
@@ -162,6 +165,9 @@ class Announcements extends BaseController
                 
                 log_message('debug', 'Setting announcement image URL to: ' . $uploadResult['url']);
                 
+                // Invalidate landing page cache after successful announcement creation
+                $this->invalidateLandingCache();
+                
                 if ($isAjax) {
                     $updatedAnnouncement = $this->announcementModel->find($announcementId);
                     return $this->response->setJSON([
@@ -203,6 +209,9 @@ class Announcements extends BaseController
             // Insert announcement
             $announcementId = $this->announcementModel->insert($data);
             if ($announcementId) {
+                // Invalidate landing page cache after successful announcement creation
+                $this->invalidateLandingCache();
+                
                 if ($isAjax) {
                     $announcement = $this->announcementModel->find($announcementId);
                     return $this->response->setJSON([
@@ -440,6 +449,9 @@ class Announcements extends BaseController
             $updatedAnnouncement = $this->announcementModel->find($id);
             log_message('debug', 'Updated announcement data: ' . json_encode($updatedAnnouncement));
             
+            // Invalidate landing page cache after successful announcement update
+            $this->invalidateLandingCache();
+            
             if ($isAjax) {
                 return $this->response->setJSON([
                     'success' => true,
@@ -515,6 +527,9 @@ class Announcements extends BaseController
         
         // Soft delete the announcement by setting is_deleted to 1
         if ($this->announcementModel->update($id, ['is_deleted' => 1])) {
+            // Invalidate landing page cache after successful announcement deletion
+            $this->invalidateLandingCache();
+            
             if ($isAjax) {
                 return $this->response->setJSON([
                     'success' => true,

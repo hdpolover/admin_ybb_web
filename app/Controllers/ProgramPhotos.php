@@ -5,9 +5,12 @@ namespace App\Controllers;
 use App\Models\ProgramPhotoModel;
 // program model
 use App\Models\ProgramModel;
+use App\Traits\Cacheable;
 
 class ProgramPhotos extends BaseController
 {
+    use Cacheable;
+    
     protected $programPhotoModel;
     protected $programModel;
     public function __construct()
@@ -120,9 +123,15 @@ class ProgramPhotos extends BaseController
             'img_url' => $uploadResult['url'],
             'is_active' => $this->request->getPost('is_active') ? 1 : 0,
             'is_deleted' => 0
-        ];// Insert data
+        ];
+
+        // Insert data
         try {
             $this->programPhotoModel->insert($data);
+            
+            // Invalidate landing page cache after successful photo creation
+            $this->invalidateLandingCache();
+            
             return redirect()->to('master-data/program-photos')->with('success', 'Photo "' . $this->request->getPost('title') . '" has been added successfully!');
         } catch (\Exception $e) {
             return redirect()->back()->withInput()->with('error', 'Failed to add photo: ' . $e->getMessage());
@@ -220,9 +229,15 @@ class ProgramPhotos extends BaseController
 
             // Update the image URL with the newly uploaded file URL
             $data['img_url'] = $uploadResult['url'];
-        }        // Update data
+        }
+
+        // Update data
         try {
             $this->programPhotoModel->update($id, $data);
+            
+            // Invalidate landing page cache after successful photo update
+            $this->invalidateLandingCache();
+            
             return redirect()->to('master-data/program-photos')->with('success', 'Photo "' . $this->request->getPost('title') . '" has been updated successfully!');
         } catch (\Exception $e) {
             return redirect()->back()->withInput()->with('error', 'Failed to update photo: ' . $e->getMessage());
@@ -242,6 +257,10 @@ class ProgramPhotos extends BaseController
         // Perform soft delete by setting is_deleted to 1
         try {
             $this->programPhotoModel->update($id, ['is_deleted' => 1, 'is_active' => 0]);
+            
+            // Invalidate landing page cache after successful photo deletion
+            $this->invalidateLandingCache();
+            
             return redirect()->to('master-data/program-photos')->with('success', 'Photo "' . $photoTitle . '" has been deleted successfully!');
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Failed to delete photo: ' . $e->getMessage());

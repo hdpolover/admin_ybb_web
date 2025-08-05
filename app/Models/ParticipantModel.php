@@ -1150,13 +1150,15 @@ class ParticipantModel extends Model
                 }
             }
 
-            // Normalize the data
-            $normalizedResult = [];
-            foreach ($result as $participant) {
-                $normalizedResult[] = $this->normalizeParticipantForExport($participant, $essayCount);
-            }
-
-            log_message('info', "Completed normalized participant export for program $programId: " . count($normalizedResult) . " records");
+        // Normalize the data
+        $normalizedResult = [];
+        foreach ($result as $participant) {
+            $normalizedParticipant = $this->normalizeParticipantForExport($participant, $essayCount);
+            
+            // Sanitize the normalized data to prevent API issues
+            $sanitizedParticipant = $this->sanitizeParticipantData($normalizedParticipant);
+            $normalizedResult[] = $sanitizedParticipant;
+        }            log_message('info', "Completed normalized participant export for program $programId: " . count($normalizedResult) . " records");
             return $normalizedResult;
 
         } catch (\Exception $e) {
@@ -1166,38 +1168,65 @@ class ParticipantModel extends Model
     }
 
     /**
-     * Normalize a single participant record for export
-     * Adds human-readable status translations and cleans data
+     * Normalize participant data for export - Optimized for admin use
+     * Adds human-readable status translations and prioritizes essential information
      */
     public function normalizeParticipantForExport(array $participant, int $essayCount): array
     {
-        // Add human-readable status translations
-        $participant['form_status_text'] = $this->getFormStatusText($participant['form_status_code'] ?? 0);
-        $participant['payment_status_text'] = $this->getPaymentStatusText($participant['payment_status_code'] ?? 0);
-        $participant['general_status_text'] = $this->getGeneralStatusText($participant['general_status_code'] ?? 0);
-        $participant['document_status_text'] = $this->getDocumentStatusText($participant['document_status_code'] ?? 0);
+        $normalized = [
+            // === CORE IDENTIFICATION (High Priority) ===
+            'Participant_ID' => $participant['participant_id'] ?? 'N/A',
+            'Account_ID' => $participant['participant_account_id'] ?? 'N/A',
+            'Full_Name' => $participant['participant_full_name'] ?? 'Unknown',
+            'Email' => $participant['participant_email'] ?? 'No Email',
+            
+            // === CONTACT INFORMATION (High Priority) ===
+            'Phone' => $this->formatPhoneNumber($participant),
+            'Nationality' => $participant['participant_nationality'] ?? 'Not Specified',
+            'Current_Address' => $this->cleanAddress($participant['participant_current_address'] ?? ''),
+            
+            // === PERSONAL DETAILS (High Priority) ===
+            'Gender' => $this->formatGender($participant['participant_gender'] ?? ''),
+            'Birthdate' => $this->formatDate($participant['participant_birthdate']),
+            'Age' => $this->calculateAge($participant['participant_birthdate']),
+            'Category' => $this->formatCategory($participant['participant_category'] ?? ''),
+            
+            // === ACADEMIC/PROFESSIONAL INFO (Medium Priority) ===
+            'Education_Level' => $this->formatEducationLevel($participant['participant_education_level'] ?? ''),
+            'Major_Field' => $participant['participant_major'] ?? 'Not Specified',
+            'Institution' => $participant['participant_institution'] ?? 'Not Specified',
+            'Occupation' => $participant['participant_occupation'] ?? 'Not Specified',
+            
+            // === PROGRAM INFORMATION (Medium Priority) ===
+            'Program' => $participant['program_name'] ?? 'Unknown Program',
+            'Program_Theme' => $participant['program_theme'] ?? 'Not Specified',
+            'Registration_Date' => $this->formatDateTime($participant['participant_registered_at']),
+            'Document_Status' => $this->getDocumentStatusText($participant['document_status_code'] ?? 0),
+            
+            // === ADDITIONAL INFO (Lower Priority) ===
+            'Instagram_Account' => $this->formatInstagram($participant['participant_instagram'] ?? ''),
+            'TShirt_Size' => strtoupper($participant['participant_tshirt_size'] ?? 'Not Specified'),
+        ];
 
-        // Clean and format data
-        $participant['participant_birthdate'] = isset($participant['participant_birthdate']) ? 
-            date('Y-m-d', strtotime($participant['participant_birthdate'])) : '';
-        $participant['participant_registered_at'] = isset($participant['participant_registered_at']) ? 
-            date('Y-m-d H:i:s', strtotime($participant['participant_registered_at'])) : '';
-        $participant['user_is_verified'] = $participant['user_is_verified'] ? 'Yes' : 'No';
-
-        // Format phone number with country code
-        if (!empty($participant['participant_phone']) && !empty($participant['participant_country_code'])) {
-            $participant['participant_phone_full'] = $participant['participant_country_code'] . $participant['participant_phone'];
-        } else {
-            $participant['participant_phone_full'] = $participant['participant_phone'] ?? '';
+        // === ESSAYS (Dynamic based on program) ===
+        for ($i = 1; $i <= $essayCount; $i++) {
+            if (!empty($participant["essay_$i"])) {
+                $question = $participant["essay_{$i}_question"] ?? "Essay $i";
+                $answer = $this->cleanEssayText($participant["essay_$i"]);
+                
+                // Use API-friendly column name
+                $columnName = "Essay_$i";
+                if (!empty($question) && $question !== "Essay $i") {
+                    // Add question as suffix but keep it API-friendly
+                    $cleanQuestion = $this->formatEssayColumnNameSafe($question, $i);
+                    $columnName = $cleanQuestion;
+                }
+                    
+                $normalized[$columnName] = $answer;
+            }
         }
 
-        // Clean essay data - remove empty essay fields for programs with fewer essays
-        for ($i = $essayCount + 1; $i <= 10; $i++) {
-            unset($participant["essay_$i"]);
-            unset($participant["essay_{$i}_question"]);
-        }
-
-        return $participant;
+        return $normalized;
     }
 
     /**
@@ -1301,5 +1330,307 @@ class ParticipantModel extends Model
         }
 
         log_message('info', 'Invalidated participant caches for participant: ' . ($participantId ?? 'all') . ', program: ' . ($programId ?? 'all'));
+    }
+    
+    // === HELPER METHODS FOR EXPORT OPTIMIZATION ===
+    
+    /**
+     * Format phone number with country code
+     */
+    private function formatPhoneNumber(array $participant): string
+    {
+        $phone = $participant['participant_phone'] ?? '';
+        $countryCode = $participant['participant_country_code'] ?? '';
+        
+        if (empty($phone)) {
+            return 'No Phone';
+        }
+        
+        if (!empty($countryCode) && !str_starts_with($phone, $countryCode)) {
+            return $countryCode . $phone;
+        }
+        
+        return $phone;
+    }
+    
+    /**
+     * Clean and format address
+     */
+    private function cleanAddress(string $address): string
+    {
+        if (empty($address)) {
+            return 'Not Provided';
+        }
+        
+        // Clean multiple spaces and line breaks
+        $cleaned = preg_replace('/\s+/', ' ', trim($address));
+        
+        // Limit length for export readability
+        if (strlen($cleaned) > 150) {
+            $cleaned = substr($cleaned, 0, 147) . '...';
+        }
+        
+        return $cleaned;
+    }
+    
+    /**
+     * Format gender for display
+     */
+    private function formatGender(string $gender): string
+    {
+        switch (strtolower($gender)) {
+            case 'm':
+            case 'male':
+                return 'Male';
+            case 'f':
+            case 'female':
+                return 'Female';
+            case 'o':
+            case 'other':
+                return 'Other';
+            default:
+                return 'Not Specified';
+        }
+    }
+    
+    /**
+     * Format date consistently
+     */
+    private function formatDate($date): string
+    {
+        if (empty($date)) {
+            return 'Not Provided';
+        }
+        
+        try {
+            return date('Y-m-d', strtotime($date));
+        } catch (\Exception $e) {
+            return 'Invalid Date';
+        }
+    }
+    
+    /**
+     * Format datetime consistently
+     */
+    private function formatDateTime($datetime): string
+    {
+        if (empty($datetime)) {
+            return 'Not Available';
+        }
+        
+        try {
+            return date('Y-m-d H:i:s', strtotime($datetime));
+        } catch (\Exception $e) {
+            return 'Invalid DateTime';
+        }
+    }
+    
+    /**
+     * Calculate age from birthdate
+     */
+    private function calculateAge($birthdate): string
+    {
+        if (empty($birthdate)) {
+            return 'Unknown';
+        }
+        
+        try {
+            $birth = new \DateTime($birthdate);
+            $today = new \DateTime();
+            $age = $today->diff($birth)->y;
+            return $age . ' years';
+        } catch (\Exception $e) {
+            return 'Unknown';
+        }
+    }
+    
+    /**
+     * Format participant category
+     */
+    private function formatCategory(string $category): string
+    {
+        switch (strtolower($category)) {
+            case 'student':
+                return 'Student';
+            case 'professional':
+                return 'Professional';
+            case 'entrepreneur':
+                return 'Entrepreneur';
+            case 'other':
+                return 'Other';
+            default:
+                return ucfirst($category) ?: 'Not Specified';
+        }
+    }
+    
+    /**
+     * Format education level
+     */
+    private function formatEducationLevel(string $level): string
+    {
+        switch (strtolower($level)) {
+            case 'high_school':
+            case 'highschool':
+                return 'High School';
+            case 'bachelor':
+            case 'undergraduate':
+                return 'Bachelor\'s Degree';
+            case 'master':
+            case 'masters':
+                return 'Master\'s Degree';
+            case 'phd':
+            case 'doctorate':
+                return 'PhD/Doctorate';
+            case 'diploma':
+                return 'Diploma';
+            default:
+                return ucfirst(str_replace('_', ' ', $level)) ?: 'Not Specified';
+        }
+    }
+    
+    /**
+     * Format Instagram account
+     */
+    private function formatInstagram(string $instagram): string
+    {
+        if (empty($instagram)) {
+            return 'Not Provided';
+        }
+        
+        // Remove @ if present and add it back
+        $instagram = ltrim($instagram, '@');
+        
+        if (empty($instagram)) {
+            return 'Not Provided';
+        }
+        
+        return '@' . $instagram;
+    }
+    
+    /**
+     * Clean essay text for export
+     */
+    private function cleanEssayText(string $text): string
+    {
+        if (empty($text)) {
+            return 'No Response';
+        }
+        
+        // Remove HTML tags
+        $cleaned = strip_tags($text);
+        
+        // Clean multiple spaces and line breaks
+        $cleaned = preg_replace('/\s+/', ' ', trim($cleaned));
+        
+        // Remove null bytes and control characters
+        $cleaned = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $cleaned);
+        
+        // Limit length for export readability
+        if (strlen($cleaned) > 500) {
+            $cleaned = substr($cleaned, 0, 497) . '...';
+        }
+        
+        return $cleaned ?: 'No Response';
+    }
+    
+    /**
+     * Format essay column name from question - API-friendly version
+     */
+    private function formatEssayColumnNameSafe(string $question, int $essayNumber): string
+    {
+        // Clean the question for use as column name - API safe
+        $columnName = strip_tags($question);
+        $columnName = preg_replace('/[^\w\s]/', '', $columnName); // Remove special chars
+        $columnName = preg_replace('/\s+/', '_', trim($columnName)); // Replace spaces with underscores
+        
+        // Limit length and add essay number
+        if (strlen($columnName) > 30) {
+            $columnName = substr($columnName, 0, 27) . '...';
+        }
+        
+        return "Essay_{$essayNumber}_" . $columnName;
+    }
+    
+    /**
+     * Format essay column name from question
+     */
+    private function formatEssayColumnName(string $question, int $essayNumber): string
+    {
+        // Clean the question for use as column name
+        $columnName = strip_tags($question);
+        $columnName = preg_replace('/[^\w\s-]/', '', $columnName);
+        $columnName = trim($columnName);
+        
+        // Limit length and add essay number
+        if (strlen($columnName) > 50) {
+            $columnName = substr($columnName, 0, 47) . '...';
+        }
+        
+        return "Essay $essayNumber: $columnName";
+    }
+    
+    /**
+     * Sanitize participant data to prevent API issues
+     * Removes control characters, null bytes, and limits field lengths
+     */
+    private function sanitizeParticipantData(array $participant): array
+    {
+        $sanitized = [];
+        
+        foreach ($participant as $field => $value) {
+            if (is_string($value)) {
+                // Remove null bytes and control characters
+                $cleanValue = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $value);
+                
+                // Ensure UTF-8 encoding
+                if (!mb_check_encoding($cleanValue, 'UTF-8')) {
+                    $cleanValue = mb_convert_encoding($cleanValue, 'UTF-8', 'UTF-8');
+                }
+                
+                // Limit field length to prevent oversized payloads
+                $maxLength = $this->getFieldMaxLength($field);
+                if (strlen($cleanValue) > $maxLength) {
+                    $cleanValue = substr($cleanValue, 0, $maxLength - 3) . '...';
+                }
+                
+                // Trim whitespace
+                $sanitized[$field] = trim($cleanValue);
+            } else {
+                $sanitized[$field] = $value;
+            }
+        }
+        
+        return $sanitized;
+    }
+    
+    /**
+     * Get maximum allowed length for different field types
+     */
+    private function getFieldMaxLength(string $fieldName): int
+    {
+        // Define field length limits
+        if (strpos($fieldName, 'Essay_') === 0) {
+            return 2000; // Limit essays to 2000 characters
+        }
+        
+        switch ($fieldName) {
+            case 'Full_Name':
+            case 'Institution':
+            case 'Program':
+                return 200;
+            
+            case 'Email':
+            case 'Phone':
+                return 100;
+                
+            case 'Current_Address':
+                return 500;
+                
+            case 'Instagram_Account':
+                return 50;
+                
+            default:
+                return 1000; // Default limit for other fields
+        }
     }
 }

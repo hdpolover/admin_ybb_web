@@ -5,9 +5,12 @@ namespace App\Controllers;
 use App\Models\AbstractSettingModel;
 use App\Models\ProgramModel;
 use App\Models\WebSettingModel;
+use App\Traits\Cacheable;
 
 class AbstractSettings extends BaseController
 {
+    use Cacheable;
+    
     protected $abstractSettingModel;
     protected $programModel;
     protected $webSettingModel;
@@ -149,6 +152,9 @@ class AbstractSettings extends BaseController
                 $this->abstractSettingModel->insert($data);
                 $message = 'Abstract settings created successfully.';
             }
+
+            // Invalidate program cache after successful save
+            $this->invalidateProgramCache($programId);
 
             // Check if request is AJAX
             if ($this->request->isAJAX()) {
@@ -385,6 +391,9 @@ class AbstractSettings extends BaseController
 
         try {
             $this->abstractSettingModel->createDefaultSettings($programId);
+
+            // Invalidate program cache after successful creation
+            $this->invalidateProgramCache($programId);
 
             // Check if request is AJAX
             if ($this->request->isAJAX()) {

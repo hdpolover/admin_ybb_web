@@ -3,9 +3,12 @@
 namespace App\Controllers;
 
 use App\Models\ProgramAwardModel;
+use App\Traits\Cacheable;
 
 class ProgramAwards extends BaseController
 {
+    use Cacheable;
+    
     protected $programAwardModel;
 
     public function __construct()
@@ -143,6 +146,9 @@ class ProgramAwards extends BaseController
             $data['is_deleted'] = 0;
 
             if ($this->programAwardModel->save($data)) {
+                // Invalidate program cache after successful creation
+                $this->invalidateProgramCache($programId);
+                
                 return redirect()->to('/master-data/program-awards')
                                 ->with('success', 'Award created successfully');
             } else {
@@ -176,6 +182,9 @@ class ProgramAwards extends BaseController
             $data = $this->request->getPost();
 
             if ($this->programAwardModel->update($id, $data)) {
+                // Invalidate program cache after successful update
+                $this->invalidateProgramCache($award['program_id']);
+                
                 return redirect()->to('/master-data/program-awards')
                                 ->with('success', 'Award updated successfully');
             } else {
@@ -207,6 +216,9 @@ class ProgramAwards extends BaseController
             }
 
             if ($this->programAwardModel->softDelete($id)) {
+                // Invalidate program cache after successful deletion
+                $this->invalidateProgramCache($award['program_id']);
+                
                 return redirect()->to('/master-data/program-awards')
                                 ->with('success', 'Award deleted successfully');
             } else {

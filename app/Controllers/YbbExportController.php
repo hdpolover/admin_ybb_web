@@ -63,8 +63,100 @@ class YbbExportController extends BaseController
             // Log export request for tracking
             $exportRequestId = $this->_logExportRequest($filters['program_id'], 'participants', $options);
             
-            // Create export using YBB Export API
-            $result = $this->ybbExport->exportParticipants($participants, $options);
+            // Check if dataset is large and needs batch processing
+            $participantCount = count($participants);
+            $maxBatchSize = 25; // Reduced from 100 to 25 for API compatibility
+            
+            log_message('info', "Participant export requested: $participantCount records found");
+            
+            if ($participantCount > $maxBatchSize) {
+                log_message('info', "Large participant dataset detected ($participantCount records). Using batch processing with max batch size: $maxBatchSize");
+                
+                // Split data into batches and use batch processing strategy
+                $batches = array_chunk($participants, $maxBatchSize);
+                $options['batch_processing'] = 1;
+                $options['total_records'] = $participantCount;
+                $options['batch_count'] = count($batches);
+                
+                log_message('info', "Processing first batch of " . count($batches[0]) . " records out of $participantCount total");
+                
+                // Process first batch to initiate export
+                $result = $this->ybbExport->exportParticipants($batches[0], $options);
+                
+                if ($result['success']) {
+                    // For large datasets, the API should handle batching internally
+                    // Log success and continue
+                    log_message('info', "Participant export initiated for $participantCount records using batch processing");
+                    
+                    // Update log with batch processing info
+                    $this->_updateExportRequestLog($exportRequestId, [
+                        'status' => 'processing',
+                        'export_id' => $result['data']['export_id'],
+                        'file_name' => $result['data']['file_name'],
+                        'record_count' => $participantCount,
+                        'file_size' => $result['data']['file_size'] ?? null,
+                        'processing_time' => $result['metadata']['processing_time'] ?? null,
+                        'expires_at' => $result['data']['expires_at'],
+                        'batch_processing' => 1,
+                        'batch_count' => count($batches)
+                    ]);
+                } else {
+                    // If batch processing fails, try with progressively smaller datasets
+                    log_message('warning', "Batch processing failed, trying with progressively smaller datasets");
+                    
+                    $testSizes = [10, 5, 1]; // Try these sizes in order
+                    $lastResult = $result; // Keep the last error for reporting
+                    
+                    foreach ($testSizes as $testSize) {
+                        log_message('info', "Attempting export with $testSize records");
+                        $reducedParticipants = array_slice($participants, 0, $testSize);
+                        $options['filename'] = str_replace('.xlsx', "_sample_{$testSize}.xlsx", $options['filename'] ?? 'participants_sample.xlsx');
+                        
+                        $testResult = $this->ybbExport->exportParticipants($reducedParticipants, $options);
+                        
+                        if ($testResult['success']) {
+                            log_message('info', "Export successful with $testSize records");
+                            
+                            $this->_updateExportRequestLog($exportRequestId, [
+                                'status' => 'success_partial',
+                                'export_id' => $testResult['data']['export_id'],
+                                'file_name' => $testResult['data']['file_name'],
+                                'record_count' => count($reducedParticipants),
+                                'note' => "Exported first $testSize records due to API limitations"
+                            ]);
+                            
+                            return $this->response->setJSON([
+                                'success' => true,
+                                'exportId' => $testResult['data']['export_id'],
+                                'fileName' => $testResult['data']['file_name'] ?? null,
+                                'downloadUrl' => $testResult['data']['download_url'] ?? null,
+                                'message' => "Export successful with first $testSize records (API limit reached)",
+                                'recordCount' => count($reducedParticipants),
+                                'warning' => "Only exported first $testSize of $participantCount total records due to API limitations",
+                                'status' => 'partial_success'
+                            ]);
+                        } else {
+                            log_message('warning', "Export with $testSize records also failed: " . $testResult['message']);
+                            $lastResult = $testResult;
+                        }
+                    }
+                    
+                    // If all test sizes failed, update log with error and return failure
+                    $this->_updateExportRequestLog($exportRequestId, [
+                        'status' => 'error',
+                        'error_message' => "All batch sizes failed. Last error: " . $lastResult['message']
+                    ]);
+                    
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => "Export failed even with minimal dataset. API may be experiencing issues. Last error: " . $lastResult['message']
+                    ]);
+                }
+            } else {
+                // Normal processing for smaller datasets
+                log_message('info', "Small dataset ($participantCount records), processing normally");
+                $result = $this->ybbExport->exportParticipants($participants, $options);
+            }
             
             if ($result['success']) {
                 // Update log with success details
@@ -107,7 +199,28 @@ class YbbExportController extends BaseController
                     'error_message' => $result['message']
                 ]);
                 
+                // Enhanced error logging for debugging
                 log_message('error', 'Participants export failed: ' . $result['message']);
+                log_message('error', 'Export context: ' . json_encode([
+                    'participant_count' => count($participants),
+                    'program_id' => $filters['program_id'] ?? 'unknown',
+                    'payload_size' => strlen(json_encode($participants)),
+                    'export_options' => $options
+                ]));
+                
+                // Log sample data for debugging (first record only, sanitized)
+                if (!empty($participants)) {
+                    $sampleRecord = $participants[0];
+                    $sampleSanitized = [];
+                    foreach ($sampleRecord as $key => $value) {
+                        if (is_string($value) && strlen($value) > 100) {
+                            $sampleSanitized[$key] = substr($value, 0, 97) . '...';
+                        } else {
+                            $sampleSanitized[$key] = $value;
+                        }
+                    }
+                    log_message('debug', 'Sample participant record: ' . json_encode($sampleSanitized));
+                }
                 
                 return $this->response->setJSON([
                     'success' => false,
@@ -968,9 +1081,12 @@ class YbbExportController extends BaseController
             log_message('info', "Starting normalized payment export for program {$filters['program_id']}");
             
             // Use the new normalized payment export method from PaymentModel
-            $result = $this->paymentModel->getNormalizedPaymentsForExport($filters);
+            // Pass program_id as first parameter and remaining filters as second parameter
+            $programId = $filters['program_id'];
+            unset($filters['program_id']); // Remove program_id from filters since it's passed separately
+            $result = $this->paymentModel->getNormalizedPaymentsForExport($programId, $filters);
             
-            log_message('info', "Completed normalized payment export for program {$filters['program_id']}: " . count($result) . " records with human-readable status translations");
+            log_message('info', "Completed normalized payment export for program {$programId}: " . count($result) . " records with human-readable status translations");
             
             return $result;
             

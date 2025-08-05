@@ -583,7 +583,6 @@ class PaymentModel extends Model
                 payments.id as payment_id,
                 payments.transaction_code,
                 payments.order_id,
-                payments.payment_date,
                 payments.status as payment_status_code,
                 payments.amount as payment_amount,
                 payments.usd_amount as payment_usd_amount,
@@ -650,8 +649,9 @@ class PaymentModel extends Model
                 $builder->where('DATE(payments.created_at) <=', $filters['end_date']);
             }
             
-            // Order by payment date descending
-            $builder->orderBy('payments.created_at', 'DESC');
+            // Order by payment date descending (latest first), then by payment ID descending for consistency
+            $builder->orderBy('payments.created_at', 'DESC')
+                   ->orderBy('payments.id', 'DESC');
             
             $payments = $builder->get()->getResult();
             
@@ -671,65 +671,49 @@ class PaymentModel extends Model
     }
     
     /**
-     * Normalize a single payment record for export
+     * Normalize a single payment record for export - Optimized for admin use
      * 
      * @param object $payment Raw payment data from database
-     * @return array Normalized payment data
+     * @return array Normalized payment data with prioritized columns
      */
     private function normalizePaymentForExport($payment)
     {
         return [
-            // Payment identification
-            'payment_id' => $payment->payment_id ?? 'Not Available',
-            'transaction_code' => $payment->transaction_code ?? 'Not Available',
-            'order_id' => $payment->order_id ?? 'Not Available',
+            // === CORE IDENTIFICATION (High Priority) ===
+            'Payment_ID' => $payment->payment_id ?? 'N/A',
+            'Transaction_Code' => $payment->transaction_code ?? 'N/A',
             
-            // Payment dates (normalized format)
-            'payment_date' => $this->normalizeDate($payment->payment_date),
-            'payment_created_at' => $this->normalizeDateTime($payment->payment_created_at),
-            'payment_updated_at' => $this->normalizeDateTime($payment->payment_updated_at),
+            // === PARTICIPANT INFORMATION (High Priority) ===
+            'Participant_Name' => $payment->participant_name ?? 'Unknown',
+            'Email' => $payment->participant_email ?? 'No Email',
+            'Phone' => $payment->participant_phone ?? 'No Phone',
+            'Nationality' => $payment->participant_nationality ?? 'Not Specified',
+            'Category' => $this->getParticipantCategoryText($payment->participant_category),
             
-            // Payment status (human-readable)
-            'payment_status' => $this->getPaymentStatusText($payment->payment_status_code),
-            'payment_status_code' => $payment->payment_status_code ?? 'Unknown',
+            // === PAYMENT STATUS & TIMING (High Priority) ===
+            'Payment_Status' => $this->getPaymentStatusText($payment->payment_status_code),
+            'Payment_Date' => $this->normalizeDate($payment->payment_created_at),
             
-            // Payment amounts (normalized)
-            'payment_amount' => $this->normalizeAmount($payment->payment_amount),
-            'payment_currency' => strtoupper($payment->payment_currency ?? 'IDR'),
-            'payment_amount_formatted' => $this->formatCurrencyForExport($payment->payment_amount, $payment->payment_currency),
-            'payment_usd_amount' => $this->normalizeAmount($payment->payment_usd_amount),
-            'payment_usd_amount_formatted' => $this->formatCurrencyForExport($payment->payment_usd_amount, 'USD'),
+            // === AMOUNT INFORMATION (High Priority) ===
+            'Amount' => $this->formatCurrencyForExport($payment->payment_amount, $payment->payment_currency),
+            'USD_Amount' => $this->formatCurrencyForExport($payment->payment_usd_amount, 'USD'),
+            'Currency' => strtoupper($payment->payment_currency ?? 'IDR'),
             
-            // Payment details
-            'payment_account_name' => $payment->payment_account_name ?? 'Not Provided',
-            'payment_source_name' => $payment->payment_source_name ?? 'Not Provided', 
-            'payment_proof_url' => $payment->payment_proof_url ? 'Available' : 'Not Provided',
-            'payment_notes' => $payment->payment_notes ?? 'No Notes',
-            'payment_rejection_reason' => $payment->payment_rejection_reason ?? 'N/A',
+            // === PAYMENT DETAILS (Medium Priority) ===
+            'Payment_Method' => $payment->payment_method_name ?? 'Not Specified',
+            'Account_Name' => $payment->payment_account_name ?? 'Not Provided',
+            'Payment_Source' => $payment->payment_source_name ?? 'Not Provided',
+            'Payment_Type' => $this->getPaymentTypeDisplay($payment->program_payment_name, $payment->program_payment_category),
             
-            // Participant information
-            'participant_id' => $payment->participant_id ?? 'Not Available',
-            'participant_name' => $payment->participant_name ?? 'Not Available',
-            'participant_account_id' => $payment->participant_account_id ?? 'Not Available',
-            'participant_email' => $payment->participant_email ?? 'Not Available',
-            'participant_nationality' => $payment->participant_nationality ?? 'Not Specified',
-            'participant_phone' => $payment->participant_phone ?? 'Not Provided',
-            'participant_category' => $this->getParticipantCategoryText($payment->participant_category),
+            // === PROGRAM INFORMATION (Medium Priority) ===
+            'Program' => $payment->program_name ?? 'Unknown Program',
+            'Expected_Amount_IDR' => $this->formatCurrencyForExport($payment->program_payment_idr_amount, 'IDR'),
+            'Expected_Amount_USD' => $this->formatCurrencyForExport($payment->program_payment_usd_amount, 'USD'),
             
-            // Program information
-            'program_name' => $payment->program_name ?? 'Not Available',
-            'program_payment_name' => $payment->program_payment_name ?? 'General Payment',
-            'program_payment_category' => $payment->program_payment_category ?? 'Not Specified',
-            
-            // Program payment amounts (normalized)
-            'program_payment_idr_amount' => $this->normalizeAmount($payment->program_payment_idr_amount),
-            'program_payment_idr_amount_formatted' => $this->formatCurrencyForExport($payment->program_payment_idr_amount, 'IDR'),
-            'program_payment_usd_amount' => $this->normalizeAmount($payment->program_payment_usd_amount),
-            'program_payment_usd_amount_formatted' => $this->formatCurrencyForExport($payment->program_payment_usd_amount, 'USD'),
-            
-            // Payment method (clean, without codes)
-            'payment_method_name' => $payment->payment_method_name ?? 'Not Specified',
-            'payment_method_type' => $payment->payment_method_type ?? 'Not Specified',
+            // === ADMINISTRATIVE NOTES (Lower Priority) ===
+            'Payment_Proof' => $payment->payment_proof_url ? 'Uploaded' : 'Not Provided',
+            'Notes' => $this->cleanNotesForExport($payment->payment_notes),
+            'Rejection_Reason' => $payment->payment_status_code == 3 ? ($payment->payment_rejection_reason ?? 'No reason provided') : 'N/A',
         ];
     }
     
@@ -837,8 +821,9 @@ class PaymentModel extends Model
         $normalizedAmount = (float)$amount;
         $symbol = $this->getCurrencySymbol($currency);
         
-        // Format based on currency
-        if (strtoupper($currency) === 'IDR') {
+        // Format based on currency (handle null currency)
+        $currencyUpper = $currency ? strtoupper($currency) : 'UNKNOWN';
+        if ($currencyUpper === 'IDR') {
             return $symbol . ' ' . number_format($normalizedAmount, 0, ',', '.');
         } else {
             return $symbol . ' ' . number_format($normalizedAmount, 2, '.', ',');
@@ -853,6 +838,11 @@ class PaymentModel extends Model
      */
     private function getCurrencySymbol($currency)
     {
+        // Handle null or empty currency
+        if (empty($currency)) {
+            return 'Unknown';
+        }
+        
         $symbols = [
             'IDR' => 'Rp',
             'USD' => '$',
@@ -863,6 +853,43 @@ class PaymentModel extends Model
             'MYR' => 'RM'
         ];
         
-        return $symbols[strtoupper($currency)] ?? strtoupper($currency);
+        $currencyUpper = strtoupper($currency);
+        return $symbols[$currencyUpper] ?? $currencyUpper;
+    }
+    
+    /**
+     * Get display-friendly payment type combining name and category
+     */
+    private function getPaymentTypeDisplay($paymentName, $paymentCategory)
+    {
+        $name = $paymentName ?? 'General Payment';
+        $category = $paymentCategory ?? '';
+        
+        if (!empty($category) && $category !== $name) {
+            return $name . ' (' . $category . ')';
+        }
+        
+        return $name;
+    }
+    
+    /**
+     * Clean notes for export - remove sensitive info and format nicely
+     */
+    private function cleanNotesForExport($notes)
+    {
+        if (empty($notes)) {
+            return 'No notes';
+        }
+        
+        // Remove potential sensitive information patterns
+        $cleaned = preg_replace('/\b\d{4}[\s\-]?\d{4}[\s\-]?\d{4}[\s\-]?\d{4}\b/', '[CARD NUMBER HIDDEN]', $notes);
+        $cleaned = preg_replace('/\b\d{3,4}[\s\-]?\d{3,4}[\s\-]?\d{4}\b/', '[PHONE HIDDEN]', $cleaned);
+        
+        // Limit length for export readability
+        if (strlen($cleaned) > 200) {
+            $cleaned = substr($cleaned, 0, 197) . '...';
+        }
+        
+        return trim($cleaned) ?: 'No notes';
     }
 }

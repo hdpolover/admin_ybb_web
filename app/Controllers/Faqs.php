@@ -3,9 +3,12 @@
 namespace App\Controllers;
 
 use App\Models\FaqModel;
+use App\Traits\Cacheable;
 
 class Faqs extends BaseController
 {
+    use Cacheable;
+    
     protected $faqModel;
     protected $faqCategories = [
         'event_details' => 'Event Details',
@@ -116,6 +119,9 @@ class Faqs extends BaseController
 
         // Create the FAQ
         if ($this->faqModel->insert($data)) {
+            // Invalidate landing page cache after successful FAQ creation
+            $this->invalidateLandingCache();
+            
             if ($isAjax) {
                 return $this->response->setJSON([
                     'success' => true,
@@ -198,6 +204,9 @@ class Faqs extends BaseController
 
         // Update the FAQ
         if ($this->faqModel->update($id, $data)) {
+            // Invalidate landing page cache after successful FAQ update
+            $this->invalidateLandingCache();
+            
             if ($isAjax) {
                 return $this->response->setJSON([
                     'success' => true,
@@ -248,6 +257,9 @@ class Faqs extends BaseController
 
         // Soft delete the FAQ
         if ($this->faqModel->update($id, ['is_deleted' => 1, 'is_active' => 0])) {
+            // Invalidate landing page cache after successful FAQ deletion
+            $this->invalidateLandingCache();
+            
             if ($isAjax) {
                 return $this->response->setJSON(['success' => true, 'message' => 'FAQ deleted successfully']);
             } else {

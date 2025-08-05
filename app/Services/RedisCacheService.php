@@ -18,6 +18,8 @@ class RedisCacheService
     private Logger $logger;
     private string $domain;
     private int $version = 1;
+    private bool $enableFallback;
+    private bool $logFallbacks;
 
     // Cache TTL constants (in seconds)
     const HIGH_PRIORITY_TTL = 7200;     // 2 hours (30 min - 4 hours range)
@@ -55,6 +57,11 @@ class RedisCacheService
         $this->cache = Services::cache();
         $this->logger = Services::logger();
         $this->domain = $this->sanitizeDomain($_SERVER['HTTP_HOST'] ?? 'localhost');
+        
+        // Load cache configuration
+        $cacheConfig = config('Cache');
+        $this->enableFallback = $cacheConfig->enableFallback ?? true;
+        $this->logFallbacks = $cacheConfig->logFallbacks ?? true;
     }
 
     /**
@@ -358,5 +365,111 @@ class RedisCacheService
         // Implementation would depend on specific business logic
         $this->logger->info("Cache warm-up initiated for endpoints: " . implode(', ', $endpoints));
         return true;
+    }
+
+    /**
+     * Check if cache service is available
+     * Tests basic cache connectivity
+     */
+    public function isCacheAvailable(): bool
+    {
+        if (!$this->enableFallback) {
+            return true; // If fallback is disabled, always try to use cache
+        }
+        
+        try {
+            // Try to perform a simple cache operation
+            $testKey = 'cache_availability_test_' . time();
+            $testValue = 'test_value';
+            
+            // Try to set and immediately get a test value
+            $saveResult = $this->cache->save($testKey, $testValue, 10);
+            if (!$saveResult) {
+                if ($this->logFallbacks) {
+                    $this->logger->warning("Cache availability test failed: save operation returned false");
+                }
+                return false;
+            }
+            
+            $getValue = $this->cache->get($testKey);
+            $this->cache->delete($testKey); // Clean up
+            
+            $isAvailable = $getValue === $testValue;
+            if (!$isAvailable && $this->logFallbacks) {
+                $this->logger->warning("Cache availability test failed: retrieved value doesn't match saved value");
+            }
+            
+            return $isAvailable;
+        } catch (\Exception $e) {
+            if ($this->logFallbacks) {
+                $this->logger->error("Cache availability check failed: " . $e->getMessage());
+            }
+            return false;
+        }
+    }
+
+    /**
+     * Get cached data with fallback handling
+     * Returns null if cache fails, allowing caller to handle fallback
+     */
+    public function getWithFallback(string $key)
+    {
+        try {
+            $data = $this->cache->get($key);
+            if ($data !== null) {
+                $this->logger->info("Cache HIT for key: {$key}");
+            } else {
+                $this->logger->info("Cache MISS for key: {$key}");
+            }
+            return $data;
+        } catch (\Exception $e) {
+            if ($this->logFallbacks) {
+                $this->logger->warning("Cache GET failed for key {$key}, falling back to direct API call: " . $e->getMessage());
+            }
+            return null; // Return null to trigger fallback
+        }
+    }
+
+    /**
+     * Store data in cache with fallback handling
+     * Silently fails if cache is unavailable, allowing operation to continue
+     */
+    public function setWithFallback(string $key, $data, ?int $ttl = null): bool
+    {
+        try {
+            if ($ttl === null) {
+                // Extract endpoint from key to determine TTL
+                $keyParts = explode('_', $key);
+                if (count($keyParts) >= 2) {
+                    // Remove domain part and version part, get endpoint
+                    $endpointParts = array_slice($keyParts, 1, -1); // Remove first (domain) and last (version)
+                    if (!empty($endpointParts)) {
+                        $endpoint = implode('_', $endpointParts);
+                        // Remove hash part if present
+                        $endpoint = preg_replace('/_[a-f0-9]{32}$/', '', $endpoint);
+                        $ttl = $this->getTtl($endpoint);
+                    } else {
+                        $ttl = self::LOW_PRIORITY_TTL;
+                    }
+                } else {
+                    $ttl = self::LOW_PRIORITY_TTL;
+                }
+            }
+            
+            $result = $this->cache->save($key, $data, $ttl);
+            if ($result) {
+                $this->logger->info("Cache SET successful for key: {$key}, TTL: {$ttl}s");
+            } else {
+                if ($this->logFallbacks) {
+                    $this->logger->warning("Cache SET failed for key: {$key}, continuing without cache");
+                }
+            }
+            return $result;
+        } catch (\Exception $e) {
+            if ($this->logFallbacks) {
+                $this->logger->warning("Cache SET failed for key {$key}, continuing without cache: " . $e->getMessage());
+            }
+            return false; // Fail silently, don't break the API call
+        }
     }
 }
