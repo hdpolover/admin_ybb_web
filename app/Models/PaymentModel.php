@@ -640,6 +640,10 @@ class PaymentModel extends Model
                 $builder->where('payments.program_payment_id', $filters['program_payment_id']);
             }
             
+            if (isset($filters['payment_category']) && $filters['payment_category'] !== '') {
+                $builder->where('pp.category', $filters['payment_category']);
+            }
+            
             // Date range filter
             if (isset($filters['start_date']) && $filters['start_date'] !== '') {
                 $builder->where('DATE(payments.created_at) >=', $filters['start_date']);

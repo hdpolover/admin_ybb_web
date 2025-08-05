@@ -776,7 +776,7 @@ class YbbExportController extends BaseController
             }
             
             // Add other filters
-            $filterKeys = ['status', 'category', 'form_status', 'payment_status', 'general_status', 'program_payment_id', 'limit', 'template', 'format'];
+            $filterKeys = ['status', 'category', 'form_status', 'payment_status', 'general_status', 'program_payment_id', 'payment_category', 'limit', 'template', 'format'];
             foreach ($filterKeys as $key) {
                 if (isset($postData[$key]) && $postData[$key] !== '' && $postData[$key] !== null) {
                     $filters[$key] = $postData[$key];
