@@ -198,7 +198,6 @@
                                         <thead>
                                             <tr>
                                                 <th>#</th>
-                                                <th>Account ID</th>
                                                 <th>Participant Details</th>
                                                 <th>Submission Status</th>
                                                 <th>Registered On</th>
@@ -276,14 +275,6 @@
             columns: [{
                     data: 'order_number',
                     width: "5%"
-                }, {
-                    data: 'account_id',
-                    width: "10%",
-                    render: function(data, type, row) {
-                        if (!data || type === 'sort' || type === 'type') return data;
-                        return '<div class="text-truncate" style="max-width: 120px;" title="' +
-                            data + '">' + data + '</div>';
-                    }
                 }, {
                     data: 'participant_details',
                     width: "35%",
