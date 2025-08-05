@@ -9,6 +9,8 @@ use App\Models\PaymentModel;
 use App\Models\ParticipantEssayModel;
 use App\Models\ParticipantStatusModel;
 use App\Models\ParticipantSubthemeModel;
+use App\Models\ScoreWeightModel;
+use App\Models\ScoreModel;
 use App\Services\ExcelExport;
 
 class Scorings extends BaseController
@@ -20,6 +22,8 @@ class Scorings extends BaseController
     protected $participantEssayModel;
     protected $participantStatusModel;
     protected $participantSubthemeModel;
+    protected $scoreWeightModel;
+    protected $scoreModel;
 
     public function __construct()
     {
@@ -30,6 +34,8 @@ class Scorings extends BaseController
         $this->participantEssayModel = new ParticipantEssayModel();
         $this->participantStatusModel = new ParticipantStatusModel();
         $this->participantSubthemeModel = new ParticipantSubthemeModel();
+        $this->scoreWeightModel = new ScoreWeightModel();
+        $this->scoreModel = new ScoreModel();
     }
 
     public function index()
@@ -213,7 +219,64 @@ class Scorings extends BaseController
                 ->first();
             
             $participant->subtheme = $participantSubtheme;
+            
+            $programId = $participant->program_id;
 
+            // ambil semua komponen bobot penilaian milik program ini
+            $components1 = $this->scoreWeightModel
+                                ->where('program_id', $programId)
+                                ->where('reference', 'score_ach')
+                                ->where('is_deleted', 0)
+                                ->where('is_active', 1)
+                                ->findAll(); // returnType = object → good
+
+            $scores1 = [];
+
+            $components2 = $this->scoreWeightModel
+                                ->where('program_id', $programId)
+                                ->where('reference', 'score_essay')
+                                ->where('is_deleted', 0)
+                                ->where('is_active', 1)
+                                ->findAll(); // returnType = object → good
+
+            $scores2 = [];
+
+            foreach ($components1 as $c1) {
+                // cek apakah peserta ini sudah ada score untuk komponen tersebut
+                $score = $this->scoreModel
+                            ->where('participant_id', $id)
+                            ->where('score_weight_id', $c1->id)
+                            ->first(); // return object atau null
+
+                $scores1[] = (object)[
+                    'component_id'   => $c1->id,
+                    'component_name' => $c1->description,
+                    'weight'         => $c1->weight,
+                    'weight2'        => $c1->weight2,
+                    'value'          => $score ? $score->score_input : 0
+                ];
+            }
+
+            foreach ($components2 as $c2) {
+                // cek apakah peserta ini sudah ada score untuk komponen tersebut
+                $score = $this->scoreModel
+                            ->where('participant_id', $id)
+                            ->where('score_weight_id', $c2->id)
+                            ->first(); // return object atau null
+
+                $scores2[] = (object)[
+                    'component_id'   => $c2->id,
+                    'component_name' => $c2->description,
+                    'weight'         => $c2->weight,
+                    'weight2'        => $c2->weight2,
+                    'value'          => $score ? $score->score_input : 0
+                ];
+            }
+
+            // tambahkan ke objek participant
+            $participant->scores1 = $scores1;
+            $participant->scores2 = $scores2;
+            
             return view('scorings/fully_funded/view', ['participant' => $participant]);
         } catch (\Exception $e) {
             log_message('error', 'Failed to retrieve participant: ' . $id);

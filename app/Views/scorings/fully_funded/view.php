@@ -344,49 +344,48 @@
                                                 </div>
                                             </div>
                                             <div class="row">
-                                                <div class="col-md-6">
-                                                    <div class="mb-3">
-                                                        <h5 class="card-title mb-3">Form Penilaian</h5>
-                                                        <div class="table-responsive">
-                                                            <table class="table table-borderless mb-0">
-                                                                <tbody>
-                                                                    <tr>
-                                                                        <th scope="row" width="200">
-                                                                            A1. project Experiment
-                                                                        </th>
-                                                                        <td>
-                                                                            <input type="int" class="form-control"
-                                                                                id="basiInput">
-                                                                        </td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th scope="row">
-                                                                            A2. Achievement
-                                                                        </th>
-                                                                        <td>
-                                                                            <input type="int" class="form-control"
-                                                                                id="basiInput">
-                                                                        </td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th scope="row">
-                                                                            A3. Leadership
-                                                                        </th>
-                                                                        <td>
-                                                                            <input type="int" class="form-control"
-                                                                                id="basiInput">
-                                                                        </td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th scope="row"></th>
-                                                                        <td><button type="submit"
-                                                                                class="btn btn-primary">Submit</button>
-                                                                        </td>
-                                                                    </tr>
-                                                                </tbody>
-                                                            </table>
-                                                        </div>
-                                                    </div>
+                                                <div class="col-md-7">
+                                                    <h5 class="card-title mb-3">Assessment Form</h5>
+                                                    <table class="table table-bordered">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Component</th>
+                                                                <th>Weight (%)</th>
+                                                                <th width="15%">Score</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <?php if (!empty($participant->scores1)): ?>
+                                                            <?php 
+                                                                $no = 0;
+                                                                foreach ($participant->scores1 as $score): 
+                                                                $no++;
+                                                                ?>
+                                                            <tr>
+                                                                <td>A.<?=$no?> &emsp;<?= esc($score->component_name) ?>
+                                                                </td>
+                                                                <td><?= esc($score->weight)*100 ?>%</td>
+                                                                <td><input type="text" class="form-control"
+                                                                        id="basiInput"
+                                                                        value="<?= esc($score->value) ?>">
+                                                                </td>
+                                                            </tr>
+                                                            <?php endforeach ?>
+                                                            <tr>
+                                                                <td colspan="2"></td>
+                                                                <td>
+                                                                    <button type="submit"
+                                                                        class="btn btn-primary">Submit</button>
+                                                                </td>
+                                                            </tr>
+                                                            <?php else: ?>
+                                                            <tr>
+                                                                <td colspan="3" class="text-center">Belum ada komponen
+                                                                    penilaian</td>
+                                                            </tr>
+                                                            <?php endif ?>
+                                                        </tbody>
+                                                    </table>
                                                 </div>
                                             </div>
                                         </div>
@@ -521,58 +520,54 @@
                                                 </div>
                                             </div>
                                             <div class="row">
-                                                <div class="col-md-6">
-                                                    <div class="mb-3">
-                                                        <h5 class="card-title mb-3">Form Penilaian</h5>
-                                                        <div class="table-responsive">
-                                                            <table class="table table-borderless mb-0">
-                                                                <tbody>
-                                                                    <tr>
-                                                                        <th scope="row" width="200">
-                                                                            B1. Relevansi
-                                                                        </th>
-                                                                        <td>
-                                                                            <input type="int" class="form-control"
-                                                                                id="basiInput">
-                                                                        </td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th scope="row">B2.</th>
-                                                                        <td>
-                                                                            <input type="int" class="form-control"
-                                                                                id="basiInput">
-                                                                        </td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th scope="row">B3.</th>
-                                                                        <td>
-                                                                            <input type="int" class="form-control"
-                                                                                id="basiInput">
-                                                                        </td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th scope="row">B4.</th>
-                                                                        <td>
-                                                                            <input type="int" class="form-control"
-                                                                                id="basiInput">
-                                                                        </td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th scope="row"></th>
-                                                                        <td><button type="submit"
-                                                                                class="btn btn-primary">Submit</button>
-                                                                        </td>
-                                                                    </tr>
-                                                                </tbody>
-                                                            </table>
-                                                        </div>
-                                                    </div>
+                                                <div class="col-md-7">
+                                                    <h5 class="card-title mb-3">Assessment Form</h5>
+                                                    <table class="table table-bordered">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Component</th>
+                                                                <th>Weight (%)</th>
+                                                                <th width="15%">Score</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <?php if (!empty($participant->scores2)): ?>
+                                                            <?php 
+                                                                $no = 0;
+                                                                foreach ($participant->scores2 as $score): 
+                                                                $no++;
+                                                                ?>
+                                                            <tr>
+                                                                <td>B.<?=$no?> &emsp;<?= esc($score->component_name) ?>
+                                                                </td>
+                                                                <td><?= esc($score->weight)*100 ?>%</td>
+                                                                <td><input type="text" class="form-control"
+                                                                        id="basiInput"
+                                                                        value="<?= esc($score->value) ?>">
+                                                                </td>
+                                                            </tr>
+                                                            <?php endforeach ?>
+                                                            <tr>
+                                                                <td colspan="2"></td>
+                                                                <td>
+                                                                    <button type="submit"
+                                                                        class="btn btn-primary">Submit</button>
+                                                                </td>
+                                                            </tr>
+                                                            <?php else: ?>
+                                                            <tr>
+                                                                <td colspan="3" class="text-center">Belum ada komponen
+                                                                    penilaian</td>
+                                                            </tr>
+                                                            <?php endif ?>
+                                                        </tbody>
+                                                    </table>
                                                 </div>
                                             </div>
                                         </div>
                                         <div class="tab-pane" id="scoresTab" role="tabpanel">
                                             <div class="row">
-                                                <div class="col-md-6">
+                                                <div class="col-md-8">
                                                     <div class="mb-3">
                                                         <h5 class="card-title mb-3">Form Penilaian</h5>
                                                         <div class="table">
@@ -583,97 +578,106 @@
                                                                             Score
                                                                         </th>
                                                                         <td>
-                                                                            <div class="row">
+                                                                            <?php if (!empty($participant->scores1)): ?>
+                                                                            <?php 
+                                                                                $no = 0;
+                                                                                foreach ($participant->scores1 as $score): 
+                                                                                $no++;
+                                                                                ?>
+                                                                            <div class="row mb-1">
                                                                                 <label for="nama"
-                                                                                    class="col-1 col-xl-1 col-form-label">1.
+                                                                                    class="col-2 col-xl-2 col-form-label">
+                                                                                    A.<?=$no?>
+                                                                                    <!-- &emsp;<?= esc($score->component_name) ?> -->
                                                                                 </label>
-                                                                                <div class="col-11 col-xl-11">
+                                                                                <div class="col-4 col-xl-4">
                                                                                     <input type="text"
                                                                                         class="form-control" id="nama"
                                                                                         placeholder="score"
-                                                                                        name="nama_desa">
+                                                                                        value="<?= esc($score->value) ?>"
+                                                                                        name="a<?=$no?>">
                                                                                 </div>
-                                                                            </div>
-                                                                            <div class="row">
                                                                                 <label for="nama"
-                                                                                    class="col-1 col-xl-1 col-form-label">2.
+                                                                                    class="col-6 col-xl-6 col-form-label">(Score
+                                                                                    Input *
+                                                                                    <?=esc($score->weight)*100?>%) *
+                                                                                    <?=esc($score->weight2)*100?>%
                                                                                 </label>
-                                                                                <div class="col-11 col-xl-11">
+                                                                            </div>
+
+                                                                            <?php endforeach ?>
+                                                                            <?php else: ?>
+
+                                                                            Belum ada komponen penilaian
+                                                                            <?php endif ?>
+                                                                            <?php if (!empty($participant->scores2)): ?>
+                                                                            <?php 
+                                                                                $no = 0;
+                                                                                foreach ($participant->scores2 as $score): 
+                                                                                $no++;
+                                                                                ?>
+                                                                            <div class="row mb-1">
+                                                                                <label for="nama"
+                                                                                    class="col-2 col-xl-2 col-form-label">
+                                                                                    B.<?=$no?>
+                                                                                    <!-- &emsp;<?= esc($score->component_name) ?> -->
+                                                                                </label>
+                                                                                <div class="col-4 col-xl-4">
                                                                                     <input type="text"
                                                                                         class="form-control" id="nama"
                                                                                         placeholder="score"
-                                                                                        name="nama_desa">
+                                                                                        value="<?= esc($score->value) ?>"
+                                                                                        name="b<?=$no?>">
                                                                                 </div>
-                                                                            </div>
-                                                                            <div class="row">
                                                                                 <label for="nama"
-                                                                                    class="col-1 col-xl-1 col-form-label">3.
+                                                                                    class="col-6 col-xl-6 col-form-label">(Score
+                                                                                    Input *
+                                                                                    <?=esc($score->weight)*100?>%) *
+                                                                                    <?=esc($score->weight2)*100?>%
                                                                                 </label>
-                                                                                <div class="col-11 col-xl-11">
-                                                                                    <input type="text"
-                                                                                        class="form-control" id="nama"
-                                                                                        placeholder="score"
-                                                                                        name="nama_desa">
-                                                                                </div>
                                                                             </div>
-                                                                            <div class="row">
-                                                                                <label for="nama"
-                                                                                    class="col-1 col-xl-1 col-form-label">4.
-                                                                                </label>
-                                                                                <div class="col-11 col-xl-11">
-                                                                                    <input type="text"
-                                                                                        class="form-control" id="nama"
-                                                                                        placeholder="score"
-                                                                                        name="nama_desa">
-                                                                                </div>
-                                                                            </div>
-                                                                            <div class="row">
-                                                                                <label for="nama"
-                                                                                    class="col-1 col-xl-1 col-form-label">5.
-                                                                                </label>
-                                                                                <div class="col-11 col-xl-11">
-                                                                                    <input type="text"
-                                                                                        class="form-control" id="nama"
-                                                                                        placeholder="score"
-                                                                                        name="nama_desa">
-                                                                                </div>
-                                                                            </div>
-                                                                            <div class="row">
-                                                                                <label for="nama"
-                                                                                    class="col-1 col-xl-1 col-form-label">6.
-                                                                                </label>
-                                                                                <div class="col-11 col-xl-11">
-                                                                                    <input type="text"
-                                                                                        class="form-control" id="nama"
-                                                                                        placeholder="score"
-                                                                                        name="nama_desa">
-                                                                                </div>
-                                                                            </div>
-                                                                            <div class="row">
-                                                                                <label for="nama"
-                                                                                    class="col-1 col-xl-1 col-form-label">7.
-                                                                                </label>
-                                                                                <div class="col-11 col-xl-11">
-                                                                                    <input type="text"
-                                                                                        class="form-control" id="nama"
-                                                                                        placeholder="score"
-                                                                                        name="nama_desa">
-                                                                                </div>
-                                                                            </div>
+
+                                                                            <?php endforeach ?>
+                                                                            <?php else: ?>
+
+                                                                            Belum ada komponen penilaian
+                                                                            <?php endif ?>
                                                                         </td>
                                                                     </tr>
                                                                     <tr>
                                                                         <th scope="row">Total</th>
                                                                         <td>
-                                                                            <input type="int" class="form-control"
-                                                                                id="basiInput">
+                                                                            <div class="row mb-1">
+                                                                                <label for="nama"
+                                                                                    class="col-2 col-xl-2 col-form-label">
+                                                                                </label>
+                                                                                <div class="col-4 col-xl-4">
+                                                                                    <input type="text"
+                                                                                        class="form-control" id="nama"
+                                                                                        placeholder="score" value="0">
+                                                                                </div>
+                                                                                <label for="nama"
+                                                                                    class="col-6 col-xl-6 col-form-label">
+                                                                                </label>
+                                                                            </div>
                                                                         </td>
                                                                     </tr>
                                                                     <tr>
                                                                         <th scope="row">Status</th>
                                                                         <td>
-                                                                            <span
-                                                                                class="badge bg-success-subtle text-success"><b>Status</b></span>
+                                                                            <div class="row mb-1">
+                                                                                <label for="nama"
+                                                                                    class="col-2 col-xl-2 col-form-label">
+                                                                                </label>
+                                                                                <div class="col-4 col-xl-4">
+                                                                                    <span
+                                                                                        class="badge bg-success-subtle text-success"><b>Status</b></span>
+                                                                                </div>
+                                                                                <label for="nama"
+                                                                                    class="col-6 col-xl-6 col-form-label">
+                                                                                </label>
+                                                                            </div>
+
                                                                         </td>
                                                                     </tr>
 
