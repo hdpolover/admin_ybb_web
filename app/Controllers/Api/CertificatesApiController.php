@@ -3,19 +3,23 @@
 namespace App\Controllers\Api;
 
 use App\Controllers\Api\ApiBaseController;
-use App\Models\ParticipantAwardModel;
-use App\Models\ProgramCertificateModel;
+use App\Services\CertificateService;
 use App\Models\ParticipantModel;
 use App\Models\ProgramModel;
 use App\Models\ProgramAwardModel;
+use App\Models\ProgramCertificateModel;
+use App\Models\ProgramCertificateContentBlockModel;
+use App\Models\ParticipantAwardModel;
 
 class CertificatesApiController extends ApiBaseController
 {
-    protected $participantAwardModel;
-    protected $programCertificateModel;
-    protected $participantModel;
-    protected $programModel;
-    protected $programAwardModel;
+    protected CertificateService $certificateService;
+    protected ParticipantModel $participantModel;
+    protected ProgramModel $programModel;
+    protected ProgramAwardModel $programAwardModel;
+    protected ProgramCertificateModel $programCertificateModel;
+    protected ProgramCertificateContentBlockModel $contentBlockModel;
+    protected ParticipantAwardModel $participantAwardModel;
 
     /**
      * Initialize controller, set models
@@ -28,16 +32,109 @@ class CertificatesApiController extends ApiBaseController
         // Call parent initializer
         parent::initController($request, $response, $logger);
 
-        // Initialize models
-        $this->participantAwardModel = new ParticipantAwardModel();
-        $this->programCertificateModel = new ProgramCertificateModel();
+        // Initialize service and models
+        $this->certificateService = new CertificateService();
         $this->participantModel = new ParticipantModel();
         $this->programModel = new ProgramModel();
         $this->programAwardModel = new ProgramAwardModel();
+        $this->programCertificateModel = new ProgramCertificateModel();
+        $this->contentBlockModel = new ProgramCertificateContentBlockModel();
+        $this->participantAwardModel = new ParticipantAwardModel();
     }
 
     /**
-     * 🟢 Get All Participant Certificates (READ)
+     * 📄 Generate Certificate PDF using Python Service
+     * POST /api/certificates/generate
+     * Body: { "participant_id": 123, "award_id": 456 }
+     */
+    public function generateCertificate()
+    {
+        log_message('info', "[Certificate API] Starting certificate generation via Python service");
+
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // Validate required parameters
+            $participantId = $data['participant_id'] ?? null;
+            $awardId = $data['award_id'] ?? null;
+            
+            if (!$participantId || !$awardId) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Participant ID and Award ID are required'
+                ])->setStatusCode(400);
+            }
+            
+            // Build certificate data from database
+            $certificateData = $this->buildCertificateData($participantId, $awardId);
+            
+            if (!$certificateData['success']) {
+                return $this->response->setJSON($certificateData)->setStatusCode(404);
+            }
+            
+            // Generate certificate using Python service
+            $result = $this->certificateService->generateCertificate($certificateData['data']);
+            
+            if ($result['success']) {
+                // Save certificate record (create participant_awards record if it doesn't exist)
+                $this->ensureParticipantAward($participantId, $awardId);
+                
+                log_message('info', "[Certificate API] Certificate generated successfully via Python service");
+                
+                return $this->response->setJSON([
+                    'success' => true,
+                    'data' => [
+                        'certificate_id' => $result['data']['certificate_id'],
+                        'file_name' => $result['data']['file_name'],
+                        'file_size' => $result['data']['file_size'],
+                        'file_data' => $result['data']['file_data'], // Base64 encoded PDF
+                        'generated_at' => $result['data']['generated_at'],
+                        'participant_name' => $certificateData['data']['participant']['full_name'],
+                        'award_title' => $certificateData['data']['award']['title'],
+                        'program_name' => $certificateData['data']['program']['name']
+                    ]
+                ]);
+            } else {
+                log_message('error', "[Certificate API] Certificate generation failed: " . 
+                           ($result['error']['message'] ?? 'Unknown error'));
+                return $this->response->setJSON($result)->setStatusCode(400);
+            }
+            
+        } catch (\Exception $e) {
+            log_message('error', 'Certificate generation controller error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Certificate generation failed'
+            ])->setStatusCode(500);
+        }
+    }
+
+    /**
+     * 🏥 Health check endpoint
+     * GET /api/certificates/health
+     */
+    public function health()
+    {
+        log_message('info', "[Certificate API] Health check requested");
+        
+        $health = $this->certificateService->checkHealth();
+        return $this->response->setJSON($health);
+    }
+
+    /**
+     * 🔤 Get available placeholders
+     * GET /api/certificates/placeholders
+     */
+    public function getPlaceholders()
+    {
+        log_message('info', "[Certificate API] Placeholders requested");
+        
+        $placeholders = $this->certificateService->getAvailablePlaceholders();
+        return $this->response->setJSON($placeholders);
+    }
+
+    /**
+     * 👤 Get participant certificates (based on participant_awards)
      * GET /api/certificates/participant/{participantId}
      */
     public function getParticipantCertificates($participantId = null)
@@ -45,31 +142,30 @@ class CertificatesApiController extends ApiBaseController
         log_message('info', "[Certificate API] Getting certificates for participant ID: {$participantId}");
 
         try {
-            // Validate participant ID
             if ($participantId === null) {
                 return $this->failValidationErrors('Participant ID is required');
             }
 
-            // Check if participant exists
-            $participant = $this->participantModel->find($participantId);
-            if (!$participant) {
-                return $this->failNotFound('Participant not found');
-            }
+            // Get participant awards (these represent certificates they can generate)
+            $certificates = $this->participantAwardModel->select('
+                    participant_awards.*,
+                    program_awards.title as award_title,
+                    program_awards.description as award_description,
+                    program_awards.award_type,
+                    participants.full_name as participant_name,
+                    programs.name as program_name
+                ')
+                ->join('program_awards', 'program_awards.id = participant_awards.award_id', 'left')
+                ->join('participants', 'participants.id = participant_awards.participant_id', 'left')
+                ->join('programs', 'programs.id = participants.program_id', 'left')
+                ->where('participant_awards.participant_id', $participantId)
+                ->where('participant_awards.is_active', 1)
+                ->where('participant_awards.is_deleted', 0)
+                ->findAll();
 
-            // Get participant certificates with full details
-            $certificates = $this->participantAwardModel->getParticipantAwards($participantId);
+            log_message('info', "[Certificate API] Found " . count($certificates) . " certificates for participant: {$participantId}");
 
-            log_message('info', "[Certificate API] Found " . count($certificates) . " certificates for participant ID: {$participantId}");
-
-            return $this->respondSuccess([
-                'participant' => [
-                    'id' => $participant->id,
-                    'full_name' => $participant->full_name,
-                    'account_id' => $participant->account_id
-                ],
-                'certificates' => $certificates,
-                'total_count' => count($certificates)
-            ]);
+            return $this->respondSuccess($certificates);
 
         } catch (\Exception $e) {
             log_message('error', "[Certificate API] Error getting participant certificates: " . $e->getMessage());
@@ -78,65 +174,7 @@ class CertificatesApiController extends ApiBaseController
     }
 
     /**
-     * 🟢 Get All Program Certificates (READ)
-     * GET /api/certificates/program/{programId}
-     */
-    public function getProgramCertificates($programId = null)
-    {
-        log_message('info', "[Certificate API] Getting certificates for program ID: {$programId}");
-
-        try {
-            // Validate program ID
-            if ($programId === null) {
-                return $this->failValidationErrors('Program ID is required');
-            }
-            
-            // Try to get from cache
-            $cache = \Config\Services::cache();
-            $cacheKey = "program_certificates_{$programId}";
-            $cachedData = $cache->get($cacheKey);
-            
-            if ($cachedData !== null) {
-                log_message('info', "[Certificate API] Returning cached certificates for program ID: {$programId}");
-                return $this->respondSuccess($cachedData);
-            }
-
-            // Check if program exists
-            $program = $this->programModel->find($programId);
-            if (!$program) {
-                return $this->failNotFound('Program not found');
-            }
-
-            // Get program awards (these can have certificates)
-            $awards = $this->programAwardModel->where('program_id', $programId)
-                                             ->where('is_active', 1)
-                                             ->where('is_deleted', 0)
-                                             ->findAll();
-
-            log_message('info', "[Certificate API] Found " . count($awards) . " awards for program ID: {$programId}");
-            
-            $responseData = [
-                'program' => [
-                    'id' => $program->id,
-                    'name' => $program->name
-                ],
-                'awards' => $awards,
-                'total_count' => count($awards)
-            ];
-            
-            // Cache the result for 2 hours (7200 seconds)
-            $cache->save($cacheKey, $responseData, 7200);
-
-            return $this->respondSuccess($responseData);
-
-        } catch (\Exception $e) {
-            log_message('error', "[Certificate API] Error getting program certificates: " . $e->getMessage());
-            return $this->fail('Failed to retrieve program certificates', 500);
-        }
-    }
-
-    /**
-     * 🔍 Get Participants Eligible for Certificate by Award
+     * 🏆 Get participants assigned to an award (eligible for certificates)
      * GET /api/certificates/award/{awardId}/participants
      */
     public function getCertificateParticipants($awardId = null)
@@ -144,31 +182,28 @@ class CertificatesApiController extends ApiBaseController
         log_message('info', "[Certificate API] Getting participants for award ID: {$awardId}");
 
         try {
-            // Validate award ID
             if ($awardId === null) {
                 return $this->failValidationErrors('Award ID is required');
             }
 
-            // Check if award exists
-            $award = $this->programAwardModel->find($awardId);
-            if (!$award) {
-                return $this->failNotFound('Award not found');
-            }
+            $participants = $this->participantAwardModel->select('
+                    participant_awards.*,
+                    participants.full_name as participant_name,
+                    participants.account_id,
+                    participants.nationality,
+                    participants.institution,
+                    program_awards.title as award_title
+                ')
+                ->join('participants', 'participants.id = participant_awards.participant_id', 'left')
+                ->join('program_awards', 'program_awards.id = participant_awards.award_id', 'left')
+                ->where('participant_awards.award_id', $awardId)
+                ->where('participant_awards.is_active', 1)
+                ->where('participant_awards.is_deleted', 0)
+                ->findAll();
 
-            // Get participants assigned to this award
-            $participants = $this->participantAwardModel->getAwardParticipants($awardId);
+            log_message('info', "[Certificate API] Found " . count($participants) . " participants for award: {$awardId}");
 
-            log_message('info', "[Certificate API] Found " . count($participants) . " participants for award ID: {$awardId}");
-
-            return $this->respondSuccess([
-                'award' => [
-                    'id' => $award->id,
-                    'title' => $award->title,
-                    'award_type' => $award->award_type
-                ],
-                'participants' => $participants,
-                'total_count' => count($participants)
-            ]);
+            return $this->respondSuccess($participants);
 
         } catch (\Exception $e) {
             log_message('error', "[Certificate API] Error getting certificate participants: " . $e->getMessage());
@@ -177,7 +212,47 @@ class CertificatesApiController extends ApiBaseController
     }
 
     /**
-     * 🔍 Get Single Certificate Details (READ)
+     * 🎓 Get program certificates (awards available for certificates in a program)
+     * GET /api/certificates/program/{programId}
+     */
+    public function getProgramCertificates($programId = null)
+    {
+        log_message('info', "[Certificate API] Getting certificates for program ID: {$programId}");
+
+        try {
+            if ($programId === null) {
+                return $this->failValidationErrors('Program ID is required');
+            }
+
+            // Get program awards that have certificate templates
+            $certificates = $this->programAwardModel->select('
+                    program_awards.*,
+                    program_certificates.id as template_id,
+                    program_certificates.template_url,
+                    program_certificates.template_type,
+                    program_certificates.published_at,
+                    COUNT(participant_awards.id) as recipient_count
+                ')
+                ->join('program_certificates', 'program_certificates.award_id = program_awards.id', 'left')
+                ->join('participant_awards', 'participant_awards.award_id = program_awards.id AND participant_awards.is_active = 1', 'left')
+                ->where('program_awards.program_id', $programId)
+                ->where('program_awards.is_active', 1)
+                ->where('program_awards.is_deleted', 0)
+                ->groupBy('program_awards.id')
+                ->findAll();
+
+            log_message('info', "[Certificate API] Found " . count($certificates) . " certificate types for program: {$programId}");
+
+            return $this->respondSuccess($certificates);
+
+        } catch (\Exception $e) {
+            log_message('error', "[Certificate API] Error getting program certificates: " . $e->getMessage());
+            return $this->fail('Failed to retrieve program certificates', 500);
+        }
+    }
+
+    /**
+     * 📋 Get single certificate details
      * GET /api/certificates/{certificateId}
      */
     public function getCertificateDetails($certificateId = null)
@@ -185,23 +260,27 @@ class CertificatesApiController extends ApiBaseController
         log_message('info', "[Certificate API] Getting certificate details for ID: {$certificateId}");
 
         try {
-            // Validate certificate ID
             if ($certificateId === null) {
                 return $this->failValidationErrors('Certificate ID is required');
             }
 
-            // Get certificate with full details (from participant_awards table)
-            $certificate = $this->participantAwardModel
-                                ->select('participant_awards.*, program_awards.title as award_title, program_awards.description as award_description,
-                                         program_awards.award_type, participants.full_name, participants.account_id,
-                                         program_certificates.template_url, program_certificates.template_type')
-                                ->join('program_awards', 'program_awards.id = participant_awards.award_id', 'left')
-                                ->join('participants', 'participants.id = participant_awards.participant_id', 'left')
-                                ->join('program_certificates', 'program_certificates.award_id = participant_awards.award_id', 'left')
-                                ->where('participant_awards.id', $certificateId)
-                                ->where('participant_awards.is_active', 1)
-                                ->where('participant_awards.is_deleted', 0)
-                                ->first();
+            $certificate = $this->participantAwardModel->select('
+                    participant_awards.*,
+                    participants.full_name as participant_name,
+                    participants.account_id,
+                    participants.nationality,
+                    program_awards.title as award_title,
+                    program_awards.description as award_description,
+                    program_awards.award_type,
+                    programs.name as program_name
+                ')
+                ->join('participants', 'participants.id = participant_awards.participant_id', 'left')
+                ->join('program_awards', 'program_awards.id = participant_awards.award_id', 'left')
+                ->join('programs', 'programs.id = participants.program_id', 'left')
+                ->where('participant_awards.id', $certificateId)
+                ->where('participant_awards.is_active', 1)
+                ->where('participant_awards.is_deleted', 0)
+                ->first();
 
             if (!$certificate) {
                 return $this->failNotFound('Certificate not found');
@@ -218,101 +297,7 @@ class CertificatesApiController extends ApiBaseController
     }
 
     /**
-     * 📄 Generate Certificate PDF
-     * POST /api/certificates/generate
-     * Body: { "participant_id": 123, "award_id": 456 }
-     */
-    public function generateCertificate()
-    {
-        log_message('info', "[Certificate API] Starting certificate generation");
-
-        try {
-            // Increase execution time limit for PDF generation
-            ini_set('max_execution_time', 300);
-            set_time_limit(300);
-
-            // Get request data
-            $participantId = $this->request->getPost('participant_id') ?? $this->request->getJSON(true)['participant_id'] ?? null;
-            $awardId = $this->request->getPost('award_id') ?? $this->request->getJSON(true)['award_id'] ?? null;
-
-            // Validate required parameters
-            if (!$participantId || !$awardId) {
-                return $this->failValidationErrors('Participant ID and Award ID are required');
-            }
-
-            log_message('info', "[Certificate API] Generating certificate for participant ID: {$participantId}, award ID: {$awardId}");
-
-            // Check if participant exists
-            $participant = $this->participantModel->find($participantId);
-            if (!$participant) {
-                return $this->failNotFound('Participant not found');
-            }
-
-            // Check if award exists
-            $award = $this->programAwardModel->find($awardId);
-            if (!$award) {
-                return $this->failNotFound('Award not found');
-            }
-
-            // Check if participant is assigned to this award (eligible for certificate)
-            $isAssigned = $this->participantAwardModel->where('participant_id', $participantId)
-                                                      ->where('award_id', $awardId)
-                                                      ->where('is_deleted', 0)
-                                                      ->first();
-            if (!$isAssigned) {
-                return $this->failNotFound('Participant is not assigned to this award');
-            }
-
-            // Check if certificate has already been generated (certificates are generated on-demand, so this is just checking assignment)
-            $existingCertificate = null; // No certificate tracking, always allow generation for assigned participants
-
-            if ($existingCertificate) {
-                log_message('info', "[Certificate API] Certificate already exists for participant ID: {$participantId}, award ID: {$awardId}");
-                return $this->respondSuccess([
-                    'message' => 'Certificate already exists',
-                    'certificate_id' => $existingCertificate->id,
-                    'generated_at' => $existingCertificate->assigned_at // Use assignment date
-                ]);
-            }
-
-            // Get program data for certificate generation
-            $program = $this->programModel->find($participant->program_id);
-            if (!$program) {
-                return $this->failNotFound('Program not found for participant');
-            }
-
-            // Generate certificate content
-            $certificateContent = $this->generateCertificateContent($participant, $award, $program);
-
-            // Generate PDF (we'll use a default template since we're not using program_certificates table)
-            $filename = 'Certificate-' . $participant->full_name . '-' . $award->title . '-' . date('Ymd') . '.pdf';
-            $pdfContent = $this->generateCertificatePdf($certificateContent, null);
-
-            // Certificate generated successfully - no need to update database since we don't track generation
-            // Certificate is generated on-demand based on participant_awards assignment
-
-            // Encode PDF as base64
-            $encodedPdf = base64_encode($pdfContent);
-
-            log_message('info', "[Certificate API] Certificate generated successfully for participant: {$participant->full_name}");
-
-            return $this->respondSuccess([
-                'certificate_id' => $isAssigned->id, // Use the participant award ID
-                'file_name' => $filename,
-                'mime_type' => 'application/pdf',
-                'file_data' => $encodedPdf,
-                'message' => 'Certificate generated successfully'
-            ]);
-
-        } catch (\Exception $e) {
-            log_message('error', "[Certificate API] Error generating certificate: " . $e->getMessage());
-            log_message('error', "[Certificate API] Stack trace: " . $e->getTraceAsString());
-            return $this->fail('Failed to generate certificate: ' . $e->getMessage(), 500);
-        }
-    }
-
-    /**
-     * 🗑️ Revoke Certificate (SOFT DELETE)
+     * ❌ Revoke certificate (soft delete)
      * DELETE /api/certificates/{certificateId}
      */
     public function revokeCertificate($certificateId = null)
@@ -320,30 +305,27 @@ class CertificatesApiController extends ApiBaseController
         log_message('info', "[Certificate API] Revoking certificate ID: {$certificateId}");
 
         try {
-            // Validate certificate ID
             if ($certificateId === null) {
                 return $this->failValidationErrors('Certificate ID is required');
             }
 
-            // Check if certificate exists (participant award assignment)
-            $certificate = $this->participantAwardModel->find($certificateId);
-            if (!$certificate) {
-                return $this->failNotFound('Certificate not found');
-            }
+            // Soft delete the participant award (certificate assignment)
+            $updateData = [
+                'is_active' => 0,
+                'is_deleted' => 1,
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
 
-            // Revoke certificate by removing the award assignment
-            $result = $this->participantAwardModel->softDelete($certificateId);
-
-            if (!$result) {
+            if ($this->participantAwardModel->update($certificateId, $updateData)) {
+                log_message('info', "[Certificate API] Certificate revoked successfully: {$certificateId}");
+                
+                return $this->respondSuccess([
+                    'message' => 'Certificate revoked successfully',
+                    'certificate_id' => $certificateId
+                ]);
+            } else {
                 return $this->fail('Failed to revoke certificate', 500);
             }
-
-            log_message('info', "[Certificate API] Certificate revoked successfully: {$certificateId}");
-
-            return $this->respondSuccess([
-                'message' => 'Certificate revoked successfully (award assignment removed)',
-                'certificate_id' => $certificateId
-            ]);
 
         } catch (\Exception $e) {
             log_message('error', "[Certificate API] Error revoking certificate: " . $e->getMessage());
@@ -352,7 +334,7 @@ class CertificatesApiController extends ApiBaseController
     }
 
     /**
-     * 📋 Get Certificate History/Stats
+     * 📊 Get certificate statistics for participant
      * GET /api/certificates/stats/{participantId}
      */
     public function getCertificateStats($participantId = null)
@@ -360,41 +342,27 @@ class CertificatesApiController extends ApiBaseController
         log_message('info', "[Certificate API] Getting certificate stats for participant ID: {$participantId}");
 
         try {
-            // Validate participant ID
             if ($participantId === null) {
                 return $this->failValidationErrors('Participant ID is required');
             }
 
-            // Check if participant exists
-            $participant = $this->participantModel->find($participantId);
-            if (!$participant) {
-                return $this->failNotFound('Participant not found');
-            }
-
-            // Get all certificates for participant (awards with certificate templates)
-            $certificates = $this->participantAwardModel
-                ->select('participant_awards.*, program_awards.title as award_title, 
-                         program_awards.description as award_description, program_awards.award_type,
-                         programs.name as program_name, program_certificates.template_url')
-                ->join('program_awards', 'program_awards.id = participant_awards.award_id')
-                ->join('programs', 'programs.id = program_awards.program_id')
-                ->join('program_certificates', 'program_certificates.award_id = participant_awards.award_id', 'left')
-                ->where('participant_awards.participant_id', $participantId)
-                ->where('participant_awards.is_active', 1)
-                ->where('participant_awards.is_deleted', 0)
-                ->findAll();
-
-            // Calculate stats
             $stats = [
-                'total_certificates' => count($certificates),
-                'available_certificates' => count(array_filter($certificates, function($cert) {
-                    return !empty($cert->template_url); // Has certificate template
-                })),
-                'awards_without_certificates' => count(array_filter($certificates, function($cert) {
-                    return empty($cert->template_url); // No certificate template
-                })),
-                'latest_award' => !empty($certificates) ? $certificates[0] : null,
-                'certificate_list' => $certificates
+                'total_certificates' => $this->participantAwardModel
+                    ->where('participant_id', $participantId)
+                    ->where('is_active', 1)
+                    ->where('is_deleted', 0)
+                    ->countAllResults(),
+                
+                'certificates_by_type' => $this->participantAwardModel->select('
+                        program_awards.award_type,
+                        COUNT(*) as count
+                    ')
+                    ->join('program_awards', 'program_awards.id = participant_awards.award_id', 'left')
+                    ->where('participant_awards.participant_id', $participantId)
+                    ->where('participant_awards.is_active', 1)
+                    ->where('participant_awards.is_deleted', 0)
+                    ->groupBy('program_awards.award_type')
+                    ->findAll()
             ];
 
             log_message('info', "[Certificate API] Certificate stats retrieved for participant ID: {$participantId}");
@@ -408,7 +376,7 @@ class CertificatesApiController extends ApiBaseController
     }
 
     /**
-     * 🔄 Regenerate Certificate
+     * 🔄 Regenerate Certificate using Python Service
      * POST /api/certificates/{certificateId}/regenerate
      */
     public function regenerateCertificate($certificateId = null)
@@ -427,33 +395,38 @@ class CertificatesApiController extends ApiBaseController
                 return $this->failNotFound('Certificate not found');
             }
 
-            // Get participant and award data
-            $participant = $this->participantModel->find($existingCertificate->participant_id);
-            $award = $this->programAwardModel->find($existingCertificate->award_id);
-            $program = $this->programModel->find($participant->program_id);
+            // Build certificate data
+            $certificateData = $this->buildCertificateData(
+                $existingCertificate->participant_id, 
+                $existingCertificate->award_id
+            );
 
-            // Generate new certificate content
-            $certificateContent = $this->generateCertificateContent($participant, $award, $program);
+            if (!$certificateData['success']) {
+                return $this->response->setJSON($certificateData)->setStatusCode(404);
+            }
 
-            // Generate PDF
-            $filename = 'Certificate-' . $participant->full_name . '-' . $award->title . '-' . date('Ymd') . '.pdf';
-            $pdfContent = $this->generateCertificatePdf($certificateContent, null);
+            // Generate new certificate using Python service
+            $result = $this->certificateService->generateCertificate($certificateData['data']);
 
-            // Update certificate record - regenerate doesn't require database updates since certificates are generated on-demand
-            // The certificate is regenerated fresh each time
+            if ($result['success']) {
+                log_message('info', "[Certificate API] Certificate regenerated successfully: {$certificateId}");
 
-            // Encode PDF as base64
-            $encodedPdf = base64_encode($pdfContent);
-
-            log_message('info', "[Certificate API] Certificate regenerated successfully: {$certificateId}");
-
-            return $this->respondSuccess([
-                'certificate_id' => $certificateId,
-                'file_name' => $filename,
-                'mime_type' => 'application/pdf',
-                'file_data' => $encodedPdf,
-                'message' => 'Certificate regenerated successfully'
-            ]);
+                return $this->response->setJSON([
+                    'success' => true,
+                    'data' => [
+                        'certificate_id' => $certificateId,
+                        'file_name' => $result['data']['file_name'],
+                        'file_size' => $result['data']['file_size'],
+                        'file_data' => $result['data']['file_data'], // Base64 encoded PDF
+                        'generated_at' => $result['data']['generated_at'],
+                        'participant_name' => $certificateData['data']['participant']['full_name'],
+                        'award_title' => $certificateData['data']['award']['title'],
+                        'program_name' => $certificateData['data']['program']['name']
+                    ]
+                ]);
+            } else {
+                return $this->response->setJSON($result)->setStatusCode(400);
+            }
 
         } catch (\Exception $e) {
             log_message('error', "[Certificate API] Error regenerating certificate: " . $e->getMessage());
@@ -462,254 +435,157 @@ class CertificatesApiController extends ApiBaseController
     }
 
     /**
-     * Generate certificate content with participant data
-     * @param object $participant Participant object
-     * @param object $award Award object
-     * @param object $program Program object
-     * @return string
+     * Build certificate data from database for Python service
      */
-    private function generateCertificateContent($participant, $award, $program)
+    protected function buildCertificateData(int $participantId, int $awardId): array
     {
-        log_message('info', "[Certificate API] Generating certificate content for participant: " . $participant->full_name);
-
-        // Format dates
-        $startDate = isset($program->start_date) ? date("F d, Y", strtotime($program->start_date)) : date("F d, Y");
-        $endDate = isset($program->end_date) ? date("F d, Y", strtotime($program->end_date)) : date("F d, Y");
-        
-        // Create the award type text
-        $awardTypeText = ucwords(str_replace('_', ' ', $award->award_type ?? 'Achievement'));
-        
-        // Generate certificate content
-        $content = '<div class="award-title">' . esc($award->title ?? 'Excellence Award') . '</div>
-        
-        <p class="cert-text">This is to certify that</p>
-        
-        <div class="participant-name">' . esc($participant->full_name) . '</div>
-        
-        <p class="cert-text">has successfully demonstrated outstanding performance and completed all requirements for the</p>
-        
-        <div class="program-name">' . esc($program->name ?? 'Youth Break the Boundaries Program') . '</div>
-        
-        <p class="cert-text">Program Duration: ' . $startDate . ' to ' . $endDate . '</p>';
-        
-        // Add description if available
-        if (!empty($award->description)) {
-            $content .= '<div class="description">' . esc($award->description) . '</div>';
-        }
-        
-        $content .= '<p class="cert-text">This certificate is awarded in recognition of exceptional dedication, leadership, and achievement in the program.</p>';
-
-        return $content;
-    }
-
-    /**
-     * Generate PDF from certificate content
-     * @param string $content HTML content for the certificate
-     * @param object $template Certificate template object
-     * @return string PDF content as binary string
-     */
-    private function generateCertificatePdf($content, $template)
-    {
-        log_message('info', "[Certificate API] Starting PDF generation for certificate");
-
         try {
-            // Generate HTML content with styling
-            $htmlContent = $this->getCertificatePdfTemplate($content, $template);
+            // Get participant data
+            $participant = $this->participantModel->find($participantId);
+            log_message('debug', 'Participant type: ' . gettype($participant) . ', value: ' . print_r($participant, true));
+            if (!$participant) {
+                return ['success' => false, 'message' => 'Participant not found'];
+            }
 
-            // Create PDF using Dompdf
-            $dompdf = new \Dompdf\Dompdf();
-            $options = $dompdf->getOptions();
-            
-            // Configure Dompdf options
-            $options->set('isHtml5ParserEnabled', true);
-            $options->set('isRemoteEnabled', true);
-            $options->set('isFontSubsettingEnabled', true);
-            $options->set('defaultMediaType', 'print');
-            $dompdf->setOptions($options);
+            // Get program data
+            $program = $this->programModel->find($participant->program_id);
+            log_message('debug', 'Program type: ' . gettype($program) . ', value: ' . print_r($program, true));
+            if (!$program) {
+                return ['success' => false, 'message' => 'Program not found'];
+            }
 
-            // Load HTML content
-            $dompdf->loadHtml($htmlContent);
-            $dompdf->setPaper('A4', 'landscape'); // Certificates are usually landscape
+            // Get award data
+            $award = $this->programAwardModel->find($awardId);
+            log_message('debug', 'Award type: ' . gettype($award) . ', value: ' . print_r($award, true));
+            if (!$award) {
+                return ['success' => false, 'message' => 'Award not found'];
+            }
 
-            // Render PDF
-            $dompdf->render();
+            // Get certificate template
+            log_message('debug', 'About to query certificate template with program->id: ' . $program->id . ', awardId: ' . $awardId);
+            $certificateTemplate = $this->programCertificateModel
+                ->where('program_id', $program->id)
+                ->where('award_id', $awardId)
+                ->where('is_active', 1)
+                ->where('is_deleted', 0)
+                ->first();
+            log_message('debug', 'Certificate template result type: ' . gettype($certificateTemplate));
+                
+            if (!$certificateTemplate) {
+                return ['success' => false, 'message' => 'Certificate template not found for this award'];
+            }
 
-            // Get the PDF content
-            $output = $dompdf->output();
-            
-            log_message('info', "[Certificate API] PDF generation completed, size: " . strlen($output) . " bytes");
-            
-            return $output;
+            // Get content blocks
+            log_message('debug', 'About to query content blocks with certificateTemplate->id: ' . $certificateTemplate->id);
+            $contentBlocks = $this->contentBlockModel
+                ->where('certificate_id', $certificateTemplate->id)
+                ->where('is_active', 1)
+                ->where('is_deleted', 0)
+                ->orderBy('id', 'ASC')
+                ->findAll();
+            log_message('debug', 'Content blocks result type: ' . gettype($contentBlocks) . ', count: ' . count($contentBlocks));
+
+            // Build certificate data structure for Python service
+            $certificateData = [
+                'participant' => [
+                    'id' => (int)$participant->id,
+                    'account_id' => $participant->account_id,
+                    'full_name' => $participant->full_name,
+                    'birthdate' => $participant->birthdate,
+                    'gender' => $participant->gender,
+                    'nationality' => $participant->nationality,
+                    'nationality_code' => $participant->nationality_code,
+                    'education_level' => $participant->education_level,
+                    'major' => $participant->major,
+                    'institution' => $participant->institution,
+                    'occupation' => $participant->occupation,
+                    'category' => $participant->category,
+                    'picture_url' => $participant->picture_url,
+                    'instagram_account' => $participant->instagram_account,
+                    'experiences' => $participant->experiences,
+                    'achievements' => $participant->achievements,
+                    'tshirt_size' => $participant->tshirt_size,
+                    'registration_date' => $participant->created_at
+                ],
+                'program' => [
+                    'id' => (int)$program->id,
+                    'name' => $program->name,
+                    'theme' => $program->theme,
+                    'start_date' => $program->start_date,
+                    'end_date' => $program->end_date
+                ],
+                'award' => [
+                    'id' => (int)$award->id,
+                    'title' => $award->title,
+                    'description' => $award->description,
+                    'award_type' => $award->award_type,
+                    'order_number' => (int)$award->order_number
+                ],
+                'certificate_template' => [
+                    'id' => (int)$certificateTemplate->id,
+                    'template_url' => $certificateTemplate->template_url,
+                    'template_type' => $certificateTemplate->template_type,
+                    'issue_date' => $certificateTemplate->issue_date,
+                    'published_at' => $certificateTemplate->published_at
+                ],
+                'content_blocks' => array_map(function($block) {
+                    return [
+                        'id' => (int)$block->id,
+                        'type' => $block->type,
+                        'value' => $block->value,
+                        'x' => (int)$block->x,
+                        'y' => (int)$block->y,
+                        'font_size' => (int)$block->font_size,
+                        'font_family' => $block->font_family,
+                        'font_weight' => $block->font_weight,
+                        'text_align' => $block->text_align,
+                        'color' => $block->color
+                    ];
+                }, $contentBlocks),
+                'assignment_info' => [
+                    'assigned_by' => session('user_id'),
+                    'assigned_at' => date('c'),
+                    'notes' => 'Generated via admin panel'
+                ]
+            ];
+
+            return ['success' => true, 'data' => $certificateData];
 
         } catch (\Exception $e) {
-            log_message('error', "[Certificate API] Error in PDF generation: " . $e->getMessage());
-            throw $e;
+            log_message('error', 'Build certificate data error: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Failed to build certificate data'];
         }
     }
 
     /**
-     * Get full HTML template for certificate PDF
-     * @param string $content The main content of the certificate
-     * @param object $template Certificate template object
-     * @return string Complete HTML structure for PDF
+     * Ensure participant_awards record exists
      */
-    private function getCertificatePdfTemplate($content, $template)
+    protected function ensureParticipantAward(int $participantId, int $awardId): void
     {
-        // Get current date for certificate
-        $currentDate = date('F d, Y');
-        $certificateId = 'CERT-' . date('Ymd-His') . '-' . uniqid();
-        
-        $html = '<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Certificate</title>
-    <style>
-        @page {
-            margin: 0.5in;
-            size: A4 landscape;
-        }
-        body {
-            font-family: "Times New Roman", serif;
-            margin: 0;
-            padding: 20px;
-            background: #ffffff;
-        }
-        .certificate-container {
-            width: 100%;
-            height: 100%;
-            border: 15px solid #1e3a8a;
-            padding: 40px;
-            text-align: center;
-            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-            box-sizing: border-box;
-            position: relative;
-            min-height: 600px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-        .header {
-            margin-bottom: 30px;
-        }
-        .certificate-title {
-            font-size: 42px;
-            color: #1e3a8a;
-            margin-bottom: 10px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 4px;
-        }
-        .award-title {
-            font-size: 32px;
-            color: #059669;
-            margin-bottom: 40px;
-            font-style: italic;
-            font-weight: normal;
-        }
-        .cert-text {
-            font-size: 20px;
-            color: #374151;
-            margin: 15px 0;
-            line-height: 1.6;
-        }
-        .participant-name {
-            font-size: 36px;
-            color: #dc2626;
-            margin: 25px 0;
-            font-weight: bold;
-            text-decoration: underline;
-            text-transform: uppercase;
-        }
-        .program-name {
-            font-size: 28px;
-            color: #7c3aed;
-            margin: 25px 0;
-            font-weight: bold;
-            font-style: italic;
-        }
-        .description {
-            font-size: 18px;
-            color: #6b7280;
-            margin: 20px 0;
-            font-style: italic;
-            max-width: 80%;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        .footer {
-            margin-top: 50px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            position: absolute;
-            bottom: 40px;
-            left: 40px;
-            right: 40px;
-        }
-        .signature-section {
-            text-align: center;
-            width: 250px;
-        }
-        .signature-line {
-            border-top: 2px solid #000;
-            margin-bottom: 10px;
-            padding-top: 10px;
-        }
-        .signature-title {
-            font-size: 14px;
-            color: #374151;
-            font-weight: bold;
-        }
-        .cert-info {
-            text-align: right;
-            font-size: 12px;
-            color: #6b7280;
-        }
-        .date-section {
-            margin-top: 30px;
-            font-size: 16px;
-            color: #374151;
-        }
-        .decorative-border {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            right: 20px;
-            bottom: 20px;
-            border: 3px solid #d1d5db;
-            pointer-events: none;
-        }
-    </style>
-</head>
-<body>
-    <div class="certificate-container">
-        <div class="decorative-border"></div>
-        
-        <div class="header">
-            <div class="certificate-title">Certificate of Achievement</div>
-        </div>
-        
-        ' . $content . '
-        
-        <div class="date-section">
-            <p>Issued on: <strong>' . $currentDate . '</strong></p>
-        </div>
-        
-        <div class="footer">
-            <div class="signature-section">
-                <div class="signature-line">Authorized Signature</div>
-                <div class="signature-title">Program Director</div>
-            </div>
-            <div class="cert-info">
-                <p>Certificate ID: ' . $certificateId . '</p>
-                <p>Youth Break the Boundaries</p>
-            </div>
-        </div>
-    </div>
-</body>
-</html>';
+        try {
+            // Check if participant_awards record exists
+            $existingRecord = $this->participantAwardModel
+                ->where('participant_id', $participantId)
+                ->where('award_id', $awardId)
+                ->first();
 
-        return $html;
+            if (!$existingRecord) {
+                // Create new participant_awards record
+                $data = [
+                    'participant_id' => $participantId,
+                    'award_id' => $awardId,
+                    'assigned_by' => session('user_id'),
+                    'assigned_at' => date('Y-m-d H:i:s'),
+                    'notes' => 'Created automatically during certificate generation',
+                    'is_active' => 1,
+                    'is_deleted' => 0
+                ];
+
+                $this->participantAwardModel->insert($data);
+                log_message('info', "[Certificate API] Created participant_awards record for participant {$participantId}, award {$awardId}");
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Failed to create participant_awards record: ' . $e->getMessage());
+        }
     }
 }

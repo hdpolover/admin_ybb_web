@@ -59,6 +59,18 @@ class YbbExport extends BaseConfig
      */
     public bool $enableDebugLogging = true;
 
+    // NEW: Certificate endpoints
+    public string $certificateGenerateEndpoint = '/api/ybb/certificates/generate';
+    public string $certificateHealthEndpoint = '/api/ybb/certificates/health';
+    public string $certificateValidateTemplateEndpoint = '/api/ybb/certificates/templates/validate';
+    public string $certificateValidateBlocksEndpoint = '/api/ybb/certificates/content-blocks/validate';
+    public string $certificatePlaceholdersEndpoint = '/api/ybb/certificates/placeholders';
+
+    // Certificate settings
+    public int $certificateTimeout = 60; // seconds
+    public int $maxCertificateSize = 10 * 1024 * 1024; // 10MB
+    public array $allowedTemplateFormats = ['pdf', 'jpg', 'jpeg', 'png'];
+
     public function __construct()
     {
         parent::__construct();

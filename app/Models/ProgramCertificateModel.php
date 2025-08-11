@@ -8,6 +8,7 @@ class ProgramCertificateModel extends Model
 {
     protected $table = 'program_certificates';
     protected $primaryKey = 'id';
+    protected $returnType = 'object';
     protected $allowedFields = [
         'program_id',
         'award_id',

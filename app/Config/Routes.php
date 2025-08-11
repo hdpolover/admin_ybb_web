@@ -40,6 +40,23 @@ $routes->group('', ['namespace' => 'App\Controllers'], function ($routes) {
     $routes->get('test-certificates', 'CertificateTest::testPage');
     $routes->get('test-certificates/data', 'CertificateTest::testData');
     
+    // Certificate service test routes
+    $routes->group('test-certificate-service', function ($routes) {
+        $routes->get('connection', 'CertificateTestController::testConnection');
+        $routes->get('placeholders', 'CertificateTestController::testPlaceholders');
+        $routes->get('generation-data', 'CertificateTestController::testGeneration');
+    });
+    
+    // Certificate debug routes
+    $routes->group('debug-certificate', function ($routes) {
+        $routes->get('/', 'CertificateDebugController::index');
+        $routes->get('step1', 'CertificateDebugController::testStep1');
+        $routes->get('step2', 'CertificateDebugController::testStep2');
+        $routes->get('step3', 'CertificateDebugController::testStep3');
+        $routes->get('step4', 'CertificateDebugController::testStep4');
+        $routes->get('step5', 'CertificateDebugController::testStep5');
+    });
+    
     // YBB Export Test Routes
     $routes->group('test-export', function ($routes) {
         $routes->get('/', 'TestExportController::index');
@@ -327,7 +344,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
         // Get single certificate details
         $routes->get('(:num)', 'CertificatesApiController::getCertificateDetails/$1');
         
-        // Generate new certificate
+        // Generate new certificate using Python service
         $routes->post('generate', 'CertificatesApiController::generateCertificate');
         
         // Revoke certificate (soft delete)
@@ -336,8 +353,14 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
         // Get certificate statistics for participant
         $routes->get('stats/(:num)', 'CertificatesApiController::getCertificateStats/$1');
         
-        // Regenerate existing certificate
+        // Regenerate existing certificate using Python service
         $routes->post('(:num)/regenerate', 'CertificatesApiController::regenerateCertificate/$1');
+        
+        // Health check for certificate service
+        $routes->get('health', 'CertificatesApiController::health');
+        
+        // Get available placeholders
+        $routes->get('placeholders', 'CertificatesApiController::getPlaceholders');
     });
 });
 
