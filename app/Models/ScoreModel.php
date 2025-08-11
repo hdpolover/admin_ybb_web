@@ -14,6 +14,7 @@ class ScoreModel extends Model
 
     protected $allowedFields = [
         'participant_id',
+        'program_id',
         'score_weight_id',
         'score_input',
         'score_calculated',
