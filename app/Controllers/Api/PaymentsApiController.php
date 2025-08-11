@@ -46,7 +46,9 @@ class PaymentsApiController extends ApiBaseController
 
     /**
      * Get payment details by payment ID
-     * Low Priority Cache: 5 minutes TTL
+     * 
+     * IMPORTANT: Payment details are NEVER cached to ensure real-time data
+     * for critical payment information and status updates
      *
      * @param int|null $id Payment ID
      * @return ResponseInterface
@@ -57,19 +59,31 @@ class PaymentsApiController extends ApiBaseController
             return $this->respondValidationErrors('Payment ID is required');
         }
 
+        // Set cache-prevention headers
+        $this->response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+        $this->response->setHeader('Pragma', 'no-cache');
+        $this->response->setHeader('Expires', 'Thu, 01 Jan 1970 00:00:00 GMT');
+
         $paymentModel = new \App\Models\PaymentModel();
 
         try {
-            $payment = $this->cacheResponse(function() use ($paymentModel, $id) {
-                return $paymentModel->find($id);
-            }, ['payment_id' => $id], null, 300); // 5 minutes cache
+            // Always fetch fresh data - NO CACHING for payment details
+            $payment = $paymentModel->find($id);
 
             if (!$payment) {
                 return $this->respondNotFound('Payment not found');
             }
 
-            return $this->respondSuccess($payment, self::HTTP_OK, 'Payment retrieved successfully');
+            // Log access to payment details for security auditing
+            log_message('info', "Payment detail accessed - ID: {$id}, Status: {$payment->status}");
+
+            return $this->respondSuccess([
+                'payment' => $payment,
+                'timestamp' => time(),
+                'cache_disabled' => true
+            ], self::HTTP_OK, 'Payment retrieved successfully');
         } catch (\Exception $e) {
+            log_message('error', 'Error retrieving payment details: ' . $e->getMessage());
             return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
         }
     }
@@ -132,7 +146,9 @@ class PaymentsApiController extends ApiBaseController
 
     /**
      * Get payments by participant ID
-     * Low Priority Cache: 5 minutes TTL
+     * 
+     * IMPORTANT: Payment data is NEVER cached to ensure real-time information
+     * for payment status and updates
      *
      * @param int|null $participantId
      * @return ResponseInterface
@@ -143,26 +159,40 @@ class PaymentsApiController extends ApiBaseController
             return $this->respondValidationErrors('Participant ID is required');
         }
 
+        // Set cache-prevention headers
+        $this->response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+        $this->response->setHeader('Pragma', 'no-cache');
+        $this->response->setHeader('Expires', 'Thu, 01 Jan 1970 00:00:00 GMT');
+
         $paymentModel = new \App\Models\PaymentModel();
 
         try {
-            $payments = $this->cacheParticipantData(function() use ($paymentModel, $participantId) {
-                return $paymentModel->getPaymentsByParticipantId($participantId);
-            }, $participantId);
+            // Always fetch fresh data - NO CACHING for payment information
+            $payments = $paymentModel->getPaymentsByParticipantId($participantId);
 
             if (!$payments) {
                 return $this->respondNotFound('No payments found for this participant ID');
             }
 
-            return $this->respondSuccess($payments, self::HTTP_OK, 'Payments retrieved successfully');
+            log_message('info', "Participant payments accessed - Participant ID: {$participantId}, Count: " . count($payments));
+
+            return $this->respondSuccess([
+                'payments' => $payments,
+                'participant_id' => $participantId,
+                'timestamp' => time(),
+                'cache_disabled' => true
+            ], self::HTTP_OK, 'Payments retrieved successfully');
         } catch (\Exception $e) {
+            log_message('error', 'Error retrieving participant payments: ' . $e->getMessage());
             return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
         }
     }
 
     /**
      * Get payments by program payment ID and participant ID
-     * Low Priority Cache: 5 minutes TTL
+     * 
+     * IMPORTANT: Payment data is NEVER cached to ensure real-time information
+     * 
      * @param int|null $programPaymentId
      * @param int|null $participantId
      * @return ResponseInterface
@@ -174,10 +204,16 @@ class PaymentsApiController extends ApiBaseController
             return $this->respondValidationErrors('Program payment ID and participant ID are required');
         }
 
+        // Set cache-prevention headers
+        $this->response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+        $this->response->setHeader('Pragma', 'no-cache');
+        $this->response->setHeader('Expires', 'Thu, 01 Jan 1970 00:00:00 GMT');
+
         $paymentModel = new \App\Models\PaymentModel();
         $programPaymentModel = new \App\Models\ProgramPaymentModel();
 
-        $data = $this->cacheResponse(function() use ($paymentModel, $programPaymentModel, $programPaymentId, $participantId) {
+        try {
+            // Always fetch fresh data - NO CACHING for payment information
             $payments = $paymentModel->getPaymentsByParticipantIdAndProgramPaymentId($participantId, $programPaymentId);
 
             // if no payments found, return empty array
@@ -188,20 +224,25 @@ class PaymentsApiController extends ApiBaseController
             $programPayment = $programPaymentModel->find($programPaymentId);
 
             if (!$programPayment) {
-                return null;
+                return $this->respondNotFound('Program payment not found');
             }
 
-            return [
+            $data = [
                 'program_payment' => $programPayment,
-                'payments' => $payments
+                'payments' => $payments,
+                'participant_id' => $participantId,
+                'program_payment_id' => $programPaymentId,
+                'timestamp' => time(),
+                'cache_disabled' => true
             ];
-        }, ['program_payment_id' => $programPaymentId, 'participant_id' => $participantId], null, 300); // 5 minutes cache
 
-        if ($data === null) {
-            return $this->respondNotFound('Program payment not found');
+            log_message('info', "Program payment data accessed - Program Payment ID: {$programPaymentId}, Participant ID: {$participantId}");
+
+            return $this->respondSuccess($data, self::HTTP_OK, 'Payments retrieved successfully');
+        } catch (\Exception $e) {
+            log_message('error', 'Error retrieving program payment data: ' . $e->getMessage());
+            return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
         }
-
-        return $this->respondSuccess($data, self::HTTP_OK, 'Payments retrieved successfully');
     }
 
     /**

@@ -76,7 +76,8 @@ class ParticipantsApiController extends ApiBaseController
     /**
      * 🔍 Get Single Participant (READ)
      * GET /api/participants/{id}
-     * Low Priority Cache: 5 minutes TTL
+     * 
+     * IMPORTANT: Payment data is NEVER cached to ensure real-time information
      */
     public function show($id = null)
     {
@@ -84,16 +85,26 @@ class ParticipantsApiController extends ApiBaseController
             if (!$id) {
                 return $this->respondError('Participant ID is required', self::HTTP_BAD_REQUEST);
             }
+
+            // Set cache-prevention headers to ensure fresh participant data (including payments)
+            $this->response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+            $this->response->setHeader('Pragma', 'no-cache');
+            $this->response->setHeader('Expires', 'Thu, 01 Jan 1970 00:00:00 GMT');
             
-            $participant = $this->cacheParticipantData(function() use ($id) {
-                return $this->model->getParticipant($id);
-            }, $id);
+            // Always fetch fresh participant data - NO CACHING for payment-related information
+            $participant = $this->model->getParticipant($id);
 
             if (!$participant) {
                 return $this->respondNotFound("Participant not found");
             }
 
-            return $this->respondSuccess($participant);
+            log_message('info', "Participant data accessed - Participant ID: {$id}, Fresh data served");
+
+            return $this->respondSuccess([
+                'participant' => $participant,
+                'timestamp' => time(),
+                'cache_disabled' => true
+            ], self::HTTP_OK, 'Participant retrieved successfully');
         } catch (\Exception $e) {
             return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
         }
@@ -322,7 +333,9 @@ class ParticipantsApiController extends ApiBaseController
     /**
      * 🔍 Get Participant by User ID
      * GET /api/participants/user/{userId}
-     * Medium Priority Cache: 15 minutes TTL
+     * 
+     * IMPORTANT: Payment data is NEVER cached to ensure real-time information
+     * This endpoint is commonly used by participants to get their own payment data
      **/
     public function getByUserId($userId = null)
     {
@@ -331,15 +344,25 @@ class ParticipantsApiController extends ApiBaseController
                 return $this->respondError('User ID is required', self::HTTP_BAD_REQUEST);
             }
 
-            $participant = $this->cacheUserData(function() use ($userId) {
-                return $this->model->getParticipantsByUserId($userId);
-            }, $userId);
+            // Set cache-prevention headers to ensure fresh participant data (including payments)
+            $this->response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+            $this->response->setHeader('Pragma', 'no-cache');
+            $this->response->setHeader('Expires', 'Thu, 01 Jan 1970 00:00:00 GMT');
+
+            // Always fetch fresh participant data - NO CACHING for payment-related information
+            $participant = $this->model->getParticipantsByUserId($userId);
 
             if (!$participant) {
                 return $this->respondNotFound("Participant not found for this user");
             }
 
-            return $this->respondSuccess($participant);
+            log_message('info', "Participant data by user ID accessed - User ID: {$userId}, Fresh data served");
+
+            return $this->respondSuccess([
+                'participant' => $participant,
+                'timestamp' => time(),
+                'cache_disabled' => true
+            ], self::HTTP_OK, 'Participant retrieved successfully');
         } catch (\Exception $e) {
             return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
         }
@@ -627,8 +650,11 @@ class ParticipantsApiController extends ApiBaseController
     }    /**
      * 🔍 Search Participants by Custom Parameters (READ)
      * GET /api/participants/search
-     * Low Priority Cache: 10 minutes TTL for search results
-     *     * Query Parameters:
+     * 
+     * IMPORTANT: Payment data is NEVER cached to ensure real-time information
+     * When include=payments is used, caching is completely disabled
+     *
+     * Query Parameters:
      * @param string email Filter by user email
      * @param string full_name Filter by participant full name (partial match)
      * @param int program_id Filter by program ID
@@ -658,26 +684,50 @@ class ParticipantsApiController extends ApiBaseController
                 return $this->respondError('At least one search parameter is required', self::HTTP_BAD_REQUEST);
             }
             
-            $result = $this->cacheResponse(function() use ($searchParams, $limit, $page, $include) {
-                // Parse include parameter
-                $includeOptions = [];
-                if (!empty($include)) {
-                    $includeOptions = array_map('trim', explode(',', $include));
-                }
+            // Parse include parameter
+            $includeOptions = [];
+            if (!empty($include)) {
+                $includeOptions = array_map('trim', explode(',', $include));
+            }
+            
+            // Check if payment data is requested - if so, disable caching completely
+            $includePayments = in_array('payments', $includeOptions);
+            
+            if ($includePayments) {
+                // Set cache-prevention headers when payments are included
+                $this->response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+                $this->response->setHeader('Pragma', 'no-cache');
+                $this->response->setHeader('Expires', 'Thu, 01 Jan 1970 00:00:00 GMT');
                 
-                // Call model method to search participants
-                return $this->model->searchParticipants($searchParams, $limit, $page, $includeOptions);
-            }, array_merge($searchParams, ['page' => $page, 'limit' => $limit, 'include' => $include]), null, 600); // 10 minutes cache
+                // Always fetch fresh data when payments are involved - NO CACHING
+                $result = $this->model->searchParticipants($searchParams, $limit, $page, $includeOptions);
+                
+                log_message('info', "Participant search with payments - Fresh data served, Count: " . count($result['data']));
+            } else {
+                // Use caching only when payments are NOT requested
+                $result = $this->cacheResponse(function() use ($searchParams, $limit, $page, $includeOptions) {
+                    return $this->model->searchParticipants($searchParams, $limit, $page, $includeOptions);
+                }, array_merge($searchParams, ['page' => $page, 'limit' => $limit, 'include' => $include]), null, 600); // 10 minutes cache
+            }
             
             // If no results found
             if (empty($result['data'])) {
                 return $this->respondNotFound("No participants found matching the search criteria");
             }
             
+            // Prepare response data
+            $responseData = [
+                'data' => $result['data'],
+                'timestamp' => time(),
+                'cache_disabled' => $includePayments
+            ];
+            
             // If only one result, return as object, otherwise return as list
             if (count($result['data']) === 1) {
                 return $this->respondSuccess($result['data'][0], self::HTTP_OK, "Participant found", [
-                    'total_results' => $result['total']
+                    'total_results' => $result['total'],
+                    'timestamp' => time(),
+                    'cache_disabled' => $includePayments
                 ]);
             } else {
                 // Return as paginated list
@@ -687,7 +737,9 @@ class ParticipantsApiController extends ApiBaseController
                     'current_page' => $page,
                     'per_page' => $limit,
                     'total_items' => $result['total'],
-                    'total_pages' => $totalPages
+                    'total_pages' => $totalPages,
+                    'timestamp' => time(),
+                    'cache_disabled' => $includePayments
                 ]);
             }
             

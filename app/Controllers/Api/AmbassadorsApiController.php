@@ -40,19 +40,101 @@ class AmbassadorsApiController extends ApiBaseController
     }
 
     /**
+     * Get all ambassadors for the current program
+     * GET /api/ambassadors
+     * 
+     * IMPORTANT: Only returns ambassadors for the currently selected program
+     */
+    public function index()
+    {
+        // Prevent caching of ambassador data
+        $this->response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+        $this->response->setHeader('Pragma', 'no-cache');
+        $this->response->setHeader('Expires', '0');
+
+        try {
+            // Get current program ID from session
+            $programId = session('current_program');
+            
+            if (!$programId) {
+                return $this->failValidationErrors('No program selected');
+            }
+
+            // Get pagination parameters
+            $limit = $this->request->getGet('limit') ?? 10;
+            $offset = $this->request->getGet('offset') ?? 0;
+            
+            // Set up filters to ensure we only get ambassadors for the current program
+            $filters = [
+                'program_id' => $programId,
+                'is_deleted' => 0
+            ];
+            
+            // Add any additional filters from request
+            $status = $this->request->getGet('status');
+            if (!empty($status)) {
+                $filters['is_active'] = $status;
+            }
+
+            // Get ambassadors data filtered by program ID
+            $result = $this->model->getAmbassadors($limit, $offset, $filters);
+
+            if (!$result) {
+                return $this->respondSuccess([
+                    'data' => [],
+                    'total' => 0,
+                    'program_id' => $programId
+                ]);
+            }
+
+            return $this->respondSuccess([
+                'data' => $result['data'],
+                'total' => $result['total'],
+                'program_id' => $programId,
+                'pagination' => [
+                    'limit' => (int)$limit,
+                    'offset' => (int)$offset,
+                    'current_page' => floor($offset / $limit) + 1,
+                    'total_pages' => ceil($result['total'] / $limit)
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return $this->failServerError('Failed to retrieve ambassadors: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Get all participants referred by an ambassador
      * GET /api/ambassadors/{id}/referrals
+     * 
+     * IMPORTANT: Only returns data if ambassador belongs to the currently selected program
      */
     public function getAmbassadorReferrals($id)
     {
-        // Check if ambassador exists
-        $ambassador = $this->model->find($id);
-
-        if (!$ambassador) {
-            return $this->failNotFound('Ambassador not found');
-        }
+        // Prevent caching of ambassador data
+        $this->response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+        $this->response->setHeader('Pragma', 'no-cache');
+        $this->response->setHeader('Expires', '0');
 
         try {
+            // Get current program ID from session
+            $programId = session('current_program');
+            
+            if (!$programId) {
+                return $this->failValidationErrors('No program selected');
+            }
+
+            $ambassador = $this->model->find($id);
+
+            if (!$ambassador) {
+                return $this->failNotFound('Ambassador not found');
+            }
+            
+            // Security check: Ensure ambassador belongs to the current program
+            if ($ambassador->program_id != $programId) {
+                return $this->failNotFound('Ambassador not found in selected program');
+            }
+
             // Get comprehensive list of participant IDs referred by this ambassador
             $participantIds = $this->model->getComprehensiveReferralParticipantIds($id);
 
@@ -78,14 +160,33 @@ class AmbassadorsApiController extends ApiBaseController
     /**
      * Generate referral link for an ambassador.
      * GET /api/ambassadors/{id}/generate-link
+     * 
+     * IMPORTANT: Only generates link if ambassador belongs to the currently selected program
      */
     public function generateLink($id)
     {
+        // Prevent caching of ambassador data
+        $this->response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+        $this->response->setHeader('Pragma', 'no-cache');
+        $this->response->setHeader('Expires', '0');
+
         try {
+            // Get current program ID from session
+            $programId = session('current_program');
+            
+            if (!$programId) {
+                return $this->failValidationErrors('No program selected');
+            }
+
             $ambassador = $this->model->find($id);
 
             if (!$ambassador) {
                 return $this->failNotFound('Ambassador not found');
+            }
+            
+            // Security check: Ensure ambassador belongs to the current program
+            if ($ambassador->program_id != $programId) {
+                return $this->failNotFound('Ambassador not found in selected program');
             }
 
             $program = $this->programModel->getProgramById($ambassador->program_id);
@@ -134,6 +235,11 @@ class AmbassadorsApiController extends ApiBaseController
      */
     public function checkEncryptedQuery()
     {
+        // Prevent caching of ambassador data
+        $this->response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+        $this->response->setHeader('Pragma', 'no-cache');
+        $this->response->setHeader('Expires', '0');
+
         try {
             // Get data from GET request instead of POST
             $encryptedQuery = $this->request->getGet('encrypted_query');
@@ -194,16 +300,42 @@ class AmbassadorsApiController extends ApiBaseController
     /**
      * Get ambassador by ID
      * GET /api/ambassadors/{id}
+     * 
+     * IMPORTANT: Only returns ambassador if they belong to the currently selected program
      */
     public function getAmbassador($id)
     {
-        $ambassador = $this->model->find($id);
+        // Prevent caching of ambassador data
+        $this->response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+        $this->response->setHeader('Pragma', 'no-cache');
+        $this->response->setHeader('Expires', '0');
 
-        if (!$ambassador) {
-            return $this->failNotFound('Ambassador not found');
+        try {
+            // Get current program ID from session
+            $programId = session('current_program');
+            
+            if (!$programId) {
+                return $this->failValidationErrors('No program selected');
+            }
+
+            $ambassador = $this->model->find($id);
+
+            if (!$ambassador) {
+                return $this->failNotFound('Ambassador not found');
+            }
+            
+            // Security check: Ensure ambassador belongs to the current program
+            if ($ambassador->program_id != $programId) {
+                return $this->failNotFound('Ambassador not found in selected program');
+            }
+
+            return $this->respondSuccess([
+                'ambassador' => $ambassador,
+                'program_id' => $programId
+            ]);
+        } catch (\Exception $e) {
+            return $this->failServerError('Failed to retrieve ambassador: ' . $e->getMessage());
         }
-
-        return $this->respondSuccess($ambassador);
     }
 
     /**
@@ -212,6 +344,11 @@ class AmbassadorsApiController extends ApiBaseController
      */
     public function getAmbassadorByRefAndProgram($programId, $refCode)
     {
+        // Prevent caching of ambassador data
+        $this->response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+        $this->response->setHeader('Pragma', 'no-cache');
+        $this->response->setHeader('Expires', '0');
+
         $ambassador = $this->model->getAmbassadorByRefCodeAndProgramId($refCode, $programId);
 
         if (!$ambassador) {

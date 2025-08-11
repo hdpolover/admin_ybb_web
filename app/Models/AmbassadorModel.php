@@ -77,18 +77,30 @@ class AmbassadorModel extends Model
     {
         $builder = $this->builder();
 
-        // get data
+        // Get basic ambassador statistics
         $builder->select('COUNT(*) as total_ambassadors, SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active_ambassadors, SUM(CASE WHEN is_deleted = 1 THEN 1 ELSE 0 END) as deleted_ambassadors');
 
-        // Execute the query and get the result as an array of objects
-        $result  = $builder->where('program_id', $programId)->get()->getRowArray();
+        // Execute the query and get the result as an array
+        $result = $builder->where('program_id', $programId)->get()->getRowArray();
 
-        // check if result is empty
+        // Check if result is empty
         if (empty($result)) {
-            return null;
-        } else {
-            return $result;
+            return [
+                'total_ambassadors' => 0,
+                'active_ambassadors' => 0,
+                'deleted_ambassadors' => 0,
+                'total_referrals' => 0
+            ];
         }
+
+        // Get total referrals count using the comprehensive referral counting method
+        $referralCounts = $this->getComprehensiveReferralCounts($programId);
+        $totalReferrals = array_sum($referralCounts);
+
+        // Add total referrals to the result
+        $result['total_referrals'] = $totalReferrals;
+
+        return $result;
     }
 
     // get referrals by program id

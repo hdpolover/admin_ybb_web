@@ -275,10 +275,11 @@ class ParticipantModel extends Model
 
             $tempParticipant['essays'] = $participantEssay;
 
-            // set payments
+            // set payments - Always fetch fresh payment data for participants
             $paymentModel = new PaymentModel();
 
-            $payments = $paymentModel->getPayments($row['id']);
+            // Use the correct method name to get participant payments
+            $payments = $paymentModel->getPaymentsByParticipantId($row['id']);
 
             $tempParticipant['payments'] = $payments;
 
@@ -570,19 +571,24 @@ class ParticipantModel extends Model
      */
     public function searchParticipants($searchParams, $limit = 10, $page = 1, $includeOptions = [])
     {
-        // Create a unique cache key based on search parameters
-        $cacheKey = "participant_search_" . md5(json_encode($searchParams) . "_limit_{$limit}_page_{$page}_includes_" . json_encode($includeOptions));
+        // Check if payments are requested - if so, skip caching entirely
+        $includePayments = in_array('payments', $includeOptions);
         
-        // Try to get from cache
-        $cache = \Config\Services::cache();
-        $results = $cache->get($cacheKey);
-        
-        if ($results !== null) {
-            // Return cached results
-            return $results;
+        if (!$includePayments) {
+            // Create a unique cache key based on search parameters (only when payments not included)
+            $cacheKey = "participant_search_" . md5(json_encode($searchParams) . "_limit_{$limit}_page_{$page}_includes_" . json_encode($includeOptions));
+            
+            // Try to get from cache
+            $cache = \Config\Services::cache();
+            $results = $cache->get($cacheKey);
+            
+            if ($results !== null) {
+                // Return cached results (only when payments not included)
+                return $results;
+            }
         }
         
-        // Cache miss - perform the search
+        // Cache miss OR payment data requested - perform fresh search
         $builder = $this->builder();
         $offset = ($page - 1) * $limit;
         // Join with users table and programs table to enable search on user fields and program_category_id
@@ -728,9 +734,17 @@ class ParticipantModel extends Model
             'total' => $total
         ];
         
-        // Cache the search results for 30 minutes (1800 seconds)
-        // For search results, we use a shorter cache time since the data might change
-        $cache->save($cacheKey, $searchResults, 1800);
+        // Only cache search results when payments are NOT included
+        // Payment data should always be fresh to ensure real-time accuracy
+        if (!$includePayments) {
+            // Cache the search results for 30 minutes (1800 seconds)
+            // For search results, we use a shorter cache time since the data might change
+            $cache = \Config\Services::cache();
+            $cache->save($cacheKey, $searchResults, 1800);
+        } else {
+            // Log when payment data is served fresh without caching
+            log_message('info', "Participant search with payments - Fresh data served, no caching applied");
+        }
         
         return $searchResults;
     }
@@ -748,11 +762,14 @@ class ParticipantModel extends Model
     /**
      * Get participant payments by participant ID
      * Helper method for search results enhancement
+     * 
+     * IMPORTANT: Payment data is NEVER cached to ensure real-time information
      */
     private function getParticipantPayments($participantId)
     {
         $paymentModel = new PaymentModel();
-        return $paymentModel->getPayments($participantId);
+        // Always fetch fresh payment data - NO CACHING for payment information
+        return $paymentModel->getPaymentsByParticipantId($participantId);
     }
 
     /**

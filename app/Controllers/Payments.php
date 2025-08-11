@@ -57,9 +57,16 @@ class Payments extends BaseController
 
     /**
      * Get payments data for DataTables
+     * 
+     * Payment list data is never cached to ensure real-time status updates
      */
     public function getData()
     {
+        // Set cache-prevention headers for DataTables API
+        $this->response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+        $this->response->setHeader('Pragma', 'no-cache');
+        $this->response->setHeader('Expires', 'Thu, 01 Jan 1970 00:00:00 GMT');
+
         // Process DataTables server-side request
         $request = $this->request->getGet();
 
@@ -178,15 +185,26 @@ class Payments extends BaseController
 
     /**
      * View payment details
+     * 
+     * Payment details are never cached to ensure real-time data display
      */
     public function view($id)
     {
+        // Set cache-prevention headers for admin interface
+        $this->response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+        $this->response->setHeader('Pragma', 'no-cache');
+        $this->response->setHeader('Expires', 'Thu, 01 Jan 1970 00:00:00 GMT');
+
+        // Always fetch fresh payment data - no caching
         $payment = $this->paymentModel->getPaymentById($id);
 
         // Check if payment exists and belongs to the current program
         if (!$payment || $payment->program_id != session('current_program')) {
             return redirect()->to('payments')->with('error', 'Payment not found');
         }
+
+        // Log admin access to payment details
+        log_message('info', "Admin payment view accessed - Payment ID: {$id}, Status: {$payment->status}, Admin: " . session('user_id'));
 
         $data = [
             'payment' => $payment,
@@ -414,6 +432,9 @@ class Payments extends BaseController
     /**
      * Update payment status
      * 
+     * This method includes comprehensive cache invalidation to ensure
+     * all payment-related data is refreshed after status changes
+     * 
      * @param int $id Payment ID
      */
     public function updateStatus($id)
@@ -430,7 +451,7 @@ class Payments extends BaseController
                     ->with('error', 'Invalid input: ' . implode(', ', $this->validator->getErrors()));
             }
 
-            // Get payment data
+            // Get payment data BEFORE update for cache invalidation
             $payment = $this->paymentModel->getPaymentById($id);
 
             // Check if payment exists and belongs to the current program
@@ -438,6 +459,7 @@ class Payments extends BaseController
                 return redirect()->to('payments')->with('error', 'Payment not found');
             }
 
+            $oldStatus = $payment->status; // Store old status for comparison
             $status = $this->request->getPost('status');
             $notes = $this->request->getPost('notes');
 
@@ -469,15 +491,19 @@ class Payments extends BaseController
                 }
             }
 
-            // Update payment status using model method which handles notes concatenation
+            // Update payment status using model method which includes cache invalidation
             $updated = $this->paymentModel->updatePaymentStatus($id, $status, $statusUpdateNote, $rejectionReason);
 
             if ($updated) {
-                // If payment was successful, you might want to trigger some additional actions
+                // Additional cache invalidation for admin interfaces and API endpoints
+                $this->invalidatePaymentCaches($payment, $oldStatus, $status);
+
+                // If payment was successful, trigger additional actions
                 if ($status == 2) {
-                    // E.g., Update participant status, send confirmation email, etc.
                     $this->handleSuccessfulPaymentActions($payment);
                 }
+
+                log_message('info', "Admin payment status update - Payment ID: {$id}, Old Status: {$oldStatus}, New Status: {$status}, Admin: " . session('user_id'));
 
                 return redirect()->to('payments/view/' . $id)
                     ->with('success', "Payment status updated to '{$statusName}' successfully");
@@ -493,6 +519,97 @@ class Payments extends BaseController
             // Return user-friendly error message
             return redirect()->back()
                 ->with('error', 'An error occurred while updating the payment status. Please try again.');
+        }
+    }
+
+    /**
+     * Invalidate all payment-related caches after status update
+     * 
+     * @param object $payment Payment data
+     * @param int $oldStatus Previous status
+     * @param int $newStatus New status
+     */
+    private function invalidatePaymentCaches($payment, $oldStatus, $newStatus)
+    {
+        try {
+            $cache = \Config\Services::cache();
+            
+            // Clear payment-specific caches
+            $keysToDelete = [
+                // Individual payment cache
+                "payment_id_{$payment->id}",
+                "payment_detail_{$payment->id}",
+                
+                // Participant payment caches
+                "participant_payments_{$payment->participant_id}",
+                "payments_participant_{$payment->participant_id}",
+                
+                // Program payment caches  
+                "program_payment_data_{$payment->program_payment_id}_{$payment->participant_id}",
+                "payments_program_{$payment->program_payment_id}_participant_{$payment->participant_id}",
+                
+                // Program statistics caches
+                "payment_stats_{$payment->program_id}",
+                "payment_stats_currency_{$payment->program_id}",
+                "program_payments_{$payment->program_id}",
+                
+                // Status-specific caches
+                "payments_status_{$oldStatus}_program_{$payment->program_id}",
+                "payments_status_{$newStatus}_program_{$payment->program_id}",
+                
+                // Admin interface caches
+                "admin_payment_list_{$payment->program_id}",
+                "admin_payment_filters_{$payment->program_id}",
+                "datatable_payments_{$payment->program_id}",
+                
+                // Export caches
+                "export_payments_{$payment->program_id}",
+                "export_request_payments_{$payment->program_id}",
+                
+                // API response caches
+                "api_payments_config",
+                "api_payments_participant_{$payment->participant_id}",
+                "api_payments_program_{$payment->program_payment_id}",
+            ];
+
+            $deletedCount = 0;
+            foreach ($keysToDelete as $key) {
+                if ($cache->delete($key)) {
+                    $deletedCount++;
+                }
+                
+                // Also try with sanitized key (replace special characters with underscores)
+                $sanitizedKey = preg_replace('/[^a-zA-Z0-9_]/', '_', $key);
+                if ($cache->delete($sanitizedKey)) {
+                    $deletedCount++;
+                }
+            }
+
+            // Clear additional cache keys that might exist
+            $additionalKeys = [
+                // General payment caches by participant
+                "payments_{$payment->participant_id}",
+                "participant_{$payment->participant_id}_payments",
+                
+                // Payment method caches
+                "payment_method_{$payment->payment_method_id}",
+                
+                // Program-wide caches
+                "program_{$payment->program_id}_payment_stats",
+                "program_{$payment->program_id}_payments",
+            ];
+
+            foreach ($additionalKeys as $key) {
+                if ($cache->delete($key)) {
+                    $deletedCount++;
+                }
+            }
+
+            log_message('info', "Payment cache invalidation complete - Payment ID: {$payment->id}, Status: {$oldStatus} → {$newStatus}, Keys deleted: {$deletedCount}");
+            
+        } catch (\Exception $e) {
+            log_message('error', 'Error invalidating payment caches: ' . $e->getMessage());
+            // Don't throw exception - cache invalidation failure shouldn't break the payment update
         }
     }
 

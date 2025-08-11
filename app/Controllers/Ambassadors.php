@@ -22,11 +22,26 @@ class Ambassadors extends BaseController
 
     public function index()
     {
+        // Prevent caching of ambassador data
+        $this->response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+        $this->response->setHeader('Pragma', 'no-cache');
+        $this->response->setHeader('Expires', '0');
+
         $programId = session('current_program');
         $program = $this->programModel->find($programId);
 
         // Get ambassador statistics
         $stats = $this->ambassadorModel->getAmbassadorStats($programId);
+        
+        // Ensure stats is an array with default values if null
+        if (!$stats) {
+            $stats = [
+                'total_ambassadors' => 0,
+                'active_ambassadors' => 0,
+                'deleted_ambassadors' => 0,
+                'total_referrals' => 0
+            ];
+        }
 
         $data = [
             'title' => 'Ambassadors',
@@ -41,7 +56,12 @@ class Ambassadors extends BaseController
      * Get ambassadors data for DataTables
      */
     public function getData()
-    {        
+    {
+        // Prevent caching of ambassador data
+        $this->response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+        $this->response->setHeader('Pragma', 'no-cache');
+        $this->response->setHeader('Expires', '0');
+        
         $programId = session('current_program');
 
         // Process DataTables server-side request
@@ -213,6 +233,11 @@ class Ambassadors extends BaseController
      */
     public function view($id)
     {
+        // Prevent caching of ambassador data
+        $this->response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+        $this->response->setHeader('Pragma', 'no-cache');
+        $this->response->setHeader('Expires', '0');
+
         $ambassador = $this->ambassadorModel->select('ambassadors.*')
             ->where('ambassadors.id', $id)
             ->first();
@@ -314,6 +339,11 @@ class Ambassadors extends BaseController
      */
     public function getAmbassadorData($id)
     {
+        // Prevent caching of ambassador data
+        $this->response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+        $this->response->setHeader('Pragma', 'no-cache');
+        $this->response->setHeader('Expires', '0');
+
         // Get ambassador data
         $ambassador = $this->ambassadorModel->find($id);
         
@@ -343,6 +373,11 @@ class Ambassadors extends BaseController
      */
     public function update()
     {
+        // Prevent caching of ambassador data
+        $this->response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+        $this->response->setHeader('Pragma', 'no-cache');
+        $this->response->setHeader('Expires', '0');
+
         $id = $this->request->getPost('id');
         
         // Check if ambassador exists
@@ -392,6 +427,11 @@ class Ambassadors extends BaseController
      */
     public function create()
     {
+        // Prevent caching of ambassador data
+        $this->response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+        $this->response->setHeader('Pragma', 'no-cache');
+        $this->response->setHeader('Expires', '0');
+
         // Prepare data
         $programId = session('current_program');
         
@@ -471,6 +511,11 @@ class Ambassadors extends BaseController
      */
     public function delete($id)
     {
+        // Prevent caching of ambassador data
+        $this->response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+        $this->response->setHeader('Pragma', 'no-cache');
+        $this->response->setHeader('Expires', '0');
+
         try {
             // Check if ambassador exists
             $ambassador = $this->ambassadorModel->find($id);
@@ -482,27 +527,28 @@ class Ambassadors extends BaseController
                 ]);
             }
 
-            // Soft delete by updating is_deleted field
+            // Deactivate ambassador by setting is_active = 0
             $updated = $this->ambassadorModel->update($id, [
-                'is_deleted' => 1,
+                'is_active' => 0,
                 'updated_at' => date('Y-m-d H:i:s')
             ]);
 
             if ($updated) {
                 return $this->response->setJSON([
                     'success' => true,
-                    'message' => 'Ambassador deleted successfully'
+                    'message' => 'Ambassador deactivated successfully',
+                    'refresh_page' => true
                 ]);
             } else {
                 return $this->response->setJSON([
                     'success' => false,
-                    'message' => 'Failed to delete ambassador'
+                    'message' => 'Failed to deactivate ambassador'
                 ]);
             }
         } catch (\Exception $e) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Error deleting ambassador: ' . $e->getMessage()
+                'message' => 'Error deactivating ambassador: ' . $e->getMessage()
             ]);
         }
     }

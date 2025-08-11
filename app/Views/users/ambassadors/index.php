@@ -582,12 +582,12 @@
 
                 Swal.fire({
                     title: 'Are you sure?',
-                    text: "This ambassador will be removed from the system. You won't be able to revert this!",
+                    text: "This ambassador will be deactivated and removed from the system. You won't be able to revert this!",
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonClass: 'btn btn-primary w-xs me-2 mt-2',
                     cancelButtonClass: 'btn btn-danger w-xs mt-2',
-                    confirmButtonText: 'Yes, delete it!',
+                    confirmButtonText: 'Yes, deactivate it!',
                     buttonsStyling: false,
                     showCloseButton: true
                 }).then(function(result) {
@@ -599,19 +599,25 @@
                             success: function(response) {
                                 if (response.success) {
                                     Swal.fire({
-                                        title: 'Deleted!',
-                                        text: 'Ambassador has been deleted successfully.',
+                                        title: 'Deactivated!',
+                                        text: 'Ambassador has been deactivated successfully.',
                                         icon: 'success',
                                         customClass: {
                                             confirmButton: 'btn btn-primary w-xs mt-2',
                                         },
                                         buttonsStyling: false
+                                    }).then(function() {
+                                        // Check if page refresh is requested
+                                        if (response.refresh_page) {
+                                            window.location.reload();
+                                        } else {
+                                            ambassadorsTable.ajax.reload();
+                                        }
                                     });
-                                    ambassadorsTable.ajax.reload();
                                 } else {
                                     Swal.fire({
                                         title: 'Error!',
-                                        text: response.message || 'Failed to delete ambassador',
+                                        text: response.message || 'Failed to deactivate ambassador',
                                         icon: 'error',
                                         customClass: {
                                             confirmButton: 'btn btn-primary w-xs mt-2',
@@ -624,7 +630,7 @@
                                 console.error('Error:', error);
                                 Swal.fire({
                                     title: 'Error!',
-                                    text: 'An error occurred while trying to delete the ambassador',
+                                    text: 'An error occurred while trying to deactivate the ambassador',
                                     icon: 'error',
                                     customClass: {
                                         confirmButton: 'btn btn-primary w-xs mt-2',

@@ -66,22 +66,14 @@ class PaymentModel extends Model
     /**
      * Get payments with participant details
      * 
+     * IMPORTANT: Payment data is NEVER cached to ensure real-time information
+     * 
      * @param int $programId Program ID
      * @return array
      */
     public function getPaymentsWithDetails($programId)
     {
-        $cacheKey = "payments_with_details_{$programId}";
-        
-        // Try to get from cache
-        $cache = \Config\Services::cache();
-        $payments = $cache->get($cacheKey);
-        
-        if ($payments !== null) {
-            return $payments;
-        }
-        
-        // Cache miss - query database
+        // Always fetch fresh payment data - NO CACHING for payment information
         $payments = $this->select('
                 payments.*, 
                 participants.full_name as participant_name,
@@ -94,8 +86,7 @@ class PaymentModel extends Model
             ->orderBy('payment_date', 'DESC')
             ->findAll();
             
-        // Cache for 30 minutes (1800 seconds)
-        $cache->save($cacheKey, $payments, 1800);
+        log_message('info', "Payment details accessed - Program ID: {$programId}, Fresh data served");
             
         return $payments;
     }
@@ -368,24 +359,15 @@ class PaymentModel extends Model
     /**
      * Check if a participant has successful payments for a specific program
      * 
+     * IMPORTANT: Payment status is NEVER cached to ensure real-time accuracy
+     * 
      * @param int $participantId Participant ID
      * @param int $programId Program ID
      * @return bool Returns true if participant has successful payments, false otherwise
      */
     public function hasSuccessfulPayments($participantId, $programId)
     {
-        // Create cache key
-        $cacheKey = "has_payments_{$participantId}_{$programId}";
-        
-        // Try to get from cache
-        $cache = \Config\Services::cache();
-        $hasPayments = $cache->get($cacheKey);
-        
-        if ($hasPayments !== null) {
-            return (bool)$hasPayments;
-        }
-        
-        // Cache miss - check database
+        // Always check fresh payment status - NO CACHING for payment verification
         $result = $this->select('COUNT(*) as payment_count')
             ->join('participants', 'participants.id = payments.participant_id')
             ->where('payments.participant_id', $participantId)
@@ -396,8 +378,7 @@ class PaymentModel extends Model
 
         $hasPayments = ($result && $result->payment_count > 0);
         
-        // Cache for 4 hours (14400 seconds) since payment status rarely changes once successful
-        $cache->save($cacheKey, $hasPayments, 14400);
+        log_message('info', "Payment status check - Participant ID: {$participantId}, Program ID: {$programId}, Has payments: " . ($hasPayments ? 'Yes' : 'No'));
         
         return $hasPayments;
     }
