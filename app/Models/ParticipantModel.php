@@ -970,5 +970,4 @@ class ParticipantModel extends Model
         
         return $data;
     }
-
 }
