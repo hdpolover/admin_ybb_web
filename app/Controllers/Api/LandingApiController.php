@@ -24,6 +24,7 @@ class LandingApiController extends ApiBaseController
     protected $photoModel;
     protected $participantModel;
     protected $programSubthemeModel;
+    
     /**
      * Initialize controller, set models
      */
@@ -44,6 +45,68 @@ class LandingApiController extends ApiBaseController
         $this->photoModel = new ProgramPhotoModel();
         $this->participantModel = new ParticipantModel();
         $this->programSubthemeModel = new ProgramSubthemeModel();
+    }
+
+    /**
+     * Clear cache for testing - DEVELOPMENT ONLY
+     * GET /api/landing/clear-cache?web_url={url}
+     */
+    public function clearCache()
+    {
+        try {
+            $this->invalidateLandingCache();
+            
+            return $this->respondSuccess([
+                'message' => 'Cache cleared successfully',
+                'timestamp' => date('Y-m-d H:i:s')
+            ]);
+        } catch (\Exception $e) {
+            return $this->respondError('Failed to clear cache: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Test endpoint to verify payment flags - DEVELOPMENT ONLY
+     * GET /api/landing/test-payment-flags?web_url={url}
+     */
+    public function testPaymentFlags()
+    {
+        try {
+            $webUrl = $this->request->getGet('web_url');
+
+            if (empty($webUrl)) {
+                return $this->respondValidationErrors('web_url parameter is required');
+            }
+
+            $normalizedWebUrl = normalize_web_url($webUrl);
+
+            // Get program category by web_url (no cache)
+            $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $normalizedWebUrl]);
+
+            if (!$category) {
+                return $this->respondNotFound('Program category not found');
+            }
+
+            // Get all programs for this category (should include payment flags)
+            $allPrograms = $this->programModel->getAllPrograms($category->id);
+
+            return $this->respondSuccess([
+                'category' => $category,
+                'programs_count' => count($allPrograms),
+                'programs' => $allPrograms,
+                'payment_flags_check' => array_map(function($program) {
+                    return [
+                        'program_id' => $program->id,
+                        'program_name' => $program->name,
+                        'has_payment_flags' => isset($program->registration_payments),
+                        'payment_flags' => $program->registration_payments ?? null
+                    ];
+                }, $allPrograms),
+                'timestamp' => date('Y-m-d H:i:s')
+            ]);
+        } catch (\Exception $e) {
+            return $this->respondError('Error testing payment flags: ' . $e->getMessage());
+        }
     }
 
     /**

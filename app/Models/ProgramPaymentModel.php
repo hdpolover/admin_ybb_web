@@ -58,4 +58,60 @@ class ProgramPaymentModel extends Model {
         $this->orderBy('order_number', 'ASC');
         return $this->findAll();
     }
+
+    /**
+     * Get registration payment information for a program
+     *
+     * @param int $programId The program ID
+     * @return array Array with self_funded and fully_funded payment info
+     */
+    public function getRegistrationPaymentFlags($programId)
+    {
+        $builder = $this->builder();
+        $payments = $builder
+            ->where('program_id', $programId)
+            ->where('category', 'registration')
+            ->where('is_active', 1)
+            ->where('is_deleted', 0)
+            ->whereIn('type', ['self_funded', 'fully_funded'])
+            ->get()
+            ->getResult();
+
+        $paymentFlags = [
+            'self_funded' => null,
+            'fully_funded' => null
+        ];
+
+        foreach ($payments as $payment) {
+            $currentDate = date('Y-m-d');
+            $isAvailable = true;
+            
+            // Check if payment is within valid date range
+            if ($payment->start_date && $currentDate < date('Y-m-d', strtotime($payment->start_date))) {
+                $isAvailable = false;
+            }
+            if ($payment->end_date && $currentDate > date('Y-m-d', strtotime($payment->end_date))) {
+                $isAvailable = false;
+            }
+
+            $paymentData = [
+                'id' => $payment->id,
+                'name' => $payment->name,
+                'description' => $payment->description,
+                'usd_amount' => $payment->usd_amount,
+                'start_date' => $payment->start_date,
+                'end_date' => $payment->end_date,
+                'is_available' => $isAvailable,
+                'is_active' => $payment->is_active == 1
+            ];
+
+            if ($payment->type === 'self_funded') {
+                $paymentFlags['self_funded'] = $paymentData;
+            } elseif ($payment->type === 'fully_funded') {
+                $paymentFlags['fully_funded'] = $paymentData;
+            }
+        }
+
+        return $paymentFlags;
+    }
 }

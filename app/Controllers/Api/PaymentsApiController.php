@@ -223,7 +223,7 @@ class PaymentsApiController extends ApiBaseController
 
             $programPayment = $programPaymentModel->find($programPaymentId);
 
-            if (!$programPayment) {
+            if (!$programPayment || $programPayment->is_deleted == 1) {
                 return $this->respondNotFound('Program payment not found');
             }
 

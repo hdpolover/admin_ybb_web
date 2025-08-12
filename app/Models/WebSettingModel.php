@@ -23,6 +23,16 @@ class WebSettingModel extends Model
         'usd_in_idr',
         'is_verification_required',
     ];
+
+    // Model event callbacks
+    protected $beforeInsert   = [];
+    protected $afterInsert    = ['invalidateCacheAfterInsert'];
+    protected $beforeUpdate   = [];
+    protected $afterUpdate    = ['invalidateCacheAfterUpdate'];
+    protected $beforeFind     = [];
+    protected $afterFind      = [];
+    protected $beforeDelete   = [];
+    protected $afterDelete    = ['invalidateCacheAfterDelete'];
     
     /**
      * Constructor to register cache hooks
@@ -176,5 +186,205 @@ class WebSettingModel extends Model
         }
         
         return $allSettings;
+    }
+
+    /**
+     * Invalidate cache after insert operation
+     * 
+     * @param array $data Operation result data
+     * @return array Unmodified data
+     */
+    protected function invalidateCacheAfterInsert(array $data): array
+    {
+        if (isset($data['data']['program_category_id'])) {
+            $this->invalidateWebSettingsCache($data['data']['program_category_id']);
+        }
+        return $data;
+    }
+
+    /**
+     * Invalidate cache after update operation
+     * 
+     * @param array $data Operation result data  
+     * @return array Unmodified data
+     */
+    protected function invalidateCacheAfterUpdate(array $data): array
+    {
+        if (isset($data['id'])) {
+            // Get the record to find program_category_id
+            $record = $this->find($data['id'][0]);
+            if ($record && isset($record->program_category_id)) {
+                $this->invalidateWebSettingsCache($record->program_category_id);
+            }
+        }
+        return $data;
+    }
+
+    /**
+     * Invalidate cache after delete operation
+     * 
+     * @param array $data Operation result data
+     * @return array Unmodified data  
+     */
+    protected function invalidateCacheAfterDelete(array $data): array
+    {
+        if (isset($data['id'])) {
+            // Since we don't have the record anymore, invalidate all caches
+            $this->invalidateAllWebSettingsCache();
+        }
+        return $data;
+    }
+
+    /**
+     * Invalidate all web settings related caches for a specific program category
+     * 
+     * @param int $programCategoryId The program category ID
+     * @return bool Success status
+     */
+    private function invalidateWebSettingsCache(int $programCategoryId): bool
+    {
+        try {
+            $cache = \Config\Services::cache();
+            $deletedCount = 0;
+            
+            // 1. Clear basic CodeIgniter cache keys
+            $basicKeysToDelete = [
+                "web_settings_category_{$programCategoryId}",
+                "web_settings_program_{$programCategoryId}",
+                "web_settings_all"
+            ];
+            
+            foreach ($basicKeysToDelete as $key) {
+                if ($cache->delete($key)) {
+                    $deletedCount++;
+                    log_message('info', "WebSettingModel: Basic cache cleared - {$key}");
+                }
+            }
+            
+            // 2. Clear API controller Redis cache keys
+            // Initialize Redis cache service for API cache invalidation
+            $redisCacheService = new \App\Services\RedisCacheService();
+            
+            if ($redisCacheService->isCacheAvailable()) {
+                // Get the program category to access web_url
+                $programCategoryModel = new \App\Models\ProgramCategoryModel();
+                $category = $programCategoryModel->find($programCategoryId);
+                
+                if ($category && !empty($category->web_url)) {
+                    // Generate the API cache key for this specific URL
+                    // Use the full API endpoint path including /api/ prefix
+                    $endpoint = 'api/web-settings';
+                    $parameters = ['url' => $category->web_url];
+                    $apiCacheKey = $redisCacheService->generateKey($endpoint, $parameters);
+                    
+                    if ($redisCacheService->delete($apiCacheKey)) {
+                        $deletedCount++;
+                        log_message('info', "WebSettingModel: API cache cleared - {$apiCacheKey} for URL: {$category->web_url}");
+                    }
+                }
+                
+                // Also clear the general web-settings API cache (without URL parameter)
+                $generalApiCacheKey = $redisCacheService->generateKey('api/web-settings', []);
+                if ($redisCacheService->delete($generalApiCacheKey)) {
+                    $deletedCount++;
+                    log_message('info', "WebSettingModel: General API cache cleared - {$generalApiCacheKey}");
+                }
+            } else {
+                log_message('warning', 'WebSettingModel: Redis cache unavailable for API cache invalidation');
+            }
+            
+            // 3. Clear URL-based caches from basic cache (for backwards compatibility)
+            if ($category && !empty($category->web_url)) {
+                $urlCacheKey = "web_settings_url_" . md5($category->web_url);
+                if ($cache->delete($urlCacheKey)) {
+                    $deletedCount++;
+                    log_message('info', "WebSettingModel: URL cache cleared - {$urlCacheKey} for URL: {$category->web_url}");
+                }
+            }
+            
+            log_message('info', "WebSettingModel: Cache invalidation complete - Program Category ID: {$programCategoryId}, Keys deleted: {$deletedCount}");
+            
+            return true;
+            
+        } catch (\Exception $e) {
+            log_message('error', 'WebSettingModel: Error invalidating caches - ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Invalidate all web settings caches (used when we can't determine specific category)
+     * 
+     * @return bool Success status
+     */
+    private function invalidateAllWebSettingsCache(): bool
+    {
+        try {
+            $cache = \Config\Services::cache();
+            $deletedCount = 0;
+            
+            // 1. Clear the all settings cache
+            if ($cache->delete("web_settings_all")) {
+                $deletedCount++;
+            }
+            
+            // 2. Initialize Redis cache service for API cache invalidation
+            $redisCacheService = new \App\Services\RedisCacheService();
+            
+            // Get all program categories to clear their specific caches
+            $programCategoryModel = new \App\Models\ProgramCategoryModel();
+            $allCategories = $programCategoryModel->findAll();
+            
+            foreach ($allCategories as $category) {
+                // Clear basic CodeIgniter cache keys
+                $categoryKeys = [
+                    "web_settings_category_{$category->id}",
+                    "web_settings_program_{$category->id}"
+                ];
+                
+                foreach ($categoryKeys as $key) {
+                    if ($cache->delete($key)) {
+                        $deletedCount++;
+                    }
+                }
+                
+                // Clear URL-based cache (basic)
+                if (!empty($category->web_url)) {
+                    $urlCacheKey = "web_settings_url_" . md5($category->web_url);
+                    if ($cache->delete($urlCacheKey)) {
+                        $deletedCount++;
+                    }
+                    
+                    // Clear API Redis cache for this URL
+                    if ($redisCacheService->isCacheAvailable()) {
+                        $endpoint = 'api/web-settings';
+                        $parameters = ['url' => $category->web_url];
+                        $apiCacheKey = $redisCacheService->generateKey($endpoint, $parameters);
+                        
+                        if ($redisCacheService->delete($apiCacheKey)) {
+                            $deletedCount++;
+                            log_message('info', "WebSettingModel: API cache cleared - {$apiCacheKey} for URL: {$category->web_url}");
+                        }
+                    }
+                }
+            }
+            
+            // Clear general API cache (without URL parameter)
+            if ($redisCacheService->isCacheAvailable()) {
+                $generalApiCacheKey = $redisCacheService->generateKey('api/web-settings', []);
+                if ($redisCacheService->delete($generalApiCacheKey)) {
+                    $deletedCount++;
+                    log_message('info', "WebSettingModel: General API cache cleared - {$generalApiCacheKey}");
+                }
+            }
+            
+            log_message('info', "WebSettingModel: All cache invalidation complete - Keys deleted: {$deletedCount}");
+            
+            return true;
+            
+        } catch (\Exception $e) {
+            log_message('error', 'WebSettingModel: Error invalidating all caches - ' . $e->getMessage());
+            return false;
+        }
     }
 }

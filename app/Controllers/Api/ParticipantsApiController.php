@@ -648,7 +648,110 @@ class ParticipantsApiController extends ApiBaseController
             return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
         }
     }    /**
-     * 🔍 Search Participants by Custom Parameters (READ)
+     * � Switch Participant Category (UPDATE)
+     * POST /api/participants/{participantId}/switch-category
+     * 
+     * Switches participant category between 'fully_funded' and 'self_funded'
+     * 
+     * Conditions for switching:
+     * 1. Participant hasn't made any SUCCESSFUL registration payment from the other category (status = 2)
+     * 2. Participant hasn't submitted the submission form (form_status != 2)
+     * 
+     * Note: Failed, pending, or cancelled payments from the target category don't prevent switching
+     * 
+     * @param int participantId The participant ID to switch category for
+     */
+    public function switchCategory($participantId = null)
+    {
+        try {
+            if (!$participantId) {
+                return $this->respondError('Participant ID is required', self::HTTP_BAD_REQUEST);
+            }
+
+            // Check if participant exists and get current data
+            $participant = $this->model->getParticipant($participantId);
+            if (!$participant) {
+                return $this->respondNotFound("Participant not found");
+            }
+
+            // Get current category and determine new category
+            $currentCategory = $participant->category ?? 'self_funded'; // Default to self_funded if null
+            $newCategory = ($currentCategory === 'fully_funded') ? 'self_funded' : 'fully_funded';
+
+            // Condition 1: Check if participant has made any SUCCESSFUL registration payment from ANY category
+            $paymentModel = new \App\Models\PaymentModel();
+            $programPaymentModel = new \App\Models\ProgramPaymentModel();
+            
+            // Get all payments made by this participant
+            $participantPayments = $paymentModel->where('participant_id', $participantId)
+                                                ->where('is_deleted', 0)
+                                                ->findAll();
+
+            if (!empty($participantPayments)) {
+                foreach ($participantPayments as $payment) {
+                    // Get the program payment details to check the category/type
+                    $programPayment = $programPaymentModel->find($payment->program_payment_id);
+                    
+                    if ($programPayment && 
+                        $programPayment->category === 'registration' && 
+                        $programPayment->is_deleted == 0 &&
+                        in_array($programPayment->type, ['self_funded', 'fully_funded']) &&
+                        $payment->status == 2) { // Only block if payment is successful (status = 2)
+                        
+                        return $this->respondError(
+                            "Cannot switch category. You have already made a successful registration payment for {$programPayment->type} category (Payment: {$programPayment->name})",
+                            self::HTTP_BAD_REQUEST
+                        );
+                    }
+                }
+            }
+
+            // Condition 2: Check if participant has submitted the submission form
+            $participantStatus = $this->participantStatusModel->where('participant_id', $participantId)
+                                                              ->first();
+            
+            if ($participantStatus && $participantStatus->form_status == 2) {
+                return $this->respondError(
+                    'Cannot switch category. You have already submitted the submission form',
+                    self::HTTP_BAD_REQUEST
+                );
+            }
+
+            // All conditions met, proceed with category switch
+            $updateData = ['category' => $newCategory];
+            $updated = $this->model->update($participantId, $updateData);
+
+            if (!$updated) {
+                return $this->respondError('Failed to switch participant category', self::HTTP_INTERNAL_ERROR);
+            }
+
+            // Log the category switch
+            log_message('info', "Participant category switched - Participant ID: {$participantId}, From: {$currentCategory}, To: {$newCategory}");
+
+            // Invalidate related cache
+            $this->invalidateUserCache($participant->user_id);
+            $this->invalidateProgramCache($participant->program_id);
+
+            // Get updated participant data
+            $updatedParticipant = $this->model->getParticipant($participantId);
+
+            return $this->respondSuccess([
+                'participant' => $updatedParticipant,
+                'category_switch' => [
+                    'from' => $currentCategory,
+                    'to' => $newCategory,
+                    'switched_at' => date('Y-m-d H:i:s')
+                ]
+            ], self::HTTP_OK, "Participant category successfully switched from {$currentCategory} to {$newCategory}");
+
+        } catch (\Exception $e) {
+            log_message('error', "Error switching participant category - Participant ID: {$participantId}, Error: " . $e->getMessage());
+            return $this->respondError('An error occurred while switching category: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
+        }
+    }
+
+    /**
+     * �🔍 Search Participants by Custom Parameters (READ)
      * GET /api/participants/search
      * 
      * IMPORTANT: Payment data is NEVER cached to ensure real-time information

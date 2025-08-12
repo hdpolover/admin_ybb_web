@@ -107,32 +107,6 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
         $routes->post('sign-in-jwt', 'AuthApiController::signIn');
     });
 
-    // Midtrans Payment Integration
-    $routes->group('payments', function ($routes) {
-        // Payment routes - organized by functionality
-        // get payment by id
-        $routes->get('(:num)', 'PaymentsApiController::getPayment/$1');
-
-        // Configuration and initialization
-        $routes->get('config', 'PaymentsApiController::getConfig');
-
-        // Transaction management
-        $routes->post('create', 'PaymentsApiController::createTransaction');
-        $routes->get('status/(:num)', 'PaymentsApiController::getStatus/$1');
-        $routes->get('participants/(:num)', 'PaymentsApiController::getPaymentsByParticipantId/$1');
-
-        // Manual payment handling
-        $routes->post('upload-proof', 'PaymentsApiController::uploadPaymentProof');
-
-        // Midtrans notifications and callbacks
-        $routes->post('webhook', 'PaymentsApiController::webhook');
-        $routes->get('finish', 'PaymentsApiController::finishRedirect');
-        $routes->get('unfinish', 'PaymentsApiController::unfinishRedirect');
-        $routes->get('error', 'PaymentsApiController::errorRedirect');
-
-        $routes->get('program-payment/(:num)/participant/(:num)', 'PaymentsApiController::getPaymentsByProgramPaymentIdAndParticipantId/$1/$2');
-    });
-
     // routes for program documents
     $routes->post('program-documents/upload', 'ProgramDocumentsApiController::addDocument');
     $routes->post('program-documents/participant-file', 'ProgramDocumentsApiController::showfile');
@@ -179,6 +153,8 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->get('participants/(:num)/status', 'ParticipantsApiController::getParticipantStatuses/$1');
     // get referral by participant id
     $routes->get('participants/(:num)/referrals', 'ParticipantsApiController::getParticipantReferrals/$1');
+    // switch participant category between fully_funded and self_funded
+    $routes->post('participants/(:num)/switch-category', 'ParticipantsApiController::switchCategory/$1');
 
     // ambassadors
     $routes->get('ambassadors', 'AmbassadorsApiController::index');
@@ -238,6 +214,20 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->post('payment-methods/(:num)', 'PaymentMethodsApiController::update/$1');
     $routes->delete('payment-methods/(:num)', 'PaymentMethodsApiController::delete/$1');
     $routes->get('payment-methods/program/(:num)', 'PaymentMethodsApiController::getByProgramId/$1');
+    
+    // payments - actual payment transactions
+    $routes->get('payments/(:num)', 'PaymentsApiController::getPayment/$1');
+    $routes->get('payments/participants/(:num)', 'PaymentsApiController::getPaymentsByParticipantId/$1');
+    $routes->get('payments/program-payments/(:num)/participants/(:num)', 'PaymentsApiController::getPaymentsByProgramPaymentIdAndParticipantId/$1/$2');
+    $routes->post('payments/create', 'PaymentsApiController::createTransaction');
+    $routes->post('payments/upload-proof', 'PaymentsApiController::uploadPaymentProof');
+    $routes->get('payments/status/(:num)', 'PaymentsApiController::getStatus/$1');
+    $routes->get('payments/config', 'PaymentsApiController::getConfig');
+    $routes->post('payments/webhook', 'PaymentsApiController::webhook');
+    $routes->get('payments/finish', 'PaymentsApiController::finishRedirect');
+    $routes->get('payments/unfinish', 'PaymentsApiController::unfinishRedirect');
+    $routes->get('payments/error', 'PaymentsApiController::errorRedirect');
+    
     // web settings
     $routes->get('web-settings', 'WebSettingApiController::index');
 
@@ -364,28 +354,13 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     });
 });
 
-// Landing API Routes
-$routes->group('api/landing', ['namespace' => 'App\Controllers\Api'], function ($routes) {
-    $routes->get('home', 'LandingApiController::home');
-    $routes->get('programs', 'LandingApiController::programs');
-    $routes->get('programs/(:num)', 'LandingApiController::programDetail/$1');
 
-    // galllery
-    $routes->get('gallery', 'LandingApiController::gallery');
-    // insights
-    $routes->get('insights', 'LandingApiController::insights');
-    $routes->get('insights/(:num)', 'LandingApiController::insightDetail/$1');
-    // partners and sponsors
-    $routes->get('partners-sponsors', 'LandingApiController::partnersSponsors');
-    $routes->get('partners-sponsors/(:num)', 'LandingApiController::partnerSponsorDetail/$1');
-    // announcements
-    $routes->get('announcements', 'LandingApiController::announcements');
-    $routes->get('announcements/(:num)', 'LandingApiController::announcementDetail/$1');
-});
 
 // Include modular route files
 require_once APPPATH . 'Config/Routes/Reviewers.php';
 require_once APPPATH . 'Config/Routes/Admin.php';
+require_once APPPATH . 'Config/Routes/Api.php';
+require_once APPPATH . 'Config/Routes/Landing.php';
 
 // Menu management test routes
 $routes->group('menu-test', ['namespace' => 'App\Controllers', 'filter' => 'access_control'], function ($routes) {

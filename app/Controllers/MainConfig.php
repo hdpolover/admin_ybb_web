@@ -3,9 +3,12 @@
 namespace App\Controllers;
 
 use App\Models\WebSettingModel;
+use App\Traits\Cacheable;
 
 class MainConfig extends BaseController
 {
+    use Cacheable;
+    
     protected $webSettingModel;
 
     public function __construct()
@@ -137,6 +140,9 @@ class MainConfig extends BaseController
             log_message('debug', 'MainConfig::update - Update result: ' . ($updateResult ? 'Success' : 'Failure'));
 
             if ($updateResult) {
+                // Invalidate web settings cache after successful update
+                $this->invalidateWebSettingsCache($settings->program_category_id);
+                
                 $session = session();
                 $session->setFlashdata('swalSuccess', 'Settings updated successfully');
                 log_message('debug', 'MainConfig::update - Success message set in flashdata');
@@ -152,6 +158,90 @@ class MainConfig extends BaseController
             $session = session();
             $session->setFlashdata('swalError', 'Error: ' . $e->getMessage());
             return redirect()->to('/settings/main-config');
+        }
+    }
+
+    /**
+     * Invalidate all web settings related caches
+     * 
+     * @param int $programCategoryId The program category ID
+     * @return bool Success status
+     */
+    private function invalidateWebSettingsCache(int $programCategoryId): bool
+    {
+        try {
+            $cache = \Config\Services::cache();
+            $deletedCount = 0;
+            
+            // 1. Clear basic CodeIgniter cache keys
+            $keysToDelete = [
+                "web_settings_category_{$programCategoryId}",
+                "web_settings_program_{$programCategoryId}",
+                "web_settings_all"
+            ];
+            
+            foreach ($keysToDelete as $key) {
+                if ($cache->delete($key)) {
+                    $deletedCount++;
+                    log_message('info', "MainConfig: Basic cache cleared - {$key}");
+                }
+            }
+            
+            // 2. Clear API controller Redis cache keys
+            $redisCacheService = new \App\Services\RedisCacheService();
+            
+            if ($redisCacheService->isCacheAvailable()) {
+                // Get all program categories to clear their URL-specific API caches
+                $programCategoryModel = new \App\Models\ProgramCategoryModel();
+                $allCategories = $programCategoryModel->findAll();
+                
+                foreach ($allCategories as $category) {
+                    if (!empty($category->web_url)) {
+                        // Generate the API cache key for this specific URL
+                        // Use the full API endpoint path including /api/ prefix
+                        $endpoint = 'api/web-settings';
+                        $parameters = ['url' => $category->web_url];
+                        $apiCacheKey = $redisCacheService->generateKey($endpoint, $parameters);
+                        
+                        if ($redisCacheService->delete($apiCacheKey)) {
+                            $deletedCount++;
+                            log_message('info', "MainConfig: API cache cleared - {$apiCacheKey} for URL: {$category->web_url}");
+                        }
+                    }
+                }
+                
+                // Also clear the general web-settings API cache (without URL parameter)
+                $generalApiCacheKey = $redisCacheService->generateKey('api/web-settings', []);
+                if ($redisCacheService->delete($generalApiCacheKey)) {
+                    $deletedCount++;
+                    log_message('info', "MainConfig: General API cache cleared - {$generalApiCacheKey}");
+                }
+            } else {
+                log_message('warning', 'MainConfig: Redis cache unavailable for API cache invalidation');
+            }
+            
+            // 3. Clear URL-based caches (for backwards compatibility)
+            $programCategoryModel = new \App\Models\ProgramCategoryModel();
+            $allCategories = $programCategoryModel->findAll();
+            
+            foreach ($allCategories as $category) {
+                if (!empty($category->web_url)) {
+                    $urlCacheKey = "web_settings_url_" . md5($category->web_url);
+                    if ($cache->delete($urlCacheKey)) {
+                        $deletedCount++;
+                        log_message('info', "MainConfig: URL cache cleared - {$urlCacheKey} for URL: {$category->web_url}");
+                    }
+                }
+            }
+            
+            log_message('info', "MainConfig: Cache invalidation complete - Program Category ID: {$programCategoryId}, Keys deleted: {$deletedCount}");
+            
+            return true;
+            
+        } catch (\Exception $e) {
+            log_message('error', 'MainConfig: Error invalidating web settings caches - ' . $e->getMessage());
+            // Don't throw exception - cache invalidation failure shouldn't break the settings update
+            return false;
         }
     }
 

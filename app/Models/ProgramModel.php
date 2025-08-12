@@ -41,6 +41,9 @@ class ProgramModel extends Model
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
 
+    // Model for getting payment information
+    protected $programPaymentModel;
+
     /**
      * Get program by name
      *
@@ -49,9 +52,16 @@ class ProgramModel extends Model
      */
     public function getProgramByName($name)
     {
-        return $this->where('name', $name)
+        $program = $this->where('name', $name)
             ->where('is_deleted', 0)
             ->first();
+            
+        // Attach payment information if program exists
+        if ($program) {
+            $this->attachPaymentFlags($program);
+        }
+        
+        return $program;
     }
 
     /**
@@ -68,7 +78,14 @@ class ProgramModel extends Model
             ->where('is_active', 1)
             ->where('is_deleted', 0);
         
-        return $builder->get()->getRow();
+        $program = $builder->get()->getRow();
+        
+        // Attach payment information if program exists
+        if ($program) {
+            $this->attachPaymentFlags($program);
+        }
+        
+        return $program;
     }
 
     /**
@@ -79,9 +96,16 @@ class ProgramModel extends Model
      */
     public function getAllPrograms($programCategoryId)
     {
-        return $this->where('program_category_id', $programCategoryId)
+        $programs = $this->where('program_category_id', $programCategoryId)
             ->where('is_deleted', 0)
             ->findAll();
+
+        // Attach payment information to each program
+        foreach ($programs as $program) {
+            $this->attachPaymentFlags($program);
+        }
+
+        return $programs;
     }
 
     /**
@@ -93,11 +117,44 @@ class ProgramModel extends Model
      */
     public function getProgramByIdAndCategory($id, $programCategoryId)
     {
-        return $this->where('id', $id)
+        $program = $this->where('id', $id)
             ->where('program_category_id', $programCategoryId)
             ->where('is_active', 1)
             ->where('is_deleted', 0)
             ->first();
+
+        // Attach payment information if program exists
+        if ($program) {
+            $this->attachPaymentFlags($program);
+        }
+
+        return $program;
+    }
+
+    /**
+     * Get program by slug with category filter
+     *
+     * @param string $slug
+     * @param int $programCategoryId
+     * @return array|null
+     */
+    public function getProgramBySlugAndCategory($slug, $programCategoryId)
+    {
+        // Convert slug to program name format (replace hyphens with spaces)
+        $programName = str_replace('-', ' ', $slug);
+        
+        $program = $this->where('name', $programName)
+            ->where('program_category_id', $programCategoryId)
+            ->where('is_active', 1)
+            ->where('is_deleted', 0)
+            ->first();
+
+        // Attach payment information if program exists
+        if ($program) {
+            $this->attachPaymentFlags($program);
+        }
+
+        return $program;
     }
 
     /**
@@ -120,12 +177,24 @@ class ProgramModel extends Model
 
         $programs = $builder->get()->getResult();
 
+        // Attach payment information to each program
+        foreach ($programs as $program) {
+            $this->attachPaymentFlags($program);
+        }
+
         return $programs;
     }
 
     public function getProgramById($id)
     {
-        return $this->find($id);
+        $program = $this->find($id);
+        
+        // Attach payment information if program exists
+        if ($program) {
+            $this->attachPaymentFlags($program);
+        }
+        
+        return $program;
     }
 
     /**
@@ -156,6 +225,37 @@ class ProgramModel extends Model
             $builder->limit($limit);
         }
         
-        return $builder->get()->getResult();
+        $programs = $builder->get()->getResult();
+
+        // Attach payment information to each program
+        foreach ($programs as $program) {
+            $this->attachPaymentFlags($program);
+        }
+        
+        return $programs;
+    }
+
+    /**
+     * Attach payment flags to a program object
+     *
+     * @param object $program Program object to attach payment info to
+     * @return void
+     */
+    private function attachPaymentFlags($program)
+    {
+        if (!$program || !isset($program->id)) {
+            return;
+        }
+
+        // Load ProgramPaymentModel if not already loaded
+        if (!isset($this->programPaymentModel)) {
+            $this->programPaymentModel = new \App\Models\ProgramPaymentModel();
+        }
+
+        // Get payment flags
+        $paymentFlags = $this->programPaymentModel->getRegistrationPaymentFlags($program->id);
+        
+        // Attach to program object
+        $program->registration_payments = $paymentFlags;
     }
 }

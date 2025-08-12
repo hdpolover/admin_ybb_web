@@ -27,15 +27,27 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
         $routes->post('sign-in-jwt', 'AuthApiController::signIn');
     });
 
-    // Protected routes with JWT authentication
-    $routes->group('', ['filter' => 'jwt'], function ($routes) {
-        $routes->get('my-programs', 'ProgramsApiController::getUserPrograms');
-        // Add more protected endpoints here
-    });
+    // Payment routes - publicly accessible (webhooks, redirects, config) - SPECIFIC PATHS FIRST
+    $routes->get('payments/config', 'PaymentsApiController::getConfig');
+    $routes->post('payments/webhook', 'PaymentsApiController::webhook'); 
+    $routes->get('payments/finish', 'PaymentsApiController::finishRedirect');
+    $routes->get('payments/unfinish', 'PaymentsApiController::unfinishRedirect');  
+    $routes->get('payments/error', 'PaymentsApiController::errorRedirect');
+
+    // Payment routes with explicit JWT filter (using same pattern as auth/profile)
+    $routes->post('payments/create', 'PaymentsApiController::createTransaction', ['filter' => 'jwt']);
+    $routes->post('payments/upload-proof', 'PaymentsApiController::uploadPaymentProof', ['filter' => 'jwt']);
+    $routes->get('payments/get/(:num)', 'PaymentsApiController::getPayment/$1', ['filter' => 'jwt']);
+    $routes->get('payments/status/(:segment)', 'PaymentsApiController::getStatus/$1', ['filter' => 'jwt']);
+    $routes->get('payments/participant/(:num)', 'PaymentsApiController::getPaymentsByParticipantId/$1', ['filter' => 'jwt']);
+    $routes->get('payments/program-payment/(:num)/participant/(:num)', 'PaymentsApiController::getPaymentsByProgramPaymentIdAndParticipantId/$1/$2', ['filter' => 'jwt']);
+
+    // Other protected routes
+    $routes->get('my-programs', 'ProgramsApiController::getUserPrograms', ['filter' => 'jwt']);
 
     // Profile picture routes - publicly accessible
     $routes->post('participants/(:num)/upload-picture', 'ProfileApiController::uploadParticipantProfilePicture/$1');
-
+    
     // users
     $routes->get('users', 'UsersApiController::index');
     $routes->get('users/(:num)', 'UsersApiController::show/$1');
