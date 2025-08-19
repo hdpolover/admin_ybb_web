@@ -384,6 +384,64 @@ class PaymentModel extends Model
     }
 
     /**
+     * Check if participant has successful registration payment for any category
+     * Optimized query to check payment eligibility for category switching
+     * 
+     * @param int $participantId Participant ID
+     * @return array Returns array with payment status information
+     */
+    public function hasSuccessfulRegistrationPayment($participantId)
+    {
+        try {
+            // Single optimized query to check for successful registration payments
+            $result = $this->builder()
+                ->select('
+                    payments.id as payment_id,
+                    pp.type as payment_type,
+                    pp.name as payment_name,
+                    pp.category as payment_category
+                ')
+                ->join('program_payments pp', 'pp.id = payments.program_payment_id')
+                ->where('payments.participant_id', $participantId)
+                ->where('payments.is_deleted', 0)
+                ->where('pp.category', 'registration')
+                ->where('pp.is_deleted', 0)
+                ->whereIn('pp.type', ['self_funded', 'fully_funded'])
+                ->where('payments.status', 2) // Only successful payments
+                ->get()
+                ->getFirstRow();
+
+            if ($result) {
+                return [
+                    'has_payment' => true,
+                    'payment_id' => $result->payment_id,
+                    'payment_type' => $result->payment_type,
+                    'payment_name' => $result->payment_name,
+                    'payment_category' => $result->payment_category
+                ];
+            }
+
+            return [
+                'has_payment' => false,
+                'payment_id' => null,
+                'payment_type' => null,
+                'payment_name' => null,
+                'payment_category' => null
+            ];
+
+        } catch (\Exception $e) {
+            log_message('error', "Error checking successful registration payment: " . $e->getMessage());
+            return [
+                'has_payment' => false,
+                'payment_id' => null,
+                'payment_type' => null,
+                'payment_name' => null,
+                'payment_category' => null
+            ];
+        }
+    }
+
+    /**
      * Override insert method to invalidate cache after creating new payment
      * 
      * @param array $data

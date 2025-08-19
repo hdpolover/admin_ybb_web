@@ -114,4 +114,37 @@ class ProgramPaymentModel extends Model {
 
         return $paymentFlags;
     }
+
+    /**
+     * Get available registration payment for a specific category
+     * Used for category switching validation
+     * 
+     * @param int $programId The program ID
+     * @param string $paymentType The payment type (self_funded or fully_funded)
+     * @return object|null The available payment or null if not available
+     */
+    public function getAvailableRegistrationPayment($programId, $paymentType)
+    {
+        try {
+            $currentDate = date('Y-m-d H:i:s');
+            
+            $builder = $this->builder();
+            $payment = $builder
+                ->where('program_id', $programId)
+                ->where('category', 'registration')
+                ->where('type', $paymentType)
+                ->where('is_active', 1)
+                ->where('is_deleted', 0)
+                ->where('start_date <=', $currentDate)
+                ->where('end_date >=', $currentDate)
+                ->get()
+                ->getFirstRow();
+
+            return $payment;
+
+        } catch (\Exception $e) {
+            log_message('error', "Error getting available registration payment: " . $e->getMessage());
+            return null;
+        }
+    }
 }

@@ -221,7 +221,7 @@ class YbbExport
             ];
         }
         
-        // Prepare payload according to API specification
+        // Prepare payload according to Python service API specification
         $payload = [
             'data' => $data,
             'template' => $options['template'] ?? 'standard',
@@ -237,6 +237,15 @@ class YbbExport
             $payload['sheet_name'] = $options['sheet_name'];
         }
         
+        // Add chunking parameters if specified (for large datasets)
+        if (isset($options['force_chunking']) && $options['force_chunking']) {
+            $payload['force_chunking'] = true;
+            
+            if (isset($options['chunk_size'])) {
+                $payload['chunk_size'] = $options['chunk_size'];
+            }
+        }
+        
         $url = $this->apiUrl . "/api/ybb/export/{$exportType}";
         
         if ($this->config->enableDebugLogging) {
@@ -245,49 +254,98 @@ class YbbExport
         
         $result = $this->_makeRequest('POST', $url, $payload);
         
-        // Transform API response to match expected format
+        // Transform API response to match expected format based on Python service guide
         if ($result['success']) {
             $apiData = $result['data'];
             
-            // Handle direct success response (new API format)
+            // Handle Python service response format
             if (isset($apiData['status']) && $apiData['status'] === 'success') {
+                $responseData = [
+                    'export_id' => $apiData['data']['export_id'],
+                    'download_url' => $apiData['download_url'] ?? null,
+                    'record_count' => $apiData['data']['record_count'] ?? count($data),
+                    'created_at' => $apiData['data']['generated_at'] ?? null
+                ];
+                
+                // Handle single file export response
+                if (isset($apiData['export_strategy']) && $apiData['export_strategy'] === 'single_file') {
+                    $responseData['file_name'] = $apiData['data']['file_name'] ?? null;
+                    $responseData['file_size'] = $apiData['data']['file_size'] ?? null;
+                    $responseData['file_size_mb'] = $apiData['data']['file_size_mb'] ?? null;
+                    $responseData['export_strategy'] = 'single_file';
+                    $responseData['total_files'] = 1;
+                    
+                    // Add performance metrics
+                    if (isset($apiData['performance_metrics'])) {
+                        $responseData['performance_metrics'] = $apiData['performance_metrics'];
+                    }
+                    
+                    if ($this->config->enableDebugLogging) {
+                        log_message('info', "YBB Export: Single file export completed");
+                    }
+                }
+                // Handle chunked/multi-file export response  
+                elseif (isset($apiData['export_strategy']) && $apiData['export_strategy'] === 'multi_file') {
+                    $responseData['file_name'] = $apiData['data']['archive_info']['filename'] ?? null;
+                    $responseData['export_strategy'] = 'chunked';
+                    $responseData['total_files'] = $apiData['data']['total_files'] ?? 1;
+                    $responseData['individual_files'] = $apiData['data']['individual_files'] ?? null;
+                    $responseData['chunk_count'] = $apiData['data']['total_files'] ?? 1;
+                    
+                    // Add archive information
+                    if (isset($apiData['data']['archive_info'])) {
+                        $responseData['archive'] = [
+                            'filename' => $apiData['data']['archive_info']['filename'],
+                            'compressed_size' => $apiData['data']['archive_info']['compressed_size'],
+                            'uncompressed_size' => $apiData['data']['archive_info']['uncompressed_size'],
+                            'compression_ratio' => $apiData['data']['archive_info']['compression_ratio'],
+                            'compression_time_seconds' => $apiData['data']['archive_info']['compression_time_seconds']
+                        ];
+                    }
+                    
+                    // Add performance metrics
+                    if (isset($apiData['data']['performance_metrics'])) {
+                        $responseData['performance_metrics'] = $apiData['data']['performance_metrics'];
+                    }
+                    
+                    // Add system info
+                    if (isset($apiData['data']['system_info'])) {
+                        $responseData['system_info'] = $apiData['data']['system_info'];
+                    }
+                    
+                    if ($this->config->enableDebugLogging) {
+                        log_message('info', "YBB Export: Chunked export completed with {$apiData['data']['total_files']} files");
+                    }
+                }
+                
                 return [
                     'success' => true,
-                    'data' => [
-                        'export_id' => $apiData['data']['export_id'],
-                        'file_name' => $apiData['data']['file_name'] ?? null,
-                        'file_size' => $apiData['data']['file_size'] ?? null,
-                        'record_count' => $apiData['data']['record_count'] ?? count($data),
-                        'download_url' => $apiData['data']['download_url'] ?? null,
-                        'expires_at' => $apiData['data']['expires_at'] ?? null,
-                        'export_strategy' => $apiData['export_strategy'] ?? 'single_file',
-                        'estimated_time' => $apiData['metadata']['processing_time'] ?? null,
-                        'total_files' => $apiData['data']['total_files'] ?? 1,
-                        'individual_files' => $apiData['data']['individual_files'] ?? null,
-                        'archive' => $apiData['data']['archive'] ?? null
-                    ],
-                    'metadata' => $apiData['metadata'] ?? []
+                    'data' => $responseData,
+                    'metadata' => [
+                        'processing_time' => $apiData['performance_metrics']['total_processing_time_seconds'] ?? null,
+                        'export_strategy' => $apiData['export_strategy'] ?? 'single_file'
+                    ]
                 ];
             }
             
-            // Handle enhanced API response format with filename support
+            // Fallback for direct response format
             if (isset($apiData['export_id'])) {
                 return [
                     'success' => true,
                     'data' => [
                         'export_id' => $apiData['export_id'],
-                        'file_name' => $apiData['file_name'] ?? null,
+                        'file_name' => $apiData['filename'] ?? $apiData['file_name'] ?? null,
                         'file_size' => $apiData['file_size'] ?? null,
                         'record_count' => $apiData['record_count'] ?? count($data),
                         'download_url' => $apiData['download_url'] ?? null,
                         'expires_at' => $apiData['expires_at'] ?? null,
-                        'export_strategy' => $apiData['export_strategy'] ?? 'single_file',
-                        'estimated_time' => $result['metadata']['processing_time'] ?? null,
-                        'total_files' => $apiData['total_files'] ?? 1,
-                        'individual_files' => $apiData['individual_files'] ?? null,
-                        'archive' => $apiData['archive'] ?? null
+                        'export_strategy' => 'single_file',
+                        'estimated_time' => null,
+                        'total_files' => 1,
+                        'individual_files' => null,
+                        'archive' => null
                     ],
-                    'metadata' => $result['metadata'] ?? []
+                    'metadata' => []
                 ];
             }
         }
@@ -295,6 +353,9 @@ class YbbExport
         return $result;
     }
     
+    /**
+     * Create chunked export for large datasets
+     */
     /**
      * Make HTTP request to API with retry logic
      */

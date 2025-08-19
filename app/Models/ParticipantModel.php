@@ -911,6 +911,150 @@ class ParticipantModel extends Model
     }
     
     /**
+     * Check if participant is eligible to switch category
+     * Optimized with joins to minimize database queries
+     * 
+     * @param int $participantId
+     * @return array Eligibility result with detailed information
+     */
+    public function checkCategorySwitchEligibility($participantId)
+    {
+        try {
+            // Single query to get participant with related data
+            $builder = $this->builder();
+            $participant = $builder->select('
+                    participants.*,
+                    ps.form_status,
+                    ps.payment_status,
+                    ps.general_status,
+                    ps.document_status
+                ')
+                ->join('participant_statuses ps', 'ps.participant_id = participants.id', 'left')
+                ->where('participants.id', $participantId)
+                ->where('participants.is_deleted', 0)
+                ->get()
+                ->getFirstRow();
+
+            if (!$participant) {
+                return [
+                    'eligible' => false,
+                    'reason' => 'Participant not found',
+                    'participant' => null,
+                    'current_category' => null,
+                    'target_category' => null,
+                    'target_payment' => null
+                ];
+            }
+
+            // Determine current and target categories
+            $currentCategory = $participant->category ?? 'self_funded';
+            $targetCategory = ($currentCategory === 'fully_funded') ? 'self_funded' : 'fully_funded';
+
+            // Condition 1: Check for successful registration payments using optimized query
+            $paymentModel = new \App\Models\PaymentModel();
+            $hasSuccessfulPayment = $paymentModel->hasSuccessfulRegistrationPayment($participantId);
+
+            if ($hasSuccessfulPayment['has_payment']) {
+                return [
+                    'eligible' => false,
+                    'reason' => "Cannot switch category. You have already made a successful registration payment for {$hasSuccessfulPayment['payment_type']} category (Payment: {$hasSuccessfulPayment['payment_name']})",
+                    'participant' => $participant,
+                    'current_category' => $currentCategory,
+                    'target_category' => $targetCategory,
+                    'target_payment' => null
+                ];
+            }
+
+            // Condition 2: Check submission form status
+            if ($participant->form_status == 2) {
+                return [
+                    'eligible' => false,
+                    'reason' => 'Cannot switch category. You have already submitted the submission form',
+                    'participant' => $participant,
+                    'current_category' => $currentCategory,
+                    'target_category' => $targetCategory,
+                    'target_payment' => null
+                ];
+            }
+
+            // Condition 3: Check if target category payment is available
+            $programPaymentModel = new \App\Models\ProgramPaymentModel();
+            $targetPayment = $programPaymentModel->getAvailableRegistrationPayment($participant->program_id, $targetCategory);
+
+            if (!$targetPayment) {
+                return [
+                    'eligible' => false,
+                    'reason' => "Cannot switch to {$targetCategory} category. Registration payment for this category is not currently available or has expired",
+                    'participant' => $participant,
+                    'current_category' => $currentCategory,
+                    'target_category' => $targetCategory,
+                    'target_payment' => null
+                ];
+            }
+
+            // All conditions passed
+            return [
+                'eligible' => true,
+                'reason' => 'Participant is eligible to switch category',
+                'participant' => $participant,
+                'current_category' => $currentCategory,
+                'target_category' => $targetCategory,
+                'target_payment' => $targetPayment
+            ];
+
+        } catch (\Exception $e) {
+            log_message('error', "Error checking category switch eligibility: " . $e->getMessage());
+            return [
+                'eligible' => false,
+                'reason' => 'An error occurred while checking eligibility',
+                'participant' => null,
+                'current_category' => null,
+                'target_category' => null,
+                'target_payment' => null
+            ];
+        }
+    }
+
+    /**
+     * Switch participant category with optimized database operations
+     * 
+     * @param int $participantId
+     * @param string $newCategory
+     * @return bool Success status
+     */
+    public function switchParticipantCategory($participantId, $newCategory)
+    {
+        try {
+            // Validate category
+            if (!in_array($newCategory, ['fully_funded', 'self_funded'])) {
+                throw new \InvalidArgumentException('Invalid category. Must be fully_funded or self_funded');
+            }
+
+            // Update participant category using CodeIgniter model's update method
+            $updateData = [
+                'category' => $newCategory,
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+
+            $result = $this->update($participantId, $updateData);
+
+            if ($result) {
+                // Invalidate related caches
+                $this->invalidateParticipantCaches($participantId);
+                
+                log_message('info', "Participant category updated successfully - ID: {$participantId}, New Category: {$newCategory}");
+                return true;
+            }
+
+            return false;
+
+        } catch (\Exception $e) {
+            log_message('error', "Error switching participant category: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Cache invalidation hooks
      */
     protected function afterInsert(array $data)

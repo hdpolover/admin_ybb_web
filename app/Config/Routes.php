@@ -151,8 +151,12 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->get('participants/(:num)/subthemes', 'ParticipantsApiController::getParticipantSubthemes/$1');
     // get participant statuses
     $routes->get('participants/(:num)/status', 'ParticipantsApiController::getParticipantStatuses/$1');
+    // get participant documents
+    $routes->get('participants/(:num)/documents', 'ParticipantsApiController::getParticipantDocuments/$1');
     // get referral by participant id
     $routes->get('participants/(:num)/referrals', 'ParticipantsApiController::getParticipantReferrals/$1');
+    // check participant category switch eligibility
+    $routes->get('participants/(:num)/switch-category/check', 'ParticipantsApiController::checkSwitchCategoryEligibility/$1');
     // switch participant category between fully_funded and self_funded
     $routes->post('participants/(:num)/switch-category', 'ParticipantsApiController::switchCategory/$1');
 
@@ -245,6 +249,12 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
 
     // Maintenance check endpoint - publicly accessible
     $routes->get('maintenance/check', 'Api\MaintenanceApiController::check');
+    
+    // Test endpoint
+    $routes->get('test', 'TestApiController::index');
+    
+    // Simple test endpoint
+    $routes->get('simple-test', 'SimpleTestApiController::index');
 
     // loa templates
     $routes->get('loa-templates', 'LoaTemplatesApiController::index');

@@ -550,7 +550,7 @@
                         // Add the required classes and data attributes
                         exportBtn.classList.add('export-btn');
                         exportBtn.setAttribute('data-export-type', 'participants');
-                        exportBtn.setAttribute('data-url', '/exports/participants');
+                        exportBtn.setAttribute('data-url', '/api/ybb/export/participants');
                         
                         // IMPORTANT: Add data attribute to specify which form to use for CSRF token
                         exportBtn.setAttribute('data-form-selector', '#exportForm');
@@ -661,7 +661,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="exportForm" action="<?= site_url('exports/participants') ?>" method="post">
+                    <form id="exportForm" action="<?= site_url('api/ybb/export/participants') ?>" method="post">
                         <?= csrf_field() ?>
                         <!-- Hidden field for program_id -->
                         <input type="hidden" name="program_id" id="export-program-id" value="<?= session('current_program') ?>">
@@ -806,6 +806,73 @@
     <div class="container-fluid mt-4">
         <div id="export-results"></div>
     </div>
+
+    <!-- Debug Panel for SweetAlert Testing -->
+    <?php if (ENVIRONMENT === 'development'): ?>
+    <div class="container-fluid mt-3">
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h6 class="mb-0">🔧 Debug Panel (Development Mode Only)</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <button type="button" class="btn btn-sm btn-outline-info me-2" onclick="testSweetAlert()">
+                            Test SweetAlert2
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-success" onclick="testExportSuccess()">
+                            Test Export Success
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="checkExportManager()">
+                            Check Export Manager
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-warning" onclick="console.clear()">
+                            Clear Console
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+    
+    <script>
+        // Debug functions for testing
+        function testSweetAlert() {
+            if (window.enhancedExportManager) {
+                window.enhancedExportManager.testSweetAlert();
+            } else {
+                console.error('Enhanced Export Manager not available');
+            }
+        }
+        
+        function testExportSuccess() {
+            if (window.enhancedExportManager) {
+                window.enhancedExportManager.testExportSuccessNotification();
+            } else {
+                console.error('Enhanced Export Manager not available');
+            }
+        }
+        
+        function checkExportManager() {
+            console.log('=== EXPORT MANAGER DEBUG ===');
+            console.log('window.enhancedExportManager:', window.enhancedExportManager);
+            console.log('typeof Swal:', typeof Swal);
+            console.log('window.Swal:', window.Swal);
+            console.log('EnhancedExportManager class:', typeof EnhancedExportManager);
+            
+            if (window.enhancedExportManager) {
+                console.log('✅ Export Manager is available');
+                console.log('Export Manager instance:', window.enhancedExportManager);
+                console.log('Export Manager methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(window.enhancedExportManager)));
+            } else {
+                console.error('❌ Export Manager is not available');
+                console.log('Available global objects:', Object.keys(window).filter(key => key.toLowerCase().includes('export')));
+            }
+        }
+    </script>
 </body>
 
 </html>

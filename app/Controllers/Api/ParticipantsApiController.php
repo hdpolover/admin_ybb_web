@@ -648,16 +648,47 @@ class ParticipantsApiController extends ApiBaseController
             return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
         }
     }    /**
-     * � Switch Participant Category (UPDATE)
+     * 🔍 Check Participant Category Switch Eligibility (READ)
+     * GET /api/participants/{participantId}/switch-category/check
+     * 
+     * Checks if a participant is eligible to switch category between 'fully_funded' and 'self_funded'
+     * 
+     * @param int participantId The participant ID to check eligibility for
+     */
+    public function checkSwitchCategoryEligibility($participantId = null)
+    {
+        try {
+            if (!$participantId) {
+                return $this->respondError('Participant ID is required', self::HTTP_BAD_REQUEST);
+            }
+
+            // Check eligibility using model method
+            $eligibilityResult = $this->model->checkCategorySwitchEligibility($participantId);
+
+            if (!$eligibilityResult['eligible']) {
+                return $this->respondError($eligibilityResult['reason'], self::HTTP_BAD_REQUEST);
+            }
+
+            return $this->respondSuccess([
+                'eligible' => true,
+                'current_category' => $eligibilityResult['current_category'],
+                'target_category' => $eligibilityResult['target_category'],
+                'target_payment' => $eligibilityResult['target_payment'],
+                'message' => "Participant is eligible to switch from {$eligibilityResult['current_category']} to {$eligibilityResult['target_category']}"
+            ], self::HTTP_OK, 'Eligibility check completed');
+
+        } catch (\Exception $e) {
+            log_message('error', "Error checking category switch eligibility - Participant ID: {$participantId}, Error: " . $e->getMessage());
+            return $this->respondError('An error occurred while checking eligibility: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
+        }
+    }
+
+    /**
+     * 🔄 Switch Participant Category (UPDATE)
      * POST /api/participants/{participantId}/switch-category
      * 
      * Switches participant category between 'fully_funded' and 'self_funded'
-     * 
-     * Conditions for switching:
-     * 1. Participant hasn't made any SUCCESSFUL registration payment from the other category (status = 2)
-     * 2. Participant hasn't submitted the submission form (form_status != 2)
-     * 
-     * Note: Failed, pending, or cancelled payments from the target category don't prevent switching
+     * Uses model-based eligibility checking for optimized queries
      * 
      * @param int participantId The participant ID to switch category for
      */
@@ -668,60 +699,22 @@ class ParticipantsApiController extends ApiBaseController
                 return $this->respondError('Participant ID is required', self::HTTP_BAD_REQUEST);
             }
 
-            // Check if participant exists and get current data
-            $participant = $this->model->getParticipant($participantId);
-            if (!$participant) {
-                return $this->respondNotFound("Participant not found");
+            // Check eligibility using optimized model method
+            $eligibilityResult = $this->model->checkCategorySwitchEligibility($participantId);
+
+            if (!$eligibilityResult['eligible']) {
+                return $this->respondError($eligibilityResult['reason'], self::HTTP_BAD_REQUEST);
             }
 
-            // Get current category and determine new category
-            $currentCategory = $participant->category ?? 'self_funded'; // Default to self_funded if null
-            $newCategory = ($currentCategory === 'fully_funded') ? 'self_funded' : 'fully_funded';
+            // Extract data from eligibility result
+            $participant = $eligibilityResult['participant'];
+            $currentCategory = $eligibilityResult['current_category'];
+            $newCategory = $eligibilityResult['target_category'];
 
-            // Condition 1: Check if participant has made any SUCCESSFUL registration payment from ANY category
-            $paymentModel = new \App\Models\PaymentModel();
-            $programPaymentModel = new \App\Models\ProgramPaymentModel();
-            
-            // Get all payments made by this participant
-            $participantPayments = $paymentModel->where('participant_id', $participantId)
-                                                ->where('is_deleted', 0)
-                                                ->findAll();
+            // Perform the category switch using model method
+            $switchResult = $this->model->switchParticipantCategory($participantId, $newCategory);
 
-            if (!empty($participantPayments)) {
-                foreach ($participantPayments as $payment) {
-                    // Get the program payment details to check the category/type
-                    $programPayment = $programPaymentModel->find($payment->program_payment_id);
-                    
-                    if ($programPayment && 
-                        $programPayment->category === 'registration' && 
-                        $programPayment->is_deleted == 0 &&
-                        in_array($programPayment->type, ['self_funded', 'fully_funded']) &&
-                        $payment->status == 2) { // Only block if payment is successful (status = 2)
-                        
-                        return $this->respondError(
-                            "Cannot switch category. You have already made a successful registration payment for {$programPayment->type} category (Payment: {$programPayment->name})",
-                            self::HTTP_BAD_REQUEST
-                        );
-                    }
-                }
-            }
-
-            // Condition 2: Check if participant has submitted the submission form
-            $participantStatus = $this->participantStatusModel->where('participant_id', $participantId)
-                                                              ->first();
-            
-            if ($participantStatus && $participantStatus->form_status == 2) {
-                return $this->respondError(
-                    'Cannot switch category. You have already submitted the submission form',
-                    self::HTTP_BAD_REQUEST
-                );
-            }
-
-            // All conditions met, proceed with category switch
-            $updateData = ['category' => $newCategory];
-            $updated = $this->model->update($participantId, $updateData);
-
-            if (!$updated) {
+            if (!$switchResult) {
                 return $this->respondError('Failed to switch participant category', self::HTTP_INTERNAL_ERROR);
             }
 
@@ -751,7 +744,7 @@ class ParticipantsApiController extends ApiBaseController
     }
 
     /**
-     * �🔍 Search Participants by Custom Parameters (READ)
+     * 🔍 Search Participants by Custom Parameters (READ)
      * GET /api/participants/search
      * 
      * IMPORTANT: Payment data is NEVER cached to ensure real-time information
@@ -849,5 +842,81 @@ class ParticipantsApiController extends ApiBaseController
         } catch (\Exception $e) {
             return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
         }
+    }
+
+    /**
+     * 📄 Get Participant Documents (READ)
+     * GET /api/participants/{participant_id}/documents
+     * 
+     * Returns all program documents visible to this participant.
+     * Only shows documents if participant has submitted the form (form_status = 2).
+     * For upload documents (is_upload = 1), includes participant-specific details if available.
+     */
+    public function getParticipantDocuments($participantId = null)
+    {
+       
+        try {
+            if (!$participantId) {
+                return $this->respondError('Participant ID is required', self::HTTP_BAD_REQUEST);
+            }
+
+            // Check if participant exists
+            $participant = $this->model->getParticipant($participantId);
+            if (!$participant) {
+                return $this->respondNotFound("Participant not found");
+            }
+
+            // Check if participant has submitted form
+            $participantStatus = $this->participantStatusModel->where('participant_id', $participantId)
+                                                              ->first();
+            
+            // If no status record exists or form is not submitted (form_status != 2), return empty
+            if (!$participantStatus || $participantStatus->form_status != 2) {
+                return $this->respondError(
+                    'Documents are only available after submitting the application form', 
+                    self::HTTP_FORBIDDEN
+                );
+            }
+
+            // Get all program documents for this participant's program
+            $programDocumentModel = new \App\Models\ProgramDocumentModel();
+            $programDocuments = $programDocumentModel->getProgramDocumentsByProgramId($participant->program_id);
+
+            if (empty($programDocuments)) {
+                return $this->respondNotFound("No documents found for this program");
+            }
+
+            // Process each document and add participant-specific details for upload documents
+            $participantProgramDocumentModel = new \App\Models\ParticipantProgramDocumentModel();
+            $documentsWithDetails = [];
+
+            foreach ($programDocuments as $document) {
+                // Convert to array for easier manipulation
+                $documentArray = json_decode(json_encode($document), true);
+
+                // If this is an upload document (is_upload = 1), get participant-specific details
+                if ($document->is_upload == 1) {
+                    $participantDocument = $participantProgramDocumentModel->getParticipantDocument(
+                        $participantId, 
+                        $document->id
+                    );
+
+                    // Add participant-specific document details
+                    $documentArray['participant_document'] = $participantDocument ? 
+                        json_decode(json_encode($participantDocument), true) : null;
+                } else {
+                    // For non-upload documents, set participant_document to null
+                    $documentArray['participant_document'] = null;
+                }
+
+                $documentsWithDetails[] = $documentArray;
+            }
+
+            return $this->respondSuccess($documentsWithDetails, self::HTTP_OK, 'Participant documents retrieved successfully');
+
+        } catch (\Exception $e) {
+            return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
+        }
+        
     }
 }

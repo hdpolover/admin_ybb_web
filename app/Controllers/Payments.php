@@ -298,11 +298,13 @@ class Payments extends BaseController
     }
 
     /**
-     * Export payments data using YBB Export API
+     * Export payments data using enhanced YBB Export system with performance tracking
      */
     public function export()
     {
         try {
+            $startTime = microtime(true);
+            
             $programId = $this->request->getPost('program_id');
             if (!$programId) {
                 $programId = session('current_program');
@@ -318,20 +320,29 @@ class Payments extends BaseController
             // Get export parameters and filters
             $dateRange = $this->request->getPost('date_range');
             $status = $this->request->getPost('status');
+            $trackPerformance = $this->request->getPost('track_performance') === 'true';
 
-            // Build query
+            // Build optimized query using database builder
+            $dataStartTime = microtime(true);
             $db = \Config\Database::connect();
             $builder = $db->table('payments')
                 ->select('
                     payments.id,
                     payments.amount,
+                    payments.currency,
                     payments.payment_method_id,
+                    payments.program_payment_id,
                     payments.created_at,
+                    payments.updated_at,
                     payments.status,
+                    payments.transaction_code,
+                    payments.order_id,
                     payments.transaction_id,
+                    payments.notes,
                     participants.full_name as participant_name,
                     users.email as participant_email,
-                    program_payments.title as payment_title
+                    participants.nationality as participant_nationality,
+                    program_payments.name as payment_type_name
                 ')
                 ->join('participants', 'participants.id = payments.participant_id')
                 ->join('users', 'users.id = participants.user_id')
@@ -354,8 +365,9 @@ class Payments extends BaseController
                 $builder->where('payments.status', $status);
             }
 
-            // Get data
+            // Get data with performance monitoring
             $payments = $builder->orderBy('payments.created_at', 'DESC')->get()->getResultArray();
+            $dataFetchTime = microtime(true) - $dataStartTime;
 
             if (empty($payments)) {
                 return $this->response->setJSON([
@@ -364,48 +376,140 @@ class Payments extends BaseController
                 ]);
             }
 
-            // Prepare export options
+            $recordCount = count($payments);
+            
+            // Determine optimal export strategy for payments (8K threshold)
+            $exportStrategy = $recordCount > 8000 ? 'chunked' : 'single_file';
+            
+            log_message('info', "Payments export initiated: {$recordCount} records, strategy: {$exportStrategy}, performance tracking: " . ($trackPerformance ? 'enabled' : 'disabled'));
+
+            // Enhanced export options with performance tracking
             $options = [
                 'template' => 'payments',
                 'format' => 'excel',
                 'program_id' => $programId,
+                'export_strategy' => $exportStrategy,
+                'chunk_size' => $exportStrategy === 'chunked' ? 8000 : null,
+                'track_performance' => $trackPerformance,
                 'filters' => [
                     'date_range' => $dateRange,
                     'status' => $status
-                ]
+                ],
+                'filename' => 'payments_export_prog' . $programId . '_' . date('Y-m-d_H-i-s')
             ];
 
-            // Create export using YBB Export API
+            // Add performance context
+            if ($trackPerformance) {
+                $options['performance_context'] = [
+                    'data_fetch_time' => $dataFetchTime,
+                    'record_count' => $recordCount,
+                    'memory_before_export' => memory_get_usage(true),
+                    'export_start_time' => microtime(true)
+                ];
+            }
+
+            // Create export using enhanced YBB Export API
+            $exportStartTime = microtime(true);
             $ybbExport = new \App\Libraries\YbbExport();
             $result = $ybbExport->exportPayments($payments, $options);
+            $exportTime = microtime(true) - $exportStartTime;
 
             if ($result['success']) {
-                log_message('info', 'Payments export initiated successfully: ' . json_encode($result));
+                $totalTime = microtime(true) - $startTime;
                 
-                return $this->response->setJSON([
+                // Enhanced logging with performance data
+                $logData = [
+                    'export_initiated' => true,
+                    'record_count' => $recordCount,
+                    'export_strategy' => $exportStrategy,
+                    'processing_time' => $totalTime,
+                    'data_fetch_time' => $dataFetchTime,
+                    'export_time' => $exportTime
+                ];
+                
+                if ($trackPerformance && isset($result['performanceStats'])) {
+                    $logData['performance_stats'] = $result['performanceStats'];
+                }
+                
+                log_message('info', 'Payments export completed: ' . json_encode($logData));
+                
+                // Build comprehensive response
+                $response = [
                     'success' => true,
-                    'exportId' => $result['data']['export_id'],
-                    'message' => 'Export initiated successfully',
-                    'estimatedTime' => $result['data']['estimated_time'] ?? null,
-                    'recordCount' => count($payments)
-                ]);
+                    'exportId' => $result['exportId'],
+                    'message' => $this->_buildPaymentExportMessage($result, $recordCount),
+                    'recordCount' => $recordCount,
+                    'exportStrategy' => $exportStrategy,
+                    'fileType' => $result['fileType'] ?? 'single',
+                    'totalFiles' => $result['totalFiles'] ?? 1,
+                    'processingTime' => number_format($totalTime, 2) . 's',
+                    'status' => 'completed'
+                ];
+                
+                // Add performance stats if available
+                if (isset($result['performanceStats'])) {
+                    $response['performanceStats'] = $result['performanceStats'];
+                }
+                
+                // Add chunking info if applicable
+                if ($exportStrategy === 'chunked') {
+                    $response['chunkCount'] = $result['chunkCount'] ?? null;
+                    $response['compressedSize'] = $result['compressedSize'] ?? null;
+                    $response['compressionRatio'] = $result['compressionRatio'] ?? null;
+                }
+                
+                return $this->response->setJSON($response);
+                
             } else {
-                log_message('error', 'Payments export failed: ' . $result['message']);
+                log_message('error', "Payments export failed: {$result['message']} (Records: {$recordCount}, Strategy: {$exportStrategy})");
                 
                 return $this->response->setJSON([
                     'success' => false,
-                    'message' => $result['message']
+                    'message' => $result['message'],
+                    'recordCount' => $recordCount,
+                    'exportStrategy' => $exportStrategy
                 ]);
             }
 
         } catch (\Exception $e) {
-            log_message('error', 'Failed to export payments: ' . $e->getMessage());
+            $processingTime = microtime(true) - ($startTime ?? microtime(true));
+            
+            log_message('error', "Exception in payments export: {$e->getMessage()} (Processing time: {$processingTime}s)");
             
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Failed to export payments: ' . $e->getMessage()
+                'message' => 'Failed to export payments: ' . $e->getMessage(),
+                'processingTime' => number_format($processingTime, 2) . 's'
             ]);
         }
+    }
+    
+    /**
+     * Build user-friendly export message for payments
+     */
+    private function _buildPaymentExportMessage(array $result, int $recordCount): string
+    {
+        $isChunked = isset($result['fileType']) && $result['fileType'] === 'chunked';
+        
+        if ($isChunked) {
+            $fileCount = $result['totalFiles'] ?? 1;
+            $message = "Payment export completed: " . number_format($recordCount) . " records exported in $fileCount optimized files";
+            
+            if (isset($result['compressionRatio'])) {
+                $message .= " (Compressed to {$result['compressionRatio']})";
+            }
+        } else {
+            $message = "Payment export completed successfully with " . number_format($recordCount) . " payment records";
+            
+            if (isset($result['performanceStats']['processingTime'])) {
+                $time = $result['performanceStats']['processingTime']['formatted'] ?? '';
+                if ($time) {
+                    $message .= " in $time";
+                }
+            }
+        }
+        
+        return $message;
     }
 
     /**

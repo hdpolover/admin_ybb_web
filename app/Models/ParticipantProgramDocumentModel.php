@@ -48,6 +48,21 @@ class ParticipantProgramDocumentModel extends Model
             ->orderBy('participant_program_documents.created_at', 'DESC')
             ->findAll();
     }
+
+    /**
+     * Get participant-specific document by participant ID and program document ID
+     *
+     * @param int $participantId The participant ID
+     * @param int $programDocumentId The program document ID
+     * @return object|null The participant document or null if not found
+     */
+    public function getParticipantDocument($participantId, $programDocumentId)
+    {
+        return $this->where('participant_id', $participantId)
+            ->where('program_document_id', $programDocumentId)
+            ->where('is_deleted', 0)
+            ->first();
+    }
 }
 
 ?>

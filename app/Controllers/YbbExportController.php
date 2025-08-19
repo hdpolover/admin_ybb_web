@@ -78,47 +78,103 @@ class YbbExportController extends BaseController
                 ]);
             }
             
-            // Process all participants at once (API can handle up to 50K records)
-            log_message('info', "Processing all $participantCount records");
-            $options['total_records'] = $participantCount;
+            // Get chunk threshold from config (default: 5000)
+            $chunkThreshold = 5000; // Using the configured chunk threshold
             
-            $result = $this->ybbExport->exportParticipants($participants, $options);
+            // Determine export strategy based on dataset size and template
+            if ($participantCount > $chunkThreshold) {
+                log_message('info', "Large dataset detected ($participantCount records). Using chunked export strategy.");
+                
+                // Use 'complete' template for large datasets to ensure chunking at 5k threshold
+                $options['template'] = 'complete';
+                $options['force_chunking'] = true;
+                $options['chunk_size'] = $chunkThreshold;
+                $options['total_records'] = $participantCount;
+                
+                log_message('info', "Chunked export: $participantCount records, template=complete, chunk_size=$chunkThreshold");
+                
+                $result = $this->ybbExport->exportParticipants($participants, $options);
+            } else {
+                // Use standard template for smaller datasets (single file)
+                log_message('info', "Processing all $participantCount records as single file");
+                $options['template'] = 'standard';
+                $options['total_records'] = $participantCount;
+                
+                $result = $this->ybbExport->exportParticipants($participants, $options);
+            }
             
             if ($result['success']) {
+                // Extract performance metrics for logging and response
+                $performanceMetrics = $result['data']['performance_metrics'] ?? [];
+                $isChunked = isset($result['data']['export_strategy']) && $result['data']['export_strategy'] === 'chunked';
+                
+                // Log detailed performance statistics
+                $this->_logPerformanceMetrics($performanceMetrics, $participantCount, $isChunked);
+                
                 // Update log with success details
                 $this->_updateExportRequestLog($exportRequestId, [
                     'status' => 'success',
                     'export_id' => $result['data']['export_id'],
-                    'file_name' => $result['data']['file_name'],
-                    'record_count' => $participantCount, // Use actual participant count, not length of possibly reduced array
+                    'file_name' => $result['data']['file_name'] ?? null,
+                    'record_count' => $participantCount,
                     'file_size' => $result['data']['file_size'] ?? null,
-                    'processing_time' => $result['metadata']['processing_time'] ?? null,
-                    'expires_at' => $result['data']['expires_at']
+                    'processing_time' => $performanceMetrics['total_processing_time_seconds'] ?? null,
+                    'expires_at' => $result['data']['expires_at'] ?? null,
+                    'export_strategy' => $result['data']['export_strategy'] ?? 'single_file',
+                    'performance_data' => json_encode($performanceMetrics)
                 ]);
                 
-                log_message('info', "Participants export completed successfully: $participantCount records exported");
+                // Determine response message with performance info
+                $message = $this->_buildExportMessage($result['data'], $participantCount, $performanceMetrics);
                 
-                return $this->response->setJSON([
+                log_message('info', $message);
+                
+                $response = [
                     'success' => true,
                     'exportId' => $result['data']['export_id'],
                     'fileName' => $result['data']['file_name'] ?? null,
                     'downloadUrl' => $result['data']['download_url'] ?? null,
-                    'message' => "Export completed successfully with $participantCount records",
+                    'message' => $message,
                     'recordCount' => $participantCount,
-                    'expiresAt' => $result['data']['expires_at'] ?? null,
-                    'processingTime' => $result['metadata']['processing_time'] ?? null,
-                    'exportStrategy' => $result['data']['export_strategy'] ?? 'single_file',
-                    'totalFiles' => $result['data']['total_files'] ?? 1,
-                    'individualFiles' => $result['data']['individual_files'] ?? null,
-                    'archive' => $result['data']['archive'] ?? null,
-                    'status' => $result['data']['download_url'] ? 'completed' : 'processing',
-                    'data' => [
-                        'export_id' => $result['data']['export_id'],
-                        'download_url' => $result['data']['download_url'] ?? null,
-                        'export_strategy' => $result['data']['export_strategy'] ?? 'single_file',
-                        'total_files' => $result['data']['total_files'] ?? 1
-                    ]
-                ]);
+                    'createdAt' => $result['data']['created_at'] ?? null,
+                    'status' => $result['data']['download_url'] ? 'completed' : 'processing'
+                ];
+                
+                // Add performance statistics to response
+                if (!empty($performanceMetrics)) {
+                    $response['performanceStats'] = $this->_formatPerformanceStats($performanceMetrics, $isChunked);
+                }
+                
+                // Add chunked export specific fields
+                if ($isChunked) {
+                    $response['fileType'] = 'chunked';
+                    $response['exportStrategy'] = 'chunked';
+                    $response['totalFiles'] = $result['data']['total_files'] ?? 1;
+                    $response['chunkCount'] = $result['data']['chunk_count'] ?? $result['data']['total_files'];
+                    $response['individualFiles'] = $result['data']['individual_files'] ?? null;
+                    $response['archive'] = $result['data']['archive'] ?? null;
+                    
+                    if (isset($result['data']['archive'])) {
+                        $response['compressedSize'] = $result['data']['archive']['compressed_size'] ?? null;
+                        $response['compressionRatio'] = $result['data']['archive']['compression_ratio'] ?? null;
+                    }
+                } else {
+                    $response['fileType'] = 'single';
+                    $response['exportStrategy'] = 'single_file';
+                    $response['fileSize'] = $result['data']['file_size'] ?? null;
+                    $response['fileSizeMB'] = $result['data']['file_size_mb'] ?? null;
+                    $response['totalFiles'] = 1;
+                }
+                
+                // Legacy compatibility fields
+                $response['data'] = [
+                    'export_id' => $result['data']['export_id'],
+                    'download_url' => $result['data']['download_url'] ?? null,
+                    'export_strategy' => $response['exportStrategy'],
+                    'total_files' => $response['totalFiles']
+                ];
+                
+                return $this->response->setJSON($response);
             } else {
                 // Update log with error details
                 $this->_updateExportRequestLog($exportRequestId, [
@@ -166,16 +222,24 @@ class YbbExportController extends BaseController
     }
 
     /**
-     * Export payments data
+     * Export payments data with enhanced performance tracking and intelligent chunking
      */
     public function exportPayments()
     {
         try {
+            $startTime = microtime(true);
+            
             // Get filters from request
             $filters = $this->_getFiltersFromRequest();
             
-            // Get payments data
+            // Performance tracking: Enable if requested
+            $trackPerformance = $this->request->getPost('track_performance') === 'true' || 
+                               $this->request->getGet('track_performance') === 'true';
+            
+            // Get payments data with performance monitoring
+            $dataStartTime = microtime(true);
             $payments = $this->_getPaymentsData($filters);
+            $dataFetchTime = microtime(true) - $dataStartTime;
             
             if (empty($payments)) {
                 return $this->response->setJSON([
@@ -184,85 +248,145 @@ class YbbExportController extends BaseController
                 ]);
             }
 
-            // Get export options with descriptive filename
-            $options = $this->_getExportOptions('payments', $filters);
+            $recordCount = count($payments);
+            log_message('info', "Payments export initiated for {$recordCount} records with performance tracking: " . ($trackPerformance ? 'enabled' : 'disabled'));
+
+            // Intelligent export strategy selection
+            $exportStrategy = $this->_determineExportStrategy($recordCount, 'payments');
             
-            // Log export request for tracking
+            // Get enhanced export options with chunking support
+            $options = $this->_getExportOptions('payments', $filters);
+            $options['export_strategy'] = $exportStrategy;
+            $options['chunk_size'] = $this->_getOptimalChunkSize($recordCount, 'payments');
+            $options['track_performance'] = $trackPerformance;
+            
+            // Add performance context to options
+            if ($trackPerformance) {
+                $options['performance_context'] = [
+                    'data_fetch_time' => $dataFetchTime,
+                    'record_count' => $recordCount,
+                    'memory_before_export' => memory_get_usage(true)
+                ];
+            }
+            
+            // Log export request for tracking with enhanced metadata
+            $options['export_strategy'] = $exportStrategy; // Add strategy to options for logging
             $exportRequestId = $this->_logExportRequest($filters['program_id'], 'payments', $options);
             
-            // Create export using YBB Export API
+            // Create export using YBB Export API with performance tracking
+            $exportStartTime = microtime(true);
             $result = $this->ybbExport->exportPayments($payments, $options);
+            $exportTime = microtime(true) - $exportStartTime;
             
             if ($result['success']) {
-                // Update log with success details
-                $this->_updateExportRequestLog($exportRequestId, [
-                    'status' => 'success',
-                    'export_id' => $result['data']['export_id'],
-                    'file_name' => $result['data']['file_name'],
-                    'record_count' => count($payments),
-                    'file_size' => $result['data']['file_size'] ?? null,
-                    'processing_time' => $result['metadata']['processing_time'] ?? null,
-                    'expires_at' => $result['data']['expires_at']
-                ]);
+                $totalTime = microtime(true) - $startTime;
                 
-                log_message('info', 'Payments export initiated: ' . json_encode($result));
+                // Enhanced logging with comprehensive metadata
+                $logData = [
+                    'status' => 'success',
+                    'export_id' => $result['exportId'],
+                    'record_count' => $recordCount,
+                    'export_strategy' => $exportStrategy,
+                    'file_type' => $result['fileType'] ?? 'unknown',
+                    'chunk_count' => $result['chunkCount'] ?? 1,
+                    'total_files' => $result['totalFiles'] ?? 1
+                ];
+
+                // Add performance data if tracking is enabled
+                if ($trackPerformance && isset($result['performanceStats'])) {
+                    $logData['performance_data'] = json_encode($result['performanceStats']);
+                }
+
+                $this->_updateExportRequestLog($exportRequestId, $logData);
+
+                // Log performance metrics
+                if ($trackPerformance) {
+                    $performanceMetrics = [
+                        'record_count' => $recordCount,
+                        'data_fetch_time' => $dataFetchTime,
+                        'export_time' => $exportTime,
+                        'total_time' => $totalTime,
+                        'export_strategy' => $exportStrategy,
+                        'memory_usage' => memory_get_peak_usage(true),
+                        'total_processing_time_seconds' => $totalTime,
+                        'records_per_second' => $recordCount / max($totalTime, 0.001)
+                    ];
+                    
+                    $this->_logPerformanceMetrics($performanceMetrics, $recordCount, $exportStrategy === 'chunked');
+                }
+                
+                log_message('info', "Payments export completed successfully: {$recordCount} records, strategy: {$exportStrategy}, time: {$totalTime}s");
+
+                // Build user-friendly message - use the correct parameters
+                $message = $this->_buildExportMessage($result, $recordCount, $result['performanceStats'] ?? []);
                 
                 return $this->response->setJSON([
                     'success' => true,
-                    'exportId' => $result['data']['export_id'],
-                    'fileName' => $result['data']['file_name'] ?? null,
-                    'downloadUrl' => $result['data']['download_url'] ?? null,
-                    'message' => 'Export initiated successfully',
-                    'recordCount' => count($payments),
-                    'processingTime' => $result['metadata']['processing_time'] ?? null,
-                    'exportStrategy' => $result['data']['export_strategy'] ?? 'single_file',
-                    'totalFiles' => $result['data']['total_files'] ?? 1,
-                    'individualFiles' => $result['data']['individual_files'] ?? null,
-                    'archive' => $result['data']['archive'] ?? null,
-                    'status' => $result['data']['download_url'] ? 'completed' : 'processing',
-                    'data' => [
-                        'export_id' => $result['data']['export_id'],
-                        'download_url' => $result['data']['download_url'] ?? null,
-                        'export_strategy' => $result['data']['export_strategy'] ?? 'single_file',
-                        'total_files' => $result['data']['total_files'] ?? 1
-                    ]
+                    'exportId' => $result['exportId'],
+                    'message' => $message,
+                    'recordCount' => $recordCount,
+                    'exportStrategy' => $exportStrategy,
+                    'fileType' => $result['fileType'],
+                    'totalFiles' => $result['totalFiles'],
+                    'chunkCount' => $result['chunkCount'] ?? null,
+                    'compressedSize' => $result['compressedSize'] ?? null,
+                    'compressionRatio' => $result['compressionRatio'] ?? null,
+                    'status' => 'completed',
+                    'performanceStats' => $result['performanceStats'] ?? null,
+                    'downloadUrl' => $result['downloadUrl'] ?? null
                 ]);
             } else {
-                // Update log with error details
+                // Enhanced error logging
                 $this->_updateExportRequestLog($exportRequestId, [
                     'status' => 'error',
-                    'error_message' => $result['message']
+                    'error_message' => $result['message'],
+                    'record_count' => $recordCount,
+                    'export_strategy' => $exportStrategy,
+                    'processing_time' => microtime(true) - $startTime
                 ]);
                 
-                log_message('error', 'Payments export failed: ' . $result['message']);
+                log_message('error', "Payments export failed: {$result['message']} (Strategy: {$exportStrategy}, Records: {$recordCount})");
                 
                 return $this->response->setJSON([
                     'success' => false,
-                    'message' => $result['message']
+                    'message' => $result['message'],
+                    'recordCount' => $recordCount,
+                    'exportStrategy' => $exportStrategy
                 ]);
             }
             
         } catch (\Exception $e) {
-            log_message('error', 'Exception in exportPayments: ' . $e->getMessage());
+            $processingTime = microtime(true) - ($startTime ?? microtime(true));
+            
+            log_message('error', "Exception in exportPayments: {$e->getMessage()} (Processing time: {$processingTime}s)");
             
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'An error occurred during export: ' . $e->getMessage()
+                'message' => 'An error occurred during export: ' . $e->getMessage(),
+                'processingTime' => $processingTime
             ]);
         }
     }
 
     /**
-     * Export ambassadors data
+     * Export ambassadors data with enhanced performance tracking and intelligent chunking
      */
     public function exportAmbassadors()
     {
         try {
+            $startTime = microtime(true);
+            
             // Get filters from request
             $filters = $this->_getFiltersFromRequest();
             
-            // Get ambassadors data
+            // Performance tracking: Enable if requested
+            $trackPerformance = $this->request->getPost('track_performance') === 'true' || 
+                               $this->request->getGet('track_performance') === 'true';
+            
+            // Get ambassadors data with performance monitoring
+            $dataStartTime = microtime(true);
             $ambassadors = $this->_getAmbassadorsData($filters);
+            $dataFetchTime = microtime(true) - $dataStartTime;
             
             if (empty($ambassadors)) {
                 return $this->response->setJSON([
@@ -271,70 +395,122 @@ class YbbExportController extends BaseController
                 ]);
             }
 
-            // Get export options with descriptive filename
-            $options = $this->_getExportOptions('ambassadors', $filters);
+            $recordCount = count($ambassadors);
+            log_message('info', "Ambassadors export initiated for {$recordCount} records with performance tracking: " . ($trackPerformance ? 'enabled' : 'disabled'));
+
+            // Intelligent export strategy selection (ambassadors can handle larger datasets)
+            $exportStrategy = $this->_determineExportStrategy($recordCount, 'ambassadors');
             
-            // Log export request for tracking
+            // Get enhanced export options with chunking support
+            $options = $this->_getExportOptions('ambassadors', $filters);
+            $options['export_strategy'] = $exportStrategy;
+            $options['chunk_size'] = $this->_getOptimalChunkSize($recordCount, 'ambassadors');
+            $options['track_performance'] = $trackPerformance;
+            
+            // Add performance context to options
+            if ($trackPerformance) {
+                $options['performance_context'] = [
+                    'data_fetch_time' => $dataFetchTime,
+                    'record_count' => $recordCount,
+                    'memory_before_export' => memory_get_usage(true)
+                ];
+            }
+            
+            // Log export request for tracking with enhanced metadata
+            $options['export_strategy'] = $exportStrategy; // Add strategy to options for logging
             $exportRequestId = $this->_logExportRequest($filters['program_id'], 'ambassadors', $options);
             
-            // Create export using YBB Export API
+            // Create export using YBB Export API with performance tracking
+            $exportStartTime = microtime(true);
             $result = $this->ybbExport->exportAmbassadors($ambassadors, $options);
+            $exportTime = microtime(true) - $exportStartTime;
             
             if ($result['success']) {
-                // Update log with success details
-                $this->_updateExportRequestLog($exportRequestId, [
-                    'status' => 'success',
-                    'export_id' => $result['data']['export_id'],
-                    'file_name' => $result['data']['file_name'],
-                    'record_count' => count($ambassadors),
-                    'file_size' => $result['data']['file_size'] ?? null,
-                    'processing_time' => $result['metadata']['processing_time'] ?? null,
-                    'expires_at' => $result['data']['expires_at']
-                ]);
+                $totalTime = microtime(true) - $startTime;
                 
-                log_message('info', 'Ambassadors export initiated: ' . json_encode($result));
+                // Enhanced logging with comprehensive metadata
+                $logData = [
+                    'status' => 'success',
+                    'export_id' => $result['exportId'],
+                    'record_count' => $recordCount,
+                    'export_strategy' => $exportStrategy,
+                    'file_type' => $result['fileType'] ?? 'unknown',
+                    'chunk_count' => $result['chunkCount'] ?? 1,
+                    'total_files' => $result['totalFiles'] ?? 1
+                ];
+
+                // Add performance data if tracking is enabled
+                if ($trackPerformance && isset($result['performanceStats'])) {
+                    $logData['performance_data'] = json_encode($result['performanceStats']);
+                }
+
+                $this->_updateExportRequestLog($exportRequestId, $logData);
+
+                // Log performance metrics
+                if ($trackPerformance) {
+                    $performanceMetrics = [
+                        'record_count' => $recordCount,
+                        'data_fetch_time' => $dataFetchTime,
+                        'export_time' => $exportTime,
+                        'total_time' => $totalTime,
+                        'export_strategy' => $exportStrategy,
+                        'memory_usage' => memory_get_peak_usage(true),
+                        'total_processing_time_seconds' => $totalTime,
+                        'records_per_second' => $recordCount / max($totalTime, 0.001)
+                    ];
+                    
+                    $this->_logPerformanceMetrics($performanceMetrics, $recordCount, $exportStrategy === 'chunked');
+                }
+                
+                log_message('info', "Ambassadors export completed successfully: {$recordCount} records, strategy: {$exportStrategy}, time: {$totalTime}s");
+
+                // Build user-friendly message - use the correct parameters
+                $message = $this->_buildExportMessage($result, $recordCount, $result['performanceStats'] ?? []);
                 
                 return $this->response->setJSON([
                     'success' => true,
-                    'exportId' => $result['data']['export_id'],
-                    'fileName' => $result['data']['file_name'] ?? null,
-                    'downloadUrl' => $result['data']['download_url'] ?? null,
-                    'message' => 'Export initiated successfully',
-                    'recordCount' => count($ambassadors),
-                    'processingTime' => $result['metadata']['processing_time'] ?? null,
-                    'exportStrategy' => $result['data']['export_strategy'] ?? 'single_file',
-                    'totalFiles' => $result['data']['total_files'] ?? 1,
-                    'individualFiles' => $result['data']['individual_files'] ?? null,
-                    'archive' => $result['data']['archive'] ?? null,
-                    'status' => $result['data']['download_url'] ? 'completed' : 'processing',
-                    'data' => [
-                        'export_id' => $result['data']['export_id'],
-                        'download_url' => $result['data']['download_url'] ?? null,
-                        'export_strategy' => $result['data']['export_strategy'] ?? 'single_file',
-                        'total_files' => $result['data']['total_files'] ?? 1
-                    ]
+                    'exportId' => $result['exportId'],
+                    'message' => $message,
+                    'recordCount' => $recordCount,
+                    'exportStrategy' => $exportStrategy,
+                    'fileType' => $result['fileType'],
+                    'totalFiles' => $result['totalFiles'],
+                    'chunkCount' => $result['chunkCount'] ?? null,
+                    'compressedSize' => $result['compressedSize'] ?? null,
+                    'compressionRatio' => $result['compressionRatio'] ?? null,
+                    'status' => 'completed',
+                    'performanceStats' => $result['performanceStats'] ?? null,
+                    'downloadUrl' => $result['downloadUrl'] ?? null
                 ]);
             } else {
-                // Update log with error details
+                // Enhanced error logging
                 $this->_updateExportRequestLog($exportRequestId, [
                     'status' => 'error',
-                    'error_message' => $result['message']
+                    'error_message' => $result['message'],
+                    'record_count' => $recordCount,
+                    'export_strategy' => $exportStrategy,
+                    'processing_time' => microtime(true) - $startTime
                 ]);
                 
-                log_message('error', 'Ambassadors export failed: ' . $result['message']);
+                log_message('error', "Ambassadors export failed: {$result['message']} (Strategy: {$exportStrategy}, Records: {$recordCount})");
                 
                 return $this->response->setJSON([
                     'success' => false,
-                    'message' => $result['message']
+                    'message' => $result['message'],
+                    'recordCount' => $recordCount,
+                    'exportStrategy' => $exportStrategy
                 ]);
             }
             
         } catch (\Exception $e) {
-            log_message('error', 'Exception in exportAmbassadors: ' . $e->getMessage());
+            $processingTime = microtime(true) - ($startTime ?? microtime(true));
+            
+            log_message('error', "Exception in exportAmbassadors: {$e->getMessage()} (Processing time: {$processingTime}s)");
             
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'An error occurred during export: ' . $e->getMessage()
+                'message' => 'An error occurred during export: ' . $e->getMessage(),
+                'processingTime' => $processingTime
             ]);
         }
     }
@@ -969,7 +1145,7 @@ class YbbExportController extends BaseController
     }
 
     /**
-     * Get participants data based on filters with normalized status translations and relevant essays only
+     * Get participants data based on filters with OPTIMIZED performance for large datasets
      */
     private function _getParticipantsData(array $filters): array
     {
@@ -979,18 +1155,31 @@ class YbbExportController extends BaseController
                 throw new \RuntimeException('Program ID filter is required for participant export');
             }
 
-            log_message('info', "Starting normalized participant export for program {$filters['program_id']}");
+            log_message('info', "Starting OPTIMIZED participant export for program {$filters['program_id']}");
             
-            // Use the new normalized participant export method from ParticipantModel
-            $result = $this->participantModel->getNormalizedParticipantsForExport($filters);
+            // Check dataset size and choose appropriate method
+            $db = \Config\Database::connect();
+            $countQuery = $db->query("SELECT COUNT(*) as total FROM participants WHERE program_id = ? AND is_deleted = 0", [$filters['program_id']]);
+            $totalCount = $countQuery->getRowArray()['total'] ?? 0;
             
-            log_message('info', "Completed normalized participant export for program {$filters['program_id']}: " . count($result) . " records with human-readable status translations and relevant essays only");
+            log_message('info', "Dataset size for program {$filters['program_id']}: {$totalCount} participants");
             
-            return $result;
+            // Use the advanced optimized model for all exports (avoids chunked processing issues)
+            $advancedModel = new \App\Models\AdvancedOptimizedParticipantExportModel();
+            
+            log_message('info', "Using advanced Python-optimized processing for {$totalCount} participants");
+            $result = $advancedModel->getPythonOptimizedParticipantsForExport($filters);
+            
+            // Extract the data array from the result
+            $exportData = $result['data'] ?? [];
+            
+            log_message('info', "Completed ADVANCED participant export for program {$filters['program_id']}: " . count($exportData) . " records with Python compatibility");
+            
+            return $exportData;
             
         } catch (\Exception $e) {
-            log_message('error', 'Error getting normalized participants data: ' . $e->getMessage());
-            throw new \RuntimeException('Failed to retrieve normalized participants data: ' . $e->getMessage());
+            log_message('error', 'Error getting optimized participants data: ' . $e->getMessage());
+            throw new \RuntimeException('Failed to retrieve optimized participants data: ' . $e->getMessage());
         }
     }
 
@@ -1052,7 +1241,7 @@ class YbbExportController extends BaseController
     }
 
     /**
-     * Log export request for tracking
+     * Log export request for tracking with enhanced metadata
      */
     private function _logExportRequest(int $programId, string $exportType, array $options): ?int
     {
@@ -1065,6 +1254,7 @@ class YbbExportController extends BaseController
                 'user_id' => session('user_id') ?? 0,
                 'filters' => json_encode($this->_getFiltersFromRequest()),
                 'custom_filename' => $options['filename'] ?? null,
+                'export_strategy' => $options['export_strategy'] ?? 'single_file',
                 'status' => 'pending',
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s')
@@ -1359,5 +1549,229 @@ class YbbExportController extends BaseController
         }
         
         return $data;
+    }
+    
+    /**
+     * Log detailed performance metrics
+     */
+    private function _logPerformanceMetrics(array $metrics, int $recordCount, bool $isChunked): void
+    {
+        if (empty($metrics)) {
+            return;
+        }
+        
+        $logMessage = "Export Performance Metrics:\n";
+        $logMessage .= "  Records: " . number_format($recordCount) . "\n";
+        $logMessage .= "  Strategy: " . ($isChunked ? 'Chunked' : 'Single File') . "\n";
+        
+        if (isset($metrics['total_processing_time_seconds'])) {
+            $logMessage .= "  Processing Time: {$metrics['total_processing_time_seconds']}s\n";
+        }
+        
+        if (isset($metrics['records_per_second'])) {
+            $logMessage .= "  Throughput: " . number_format($metrics['records_per_second'], 1) . " records/sec\n";
+        }
+        
+        if (isset($metrics['memory_used_mb'])) {
+            $logMessage .= "  Memory Used: {$metrics['memory_used_mb']} MB\n";
+        }
+        
+        if (isset($metrics['peak_memory_mb'])) {
+            $logMessage .= "  Peak Memory: {$metrics['peak_memory_mb']} MB\n";
+        }
+        
+        if ($isChunked && isset($metrics['average_chunk_processing_time_seconds'])) {
+            $logMessage .= "  Avg Chunk Time: {$metrics['average_chunk_processing_time_seconds']}s\n";
+            
+            if (isset($metrics['efficiency_metrics']['compression_efficiency'])) {
+                $logMessage .= "  Compression: {$metrics['efficiency_metrics']['compression_efficiency']}\n";
+            }
+        }
+        
+        if (isset($metrics['efficiency_metrics'])) {
+            $efficiency = $metrics['efficiency_metrics'];
+            if (isset($efficiency['kb_per_record'])) {
+                $logMessage .= "  Size Efficiency: {$efficiency['kb_per_record']} KB/record\n";
+            }
+            if (isset($efficiency['processing_ms_per_record'])) {
+                $logMessage .= "  Time Efficiency: {$efficiency['processing_ms_per_record']} ms/record\n";
+            }
+        }
+        
+        log_message('info', $logMessage);
+    }
+    
+    /**
+     * Build user-friendly export completion message with performance info
+     */
+    private function _buildExportMessage(array $exportData, int $recordCount, array $metrics): string
+    {
+        $isChunked = isset($exportData['export_strategy']) && $exportData['export_strategy'] === 'chunked';
+        
+        if ($isChunked) {
+            $fileCount = $exportData['total_files'] ?? 1;
+            $message = "Chunked export completed: " . number_format($recordCount) . " records in $fileCount files";
+            
+            if (isset($metrics['total_processing_time_seconds'])) {
+                $message .= " (processed in {$metrics['total_processing_time_seconds']}s)";
+            }
+            
+            if (isset($exportData['archive']['compression_ratio'])) {
+                $message .= " - Compressed to {$exportData['archive']['compression_ratio']}";
+            }
+        } else {
+            $message = "Export completed successfully with " . number_format($recordCount) . " records";
+            
+            if (isset($metrics['total_processing_time_seconds'])) {
+                $message .= " (processed in {$metrics['total_processing_time_seconds']}s)";
+            }
+            
+            if (isset($metrics['records_per_second'])) {
+                $message .= " at " . number_format($metrics['records_per_second'], 0) . " records/sec";
+            }
+        }
+        
+        return $message;
+    }
+    
+    /**
+     * Format performance statistics for frontend display
+     */
+    private function _formatPerformanceStats(array $metrics, bool $isChunked): array
+    {
+        $stats = [];
+        
+        // Processing time statistics
+        if (isset($metrics['total_processing_time_seconds'])) {
+            $stats['processingTime'] = [
+                'total_seconds' => $metrics['total_processing_time_seconds'],
+                'formatted' => $this->_formatDuration($metrics['total_processing_time_seconds'])
+            ];
+        }
+        
+        // Throughput statistics
+        if (isset($metrics['records_per_second'])) {
+            $stats['throughput'] = [
+                'records_per_second' => round($metrics['records_per_second'], 1),
+                'formatted' => number_format($metrics['records_per_second'], 0) . ' records/sec'
+            ];
+        }
+        
+        // Memory usage statistics
+        if (isset($metrics['memory_used_mb'])) {
+            $stats['memory'] = [
+                'used_mb' => $metrics['memory_used_mb'],
+                'peak_mb' => $metrics['peak_memory_mb'] ?? null,
+                'formatted' => $metrics['memory_used_mb'] . ' MB used'
+            ];
+            
+            if (isset($metrics['peak_memory_mb'])) {
+                $stats['memory']['formatted'] .= ' (peak: ' . $metrics['peak_memory_mb'] . ' MB)';
+            }
+        }
+        
+        // Efficiency metrics
+        if (isset($metrics['efficiency_metrics'])) {
+            $efficiency = $metrics['efficiency_metrics'];
+            $stats['efficiency'] = [];
+            
+            if (isset($efficiency['kb_per_record'])) {
+                $stats['efficiency']['size_per_record'] = $efficiency['kb_per_record'] . ' KB/record';
+            }
+            
+            if (isset($efficiency['processing_ms_per_record'])) {
+                $stats['efficiency']['time_per_record'] = $efficiency['processing_ms_per_record'] . ' ms/record';
+            }
+            
+            if (isset($efficiency['compression_efficiency'])) {
+                $stats['efficiency']['compression'] = $efficiency['compression_efficiency'];
+            }
+        }
+        
+        // Chunked export specific stats
+        if ($isChunked) {
+            if (isset($metrics['average_chunk_processing_time_seconds'])) {
+                $stats['chunking'] = [
+                    'avg_chunk_time' => $metrics['average_chunk_processing_time_seconds'],
+                    'formatted' => $metrics['average_chunk_processing_time_seconds'] . 's avg/chunk'
+                ];
+            }
+            
+            if (isset($metrics['chunk_processing_times'])) {
+                $times = $metrics['chunk_processing_times'];
+                $stats['chunking']['individual_times'] = $times;
+                $stats['chunking']['min_time'] = min($times);
+                $stats['chunking']['max_time'] = max($times);
+            }
+        }
+        
+        return $stats;
+    }
+    
+    /**
+     * Format duration in human-readable format
+     */
+    private function _formatDuration(float $seconds): string
+    {
+        if ($seconds < 1) {
+            return round($seconds * 1000) . 'ms';
+        } elseif ($seconds < 60) {
+            return round($seconds, 1) . 's';
+        } else {
+            $minutes = floor($seconds / 60);
+            $remainingSeconds = $seconds % 60;
+            return $minutes . 'm ' . round($remainingSeconds, 1) . 's';
+        }
+    }
+    
+    /**
+     * Determine optimal export strategy based on record count and data type
+     */
+    private function _determineExportStrategy(int $recordCount, string $dataType = 'participants'): string
+    {
+        // Define thresholds based on data type
+        $thresholds = [
+            'participants' => 5000,  // Participants are larger with essays/certificates
+            'payments' => 8000,      // Payments are smaller, can handle more records
+            'ambassadors' => 10000   // Ambassadors are typically smaller datasets
+        ];
+        
+        $threshold = $thresholds[$dataType] ?? 5000;
+        
+        // Force chunking if dataset is large
+        if ($recordCount > $threshold) {
+            log_message('info', "Large dataset detected ({$recordCount} > {$threshold}): using chunked export strategy");
+            return 'chunked';
+        }
+        
+        log_message('info', "Small dataset detected ({$recordCount} <= {$threshold}): using single file export strategy");
+        return 'single_file';
+    }
+    
+    /**
+     * Get optimal chunk size based on record count and data type
+     */
+    private function _getOptimalChunkSize(int $recordCount, string $dataType = 'participants'): int
+    {
+        // Define optimal chunk sizes based on data type
+        $chunkSizes = [
+            'participants' => 5000,  // Participants have more data per record
+            'payments' => 8000,      // Payments are simpler, can handle larger chunks
+            'ambassadors' => 10000   // Ambassadors are typically smaller records
+        ];
+        
+        $defaultChunkSize = $chunkSizes[$dataType] ?? 5000;
+        
+        // Adjust chunk size based on total record count
+        if ($recordCount < $defaultChunkSize) {
+            return $recordCount; // Don't chunk if smaller than chunk size
+        }
+        
+        // For very large datasets, consider smaller chunks for better performance
+        if ($recordCount > 50000) {
+            return intval($defaultChunkSize * 0.8); // 20% smaller chunks for huge datasets
+        }
+        
+        return $defaultChunkSize;
     }
 }
