@@ -50,7 +50,7 @@
         <div class="main-content">
             <div class="page-content">
                 <div class="container-fluid">
-                    <?php echo view('partials/page-title', array('pagetitle' => 'Scorings', 'title' => 'Fully Funded')); ?>
+                    <?php echo view('partials/page-title', array('pagetitle' => 'Scorings', 'title' => 'Interview')); ?>
 
                     <!-- Participant Stats -->
                     <!-- <div class="row">
@@ -138,16 +138,12 @@
                         <div class="col-12">
                             <div class="card">
                                 <div class="card-header d-flex align-items-center">
-                                    <h5 class="card-title mb-0 flex-grow-1">All Participants</h5>
+                                    <h5 class="card-title mb-0 flex-grow-1">Participants go to Interview</h5>
                                     <div class="flex-shrink-0">
-                                        <!-- <button type="button" class="btn btn-success waves-effect waves-light me-2"
+                                        <button type="button" class="btn btn-success waves-effect waves-light"
                                             data-bs-toggle="modal" data-bs-target="#exportModal">
                                             <i class="ri-file-excel-2-line align-middle me-1"></i> Export Data
-                                        </button> -->
-                                        <!-- <a href="<?= site_url('participants/new') ?>"
-                                            class="btn btn-primary waves-effect waves-light">
-                                            <i class="ri-add-line align-middle me-1"></i> Add New Participant
-                                        </a> -->
+                                        </button>
                                     </div>
                                 </div>
                                 <div class="card-body">
@@ -201,7 +197,7 @@
                                                 <th>Participant Details</th>
                                                 <th>Submission Status</th>
                                                 <th>Registered On</th>
-                                                <th>Actions</th>
+                                                <th>Score Status</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -262,7 +258,7 @@
             processing: true,
             serverSide: true,
             ajax: {
-                url: '<?= site_url('scorings/fully_funded/getData') ?>',
+                url: '<?= site_url('scorings/interview/getData') ?>',
                 type: 'GET',
                 data: function(d) {
                     // Add filter parameters
