@@ -48,6 +48,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->get('ambassadors/view/(:num)', 'Ambassadors::view/$1');
         $routes->get('ambassadors/edit/(:num)', 'Ambassadors::edit/$1');
         $routes->get('ambassadors/getData', 'Ambassadors::getData');
+        $routes->get('ambassadors/debugSession', 'Ambassadors::debugSession');
         $routes->get('ambassadors/getAmbassadorData/(:num)', 'Ambassadors::getAmbassadorData/$1');
     });
 

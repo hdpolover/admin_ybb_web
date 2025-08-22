@@ -38,20 +38,38 @@ class AmbassadorParticipantReferralModel extends Model
         return $this->insertID(); // Return the ID of the newly inserted record
     }
 
-    // Get all referrals for a specific ambassador
-    public function getReferralsByAmbassadorId($ambassadorId)
+    // Get all referrals for a specific ambassador with program validation
+    public function getReferralsByAmbassadorId($ambassadorId, $programId = null)
     {
-        return $this->where('ambassador_id', $ambassadorId)
-            ->where('is_deleted', 0)
-            ->findAll();
+        $builder = $this->builder();
+        $builder->where('ambassador_participant_referrals.ambassador_id', $ambassadorId)
+                ->where('ambassador_participant_referrals.is_deleted', 0);
+        
+        // Add program validation by joining with ambassadors table
+        if ($programId !== null) {
+            $builder->join('ambassadors', 'ambassadors.id = ambassador_participant_referrals.ambassador_id')
+                    ->where('ambassadors.program_id', $programId)
+                    ->where('ambassadors.is_deleted', 0);
+        }
+        
+        return $builder->get()->getResult();
     }
 
-    // get referral by participant id
-    public function getReferralByParticipantId($participantId)
+    // get referral by participant id with program validation
+    public function getReferralByParticipantId($participantId, $programId = null)
     {
-        return $this->where('participant_id', $participantId)
-            ->where('is_deleted', 0)
-            ->first();
+        $builder = $this->builder();
+        $builder->where('ambassador_participant_referrals.participant_id', $participantId)
+                ->where('ambassador_participant_referrals.is_deleted', 0);
+        
+        // Add program validation by joining with participants table
+        if ($programId !== null) {
+            $builder->join('participants', 'participants.id = ambassador_participant_referrals.participant_id')
+                    ->where('participants.program_id', $programId)
+                    ->where('participants.is_deleted', 0);
+        }
+        
+        return $builder->get()->getFirstRow();
     }
 
     // get ambassador by ref_code

@@ -20,6 +20,26 @@ class Ambassadors extends BaseController
         $this->ambassadorParticipantReferralModel = new AmbassadorParticipantReferralModel();
     }
 
+    /**
+     * Debug session and authentication status
+     */
+    public function debugSession()
+    {
+        // Log session data for debugging
+        error_log('Session Debug - All session data: ' . json_encode($_SESSION ?? []));
+        
+        return $this->response->setJSON([
+            'session_id' => session_id(),
+            'is_logged_in' => session('isLoggedIn'),
+            'current_program' => session('current_program'),
+            'all_session_keys' => array_keys($_SESSION ?? []),
+            'session_status' => session_status(),
+            'cookie_params' => session_get_cookie_params(),
+            'auth_check' => !empty(session('isLoggedIn')),
+            'program_check' => !empty(session('current_program'))
+        ]);
+    }
+
     public function index()
     {
         // Prevent caching of ambassador data
@@ -38,7 +58,7 @@ class Ambassadors extends BaseController
             $stats = [
                 'total_ambassadors' => 0,
                 'active_ambassadors' => 0,
-                'deleted_ambassadors' => 0,
+                'inactive_ambassadors' => 0,
                 'total_referrals' => 0
             ];
         }
@@ -57,131 +77,244 @@ class Ambassadors extends BaseController
      */
     public function getData()
     {
-        // Prevent caching of ambassador data
-        $this->response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
-        $this->response->setHeader('Pragma', 'no-cache');
-        $this->response->setHeader('Expires', '0');
-        
-        $programId = session('current_program');
-
-        // Process DataTables server-side request
-        $request = $this->request->getGet();
-
-        $draw = isset($request['draw']) ? intval($request['draw']) : 1;
-        $start = isset($request['start']) ? intval($request['start']) : 0;
-        $length = isset($request['length']) ? intval($request['length']) : 10;
-        $search = isset($request['search']['value']) ? $request['search']['value'] : '';
-        $order = isset($request['order'][0]) ? [
-            'column' => intval($request['order'][0]['column']),
-            'dir' => $request['order'][0]['dir']
-        ] : ['column' => 0, 'dir' => 'desc'];
-
-        // Additional filters
-        $statusFilter = $request['status'] ?? '';
-
-        // Column names mapping to actual database columns
-        $columns = [
-            0 => 'ambassadors.id',        // # column
-            1 => 'ambassadors.name',      // Details column (sorted by name)
-            2 => 'ambassadors.ref_code',  // Referral Code column
-            3 => 'referral_count',        // Referrals column (virtual)
-            4 => 'ambassadors.id'         // Actions column (not sortable)
-        ];
-
-        $orderColumn = $columns[$order['column']] ?? 'ambassadors.created_at';
-
-        // Get comprehensive referral counts first for sorting
-        $referralCounts = $this->ambassadorModel->getComprehensiveReferralCounts($programId);
-        
-        // Get data from database - Build query
-        $builder = $this->ambassadorModel->select('ambassadors.*')
-            ->where('ambassadors.program_id', $programId)
-            ->where('ambassadors.is_deleted', 0);
-
-        // Apply status filter
-        if (!empty($statusFilter)) {
-            $builder->where('ambassadors.is_active', $statusFilter);
-        }
-
-        // Apply search
-        if (!empty($search)) {
-            $builder->groupStart()
-                ->like('ambassadors.name', $search)
-                ->orLike('ambassadors.email', $search)
-                ->orLike('ambassadors.institution', $search)
-                ->orLike('ambassadors.ref_code', $search);
+        try {
+            // Prevent caching of ambassador data
+            $this->response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+            $this->response->setHeader('Pragma', 'no-cache');
+            $this->response->setHeader('Expires', '0');
             
-            // Only search phone number if it's not null
-            if (!empty($search)) {
-                $builder->orLike('ambassadors.phone_number', $search);
+            $programId = session('current_program');
+            
+            if (!$programId) {
+                return $this->response->setJSON([
+                    'draw' => 1,
+                    'recordsTotal' => 0,
+                    'recordsFiltered' => 0,
+                    'data' => [],
+                    'error' => 'No program selected'
+                ]);
             }
-            
-            $builder->groupEnd();
-        }
 
-        // Get total count before ordering and limiting
-        $builderClone = clone $builder;
-        $totalRecords = $builderClone->countAllResults();
-        
-        // If sorting by referral count, we need to sort in PHP
-        if ($orderColumn === 'referral_count') {
-            // Get all results for sorting
-            $allResults = $builder->get()->getResult();
-            
-            // Add referral count to each result
-            foreach ($allResults as $row) {
-                $row->referral_count = $referralCounts[$row->id] ?? 0;
-            }
-            
-            // Sort by referral count
-            usort($allResults, function($a, $b) use ($order) {
-                if ($order['dir'] === 'asc') {
-                    return $a->referral_count <=> $b->referral_count;
-                } else {
-                    return $b->referral_count <=> $a->referral_count;
-                }
-            });
-            
-            // Apply pagination
-            $result = array_slice($allResults, $start, $length);
-        } else {
-            // Regular database sorting
-            $result = $builder->orderBy($orderColumn, $order['dir'])
-                ->limit($length, $start)
-                ->get()->getResult();
-        }
-        
-        // Format data for DataTable
-        $data = [];
-        foreach ($result as $row) {
-            // Get the referral count from our comprehensive count array
-            $referralCount = $referralCounts[$row->id] ?? 0;
+            // Process DataTables server-side request
+            $request = $this->request->getGet();
 
-            $data[] = [
-                'id' => $row->id,
-                'details' => [
-                    'name' => $row->name,
-                    'first_letter' => strtoupper(substr($row->name, 0, 1)),
-                    'email' => $row->email,
-                    'institution' => $row->institution,
-                    'created_at' => date('d M Y', strtotime($row->created_at)),
-                    'status' => $row->is_active,
-                ],
-                'ref_code' => $row->ref_code,
-                'referral_count' => $referralCount,
-                'actions' => $this->generateActionButtons($row)
+            $draw = isset($request['draw']) ? intval($request['draw']) : 1;
+            $start = isset($request['start']) ? intval($request['start']) : 0;
+            $length = isset($request['length']) ? intval($request['length']) : 10;
+            $search = isset($request['search']['value']) ? $request['search']['value'] : '';
+            $order = isset($request['order'][0]) ? [
+                'column' => intval($request['order'][0]['column']),
+                'dir' => $request['order'][0]['dir']
+            ] : ['column' => 0, 'dir' => 'desc'];
+
+            // Additional filters
+            $statusFilter = $request['status'] ?? '';
+
+            // Column names mapping to actual database columns
+            $columns = [
+                0 => 'ambassadors.id',        // # column
+                1 => 'ambassadors.name',      // Details column (sorted by name)
+                2 => 'ambassadors.ref_code',  // Referral Code column
+                3 => 'referral_count',        // Referrals column (virtual)
+                4 => 'ambassadors.id'         // Actions column (not sortable)
             ];
+
+            $orderColumn = $columns[$order['column']] ?? 'ambassadors.created_at';
+
+            log_message('debug', 'Order column: ' . $orderColumn . ', Order direction: ' . $order['dir']);
+
+            // Get comprehensive referral counts first for sorting
+            $referralCounts = $this->ambassadorModel->getComprehensiveReferralCounts($programId);
+            
+            // Get data from database - Build query
+            $builder = $this->ambassadorModel->select('ambassadors.*')
+                ->where('ambassadors.program_id', $programId)
+                ->where('ambassadors.is_deleted', 0);
+
+            // Apply status filter - handle empty string and explicit values
+            if ($statusFilter !== '' && $statusFilter !== null) {
+                $builder->where('ambassadors.is_active', $statusFilter);
+            }
+
+            // Apply search
+            if (!empty($search)) {
+                $builder->groupStart()
+                    ->like('ambassadors.name', $search)
+                    ->orLike('ambassadors.email', $search)
+                    ->orLike('ambassadors.institution', $search)
+                    ->orLike('ambassadors.ref_code', $search);
+                
+                // Only search phone number if it's not null
+                if (!empty($search)) {
+                    $builder->orLike('ambassadors.phone_number', $search);
+                }
+                
+                $builder->groupEnd();
+            }
+
+            // Get total count before ordering and limiting (unfiltered count)
+            $totalRecordsBuilder = $this->ambassadorModel->select('ambassadors.*')
+                ->where('ambassadors.program_id', $programId)
+                ->where('ambassadors.is_deleted', 0);
+            $totalRecords = $totalRecordsBuilder->countAllResults();
+            
+            // Get filtered count (with search and status filters applied)
+            $filteredRecordsBuilder = $this->ambassadorModel->select('ambassadors.*')
+                ->where('ambassadors.program_id', $programId)
+                ->where('ambassadors.is_deleted', 0);
+
+            // Apply status filter for filtered count
+            if ($statusFilter !== '' && $statusFilter !== null) {
+                $filteredRecordsBuilder->where('ambassadors.is_active', $statusFilter);
+            }
+
+            // Apply search for filtered count
+            if (!empty($search)) {
+                $filteredRecordsBuilder->groupStart()
+                    ->like('ambassadors.name', $search)
+                    ->orLike('ambassadors.email', $search)
+                    ->orLike('ambassadors.institution', $search)
+                    ->orLike('ambassadors.ref_code', $search);
+                
+                if (!empty($search)) {
+                    $filteredRecordsBuilder->orLike('ambassadors.phone_number', $search);
+                }
+                
+                $filteredRecordsBuilder->groupEnd();
+            }
+            
+            $filteredRecords = $filteredRecordsBuilder->countAllResults();
+            
+            // Create a fresh builder for data retrieval to avoid state pollution
+            $dataBuilder = $this->ambassadorModel->select('ambassadors.*')
+                ->where('ambassadors.program_id', $programId)
+                ->where('ambassadors.is_deleted', 0);
+
+            // Apply status filter again
+            if ($statusFilter !== '' && $statusFilter !== null) {
+                $dataBuilder->where('ambassadors.is_active', $statusFilter);
+            }
+
+            // Apply search again if provided
+            if (!empty($search)) {
+                $dataBuilder->groupStart()
+                    ->like('ambassadors.name', $search)
+                    ->orLike('ambassadors.email', $search)
+                    ->orLike('ambassadors.institution', $search)
+                    ->orLike('ambassadors.ref_code', $search);
+                
+                // Only search phone number if it's not null
+                if (!empty($search)) {
+                    $dataBuilder->orLike('ambassadors.phone_number', $search);
+                }
+                
+                $dataBuilder->groupEnd();
+            }
+            
+            // If sorting by referral count, we need to sort in PHP
+            if ($orderColumn === 'referral_count') {
+                // Get all results for sorting
+                $allResults = $dataBuilder->get()->getResult();
+                
+                // Add referral count to each result
+                foreach ($allResults as $row) {
+                    $row->referral_count = $referralCounts[$row->id] ?? 0;
+                }
+                
+                // Sort by referral count
+                usort($allResults, function($a, $b) use ($order) {
+                    if ($order['dir'] === 'asc') {
+                        return $a->referral_count <=> $b->referral_count;
+                    } else {
+                        return $b->referral_count <=> $a->referral_count;
+                    }
+                });
+                
+                // Apply pagination
+                $result = array_slice($allResults, $start, $length);
+            } else {
+                // Regular database sorting
+                $result = $dataBuilder->orderBy($orderColumn, $order['dir'])
+                    ->limit($length, $start)
+                    ->get()->getResult();
+            }
+            
+            // Format data for DataTable
+            $data = [];
+            foreach ($result as $row) {
+                // Get the referral count from our comprehensive count array
+                $referralCount = $referralCounts[$row->id] ?? 0;
+
+                // Function to clean text and ensure valid UTF-8
+                $cleanText = function($text) {
+                    if (empty($text)) return '';
+                    // Remove any null bytes
+                    $text = str_replace("\0", '', $text);
+                    // Fix encoding issues by removing invalid bytes
+                    $text = mb_convert_encoding($text, 'UTF-8', 'UTF-8');
+                    // If still invalid, just remove problematic characters
+                    if (!mb_check_encoding($text, 'UTF-8')) {
+                        $text = mb_convert_encoding($text, 'UTF-8', 'auto');
+                    }
+                    return $text ?: '';
+                };
+
+                $cleanName = $cleanText($row->name);
+                $cleanEmail = $cleanText($row->email);
+                $cleanInstitution = $cleanText($row->institution ?? '');
+
+                $data[] = [
+                    'id' => (int)$row->id,
+                    'details' => [
+                        'name' => $cleanName,
+                        'first_letter' => $cleanName ? strtoupper(substr($cleanName, 0, 1)) : '',
+                        'email' => $cleanEmail,
+                        'institution' => $cleanInstitution,
+                        'created_at' => date('d M Y', strtotime($row->created_at)),
+                        'status' => (int)$row->is_active,
+                    ],
+                    'ref_code' => (string)$row->ref_code,
+                    'referral_count' => (int)$referralCount,
+                    'actions' => (string)$this->generateActionButtons($row)
+                ];
+            }
+
+            // Response for DataTables
+            $response = [
+                'draw' => $draw,
+                'recordsTotal' => $totalRecords,
+                'recordsFiltered' => $filteredRecords,
+                'data' => $data
+            ];
+
+            // Use a simpler approach for JSON encoding with error handling
+            $this->response->setHeader('Content-Type', 'application/json; charset=utf-8');
+            $jsonString = json_encode($response, JSON_UNESCAPED_UNICODE | JSON_PARTIAL_OUTPUT_ON_ERROR);
+            
+            if ($jsonString === false) {
+                log_message('error', 'JSON encoding failed: ' . json_last_error_msg());
+                $errorResponse = [
+                    'draw' => $draw,
+                    'recordsTotal' => 0,
+                    'recordsFiltered' => 0,
+                    'data' => [],
+                    'error' => 'Data encoding error - some characters could not be displayed'
+                ];
+                return $this->response->setJSON($errorResponse);
+            }
+
+            return $this->response->setBody($jsonString);
+            
+        } catch (\Exception $e) {
+            log_message('error', 'Ambassador getData error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'draw' => 1,
+                'recordsTotal' => 0,
+                'recordsFiltered' => 0,
+                'data' => [],
+                'error' => 'An error occurred while loading data'
+            ]);
         }
-
-        // Response for DataTables
-        $response = [
-            'draw' => $draw,
-            'recordsTotal' => $totalRecords,
-            'recordsFiltered' => $totalRecords,
-            'data' => $data
-        ];
-
-        return $this->response->setJSON($response);
     }
 
     /**
@@ -238,15 +371,21 @@ class Ambassadors extends BaseController
         $this->response->setHeader('Pragma', 'no-cache');
         $this->response->setHeader('Expires', '0');
 
+        $programId = session('current_program');
+        
+        if (!$programId) {
+            return redirect()->to('ambassadors')->with('error', 'No program selected');
+        }
+
         $ambassador = $this->ambassadorModel->select('ambassadors.*')
             ->where('ambassadors.id', $id)
+            ->where('ambassadors.program_id', $programId)
+            ->where('ambassadors.is_deleted', 0)
             ->first();
 
         if (!$ambassador) {
-            return redirect()->to('ambassadors')->with('error', 'Ambassador not found');
+            return redirect()->to('ambassadors')->with('error', 'Ambassador not found or access denied');
         }
-
-        $programId = session('current_program');
 
         // Get referrals from new structure (ambassador_participant_referrals table)
         $newReferrals = $this->ambassadorParticipantReferralModel
@@ -344,21 +483,33 @@ class Ambassadors extends BaseController
         $this->response->setHeader('Pragma', 'no-cache');
         $this->response->setHeader('Expires', '0');
 
-        // Get ambassador data
-        $ambassador = $this->ambassadorModel->find($id);
+        $programId = session('current_program');
+        
+        if (!$programId) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No program selected'
+            ]);
+        }
+
+        // Get ambassador data with program validation
+        $ambassador = $this->ambassadorModel->select('ambassadors.*')
+            ->where('ambassadors.id', $id)
+            ->where('ambassadors.program_id', $programId)
+            ->where('ambassadors.is_deleted', 0)
+            ->first();
         
         if (!$ambassador) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Ambassador not found'
+                'message' => 'Ambassador not found or access denied'
             ]);
         }
         
         // Add formatted date
         $ambassador->created_at_formatted = date('d M Y', strtotime($ambassador->created_at));
         
-        // Get referral count
-        $programId = session('current_program');
+        // Get referral count for the validated ambassador
         $referralCounts = $this->ambassadorModel->getComprehensiveReferralCounts($programId, $id);
         $ambassador->referral_count = $referralCounts[$ambassador->id] ?? 0;
         
@@ -379,14 +530,26 @@ class Ambassadors extends BaseController
         $this->response->setHeader('Expires', '0');
 
         $id = $this->request->getPost('id');
+        $programId = session('current_program');
         
-        // Check if ambassador exists
-        $ambassador = $this->ambassadorModel->find($id);
+        if (!$programId) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No program selected'
+            ]);
+        }
+        
+        // Check if ambassador exists and belongs to current program
+        $ambassador = $this->ambassadorModel->select('ambassadors.*')
+            ->where('ambassadors.id', $id)
+            ->where('ambassadors.program_id', $programId)
+            ->where('ambassadors.is_deleted', 0)
+            ->first();
         
         if (!$ambassador) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Ambassador not found'
+                'message' => 'Ambassador not found or access denied'
             ]);
         }
         
@@ -517,13 +680,26 @@ class Ambassadors extends BaseController
         $this->response->setHeader('Expires', '0');
 
         try {
-            // Check if ambassador exists
-            $ambassador = $this->ambassadorModel->find($id);
+            $programId = session('current_program');
+            
+            if (!$programId) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'No program selected'
+                ]);
+            }
+
+            // Check if ambassador exists and belongs to current program
+            $ambassador = $this->ambassadorModel->select('ambassadors.*')
+                ->where('ambassadors.id', $id)
+                ->where('ambassadors.program_id', $programId)
+                ->where('ambassadors.is_deleted', 0)
+                ->first();
 
             if (!$ambassador) {
                 return $this->response->setJSON([
                     'success' => false,
-                    'message' => 'Ambassador not found'
+                    'message' => 'Ambassador not found or access denied'
                 ]);
             }
 

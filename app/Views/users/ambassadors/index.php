@@ -83,6 +83,33 @@
                                 <div class="card-body">
                                     <div class="d-flex align-items-center">
                                         <div class="avatar-sm flex-shrink-0">
+                                            <span class="avatar-title bg-soft-warning rounded-circle fs-3">
+                                                <i class="ri-user-unfollow-line text-warning"></i>
+                                            </span>
+                                        </div>
+                                        <div class="flex-grow-1 overflow-hidden ms-3">
+                                            <p class="text-uppercase fw-medium text-muted text-truncate mb-1">Inactive Ambassadors</p>
+                                            <h4 class="fs-4 flex-grow-1 mb-1"><?= $stats['inactive_ambassadors'] ?? 0 ?></h4>
+                                            <p class="text-muted mb-0">
+                                                <?= $stats['total_ambassadors'] > 0 ?
+                                                    number_format(($stats['inactive_ambassadors'] / $stats['total_ambassadors']) * 100, 1) . '%'
+                                                    : '0%' ?>
+                                                of total ambassadors
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional stats row for referrals -->
+                    <div class="row">
+                        <div class="col-xl-12">
+                            <div class="card card-animate">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-sm flex-shrink-0">
                                             <span class="avatar-title bg-soft-info rounded-circle fs-3">
                                                 <i class="ri-group-line text-info"></i>
                                             </span>
@@ -91,7 +118,7 @@
                                             <p class="text-uppercase fw-medium text-muted text-truncate mb-1">Total Referrals</p>
                                             <h4 class="fs-4 flex-grow-1 mb-1"><?= $stats['total_referrals'] ?? 0 ?></h4>
                                             <p class="text-muted mb-0">
-                                                From all ambassadors
+                                                From all ambassadors across the program
                                             </p>
                                         </div>
                                     </div>
@@ -374,10 +401,25 @@
                 ajax: {
                     url: '<?= site_url('users/ambassadors/getData') ?>',
                     type: 'GET',
+                    xhrFields: {
+                        withCredentials: true
+                    },
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Cache-Control': 'no-cache'
+                    },
                     data: function(d) {
-                        // Add filter parameters
-                        d.status = $('#filter-status').val();
-                        d.search.value = $('#search-box').val(); // Add search term
+                        // Add filter parameters - ensure proper handling of empty values
+                        var statusValue = $('#filter-status').val();
+                        if (statusValue !== '') {
+                            d.status = statusValue;
+                        }
+                        
+                        // Add search term
+                        var searchValue = $('#search-box').val();
+                        if (searchValue && searchValue.trim() !== '') {
+                            d.search.value = searchValue.trim();
+                        }
 
                         // Get sort info from the dropdown
                         var sortInfo = $('#sort-by').val().split('-');
@@ -389,6 +431,31 @@
                         }
 
                         return d;
+                    },
+                    error: function(xhr, error, code) {
+                        console.error('DataTables AJAX error:', error);
+                        console.error('Response:', xhr.responseText);
+                        console.error('Status:', xhr.status);
+                        
+                        // Check if it's an authentication issue
+                        if (xhr.status === 302 || xhr.responseText.includes('Sign in')) {
+                            Swal.fire({
+                                title: 'Session Expired',
+                                text: 'Your session has expired. Please log in again.',
+                                icon: 'warning',
+                                confirmButtonText: 'Login'
+                            }).then(() => {
+                                window.location.href = '<?= base_url() ?>';
+                            });
+                        } else {
+                            // Show user-friendly error message
+                            Swal.fire({
+                                title: 'Loading Error',
+                                text: 'Failed to load ambassador data. Please refresh the page and try again.',
+                                icon: 'error',
+                                confirmButtonText: 'OK'
+                            });
+                        }
                     }
                 },
                 columns: [{
@@ -408,15 +475,15 @@
                         render: function(data, type, row) {
                             if (!data) return '<div class="text-muted">N/A</div>';
 
-                            // Get user status class
-                            let statusClass = 'bg-success';
+                            // Get user status class and text
+                            let statusClass = 'bg-success-subtle text-success';
                             let statusText = 'Active';
 
-                            if (data.status == 0) {
-                                statusClass = 'bg-danger';
+                            if (data.status == '0') {
+                                statusClass = 'bg-danger-subtle text-danger';
                                 statusText = 'Inactive';
-                            } else if (data.status == 2) {
-                                statusClass = 'bg-warning';
+                            } else if (data.status == '2') {
+                                statusClass = 'bg-warning-subtle text-warning';
                                 statusText = 'Suspended';
                             }
 
@@ -427,7 +494,7 @@
                                 '</div>' +
                                 '</div>' +
                                 '<div class="flex-grow-1">' +
-                                '<h5 class="fs-14 mb-1">' + data.name + ' <span class="badge ' + statusClass + ' badge-soft-' + statusClass + ' fs-11">' + statusText + '</span></h5>' +
+                                '<h5 class="fs-14 mb-1">' + data.name + ' <span class="badge ' + statusClass + ' fs-11">' + statusText + '</span></h5>' +
                                 '<div class="d-flex flex-column gap-1 text-muted fs-12">' +
                                 '<div><i class="ri-mail-line me-1"></i>' + data.email + '</div>' +
                                 '<div><i class="ri-building-2-line me-1"></i>' + (data.institution || 'No Institution') + '</div>' +

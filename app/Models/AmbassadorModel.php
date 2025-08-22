@@ -77,18 +77,18 @@ class AmbassadorModel extends Model
     {
         $builder = $this->builder();
 
-        // Get basic ambassador statistics
-        $builder->select('COUNT(*) as total_ambassadors, SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active_ambassadors, SUM(CASE WHEN is_deleted = 1 THEN 1 ELSE 0 END) as deleted_ambassadors');
+        // Get basic ambassador statistics - fix the deleted ambassadors query
+        $builder->select('COUNT(*) as total_ambassadors, SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active_ambassadors, SUM(CASE WHEN is_active = 0 THEN 1 ELSE 0 END) as inactive_ambassadors');
 
         // Execute the query and get the result as an array
-        $result = $builder->where('program_id', $programId)->get()->getRowArray();
+        $result = $builder->where('program_id', $programId)->where('is_deleted', 0)->get()->getRowArray();
 
         // Check if result is empty
         if (empty($result)) {
             return [
                 'total_ambassadors' => 0,
                 'active_ambassadors' => 0,
-                'deleted_ambassadors' => 0,
+                'inactive_ambassadors' => 0,
                 'total_referrals' => 0
             ];
         }
@@ -141,10 +141,16 @@ class AmbassadorModel extends Model
         }
     }
 
-    // get all ambassadors
+    // get all ambassadors with mandatory program_id filtering for security
     public function getAmbassadors($limit = 10, $offset = 0, $filters = [])
     {
         $builder = $this->builder();
+
+        // Ensure program_id filter is always present for security
+        if (!isset($filters['program_id'])) {
+            log_message('warning', 'getAmbassadors called without program_id filter - potential security issue');
+            return null;
+        }
 
         // Apply filters dynamically
         foreach ($filters as $key => $value) {
@@ -153,6 +159,11 @@ class AmbassadorModel extends Model
             } else {
                 $builder->where($key, $value);
             }
+        }
+
+        // Always filter out deleted records for security
+        if (!isset($filters['is_deleted'])) {
+            $builder->where('is_deleted', 0);
         }
 
         // get data
@@ -169,7 +180,10 @@ class AmbassadorModel extends Model
 
         // check if result is empty
         if (empty($result)) {
-            return null;
+            return [
+                'data' => [],
+                'total' => 0
+            ];
         } else {
             return [
                 'data' => $result,
@@ -264,6 +278,8 @@ class AmbassadorModel extends Model
      */
     public function getComprehensiveReferralCounts($programId, $ambassadorId = null)
     {
+        log_message('debug', 'getComprehensiveReferralCounts called with programId: ' . $programId . ', ambassadorId: ' . ($ambassadorId ?? 'null'));
+        
         // Initialize return array
         $referralCounts = [];
 
@@ -280,6 +296,7 @@ class AmbassadorModel extends Model
         }
 
         $ambassadors = $ambassadorBuilder->get()->getResult();
+        log_message('debug', 'Found ambassadors: ' . count($ambassadors));
 
         // Step 2: Prepare ID to ref_code mapping for later use
         $ambassadorCodes = [];
@@ -290,30 +307,40 @@ class AmbassadorModel extends Model
 
         // If no ambassadors found, return empty array
         if (empty($ambassadors)) {
+            log_message('debug', 'No ambassadors found, returning empty array');
             return [];
         }
 
         // Step 3: Get counts from new structure (ambassador_participant_referrals table)
-        $newReferralsBuilder = $db->table('ambassador_participant_referrals');
-        $newReferralsBuilder->select('ambassador_id, COUNT(*) as count')
-            ->where('is_deleted', 0);
+        // Instead of complex join, use simple whereIn with ambassador IDs
+        $ambassadorIds = array_column($ambassadors, 'id');
+        log_message('debug', 'Ambassador IDs: ' . json_encode($ambassadorIds));
+        
+        if (!empty($ambassadorIds)) {
+            $newReferralsBuilder = $db->table('ambassador_participant_referrals');
+            $newReferralsBuilder->select('ambassador_id, COUNT(*) as count')
+                ->where('is_deleted', 0)
+                ->whereIn('ambassador_id', $ambassadorIds);
 
-        if ($ambassadorId !== null) {
-            $newReferralsBuilder->where('ambassador_id', $ambassadorId);
-        }
+            if ($ambassadorId !== null) {
+                $newReferralsBuilder->where('ambassador_id', $ambassadorId);
+            }
 
-        $newReferralsBuilder->groupBy('ambassador_id');
-        $newReferrals = $newReferralsBuilder->get()->getResult();
+            $newReferralsBuilder->groupBy('ambassador_id');
+            $newReferrals = $newReferralsBuilder->get()->getResult();
+            log_message('debug', 'New referrals found: ' . count($newReferrals));
 
-        // Add new referral counts to the result array
-        foreach ($newReferrals as $referral) {
-            if (isset($referralCounts[$referral->ambassador_id])) {
-                $referralCounts[$referral->ambassador_id] += $referral->count;
+            // Add new referral counts to the result array
+            foreach ($newReferrals as $referral) {
+                if (isset($referralCounts[$referral->ambassador_id])) {
+                    $referralCounts[$referral->ambassador_id] += $referral->count;
+                }
             }
         }
 
         // Step 4: Get counts from old structure (participants.ref_code_ambassador field)
         $refCodes = array_keys($ambassadorCodes);
+        log_message('debug', 'Ref codes: ' . json_encode($refCodes));
 
         if (!empty($refCodes)) {
             $oldReferralsBuilder = $db->table('participants');
@@ -330,6 +357,7 @@ class AmbassadorModel extends Model
                 ->groupBy('ref_code_ambassador');
 
             $oldReferrals = $oldReferralsBuilder->get()->getResult();
+            log_message('debug', 'Old referrals found: ' . count($oldReferrals));
 
             // Add old referral counts to the result array
             foreach ($oldReferrals as $referral) {
@@ -340,6 +368,7 @@ class AmbassadorModel extends Model
             }
         }
 
+        log_message('debug', 'Final referral counts: ' . json_encode($referralCounts));
         return $referralCounts;
     }
 
