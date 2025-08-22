@@ -73,7 +73,7 @@
                             <li class="nav-item">
                                 <a href="<?= base_url("scorings/interview") ?>"
                                     class="nav-link <?= url_is('scorings/interview*') ? 'active' : '' ?>"> <i
-                                        class="ri-shield-user-line"></i> Interview Scoring </a>
+                                        class="ri-shield-user-line"></i> Interview </a>
                             </li>
                         </ul>
                     </div>

@@ -61,6 +61,8 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->post('fully_funded/export', 'Scorings::export');
         $routes->get('fully_funded/export/(:num)', 'Scorings::export/$1');
         $routes->get('fully_funded/export_batch', 'Scorings::export_batch');
+        $routes->get('interview', 'Scorings::interview');
+        $routes->get('interview/getData', 'Scorings::getData2');
     });
 
     // announcements group

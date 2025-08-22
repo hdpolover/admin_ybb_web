@@ -61,6 +61,28 @@ class Scorings extends BaseController
         }
     }
 
+    public function interview()
+    {
+        try {
+            // Get program for stats
+            $programId = session('current_program');
+            $program = $this->programModel->find($programId);
+
+            // Get participant stats
+            $stats = $this->participantModel->getParticipantStats($programId);
+
+            $data = [
+                'program' => $program,
+                'stats' => $stats
+            ];
+
+            return view('scorings/interview/index', $data);
+        } catch (\Exception $e) {
+            // Handle exception and redirect with error message
+            log_message('error', 'Failed to fetch participants: ' . $e->getMessage());
+            // return redirect()->back()->with('error', 'Failed to fetch participants: ' . $e->getMessage());
+        }
+    }
     /**
      * Get participants data for DataTables
      */
@@ -169,6 +191,112 @@ class Scorings extends BaseController
         return $this->response->setJSON($response);
     }
 
+    public function getData2()
+    {
+        // Process DataTables server-side request
+        $request = $this->request->getGet();
+
+        $draw = $request['draw'] ?? 1;
+        $start = $request['start'] ?? 0;
+        $length = $request['length'] ?? 10;
+        $search = $request['search']['value'] ?? '';
+        $order = isset($request['order'][0]) ? [
+            'column' => $request['order'][0]['column'],
+            'dir' => $request['order'][0]['dir']
+        ] : ['column' => 4, 'dir' => 'desc'];
+
+        // Column names
+        $columns = [
+            'created_at',               // Order number
+            'participants.account_id',  // Account ID
+            'full_name',               // Participant Details
+            'participant_statuses.form_status', // Submission Status
+            'created_at',              // Registered On
+        ];
+
+        $orderColumn = $columns[$order['column']] ?? 'created_at';
+        $programId = session('current_program');
+
+        // Get data from database
+        $builder = $this->participantModel->select('
+                participants.*, 
+                users.email,
+                participants.phone_number,
+                participant_statuses.form_status
+            ')
+            ->join('users', 'users.id = participants.user_id')
+            ->join('participant_statuses', 'participant_statuses.participant_id = participants.id', 'left')
+            ->where('participants.program_id', $programId)
+            ->where('participants.is_deleted', 0)
+            ->limit($length, $start);
+
+        // Apply search
+        if (!empty($search)) {
+            $builder->groupStart()
+                ->like('participants.full_name', $search)
+                ->orLike('users.email', $search)
+                ->orLike('participants.phone_number', $search)
+                ->orLike('participants.account_id', $search)
+                ->orLike('participants.nationality', $search)
+                ->groupEnd();
+        }       
+        // Apply filters
+        $category = 'fully_funded';
+        if ($category !== '' && $category !== null) {
+            $builder->where('participants.category', $category);
+        }
+        // Apply filters
+        $score_status = 'go_to_interview';
+        if ($score_status !== '' && $score_status !== null) {
+            $builder->where('participants.score_status', $score_status);
+        }
+
+        // Apply form status filter
+        $form_status = '2';
+        if ($form_status !== '' && $form_status !== null) {
+            $builder->where('participant_statuses.form_status', $form_status);
+        }
+
+        // Get total count
+        $totalRecords = $builder->countAllResults(false);
+
+        // Order and limit
+        $result = $builder->orderBy($orderColumn, $order['dir'])
+            ->limit($length, $start)
+            ->get()->getResult();
+        // Format data for DataTable
+        $data = [];
+        $counter = $start + 1;
+
+        foreach ($result as $row) {
+            // Get submission status based only on form_status
+            $submissionStatus = $this->getFormStatusBadge($row->form_status ?? 0);
+            $scoreStatus = $row->score_status ?? 0;
+            $data[] = [
+                'order_number' => $counter++,
+                'account_id' => $row->account_id,
+                'participant_details' => [
+                    'full_name' => $row->full_name,
+                    'picture_url' => $row->picture_url,
+                    'email' => $row->email,
+                    'nationality' => $row->nationality ?? 'N/A'
+                ],
+                'submission_status' => $submissionStatus,
+                'registered_on' => date('M d, Y', strtotime($row->created_at)),
+                'actions' => $scoreStatus
+            ];
+        }
+
+        // Response for DataTables
+        $response = [
+            'draw' => intval($draw),
+            'recordsTotal' => $totalRecords,
+            'recordsFiltered' => $totalRecords,
+            'data' => $data
+        ];
+
+        return $this->response->setJSON($response);
+    }
     /**
      * Get HTML for category badge
      */
