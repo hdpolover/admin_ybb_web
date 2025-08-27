@@ -13,6 +13,9 @@ $routes->group('api/landing', ['namespace' => 'App\Controllers\Api'], function (
     // Gallery
     $routes->get('gallery', 'LandingApiController::gallery');
     
+    // Video Testimonies
+    $routes->get('video-testimonies', 'LandingApiController::videoTestimonies');
+    
     // Insights
     $routes->get('insights', 'LandingApiController::insights');
     $routes->get('insights/(:num)', 'LandingApiController::insightDetail/$1');
@@ -34,4 +37,5 @@ $routes->group('api/landing', ['namespace' => 'App\Controllers\Api'], function (
     // Development/Testing - Clear cache and test endpoints
     $routes->get('clear-cache', 'LandingApiController::clearCache');
     $routes->get('test-payment-flags', 'LandingApiController::testPaymentFlags');
+    $routes->get('test-video-testimonies', 'LandingApiController::testVideoTestimonies');
 });

@@ -18,7 +18,6 @@ class Auth extends BaseController
         return view('auth/sign-in');
     }    public function signIn()
     {
-
         $email = $this->request->getPost('email');
         $password = $this->request->getPost('password');
         $type = $this->request->getPost('type');
@@ -29,24 +28,46 @@ class Auth extends BaseController
         }
 
         // Pass the parameters directly to signIn method
-        $admin = $this->adminModel->signIn($email, $password, $type);
+        $admin = $this->adminModel->signIn($email, $password);
 
         if ($admin) {
+            // Get admin programs
+            $adminProgramModel = new \App\Models\AdminProgramModel();
+            $adminPrograms = $adminProgramModel->getAdminPrograms($admin->id);
+            
+            // Update last login
+            $this->adminModel->updateLastLogin($admin->id, session_id());
+            
             // Set session data
             $this->session->set('isLoggedIn', true);
             $this->session->set('adminId', $admin->id);
             $this->session->set('userType', 'admin');
+            $this->session->set('userRole', $admin->role);
+            
+            // Set comprehensive session data for topbar and sidebar
+            $sessionData = [
+                'currentUser' => $admin,
+                'userType' => 'admin',
+                'userRole' => $admin->role,
+                'userId' => $admin->id,
+                'adminPrograms' => $adminPrograms,
+                'isJournalType' => false // Will be updated based on program selection
+            ];
+            $this->session->set('topbar_data', $sessionData);
 
-            // if admin role is super, return welcome page. if not, return dashboard page
-            if ($admin->role == 'super') {
+            // Role-based redirection
+            if ($admin->role == 'super_admin') {
                 return redirect()->to('/welcome');
             } else {
-                // set current program id in session
-                $this->session->set('current_program_id', $admin->program_id);
+                // For non-super admins, set first assigned program if available
+                if (!empty($adminPrograms)) {
+                    $firstProgram = $adminPrograms[0];
+                    $this->session->set('current_program_id', $firstProgram->program_id);
+                }
                 return redirect()->to('/dashboard');
             }
         } else {
-            return redirect()->back()->with('error', $admin['message'] ?? 'Invalid email or password.');
+            return redirect()->back()->with('error', 'Invalid email or password.');
         }
     }
     

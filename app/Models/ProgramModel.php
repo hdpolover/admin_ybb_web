@@ -78,14 +78,16 @@ class ProgramModel extends Model
             ->where('is_active', 1)
             ->where('is_deleted', 0);
         
-        $program = $builder->get()->getRow();
+        $programs = $builder->get()->getResult();
         
-        // Attach payment information if program exists
-        if ($program) {
-            $this->attachPaymentFlags($program);
+        // Attach payment information if programs exist
+        if ($programs) {
+            foreach ($programs as $program) {
+                $this->attachPaymentFlags($program);
+            }
         }
         
-        return $program;
+        return $programs;
     }
 
     /**
@@ -257,5 +259,40 @@ class ProgramModel extends Model
         
         // Attach to program object
         $program->registration_payments = $paymentFlags;
+    }
+
+    /**
+     * Get previous (inactive) programs by category
+     *
+     * @param string|null $webUrl Web URL to match category
+     * @param int|null $categoryId Program category ID
+     * @return array
+     */
+    public function getPreviousPrograms($webUrl = null, $categoryId = null)
+    {
+        $builder = $this->db->table($this->table);
+        $builder->select('programs.*, program_categories.web_url as category_web_url');
+        $builder->join('program_categories', 'program_categories.id = programs.program_category_id', 'left');
+        $builder->where('programs.is_deleted', 0);
+        $builder->where('programs.is_active', 0); // Only inactive programs
+        
+        // Filter by category
+        if ($webUrl) {
+            $builder->where('program_categories.web_url', $webUrl);
+        } elseif ($categoryId) {
+            $builder->where('programs.program_category_id', $categoryId);
+        }
+        
+        $builder->orderBy('programs.start_date', 'DESC');
+        
+        $query = $builder->get();
+        $programs = $query->getResult();
+        
+        // Attach payment flags to each program
+        foreach ($programs as $program) {
+            $this->attachPaymentFlags($program);
+        }
+        
+        return $programs;
     }
 }

@@ -6,6 +6,8 @@ use App\Controllers\Api\ApiBaseController;
 use App\Models\ProgramCategoryModel;
 use App\Models\ProgramModel;
 use App\Models\ProgramTestimonyModel;
+use App\Models\ProgramVideoTestimonyModel;
+use App\Models\ProgramSpeakerModel;
 // faq model
 use App\Models\FaqModel;
 use App\Models\AnnouncementModel;
@@ -19,6 +21,8 @@ class LandingApiController extends ApiBaseController
     protected $programCategoryModel;
     protected $programModel;
     protected $testimonyModel;
+    protected $videoTestimonyModel;
+    protected $speakerModel;
     protected $faqModel;
     protected $announcementModel;
     protected $photoModel;
@@ -40,6 +44,8 @@ class LandingApiController extends ApiBaseController
         $this->programCategoryModel = new ProgramCategoryModel();
         $this->programModel = new ProgramModel();
         $this->testimonyModel = new ProgramTestimonyModel();
+        $this->videoTestimonyModel = new ProgramVideoTestimonyModel();
+        $this->speakerModel = new ProgramSpeakerModel();
         $this->faqModel = new FaqModel();
         $this->announcementModel = new AnnouncementModel();
         $this->photoModel = new ProgramPhotoModel();
@@ -62,6 +68,73 @@ class LandingApiController extends ApiBaseController
             ]);
         } catch (\Exception $e) {
             return $this->respondError('Failed to clear cache: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Test endpoint to verify video testimonies - DEVELOPMENT ONLY
+     * GET /api/landing/test-video-testimonies?web_url={url}
+     */
+    public function testVideoTestimonies()
+    {
+        try {
+            $webUrl = $this->request->getGet('web_url');
+
+            if (empty($webUrl)) {
+                return $this->respondValidationErrors('web_url parameter is required');
+            }
+
+            $normalizedWebUrl = normalize_web_url($webUrl);
+
+            // Get program category by web_url (no cache)
+            $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $normalizedWebUrl]);
+
+            if (!$category) {
+                return $this->respondNotFound('Program category not found');
+            }
+
+            // Get all programs for this category
+            $allPrograms = $this->programModel->getAllPrograms($category->id);
+
+            // Get active video testimonies for this category using the new method
+            $videoTestimonies = $this->videoTestimonyModel->getActiveVideoTestimoniesByCategory($category->id);
+
+            // Group video testimonies by program_id
+            $groupedVideoTestimonies = [];
+            foreach ($videoTestimonies as $videoTestimony) {
+                $programId = $videoTestimony->program_id;
+                
+                if (!isset($groupedVideoTestimonies[$programId])) {
+                    // Find program details for this program_id
+                    $programInfo = null;
+                    foreach ($allPrograms as $program) {
+                        if ($program->id == $programId) {
+                            $programInfo = $program;
+                            break;
+                        }
+                    }
+                    
+                }
+                
+                $groupedVideoTestimonies[$programId]['videos'][] = $videoTestimony;
+            }
+
+            return $this->respondSuccess([
+                'category' => $category,
+                'programs_count' => count($allPrograms),
+                'programs' => $allPrograms,
+                'raw_video_testimonies_count' => count($videoTestimonies),
+                'raw_video_testimonies' => $videoTestimonies,
+                'grouped_video_testimonies_count' => count($groupedVideoTestimonies),
+                'grouped_video_testimonies' => array_values($groupedVideoTestimonies),
+                'model_methods_available' => [
+                    'getActiveVideoTestimoniesByCategory' => method_exists($this->videoTestimonyModel, 'getActiveVideoTestimoniesByCategory'),
+                    'getAllVideoTestimoniesByCategory' => method_exists($this->videoTestimonyModel, 'getAllVideoTestimoniesByCategory'),
+                ],
+                'timestamp' => date('Y-m-d H:i:s')
+            ]);
+        } catch (\Exception $e) {
+            return $this->respondError('Error testing video testimonies: ' . $e->getMessage());
         }
     }
 
@@ -140,6 +213,42 @@ class LandingApiController extends ApiBaseController
                 // Get active testimonies for this category
                 $testimonies = $this->testimonyModel->getActiveTestimonies($category->id);
 
+                // Get active video testimonies for this category
+                $videoTestimonies = $this->videoTestimonyModel->getActiveVideoTestimoniesByCategory($category->id);
+
+                $hasVideoTestimonies = !empty($videoTestimonies);
+
+                // If video testimonies are empty, get video testimonies from other categories
+                if (empty($videoTestimonies)) {
+                    $videoTestimonies = $this->videoTestimonyModel->getAllVideoTestimoniesByCategory($category->id);
+                }
+
+                // Group video testimonies by program_id
+                $groupedVideoTestimonies = [];
+                foreach ($videoTestimonies as $videoTestimony) {
+                    $programId = $videoTestimony->program_id;
+                    
+                    if (!isset($groupedVideoTestimonies[$programId])) {
+                        // Find program details for this program_id
+                        $programInfo = null;
+                        foreach ($allPrograms as $program) {
+                            if ($program->id == $programId) {
+                                $programInfo = $program;
+                                break;
+                            }
+                        }
+                        
+                        $groupedVideoTestimonies[$programId] = [
+                            'program_id' => $programId,
+                            'program_name' => $programInfo ? $programInfo->name : 'Unknown Program',
+                            'program_web_url' => $programInfo ? ($programInfo->web_url ?? null) : null,
+                            'videos' => []
+                        ];
+                    }
+                    
+                    $groupedVideoTestimonies[$programId]['videos'][] = $videoTestimony;
+                }
+
                 // Get active photos for this category
                 $photos = $this->photoModel->getActivePhotos($category->id);
 
@@ -171,6 +280,8 @@ class LandingApiController extends ApiBaseController
                     'category' => $category,
                     'programs' => $allPrograms,
                     'testimonies' => $testimonies,
+                    'hasVideoTestimonies' => $hasVideoTestimonies,
+                    'videoTestimonies' => array_values($groupedVideoTestimonies), // Convert to indexed array
                     'hasPhotos' => $hasPhotos,
                     'photos' => $groupedPhotos,
                 ];
@@ -211,24 +322,123 @@ class LandingApiController extends ApiBaseController
                     return null;
                 }
 
-                // Get all programs for this category
-                $programs = $this->programModel->getActivePrograms($category->id);
+                // Get active programs for this category
+                $activePrograms = $this->programModel->getActivePrograms($category->id);
 
-                // get other programs
+                // Get previous programs for this category (inactive programs from same category)
+                $previousPrograms = $this->programModel->getPreviousPrograms($normalizedWebUrl, $category->id);
+
+                // Get other programs (active programs from different categories)
                 $otherPrograms = $this->programModel->getOtherPrograms($category->id);
 
                 return [
                     'category' => $category,
-                    'programs' => $programs,
+                    'activePrograms' => $activePrograms,
+                    'previousPrograms' => $previousPrograms,
                     'otherPrograms' => $otherPrograms
                 ];
-            }, ['web_url' => $normalizedWebUrl], null, 3600); // 1 hour cache
+            }, ['web_url' => $normalizedWebUrl, 'v' => '3'], null, 3600); // 1 hour cache
 
             if ($data === null) {
                 return $this->respondNotFound('Program category not found');
             }
 
             return $this->respondSuccess($data);
+        } catch (\Exception $e) {
+            return $this->respondError($e->getMessage());
+        }
+    }
+
+    /**
+     * Get video testimonies data
+     * 
+     * @return \CodeIgniter\HTTP\ResponseInterface
+     */
+    public function videoTestimonies()
+    {
+        try {
+            $webUrl = $this->request->getGet('web_url');
+
+            if (empty($webUrl)) {
+                return $this->respondValidationErrors('web_url parameter is required');
+            }
+
+            $normalizedWebUrl = normalize_web_url($webUrl);
+
+            // Get program category by web_url
+            $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $normalizedWebUrl]);
+
+            if (!$category) {
+                return $this->respondNotFound('Program category not found');
+            }
+
+            // Get all programs for this category
+            $allPrograms = $this->programModel->getAllPrograms($category->id);
+
+            // Get active video testimonies for this category
+            $videoTestimonies = $this->videoTestimonyModel->getActiveVideoTestimoniesByCategory($category->id);
+
+            $hasVideoTestimonies = !empty($videoTestimonies);
+
+            // If video testimonies are empty, get video testimonies from other categories
+            if (empty($videoTestimonies)) {
+                $videoTestimonies = $this->videoTestimonyModel->getAllVideoTestimoniesByCategory($category->id);
+            }
+
+            // Group video testimonies by program_id
+            $groupedVideoTestimonies = [];
+            foreach ($videoTestimonies as $videoTestimony) {
+                $programId = $videoTestimony->program_id;
+                
+                if (!isset($groupedVideoTestimonies[$programId])) {
+                    // Find program details for this program_id
+                    $programInfo = null;
+                    foreach ($allPrograms as $program) {
+                        if ($program->id == $programId) {
+                            $programInfo = $program;
+                            break;
+                        }
+                    }
+                    
+                    $groupedVideoTestimonies[$programId] = [
+                        'program_id' => $programId,
+                        'program_name' => $programInfo ? $programInfo->name : 'Unknown Program',
+                        'program_web_url' => $programInfo ? ($programInfo->web_url ?? null) : null,
+                        'videos' => []
+                    ];
+                }
+                
+                $groupedVideoTestimonies[$programId]['videos'][] = $videoTestimony;
+            }
+
+            // Get other programs for this category to show cross-program video testimonies
+            $otherPrograms = $this->programModel->getOtherPrograms($category->id);
+
+            // Structure other program video testimonies
+            $otherProgramVideoTestimonies = [];
+
+            foreach ($otherPrograms as $program) {
+                $programCategoryId = $program->program_category_id;
+                $programVideoTestimonies = $this->videoTestimonyModel->getActiveVideoTestimoniesByCategory($programCategoryId);
+
+                // Just get 3 video testimonies per program
+                $programVideoTestimonies = array_slice($programVideoTestimonies, 0, 3);
+
+                if (!empty($programVideoTestimonies)) {
+                    $otherProgramVideoTestimonies[] = [
+                        'name' => $program->name,
+                        'web_url' => $program->web_url,
+                        'videos' => $programVideoTestimonies
+                    ];
+                }
+            }
+
+            return $this->respondSuccess([
+                'category' => $category,
+                'hasVideoTestimonies' => $hasVideoTestimonies,
+                'videoTestimonies' => array_values($groupedVideoTestimonies), // Convert to indexed array
+                'otherProgramVideoTestimonies' => $otherProgramVideoTestimonies
+            ]);
         } catch (\Exception $e) {
             return $this->respondError($e->getMessage());
         }
@@ -547,9 +757,17 @@ class LandingApiController extends ApiBaseController
                 return $this->respondNotFound('Program not found');
             }
 
+            // Get speakers for this program
+            $speakers = $this->speakerModel->getByProgramId($program->id, true); // only active speakers
+            $keynoteSpeakers = $this->speakerModel->getKeynoteSpeakers($program->id);
+            $regularSpeakers = $this->speakerModel->getRegularSpeakers($program->id);
+
             return $this->respondSuccess([
                 'category' => $category,
                 'program' => $program,
+                'speakers' => $speakers,
+                'keynote_speakers' => $keynoteSpeakers,
+                'regular_speakers' => $regularSpeakers
             ]);
         } catch (\Exception $e) {
             return $this->respondError($e->getMessage());
@@ -592,12 +810,20 @@ class LandingApiController extends ApiBaseController
                 return $this->respondNotFound('Program not found');
             }
 
+            // Get speakers for this program
+            $speakers = $this->speakerModel->getByProgramId($program->id, true); // only active speakers
+            $keynoteSpeakers = $this->speakerModel->getKeynoteSpeakers($program->id);
+            $regularSpeakers = $this->speakerModel->getRegularSpeakers($program->id);
+
             // get participant photos by program id
             $photos = $this->participantModel->getParticipantPhotosByProgramId($program->id);
 
             return $this->respondSuccess([
                 'category' => $category,
-                'program' => $program
+                'program' => $program,
+                'speakers' => $speakers,
+                'keynote_speakers' => $keynoteSpeakers,
+                'regular_speakers' => $regularSpeakers
             ]);
         } catch (\Exception $e) {
             return $this->respondError($e->getMessage());

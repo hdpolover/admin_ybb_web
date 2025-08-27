@@ -219,10 +219,17 @@
                     <div class="dropdown ms-sm-3 header-item topbar-user">
                         <button type="button" class="btn program-selector-btn" id="page-header-user-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                             <span class="d-flex align-items-center">
-                                <img class="rounded-circle header-profile-user" src="/assets/images/users/avatar-1.jpg" alt="Header Avatar">
+                                <?php 
+                                $currentUser = $topbarData['currentUser'] ?? null;
+                                $userAvatar = $currentUser->avatar ?? '/assets/images/users/avatar-1.jpg';
+                                $userName = $currentUser->name ?? 'Admin User';
+                                $userRole = $currentUser->role ?? 'user';
+                                $displayRole = ucwords(str_replace('_', ' ', $userRole));
+                                ?>
+                                <img class="rounded-circle header-profile-user" src="<?= $userAvatar ?>" alt="<?= esc($userName) ?>">
                                 <span class="text-start ms-xl-2">
-                                    <span class="d-none d-xl-inline-block ms-1 fw-medium user-name-text">Anna Adame</span>
-                                    <span class="d-none d-xl-block ms-1 fs-12 user-name-sub-text text-muted">Founder</span>
+                                    <span class="d-none d-xl-inline-block ms-1 fw-medium user-name-text"><?= esc($userName) ?></span>
+                                    <span class="d-none d-xl-block ms-1 fs-12 user-name-sub-text text-muted"><?= esc($displayRole) ?></span>
                                 </span>
                                 <i class="ri-arrow-down-s-line d-none d-xl-inline-block ms-2 fs-16"></i>
                             </span>
@@ -231,47 +238,33 @@
                             <!-- item-->
                             <div class="p-3 border-bottom">
                                 <div class="d-flex align-items-center">
-                                    <img class="rounded-circle me-3" src="/assets/images/users/avatar-1.jpg" alt="Header Avatar" width="50">
+                                    <img class="rounded-circle me-3" src="<?= $userAvatar ?>" alt="<?= esc($userName) ?>" width="50">
                                     <div>
-                                        <h6 class="mb-0 fs-15">Anna Adame</h6>
-                                        <p class="mb-0 text-muted fs-13">Founder</p>
+                                        <h6 class="mb-0 fs-15"><?= esc($userName) ?></h6>
+                                        <p class="mb-0 text-muted fs-13"><?= esc($displayRole) ?></p>
+                                        <small class="text-muted"><?= esc($currentUser->email ?? '') ?></small>
                                     </div>
                                 </div>
                             </div>
                             <div class="p-2">
-                                <a class="dropdown-item d-flex align-items-center" href="pages-profile">
+                                <a class="dropdown-item d-flex align-items-center" href="<?= base_url('profile') ?>">
                                     <i class="ri-user-line text-muted fs-16 align-middle me-2"></i> 
-                                    <span class="align-middle">Profile</span>
+                                    <span class="align-middle">My Profile</span>
                                 </a>
-                                <a class="dropdown-item d-flex align-items-center" href="apps-chat">
-                                    <i class="ri-message-2-line text-muted fs-16 align-middle me-2"></i> 
-                                    <span class="align-middle">Messages</span>
-                                </a>
-                                <a class="dropdown-item d-flex align-items-center" href="apps-tasks-kanban">
-                                    <i class="ri-task-line text-muted fs-16 align-middle me-2"></i> 
-                                    <span class="align-middle">Taskboard</span>
-                                </a>
-                                <a class="dropdown-item d-flex align-items-center" href="pages-faqs">
-                                    <i class="ri-question-line text-muted fs-16 align-middle me-2"></i> 
-                                    <span class="align-middle">Help</span>
-                                </a>
-                                <div class="dropdown-divider"></div>
-                                <a class="dropdown-item d-flex align-items-center" href="pages-profile">
-                                    <i class="ri-wallet-line text-muted fs-16 align-middle me-2"></i> 
-                                    <span class="align-middle">Balance : <b>$5971.67</b></span>
-                                </a>
-                                <a class="dropdown-item d-flex align-items-center" href="pages-profile-settings">
+                                <?php if ($currentUser && $currentUser->role === 'super_admin'): ?>
+                                <a class="dropdown-item d-flex align-items-center" href="<?= base_url('settings/main-config') ?>">
                                     <i class="ri-settings-3-line text-muted fs-16 align-middle me-2"></i> 
-                                    <span class="align-middle">Settings</span>
-                                    <span class="badge bg-success-subtle text-success ms-auto">New</span>
+                                    <span class="align-middle">System Settings</span>
                                 </a>
-                                <a class="dropdown-item d-flex align-items-center" href="auth-lockscreen-basic">
-                                    <i class="ri-lock-line text-muted fs-16 align-middle me-2"></i> 
-                                    <span class="align-middle">Lock screen</span>
+                                <a class="dropdown-item d-flex align-items-center" href="<?= base_url('settings/admin-management') ?>">
+                                    <i class="ri-admin-line text-muted fs-16 align-middle me-2"></i> 
+                                    <span class="align-middle">Admin Management</span>
                                 </a>
-                                <a class="dropdown-item d-flex align-items-center" href="<?= base_url('sign-out') ?>">
+                                <?php endif; ?>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item d-flex align-items-center" href="<?= base_url('auth/signOut') ?>">
                                     <i class="ri-logout-box-line text-muted fs-16 align-middle me-2"></i> 
-                                    <span class="align-middle" data-key="t-logout">Logout</span>
+                                    <span class="align-middle">Sign Out</span>
                                 </a>
                             </div>
                         </div>

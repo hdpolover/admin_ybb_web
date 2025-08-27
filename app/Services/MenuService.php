@@ -55,6 +55,12 @@ class MenuService
                             'url' => '/program-rundowns',
                             'icon' => 'fas fa-clock',
                             'active_patterns' => ['/program-rundowns']
+                        ],
+                        [
+                            'label' => 'Program Speakers',
+                            'url' => '/program-speakers',
+                            'icon' => 'fas fa-microphone',
+                            'active_patterns' => ['/program-speakers']
                         ]
                     ]
                 ],
@@ -142,15 +148,21 @@ class MenuService
                     'children' => [
                         [
                             'label' => 'Admin Management',
-                            'url' => '/admin',
+                            'url' => '/settings/admin-management',
                             'icon' => 'fas fa-user-shield',
-                            'active_patterns' => ['/admin']
+                            'active_patterns' => ['/settings/admin-management']
+                        ],
+                        [
+                            'label' => 'Roles & Permissions',
+                            'url' => '/settings/roles',
+                            'icon' => 'fas fa-user-tag',
+                            'active_patterns' => ['/settings/roles']
                         ],
                         [
                             'label' => 'Web Settings',
-                            'url' => '/main-config',
+                            'url' => '/settings/main-config',
                             'icon' => 'fas fa-globe',
-                            'active_patterns' => ['/main-config']
+                            'active_patterns' => ['/settings/main-config']
                         ],
                         [
                             'label' => 'Program Details',
@@ -213,6 +225,12 @@ class MenuService
                             'url' => '/program-schedules',
                             'icon' => 'fas fa-calendar',
                             'active_patterns' => ['/program-schedules']
+                        ],
+                        [
+                            'label' => 'Program Speakers',
+                            'url' => '/program-speakers',
+                            'icon' => 'fas fa-microphone',
+                            'active_patterns' => ['/program-speakers']
                         ]
                     ]
                 ]
@@ -251,6 +269,18 @@ class MenuService
                             'url' => '/program-testimonies',
                             'icon' => 'fas fa-quote-left',
                             'active_patterns' => ['/program-testimonies']
+                        ],
+                        [
+                            'label' => 'Video Testimonies',
+                            'url' => '/program-video-testimonies',
+                            'icon' => 'fas fa-video',
+                            'active_patterns' => ['/program-video-testimonies']
+                        ],
+                        [
+                            'label' => 'Program Speakers',
+                            'url' => '/program-speakers',
+                            'icon' => 'fas fa-microphone',
+                            'active_patterns' => ['/program-speakers']
                         ]
                     ]
                 ]

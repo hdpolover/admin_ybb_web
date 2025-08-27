@@ -549,7 +549,7 @@ class YbbExportController extends BaseController
                     'exportId' => $exportId,
                     'status' => $isCompleted ? 'completed' : ($actualData['status'] ?? 'unknown'),
                     'fileName' => $this->generateDisplayFilename($exportData),
-                    'downloadUrl' => $isCompleted ? site_url("admin/exports/download/{$exportId}") : null,
+                    'downloadUrl' => $isCompleted ? $this->ybbExport->getConfig()->apiUrl . "/api/ybb/export/{$exportId}/download" : null,
                     'recordCount' => $actualData['record_count'] ?? null,
                     'fileSize' => $actualData['file_size'] ?? null,
                     'fileSizeFormatted' => isset($actualData['file_size']) ? $this->formatFileSize($actualData['file_size']) : null,

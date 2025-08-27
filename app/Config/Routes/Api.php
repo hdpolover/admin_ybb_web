@@ -56,4 +56,25 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
 
     // Maintenance check endpoint - publicly accessible
     $routes->get('maintenance/check', 'Api\MaintenanceApiController::check');
+
+    // Program Speakers API routes
+    $routes->group('program-speakers', function ($routes) {
+        // Basic CRUD
+        $routes->get('/', 'ProgramSpeakersApiController::index');
+        $routes->get('(:num)', 'ProgramSpeakersApiController::show/$1');
+        $routes->post('/', 'ProgramSpeakersApiController::create');
+        $routes->put('(:num)', 'ProgramSpeakersApiController::update/$1');
+        $routes->delete('(:num)', 'ProgramSpeakersApiController::delete/$1');
+        
+        // Program-specific routes
+        $routes->get('program/(:num)', 'ProgramSpeakersApiController::getByProgramId/$1');
+        $routes->get('program/(:num)/keynote', 'ProgramSpeakersApiController::getKeynoteSpeakers/$1');
+        $routes->get('program/(:num)/regular', 'ProgramSpeakersApiController::getRegularSpeakers/$1');
+        $routes->get('program/(:num)/stats', 'ProgramSpeakersApiController::getSpeakerStats/$1');
+        $routes->get('program/(:num)/export', 'ProgramSpeakersApiController::exportSpeakers/$1');
+        
+        // Special operations
+        $routes->post('reorder', 'ProgramSpeakersApiController::reorder');
+        $routes->post('search', 'ProgramSpeakersApiController::search');
+    });
 });

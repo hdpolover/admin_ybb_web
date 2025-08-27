@@ -1,7 +1,79 @@
 <!-- ========== App Menu ========== -->
 <?php
-// Using CodeIgniter's built-in url_is() function for menu active states
-// No need for custom helper functions anymore
+// Get current user info from session
+$currentUser = session('topbar_data')['currentUser'] ?? null;
+
+// Initialize dynamic menu service
+$menuService = new \App\Services\DynamicMenuService();
+
+// Get dynamic menu visibility based on database permissions
+$menuVisibility = $menuService->getMenuVisibility($currentUser);
+extract($menuVisibility); // Extract all permission variables
+
+// Get dynamic menu items
+$dynamicMenu = $menuService->getMenuForUser($currentUser);
+
+// Fallback for super admin if dynamic menu fails
+$isSuperAdmin = $currentUser && (
+    ($currentUser->role === 'super_admin' || $currentUser->role === 'super') ||
+    (isset($currentUser->access_level) && $currentUser->access_level >= 10)
+);
+
+// Check if dynamic permissions are working
+$dynamicPermissionsWorking = !empty($menuVisibility) && array_sum($menuVisibility) > 0;
+
+// Force enable all permissions for super admin as fallback OR if dynamic system fails
+if ($isSuperAdmin || !$dynamicPermissionsWorking) {
+    // Override all permission variables
+    $canViewDashboard = true;
+    $canViewParticipants = true;
+    $canManageParticipants = true;
+    $canViewEssays = true;
+    $canManageEssays = true;
+    $canViewScoring = true;
+    $canManageScoring = true;
+    $canViewAmbassadors = true;
+    $canManageAmbassadors = true;
+    $canViewNews = true;
+    $canManageNews = true;
+    $canViewAnalytics = true;
+    $canExportData = true;
+    $canViewSettings = true;
+    $canManageAdmins = true;
+    $canManageRoles = true;
+    $canViewUsers = true;
+    $canViewSubmissions = true;
+    $canViewDocuments = true;
+    $canViewAnnouncements = true;
+    $canViewMasterData = true;
+    $canViewPayments = true;
+    
+    // Also override the extracted variables
+    extract([
+        'canViewDashboard' => true,
+        'canViewParticipants' => true,
+        'canManageParticipants' => true,
+        'canViewEssays' => true,
+        'canManageEssays' => true,
+        'canViewScoring' => true,
+        'canManageScoring' => true,
+        'canViewAmbassadors' => true,
+        'canManageAmbassadors' => true,
+        'canViewNews' => true,
+        'canManageNews' => true,
+        'canViewAnalytics' => true,
+        'canExportData' => true,
+        'canViewSettings' => true,
+        'canManageAdmins' => true,
+        'canManageRoles' => true,
+        'canViewUsers' => true,
+        'canViewSubmissions' => true,
+        'canViewDocuments' => true,
+        'canViewAnnouncements' => true,
+        'canViewMasterData' => true,
+        'canViewPayments' => true,
+    ]);
+}
 ?>
 <div class="app-menu navbar-menu">
     <!-- LOGO -->
@@ -44,6 +116,7 @@
                     </a>
                 </li>
 
+                <?php if ($canViewPayments): ?>
                 <li class="menu-title"><i class="ri-money-dollar-circle-line"></i> <span
                         data-key="t-financial">Financial</span></li>
 
@@ -53,7 +126,9 @@
                         <i class="ri-bank-card-line"></i> <span>Payments</span>
                     </a>
                 </li>
+                <?php endif; ?>
 
+                <?php if ($canViewScoring): ?>
                 <li class="menu-title"><i class="ri-user-line"></i> <span data-key="t-user-management">Scoring
                     </span></li>
 
@@ -78,7 +153,9 @@
                         </ul>
                     </div>
                 </li>
+                <?php endif; ?>
 
+                <?php if ($canViewUsers): ?>
                 <li class="menu-title"><i class="ri-user-line"></i> <span data-key="t-user-management">User
                         Management</span></li>
 
@@ -103,7 +180,9 @@
                         </ul>
                     </div>
                 </li>
+                <?php endif; ?>
 
+                <?php if ($canViewSubmissions): ?>
                 <li class="menu-title"><i class="ri-file-paper-line"></i> <span data-key="t-program-content">Program
                         Content</span></li>
 
@@ -121,17 +200,11 @@
                                 <a href="<?= base_url("submissions/essays") ?>"
                                     class="nav-link <?= url_is('submissions/essays*') ? 'active' : '' ?>"> <i
                                         class="ri-draft-line"></i> Essays </a>
-                            </li> <!-- JOURNAL TYPE CHECK BEGIN -->
+                            </li> 
                             <?php
-                            // Force clear and rebuild the sidebar cache
+                            // Journal type check for abstracts menu
                             $selectedProg = session('topbar_data')['selectedProgram'] ?? null;
                             $isJournal = session('topbar_data')['isJournalType'] ?? false;
-                            $categoryId = $selectedProg ? $selectedProg->program_category_id : 'none';
-
-                            log_message('debug', 'Category ID: ' . $categoryId);
-                            log_message('debug', 'Is Journal: ' . ($isJournal ? 'true' : 'false'));
-
-                            // The strict comparison ensures it's exactly true, not just truthy
                             if ($isJournal === true):
                             ?>
                             <li class="nav-item">
@@ -141,11 +214,7 @@
                                         class="text-success">(YAF Only)</span>
                                 </a>
                             </li>
-                            <?php else: ?>
-                            <!-- This is an empty placeholder where the Abstracts menu would be -->
-                            <!-- DO NOT add any visible content here -->
                             <?php endif; ?>
-                            <!-- JOURNAL TYPE CHECK END -->
                             <li class="nav-item">
                                 <a href="<?= base_url("submissions/agreements") ?>"
                                     class="nav-link <?= url_is('submissions/agreements*') ? 'active' : '' ?>"> <i
@@ -154,7 +223,9 @@
                         </ul>
                     </div>
                 </li>
+                <?php endif; ?>
 
+                <?php if ($canViewDocuments): ?>
                 <li class="nav-item">
                     <a class="nav-link menu-link <?= url_is('documents*') ? 'active' : '' ?>" href="#sidebarDocuments"
                         data-bs-toggle="collapse" role="button"
@@ -177,14 +248,18 @@
                         </ul>
                     </div>
                 </li>
+                <?php endif; ?>
+
+                <?php if ($canViewAnnouncements): ?>
                 <li class="nav-item">
                     <a class="nav-link menu-link <?= url_is('announcements*') ? 'active' : '' ?>"
                         href="<?= base_url("announcements") ?>">
                         <i class="ri-megaphone-line"></i> <span>Announcements</span>
                     </a>
                 </li>
+                <?php endif; ?>
 
-
+                <?php if ($canViewMasterData): ?>
                 <li class="menu-title"><i class="ri-settings-line"></i> <span
                         data-key="t-configuration">Configuration</span></li>
 
@@ -229,6 +304,11 @@
                                     <i class="ri-chat-quote-line"></i> Program Testimonies </a>
                             </li>
                             <li class="nav-item">
+                                <a href="<?= base_url("master-data/program-video-testimonies") ?>"
+                                    class="nav-link <?= url_is('master-data/program-video-testimonies*') ? 'active' : '' ?>">
+                                    <i class="ri-video-line"></i> Video Testimonies </a>
+                            </li>
+                            <li class="nav-item">
                                 <a href="<?= base_url("master-data/program-photos") ?>"
                                     class="nav-link <?= url_is('master-data/program-photos*') ? 'active' : '' ?>"> <i
                                         class="ri-image-line"></i> Program Photos </a>
@@ -238,8 +318,12 @@
                                     class="nav-link <?= url_is('master-data/program-rundowns*') ? 'active' : '' ?>"> <i
                                         class="ri-calendar-event-line"></i> Program Rundowns </a>
                             </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url("master-data/program-speakers") ?>"
+                                    class="nav-link <?= url_is('master-data/program-speakers*') ? 'active' : '' ?>"> <i
+                                        class="ri-mic-line"></i> Program Speakers </a>
+                            </li>
                             <?php if (session('topbar_data')['isJournalType'] ?? false): ?>
-
                             <li class="nav-item">
                                 <a href="<?= base_url("master-data/abstract-reviewers") ?>"
                                     class="nav-link <?= url_is('master-data/abstract-reviewers*') ? 'active' : '' ?>">
@@ -271,7 +355,9 @@
                         </ul>
                     </div>
                 </li>
+                <?php endif; ?>
 
+                <?php if ($canViewSettings): ?>
                 <li class="nav-item">
                     <a class="nav-link menu-link <?= url_is('settings*') ? 'active' : '' ?>" href="#sidebarSettings"
                         data-bs-toggle="collapse" role="button"
@@ -280,19 +366,54 @@
                     </a>
                     <div class="collapse menu-dropdown <?= url_is('settings*') ? 'show' : '' ?>" id="sidebarSettings">
                         <ul class="nav nav-sm flex-column">
+                            <?php 
+                            // Use dynamic menu if available and contains settings items
+                            $settingsMenuRendered = false;
+                            if (!empty($dynamicMenu)) {
+                                foreach ($dynamicMenu as $menuItem) {
+                                    if ($menuItem->name === 'settings' || strtolower($menuItem->label) === 'settings') {
+                                        if (!empty($menuItem->children)) {
+                                            foreach ($menuItem->children as $child) {
+                                                echo '<li class="nav-item">';
+                                                echo '<a href="' . base_url($child->url) . '" class="nav-link ' . (url_is($child->url . '*') ? 'active' : '') . '">';
+                                                if ($child->icon) {
+                                                    echo '<i class="' . $child->icon . '"></i> ';
+                                                }
+                                                echo $child->label;
+                                                echo '</a>';
+                                                echo '</li>';
+                                            }
+                                            $settingsMenuRendered = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            // Fallback to static menu if dynamic menu doesn't have settings
+                            if (!$settingsMenuRendered): ?>
                             <li class="nav-item">
                                 <a href="<?= base_url("settings/main-config") ?>"
                                     class="nav-link <?= url_is('settings/main-config*') ? 'active' : '' ?>"> <i
                                         class="ri-settings-4-line"></i> Main Configuration </a>
                             </li>
+                            <?php if ($canManageAdmins): ?>
                             <li class="nav-item">
-                                <a href="<?= base_url("settings/admin") ?>"
-                                    class="nav-link <?= url_is('settings/admin*') ? 'active' : '' ?>"> <i
-                                        class="ri-admin-line"></i> Admin Settings </a>
+                                <a href="<?= base_url("settings/admin-management") ?>"
+                                    class="nav-link <?= url_is('settings/admin-management*') ? 'active' : '' ?>"> <i
+                                        class="ri-admin-line"></i> Admin Management </a>
                             </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url("settings/roles") ?>"
+                                    class="nav-link <?= url_is('settings/roles*') ? 'active' : '' ?>"> <i
+                                        class="ri-user-settings-line"></i> Roles & Permissions </a>
+                            </li>
+                            <?php endif; ?>
+                            <?php endif; ?>
                         </ul>
                     </div>
                 </li>
+                <?php endif; ?>
             </ul>
         </div>
         <!-- Sidebar -->

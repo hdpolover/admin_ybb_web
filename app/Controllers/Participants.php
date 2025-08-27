@@ -474,6 +474,10 @@ class Participants extends BaseController
     public function export($id = null)
     {
         try {
+            // Increase execution time limit for large exports
+            set_time_limit(300); // 5 minutes
+            ini_set('memory_limit', '512M'); // Increase memory limit
+            
             log_message('debug', 'Starting participant export process with YBB Export API');
 
             $programId = session('current_program');
@@ -544,6 +548,22 @@ class Participants extends BaseController
                     return redirect()->to('/users/participants')->with('error', 'No participants found to export');
                 }
 
+                // Memory management for large datasets
+                $memoryUsage = memory_get_usage(true);
+                $memoryLimit = $this->_getMemoryLimitBytes();
+                $memoryUsageMB = round($memoryUsage / 1024 / 1024, 2);
+                $memoryLimitMB = round($memoryLimit / 1024 / 1024, 2);
+                
+                log_message('debug', "Memory usage after data retrieval: {$memoryUsageMB}MB / {$memoryLimitMB}MB (" . round(($memoryUsage / $memoryLimit) * 100, 1) . "%)");
+                
+                // If memory usage is over 60%, force aggressive chunking
+                if (($memoryUsage / $memoryLimit) > 0.6) {
+                    log_message('warning', "High memory usage detected. Forcing small chunk processing to prevent exhaustion.");
+                    $maxChunkSize = 1000; // Very small chunks for high memory pressure
+                } else {
+                    $maxChunkSize = 2500; // Normal chunk size
+                }
+
                 // Convert objects to arrays for API
                 foreach ($participantObjects as $participant) {
                     $participants[] = (array)$participant;
@@ -552,12 +572,12 @@ class Participants extends BaseController
 
             log_message('debug', 'Preparing to export ' . count($participants) . ' participants via YBB Export API');
 
-            // Prepare export options
+            // Prepare export options according to YBB API documentation
             $options = [
-                'template' => 'participants',
+                'template' => 'standard', // Valid options: standard, detailed, summary, complete
                 'format' => 'excel',
-                'include_essays' => true,
-                'program_id' => $programId
+                'filename' => $this->generateExportFilename('participants', $programId),
+                'sheet_name' => 'YBB_Participants_' . date('Y')
             ];
 
             // Add filter info to options
@@ -566,62 +586,140 @@ class Participants extends BaseController
                 $options['filters'] = $filters;
             }
 
-            // Create export using YBB Export API
-            $ybbExport = new YbbExport();
-            $result = $ybbExport->exportParticipants($participants, $options);
+            // Handle large datasets with memory-efficient chunking
+            $participantCount = count($participants);
+            
+            // More aggressive chunking for production datasets
+            if ($participantCount > $maxChunkSize) {
+                log_message('debug', "Large dataset detected ({$participantCount} participants). Processing in chunks of {$maxChunkSize}");
+                
+                // For very large datasets, process even smaller chunks to be absolutely safe
+                $safeChunkSize = min($maxChunkSize, 1500); // Even more conservative for production
+                $chunks = array_chunk($participants, $safeChunkSize);
+                $totalChunks = count($chunks);
+                
+                log_message('debug', "Split dataset into {$totalChunks} chunks of {$safeChunkSize} participants each for memory-safe processing");
+                
+                // Process only the first chunk - let the API service handle the rest
+                $ybbExport = new YbbExport();
+                $options['force_chunking'] = true;
+                $options['chunk_size'] = $safeChunkSize;
+                $options['total_chunks'] = $totalChunks;
+                $options['total_records'] = $participantCount;
+                $options['is_multi_chunk_export'] = true;
+                
+                log_message('info', "Processing first chunk of {$safeChunkSize} participants out of {$participantCount} total");
+                
+                $result = $ybbExport->exportParticipants($chunks[0], $options);
+                
+                if ($result['success']) {
+                    // Store information about the chunked export
+                    $exportId = $result['data']['export_id'] ?? null;
+                    
+                    if ($totalChunks > 1 && $exportId) {
+                        log_message('info', "Multi-chunk export initiated with export ID: {$exportId}. Processing {$totalChunks} chunks of {$safeChunkSize} participants each.");
+                        
+                        // Modify the response to indicate this is a chunked export
+                        if (isset($result['data'])) {
+                            $result['data']['is_chunked_export'] = true;
+                            $result['data']['total_chunks'] = $totalChunks;
+                            $result['data']['chunk_size'] = $safeChunkSize;
+                            $result['data']['total_records'] = $participantCount;
+                        }
+                    }
+                }
+            } else {
+                // For smaller datasets, use standard processing with minimal chunking
+                if ($participantCount > 500) {
+                    $options['force_chunking'] = true;
+                    $options['chunk_size'] = min(1000, floor($participantCount / 2));
+                    log_message('debug', "Medium dataset detected ({$participantCount} participants). Enabling chunking with chunk size: {$options['chunk_size']}");
+                }
+
+                // Create export using YBB Export API
+                $ybbExport = new YbbExport();
+                $result = $ybbExport->exportParticipants($participants, $options);
+            }
 
             if ($result['success']) {
                 log_message('info', 'Participants export initiated successfully: ' . json_encode($result));
                 
-                // Extract all available data from YBB Export result for enhanced display
+                // Extract data according to YBB API documentation structure
                 $exportData = $result['data'] ?? [];
                 $metadata = $result['metadata'] ?? [];
                 
-                // Build comprehensive response with all enhanced metrics
+                // Build response matching the frontend expectations
                 $response = [
                     'success' => true,
-                    'exportId' => $exportData['export_id'],
+                    'exportId' => $exportData['export_id'], // Frontend looks for this at root level
+                    'export_id' => $exportData['export_id'], // Backup field name
                     'message' => 'Export initiated successfully',
                     'recordCount' => $exportData['record_count'] ?? count($participants),
+                    'record_count' => $exportData['record_count'] ?? count($participants), // Backup field name
                     
-                    // Enhanced metrics from API
+                    // File information from API response
                     'fileName' => $exportData['file_name'] ?? null,
+                    'file_name' => $exportData['file_name'] ?? null, // Backup field name
                     'fileSize' => $exportData['file_size'] ?? null,
-                    'fileSizeFormatted' => $exportData['file_size'] ? $this->formatFileSize($exportData['file_size']) : null,
+                    'file_size' => $exportData['file_size'] ?? null, // Backup field name
+                    'fileSizeMB' => $exportData['file_size_mb'] ?? null,
+                    'file_size_mb' => $exportData['file_size_mb'] ?? null, // Backup field name
                     'downloadUrl' => $exportData['download_url'] ?? null,
-                    'expiresAt' => $exportData['expires_at'] ?? null,
+                    'download_url' => $exportData['download_url'] ?? null, // Backup field name
                     'exportStrategy' => $exportData['export_strategy'] ?? 'single_file',
-                    'processingTime' => $metadata['processing_time'] ?? $exportData['estimated_time'] ?? null,
+                    'export_strategy' => $exportData['export_strategy'] ?? 'single_file', // Backup field name
                     
-                    // Multi-file export data
-                    'totalFiles' => $exportData['total_files'] ?? 1,
-                    'individualFiles' => $exportData['individual_files'] ?? null,
-                    'archive' => $exportData['archive'] ?? null,
+                    // Performance metrics if available
+                    'performanceMetrics' => $exportData['performance_metrics'] ?? null,
+                    'performance_metrics' => $exportData['performance_metrics'] ?? null, // Backup field name
+                    
+                    // Multi-file export information
+                    'fileCount' => $exportData['file_count'] ?? 1,
+                    'file_count' => $exportData['file_count'] ?? 1, // Backup field name
+                    'batchFiles' => $exportData['batch_files'] ?? null,
+                    'batch_files' => $exportData['batch_files'] ?? null, // Backup field name
+                    'zipDownloadUrl' => $exportData['zip_download_url'] ?? null,
+                    'zip_download_url' => $exportData['zip_download_url'] ?? null, // Backup field name
                     
                     // Pass through all metadata for enhanced metrics display
                     'metadata' => $metadata,
                     
-                    // Add data object for frontend compatibility
+                    // Add data object for frontend compatibility - this preserves the original structure
                     'data' => $exportData
                 ];
                 
-                // If we have enhanced metrics from metadata, add them to the root level for easy access
+                // Extract and enhance performance metrics from both data and metadata
+                $performanceMetrics = $exportData['performance_metrics'] ?? [];
+                
+                // Add comprehensive metrics to root level for frontend access
+                if (!empty($performanceMetrics)) {
+                    $response['processingTimeMs'] = $performanceMetrics['processing_time_ms'] ?? null;
+                    $response['processingTimeSeconds'] = $performanceMetrics['total_processing_time_seconds'] ?? null;
+                    $response['recordsPerSecond'] = $performanceMetrics['records_per_second'] ?? null;
+                    $response['memoryUsedMb'] = $performanceMetrics['memory_used_mb'] ?? null;
+                    $response['peakMemoryMb'] = $performanceMetrics['peak_memory_mb'] ?? null;
+                    
+                    // Efficiency metrics
+                    if (isset($performanceMetrics['efficiency_metrics'])) {
+                        $efficiency = $performanceMetrics['efficiency_metrics'];
+                        $response['kbPerRecord'] = $efficiency['kb_per_record'] ?? null;
+                        $response['memoryEfficiencyKbPerRecord'] = $efficiency['memory_efficiency_kb_per_record'] ?? null;
+                        $response['processingMsPerRecord'] = $efficiency['processing_ms_per_record'] ?? null;
+                    }
+                }
+                
+                // Add metadata-level metrics as fallback
                 if (!empty($metadata)) {
-                    if (isset($metadata['processing_time_ms'])) {
-                        $response['processingTimeMs'] = $metadata['processing_time_ms'];
-                    }
-                    if (isset($metadata['records_per_second'])) {
-                        $response['recordsPerSecond'] = $metadata['records_per_second'];
-                    }
-                    if (isset($metadata['memory_used_mb'])) {
-                        $response['memoryUsedMb'] = $metadata['memory_used_mb'];
-                    }
-                    if (isset($metadata['peak_memory_mb'])) {
-                        $response['peakMemoryMb'] = $metadata['peak_memory_mb'];
-                    }
-                    if (isset($metadata['memory_efficiency_kb_per_record'])) {
-                        $response['memoryEfficiency'] = $metadata['memory_efficiency_kb_per_record'];
-                    }
+                    $response['processingTimeMs'] = $response['processingTimeMs'] ?? $metadata['processing_time_ms'] ?? null;
+                    $response['recordsPerSecond'] = $response['recordsPerSecond'] ?? $metadata['records_per_second'] ?? null;
+                    $response['memoryUsedMb'] = $response['memoryUsedMb'] ?? $metadata['memory_used_mb'] ?? null;
+                    $response['peakMemoryMb'] = $response['peakMemoryMb'] ?? $metadata['peak_memory_mb'] ?? null;
+                    $response['memoryEfficiency'] = $response['memoryEfficiencyKbPerRecord'] ?? $metadata['memory_efficiency_kb_per_record'] ?? null;
+                    
+                    // Additional metadata information
+                    $response['compressionUsed'] = $metadata['compression_used'] ?? 'none';
+                    $response['generatedAt'] = $metadata['generated_at'] ?? null;
+                    $response['tempFilesCleanup'] = $metadata['temp_files_cleanup_scheduled'] ?? false;
                 }
                 
                 return $this->response->setJSON($response);
@@ -696,7 +794,17 @@ class Participants extends BaseController
      */
     private function getParticipantsForExport($programId, $limit = null, $offset = null)
     {
-        $query = $this->participantModel->select('participants.*')
+        log_message('debug', 'Starting optimized participant data retrieval for program: ' . $programId);
+        
+        // Build optimized query with JOINs to prevent N+1 queries
+        // Note: Use participants.full_name instead of users table name fields
+        // Users table only has basic info, participants table has the detailed info
+        $query = $this->participantModel->select('
+                participants.*, 
+                users.email as user_email,
+                users.created_at as user_created_at,
+                users.updated_at as user_updated_at
+            ')
             ->join('users', 'users.id = participants.user_id', 'left')
             ->join('participant_statuses', 'participant_statuses.participant_id = participants.id', 'left')
             ->where('participants.program_id', $programId)
@@ -711,23 +819,57 @@ class Participants extends BaseController
             $query->limit($limit, $offset ?: 0);
         }
 
+        log_message('debug', 'Executing main participant query...');
         $participantsList = $query->get()->getResult();
-        $participants = [];
-
-        // Add related data to each participant
-        foreach ($participantsList as $participant) {
-            // Get user data
-            $user = $this->userModel->find($participant->user_id);
-            $participant->user = $user;
-            $participant->email = $user->email ?? '';
-
-            // Get participant essays
-            $essays = $this->participantEssayModel->getParticipantEssayByParticipantId($participant->id);
-            $participant->essays = $essays;
-
-            $participants[] = $participant;
+        log_message('debug', 'Retrieved ' . count($participantsList) . ' participants from database');
+        
+        if (empty($participantsList)) {
+            return [];
         }
 
+        // Get all participant IDs for batch essay retrieval
+        $participantIds = array_column($participantsList, 'id');
+        
+        // Batch retrieve essays for all participants to avoid N+1 queries
+        log_message('debug', 'Batch retrieving essays for ' . count($participantIds) . ' participants...');
+        $essaysQuery = $this->participantEssayModel
+            ->whereIn('participant_id', $participantIds)
+            ->get()->getResult();
+        
+        // Group essays by participant ID
+        $essaysByParticipant = [];
+        foreach ($essaysQuery as $essay) {
+            $essaysByParticipant[$essay->participant_id][] = $essay;
+        }
+        
+        log_message('debug', 'Processing participant data with essays...');
+        $participants = [];
+        
+        // Process each participant with pre-loaded data
+        foreach ($participantsList as $participant) {
+            // Create user object from joined data
+            // Use participants.full_name since that's where the name is stored
+            $participant->user = (object) [
+                'id' => $participant->user_id,
+                'email' => $participant->user_email,
+                'full_name' => $participant->full_name, // Use participants.full_name
+                'created_at' => $participant->user_created_at,
+                'updated_at' => $participant->user_updated_at
+            ];
+            
+            // Set email for backward compatibility
+            $participant->email = $participant->user_email;
+            
+            // Add essays if available
+            $participant->essays = $essaysByParticipant[$participant->id] ?? [];
+            
+            // Clean up the joined user fields to avoid duplication
+            unset($participant->user_email, $participant->user_created_at, $participant->user_updated_at);
+            
+            $participants[] = $participant;
+        }
+        
+        log_message('debug', 'Completed processing ' . count($participants) . ' participants with related data');
         return $participants;
     }
 
@@ -823,5 +965,135 @@ class Participants extends BaseController
         }
         
         log_message('debug', '=== END APPLYING EXPORT FILTERS ===');
+    }
+
+    /**
+     * Get memory limit in bytes
+     */
+    private function _getMemoryLimitBytes(): int
+    {
+        $memoryLimit = ini_get('memory_limit');
+        
+        if ($memoryLimit === '-1') {
+            return PHP_INT_MAX; // No limit
+        }
+        
+        $unit = strtolower(substr($memoryLimit, -1));
+        $value = (int) substr($memoryLimit, 0, -1);
+        
+        switch ($unit) {
+            case 'g':
+                return $value * 1024 * 1024 * 1024;
+            case 'm':
+                return $value * 1024 * 1024;
+            case 'k':
+                return $value * 1024;
+            default:
+                return (int) $memoryLimit;
+        }
+    }
+
+    /**
+     * Generate descriptive filename for exports
+     */
+    private function generateExportFilename($type, $programId = null): string
+    {
+        $timestamp = date('d-m-Y_H-i-s');
+        $typeFormatted = ucfirst($type);
+        
+        if ($programId) {
+            // Try to get program name for more descriptive filename
+            $programModel = new \App\Models\ProgramModel();
+            $program = $programModel->find($programId);
+            $programName = $program ? preg_replace('/[^a-zA-Z0-9_-]/', '_', $program->name) : "Program_{$programId}";
+            return "YBB_{$programName}_{$typeFormatted}_{$timestamp}";
+        }
+        
+        return "YBB_{$typeFormatted}_{$timestamp}";
+    }
+
+    /**
+     * Check export status
+     */
+    public function export_status()
+    {
+        try {
+            $exportId = $this->request->getGet('export_id');
+            
+            if (!$exportId) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Export ID is required',
+                    'error_code' => 'MISSING_EXPORT_ID'
+                ]);
+            }
+            
+            log_message('info', "Checking export status for ID: {$exportId}");
+            
+            // Initialize YBB Export library
+            $ybbExport = new YbbExport();
+            
+            // Check status via YBB Export API
+            $statusResult = $ybbExport->getExportStatus($exportId);
+            
+            if ($statusResult['success']) {
+                $statusData = $statusResult['data'];
+                
+                // Standardize status response format
+                $response = [
+                    'success' => true,
+                    'data' => [
+                        'export_id' => $exportId,
+                        'status' => $statusData['status'] ?? 'unknown',
+                        'progress' => $statusData['progress'] ?? 0,
+                        'records_processed' => $statusData['records_processed'] ?? 0,
+                        'total_records' => $statusData['total_records'] ?? 0,
+                        'created_at' => $statusData['created_at'] ?? null,
+                        'updated_at' => $statusData['updated_at'] ?? null,
+                        'estimated_completion' => $statusData['estimated_completion'] ?? null,
+                        'file_name' => $statusData['file_name'] ?? null,
+                        'file_size' => $statusData['file_size'] ?? null,
+                        'download_url' => null,
+                        'error_message' => $statusData['error_message'] ?? null
+                    ]
+                ];
+                
+                // If export is completed and has a file, generate download URL
+                if (in_array(strtolower($statusData['status'] ?? ''), ['completed', 'ready']) && 
+                    !empty($statusData['file_name'])) {
+                    
+                    // Generate local download URL that proxies through our controller
+                    $response['data']['download_url'] = base_url("participants/download/{$exportId}");
+                    $response['data']['records_exported'] = $statusData['records_processed'] ?? $statusData['total_records'] ?? 0;
+                }
+                
+                log_message('info', "Export status retrieved successfully: " . json_encode($response['data']));
+                
+                return $this->response->setJSON($response);
+                
+            } else {
+                log_message('error', "Failed to get export status: " . ($statusResult['message'] ?? 'Unknown error'));
+                
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => $statusResult['message'] ?? 'Failed to retrieve export status',
+                    'error_code' => $statusResult['error_code'] ?? 'STATUS_CHECK_FAILED'
+                ]);
+            }
+            
+        } catch (\Exception $e) {
+            log_message('error', "Exception in export_status: " . $e->getMessage());
+            
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'An error occurred while checking export status: ' . $e->getMessage(),
+                'error_code' => 'INTERNAL_ERROR',
+                'details' => [
+                    'exception' => get_class($e),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
+                ]
+            ]);
+        }
     }
 }

@@ -265,6 +265,17 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->post('create', 'ProgramTestimonies::create');
             $routes->post('update/(:num)', 'ProgramTestimonies::update/$1');
             $routes->get('delete/(:num)', 'ProgramTestimonies::delete/$1');
+        });
+
+        // program video testimonies
+        $routes->group('program-video-testimonies', function ($routes) {
+            $routes->get('/', 'ProgramVideoTestimonies::index');
+            $routes->post('create', 'ProgramVideoTestimonies::create');
+            $routes->get('view/(:num)', 'ProgramVideoTestimonies::view/$1');
+            $routes->post('update/(:num)', 'ProgramVideoTestimonies::update/$1');
+            $routes->get('delete/(:num)', 'ProgramVideoTestimonies::delete/$1');
+            $routes->post('updateOrder', 'ProgramVideoTestimonies::updateOrder');
+            $routes->get('getData', 'ProgramVideoTestimonies::getData');
         });        
         
         // program rundowns        
@@ -276,6 +287,18 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->post('update/(:num)', 'ProgramRundowns::update/$1');
             $routes->get('delete/(:num)', 'ProgramRundowns::delete/$1');
             $routes->get('getRundown/(:num)', 'ProgramRundowns::getRundown/$1');
+        });
+
+        // program speakers
+        $routes->group('program-speakers', function ($routes) {
+            $routes->get('/', 'ProgramSpeakers::index');
+            $routes->get('view/(:num)', 'ProgramSpeakers::view/$1');
+            $routes->get('getData', 'ProgramSpeakers::getData');
+            $routes->get('getSpeaker/(:num)', 'ProgramSpeakers::getSpeaker/$1');
+            $routes->post('create', 'ProgramSpeakers::create');
+            $routes->post('update/(:num)', 'ProgramSpeakers::update/$1');
+            $routes->get('delete/(:num)', 'ProgramSpeakers::delete/$1');
+            $routes->post('reorder', 'ProgramSpeakers::reorder');
         });        
           // abstract topics
         $routes->group('abstract-topics', function ($routes) {
@@ -354,15 +377,35 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->get('delete/(:num)', 'MainConfig::delete/$1');
         });
 
-        // admin group
-        $routes->group('admin', function ($routes) {
-            $routes->get('/', 'Admin::index');
-            $routes->get('view/(:num)', 'Admin::view/$1');
-            $routes->get('edit/(:num)', 'Admin::edit/$1');
-            $routes->post('create', 'Admin::create');
-            $routes->post('update/(:num)', 'Admin::update/$1');
-            $routes->get('delete/(:num)', 'Admin::delete/$1');
+        // Role & Permission Management routes
+        $routes->group('roles', function ($routes) {
+            $routes->get('/', 'RoleManagement::index');
+            $routes->get('data', 'RoleManagement::getRoles');
+            $routes->get('create', 'RoleManagement::createRole');
+            $routes->post('create', 'RoleManagement::createRole');
+            $routes->get('edit/(:num)', 'RoleManagement::editRole/$1');
+            $routes->post('edit/(:num)', 'RoleManagement::editRole/$1');
+            $routes->delete('delete/(:num)', 'RoleManagement::deleteRole/$1');
+            $routes->get('permissions', 'RoleManagement::permissions');
+            $routes->post('permissions/create', 'RoleManagement::createPermission');
+            $routes->get('menu-items', 'RoleManagement::menuItems');
+            $routes->post('menu-items/create', 'RoleManagement::createMenuItem');
+            $routes->post('menu-items/order', 'RoleManagement::updateMenuOrder');
+            $routes->get('test', 'RoleManagement::testPermissions');
         });
+
+        // Admin management routes (Role-based admin management system)
+        $routes->group('admin-management', function ($routes) {
+            $routes->get('/', 'AdminManagement::index');
+            $routes->get('getAdminsData', 'AdminManagement::getAdminsData');
+            $routes->get('view/(:num)', 'AdminManagement::view/$1');
+            $routes->get('create', 'AdminManagement::create');
+            $routes->post('store', 'AdminManagement::store');
+            $routes->get('edit/(:num)', 'AdminManagement::edit/$1');
+            $routes->post('update/(:num)', 'AdminManagement::update/$1');
+            $routes->get('delete/(:num)', 'AdminManagement::delete/$1');
+        });
+
     });
 
     // Cache management routes
@@ -386,6 +429,15 @@ $routes->group('debug', ['namespace' => 'App\Controllers'], function ($routes) {
 $routes->group('session-test', ['namespace' => 'App\Controllers'], function ($routes) {
     $routes->get('set-program', 'SessionTest::setProgram');
     $routes->get('select-program/(:num)', 'SessionTest::selectProgram/$1');
+});
+
+// Menu Setup routes (for development/admin)
+$routes->group('menu-setup', ['namespace' => 'App\Controllers'], function ($routes) {
+    $routes->get('/', 'MenuSetup::index');
+    $routes->get('check', 'MenuSetup::check');
+    $routes->get('init', 'MenuSetup::init');
+    $routes->get('populate', 'MenuSetup::populate');
+    $routes->get('clear', 'MenuSetup::clear');
 });
 
 // Remove excel route

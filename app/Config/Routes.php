@@ -32,6 +32,15 @@ $routes->setAutoRoute(false);
 $routes->group('', ['namespace' => 'App\Controllers'], function ($routes) {
     $routes->get('/', 'Auth::index');
     $routes->post('sign-in', 'Auth::signIn');
+    
+    // Debug authentication routes
+    $routes->get('debug-auth', 'DebugAuth::index');
+    $routes->post('debug-auth/sign-in', 'DebugAuth::signIn');
+    $routes->get('debug-menu', 'DebugMenu::index');
+    $routes->get('debug-session', 'DebugSession::index');
+    $routes->get('fix-menu', 'FixMenuSystem::index');
+    $routes->get('test-routes', 'TestRoutes::index');
+    
     // Simple Excel export routes
     $routes->get('simpleexport', 'SimpleExportController::index');
     $routes->get('simpleexport/exportSimple', 'SimpleExportController::exportSimple');
@@ -371,6 +380,7 @@ require_once APPPATH . 'Config/Routes/Reviewers.php';
 require_once APPPATH . 'Config/Routes/Admin.php';
 require_once APPPATH . 'Config/Routes/Api.php';
 require_once APPPATH . 'Config/Routes/Landing.php';
+require_once APPPATH . 'Config/Routes/RoleManagement.php';
 
 // Menu management test routes
 $routes->group('menu-test', ['namespace' => 'App\Controllers', 'filter' => 'access_control'], function ($routes) {

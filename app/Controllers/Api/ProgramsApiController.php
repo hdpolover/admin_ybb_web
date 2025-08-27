@@ -4,10 +4,34 @@ namespace App\Controllers\Api;
 
 use App\Controllers\Api\ApiBaseController;
 use App\Models\ProgramModel;
+use App\Models\ProgramSpeakerModel;
+use App\Models\ProgramVideoTestimonyModel;
+use App\Models\ProgramSubthemeModel;
+use App\Models\ProgramScheduleModel;
+use App\Models\ProgramTestimonyModel;
+use App\Models\ProgramPhotoModel;
+use App\Models\ProgramPaymentModel;
+use App\Models\ProgramDocumentModel;
+use App\Models\ProgramCategoryModel;
+use App\Models\ProgramRundownModel;
+use App\Models\FaqModel;
+use App\Models\ParticipantModel;
 
 class ProgramsApiController extends ApiBaseController
 {
     protected $model;
+    protected $speakerModel;
+    protected $videoTestimonyModel;
+    protected $subthemeModel;
+    protected $scheduleModel;
+    protected $testimonyModel;
+    protected $photoModel;
+    protected $paymentModel;
+    protected $documentModel;
+    protected $categoryModel;
+    protected $rundownModel;
+    protected $faqModel;
+    protected $participantModel;
 
     /**
      * Initialize controller, set model
@@ -20,8 +44,20 @@ class ProgramsApiController extends ApiBaseController
         // Call parent initializer
         parent::initController($request, $response, $logger);
         
-        // Initialize model - this is what was previously in the constructor
+        // Initialize models
         $this->model = new ProgramModel();
+        $this->speakerModel = new ProgramSpeakerModel();
+        $this->videoTestimonyModel = new ProgramVideoTestimonyModel();
+        $this->subthemeModel = new ProgramSubthemeModel();
+        $this->scheduleModel = new ProgramScheduleModel();
+        $this->testimonyModel = new ProgramTestimonyModel();
+        $this->photoModel = new ProgramPhotoModel();
+        $this->paymentModel = new ProgramPaymentModel();
+        $this->documentModel = new ProgramDocumentModel();
+        $this->categoryModel = new ProgramCategoryModel();
+        $this->rundownModel = new ProgramRundownModel();
+        $this->faqModel = new FaqModel();
+        $this->participantModel = new ParticipantModel();
     }
 
     /**
@@ -39,7 +75,7 @@ class ProgramsApiController extends ApiBaseController
     }
 
     /**
-     * Get Program by Slug
+     * Get Program by Slug with comprehensive details
      * GET /api/programs/slug/{slug}
      * High Priority Cache: 2 hours TTL
      */
@@ -57,33 +93,91 @@ class ProgramsApiController extends ApiBaseController
         // Convert slug to program name format (replace hyphens with spaces and capitalize words)
         $programName = str_replace('-', ' ', $slug);
         
-        $program = $this->cacheResponse(function() use ($programName) {
-            return $this->model->getProgramByName($programName);
+        $programData = $this->cacheResponse(function() use ($programName) {
+            $program = $this->model->getProgramByName($programName);
+            
+            if (!$program) {
+                return null;
+            }
+
+            // Get all related data for the program
+            $category = $this->categoryModel->find($program->program_category_id);
+            $speakers = $this->speakerModel->getByProgramId($program->id, true); // only active speakers
+            $videoTestimonies = $this->videoTestimonyModel->getActiveVideoTestimonies($program->id);
+            $schedules = $this->scheduleModel->getByProgramId($program->id);
+            $photos = $this->photoModel->getActivePhotos($program->program_category_id);
+            $participantPhotos = $this->participantModel->getProgramParticipantsPhotos($program->id, 5);
+            $faqs = $this->faqModel->getActiveFaqsByProgramId($program->id);
+            $rundowns = $this->rundownModel->getActiveRundowns($program->id);
+
+            return [
+                'title' => $program->name ?? 'Program Detail',
+                'program' => $program,
+                'category' => $category ?? [],
+                'photos' => $photos,
+                'participant_photos' => $participantPhotos,
+                'schedules' => $schedules,
+                'faqs' => $faqs,
+                'rundowns' => $rundowns,
+                'video_testimonies' => $videoTestimonies,
+                'speakers' => $speakers
+            ];
         }, ['slug' => $slug], null, 7200); // 2 hours cache
         
-        if (!$program) {
+        if (!$programData) {
             return $this->respondNotFound('Program not found');
         }
         
-        return $this->respondSuccess($program, self::HTTP_OK, 'Program retrieved successfully');
+        return $this->respondSuccess($programData, self::HTTP_OK, 'Program details retrieved successfully');
     }
 
     /**
-     * Get Single Program
+     * Get Single Program with comprehensive details
      * GET /api/programs/{id}
      * High Priority Cache: 2 hours TTL
      */
     public function show($id = null)
     {
-        $program = $this->cacheProgramData(function() use ($id) {
-            return $this->model->find($id);
+        if ($id === null) {
+            return $this->respondValidationErrors('Program ID is required');
+        }
+
+        $programData = $this->cacheProgramData(function() use ($id) {
+            $program = $this->model->find($id);
+            
+            if (!$program) {
+                return null;
+            }
+
+            // Get all related data for the program
+            $category = $this->categoryModel->find($program->program_category_id);
+            $speakers = $this->speakerModel->getByProgramId($id, true); // only active speakers
+            $videoTestimonies = $this->videoTestimonyModel->getActiveVideoTestimonies($id);
+            $schedules = $this->scheduleModel->getByProgramId($id);
+            $photos = $this->photoModel->getActivePhotos($program->program_category_id);
+            $participantPhotos = $this->participantModel->getProgramParticipantsPhotos($id, 5);
+            $faqs = $this->faqModel->getActiveFaqsByProgramId($id);
+            $rundowns = $this->rundownModel->getActiveRundowns($id);
+
+            return [
+                'title' => $program->name ?? 'Program Detail',
+                'program' => $program,
+                'category' => $category ?? [],
+                'photos' => $photos,
+                'participant_photos' => $participantPhotos,
+                'schedules' => $schedules,
+                'faqs' => $faqs,
+                'rundowns' => $rundowns,
+                'video_testimonies' => $videoTestimonies,
+                'speakers' => $speakers
+            ];
         }, $id);
         
-        if (!$program) {
+        if (!$programData) {
             return $this->respondNotFound('Program not found');
         }
         
-        return $this->respondSuccess($program, self::HTTP_OK, 'Program retrieved successfully');
+        return $this->respondSuccess($programData, self::HTTP_OK, 'Program details retrieved successfully');
     }
     
     /**

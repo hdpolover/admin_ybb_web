@@ -277,6 +277,9 @@
                                         <button type="button" class="btn btn-success waves-effect waves-light me-2" data-bs-toggle="modal" data-bs-target="#exportModal">
                                             <i class="ri-file-excel-2-line align-middle me-1"></i> Export Data
                                         </button>
+                                        <button type="button" class="btn btn-outline-info waves-effect waves-light me-2" onclick="showExportHistory()" title="View Export History">
+                                            <i class="ri-history-line align-middle me-1"></i> Export History
+                                        </button>
                                         <a href="<?= site_url('participants/new') ?>" class="btn btn-primary waves-effect waves-light">
                                             <i class="ri-add-line align-middle me-1"></i> Add New Participant
                                         </a>
@@ -541,33 +544,87 @@
             function initializeEnhancedExport() {
                 if (typeof EnhancedExportManager !== 'undefined') {
                     console.log('Enhanced Export Manager class available, initializing...');
+                    
+                    // Initialize the export manager
                     window.enhancedExportManager = new EnhancedExportManager();
+                    window.exportManager = window.enhancedExportManager; // Add alias for compatibility
                     console.log('Enhanced Export Manager initialized:', window.enhancedExportManager);
                     
-                    // Convert the existing export button to work with EnhancedExportManager
-                    const exportBtn = document.getElementById('btn-do-export');
-                    if (exportBtn) {
-                        // Add the required classes and data attributes
-                        exportBtn.classList.add('export-btn');
-                        exportBtn.setAttribute('data-export-type', 'participants');
-                        exportBtn.setAttribute('data-url', '/api/ybb/export/participants');
-                        
-                        // IMPORTANT: Add data attribute to specify which form to use for CSRF token
-                        exportBtn.setAttribute('data-form-selector', '#exportForm');
-                        
-                        console.log('Participants export button configured for EnhancedExportManager');
-                        console.log('Button classes:', exportBtn.className);
-                        console.log('Button data attributes:', {
-                            exportType: exportBtn.dataset.exportType,
-                            url: exportBtn.dataset.url,
-                            formSelector: exportBtn.dataset.formSelector
-                        });
-                    } else {
-                        console.error('Export button #btn-do-export not found!');
-                    }
+                    // Setup export button with retry logic
+                    setTimeout(() => {
+                        setupExportButton();
+                    }, 100); // Give DOM time to settle
+                    
                 } else {
                     console.log('Enhanced Export Manager not yet available, retrying in 100ms...');
                     setTimeout(initializeEnhancedExport, 100);
+                }
+            }
+            
+            function setupExportButton() {
+                console.log('🔧 Setting up export button...');
+                const exportBtn = document.getElementById('btn-do-export');
+                
+                if (exportBtn) {
+                    console.log('✅ Found export button:', exportBtn);
+                    
+                    // Clear any existing classes and re-add them
+                    exportBtn.classList.remove('export-btn');
+                    exportBtn.classList.add('export-btn');
+                    exportBtn.setAttribute('data-export-type', 'participants');
+                    exportBtn.setAttribute('data-url', '/users/participants/export');
+                    exportBtn.setAttribute('data-form-selector', '#exportForm');
+                    
+                    console.log('🔧 Button classes after setup:', exportBtn.className);
+                    console.log('🔧 Button data attributes:', {
+                        exportType: exportBtn.dataset.exportType,
+                        url: exportBtn.dataset.url,
+                        formSelector: exportBtn.dataset.formSelector
+                    });
+                    
+                    // Force re-attach handlers in the export manager
+                    if (window.enhancedExportManager && typeof window.enhancedExportManager.attachExportHandlers === 'function') {
+                        console.log('🔗 Re-attaching export handlers...');
+                        window.enhancedExportManager.attachExportHandlers();
+                    }
+                    
+                    // Add a direct click handler as backup that will definitely work
+                    exportBtn.addEventListener('click', function(e) {
+                        console.log('🖱️ Export button clicked! (Direct handler)');
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        if (!window.enhancedExportManager) {
+                            console.error('❌ Enhanced Export Manager not available');
+                            alert('Export system not ready. Please refresh the page.');
+                            return;
+                        }
+                        
+                        // Check if the button has the right class
+                        if (!exportBtn.classList.contains('export-btn')) {
+                            console.warn('⚠️ Button missing export-btn class, adding it...');
+                            exportBtn.classList.add('export-btn');
+                        }
+                        
+                        console.log('� Triggering export via handleExportRequest...');
+                        try {
+                            window.enhancedExportManager.handleExportRequest($(exportBtn));
+                        } catch (error) {
+                            console.error('❌ Error during export:', error);
+                            alert('Export error: ' + error.message);
+                        }
+                    });
+                    
+                    console.log('✅ Export button setup complete with direct handler');
+                    
+                    // Test jQuery selection
+                    const $exportBtns = $('.export-btn');
+                    console.log(`🔍 Found ${$exportBtns.length} buttons with export-btn class`);
+                    
+                } else {
+                    console.error('❌ Export button #btn-do-export not found!');
+                    // Retry after a short delay
+                    setTimeout(setupExportButton, 1000);
                 }
             }
             
@@ -661,7 +718,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="exportForm" action="<?= site_url('api/ybb/export/participants') ?>" method="post">
+                    <form id="exportForm" action="<?= site_url('users/participants/export') ?>" method="post">
                         <?= csrf_field() ?>
                         <!-- Hidden field for program_id -->
                         <input type="hidden" name="program_id" id="export-program-id" value="<?= session('current_program') ?>">
@@ -831,6 +888,9 @@
                         <button type="button" class="btn btn-sm btn-outline-warning" onclick="console.clear()">
                             Clear Console
                         </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="forceExportTest()">
+                            Force Export Test
+                        </button>
                     </div>
                 </div>
             </div>
@@ -848,6 +908,27 @@
             }
         }
         
+        function showExportHistory() {
+            if (window.exportManager && typeof window.exportManager.showExportHistory === 'function') {
+                window.exportManager.showExportHistory();
+            } else if (window.enhancedExportManager && typeof window.enhancedExportManager.showExportHistory === 'function') {
+                window.enhancedExportManager.showExportHistory();
+            } else {
+                console.error('Export Manager or history feature not available');
+                // Fallback notification
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        title: 'Feature Not Available',
+                        text: 'Export history feature is not yet loaded. Please try again in a moment.',
+                        icon: 'info',
+                        confirmButtonText: 'OK'
+                    });
+                } else {
+                    alert('Export history feature is not yet loaded. Please try again in a moment.');
+                }
+            }
+        }
+        
         function testExportSuccess() {
             if (window.enhancedExportManager) {
                 window.enhancedExportManager.testExportSuccessNotification();
@@ -859,17 +940,50 @@
         function checkExportManager() {
             console.log('=== EXPORT MANAGER DEBUG ===');
             console.log('window.enhancedExportManager:', window.enhancedExportManager);
+            console.log('window.exportManager:', window.exportManager);
             console.log('typeof Swal:', typeof Swal);
             console.log('window.Swal:', window.Swal);
             console.log('EnhancedExportManager class:', typeof EnhancedExportManager);
+            
+            const exportBtn = document.getElementById('btn-do-export');
+            console.log('Export button element:', exportBtn);
+            if (exportBtn) {
+                console.log('Button classes:', exportBtn.className);
+                console.log('Button dataset:', exportBtn.dataset);
+                console.log('Has export-btn class:', exportBtn.classList.contains('export-btn'));
+            }
+            
+            // Test jQuery selection
+            const $exportBtn = $('.export-btn');
+            console.log('jQuery export buttons found:', $exportBtn.length);
             
             if (window.enhancedExportManager) {
                 console.log('✅ Export Manager is available');
                 console.log('Export Manager instance:', window.enhancedExportManager);
                 console.log('Export Manager methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(window.enhancedExportManager)));
+                
+                // Test manual export
+                if (exportBtn && exportBtn.classList.contains('export-btn')) {
+                    console.log('🧪 Testing manual export...');
+                    window.enhancedExportManager.handleExportRequest($(exportBtn));
+                }
             } else {
                 console.error('❌ Export Manager is not available');
                 console.log('Available global objects:', Object.keys(window).filter(key => key.toLowerCase().includes('export')));
+            }
+        }
+        
+        function forceExportTest() {
+            const exportBtn = document.getElementById('btn-do-export');
+            if (exportBtn && window.enhancedExportManager) {
+                console.log('🚀 Force testing export...');
+                $(exportBtn).addClass('export-btn');
+                $(exportBtn).attr('data-export-type', 'participants');
+                $(exportBtn).attr('data-url', '/users/participants/export');
+                $(exportBtn).attr('data-form-selector', '#exportForm');
+                window.enhancedExportManager.handleExportRequest($(exportBtn));
+            } else {
+                console.error('Cannot test export - missing button or manager');
             }
         }
     </script>

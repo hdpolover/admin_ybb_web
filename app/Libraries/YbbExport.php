@@ -54,7 +54,7 @@ class YbbExport
      */
     public function exportParticipants(array $data, array $options = []): array
     {
-        return $this->_createExport('participants', $data, $options);
+        return $this->_createParticipantsExport($data, $options);
     }
     
     /**
@@ -63,6 +63,132 @@ class YbbExport
     public function exportPayments(array $data, array $options = []): array
     {
         return $this->_createExport('payments', $data, $options);
+    }
+
+    /**
+     * Create participants export using correct API structure
+     */
+    private function _createParticipantsExport(array $data, array $options = []): array
+    {
+        if (empty($data)) {
+            return [
+                'success' => false,
+                'message' => 'No data provided for export'
+            ];
+        }
+
+        if (count($data) > $this->config->maxRecords) {
+            return [
+                'success' => false,
+                'message' => "Data exceeds maximum limit of {$this->config->maxRecords} records"
+            ];
+        }
+
+        // Prepare payload according to YBB API documentation
+        $payload = [
+            'data' => $data,
+            'template' => $options['template'] ?? 'standard',
+            'format' => $options['format'] ?? 'excel'
+        ];
+
+        // Add optional parameters
+        if (isset($options['filename'])) {
+            $payload['filename'] = $options['filename'];
+        }
+
+        if (isset($options['sheet_name'])) {
+            $payload['sheet_name'] = $options['sheet_name'];
+        }
+
+        if (isset($options['filters'])) {
+            $payload['filters'] = $options['filters'];
+        }
+
+        // Add chunking parameters for large datasets
+        if (isset($options['force_chunking']) && $options['force_chunking']) {
+            // For large datasets, the API handles chunking automatically
+            // We just need to indicate this is a large dataset
+            if (isset($options['chunk_size'])) {
+                $payload['chunk_size'] = $options['chunk_size'];
+            }
+            if (isset($options['total_chunks'])) {
+                $payload['total_chunks'] = $options['total_chunks'];
+            }
+            if (isset($options['total_records'])) {
+                $payload['total_records'] = $options['total_records'];
+            }
+        }
+
+        $url = $this->apiUrl . "/api/ybb/export/participants";
+
+        if ($this->config->enableDebugLogging) {
+            log_message('info', "YBB Export: Creating participants export with " . count($data) . " records");
+        }
+
+        $result = $this->_makeRequest('POST', $url, $payload);
+
+        // Transform API response to match expected format
+        if ($result['success']) {
+            $apiData = $result['data'];
+            
+            // Handle YBB API response format from documentation
+            if (isset($apiData['status']) && $apiData['status'] === 'success') {
+                $responseData = [
+                    'export_id' => $apiData['data']['export_id'],
+                    'download_url' => $apiData['data']['download_url'] ?? null,
+                    'record_count' => $apiData['data']['record_count'] ?? count($data),
+                    'created_at' => $apiData['data']['generated_at'] ?? null,
+                    'file_name' => $apiData['data']['file_name'] ?? null,
+                    'file_size' => $apiData['data']['file_size'] ?? null,
+                    'file_size_mb' => $apiData['data']['file_size_mb'] ?? null
+                ];
+
+                // Handle single file vs multi-file exports
+                if (isset($apiData['export_strategy'])) {
+                    $responseData['export_strategy'] = $apiData['export_strategy'];
+                    
+                    if ($apiData['export_strategy'] === 'multi_file') {
+                        $responseData['file_count'] = $apiData['data']['file_count'] ?? null;
+                        $responseData['batch_files'] = $apiData['data']['batch_files'] ?? [];
+                        $responseData['zip_download_url'] = $apiData['data']['zip_download_url'] ?? null;
+                    }
+                }
+
+                // Add performance metrics if available
+                if (isset($apiData['performance_metrics'])) {
+                    $responseData['performance_metrics'] = $apiData['performance_metrics'];
+                }
+
+                if ($this->config->enableDebugLogging) {
+                    log_message('info', "YBB Export: Participants export completed with strategy: " . ($apiData['export_strategy'] ?? 'single_file'));
+                }
+
+                return [
+                    'success' => true,
+                    'data' => $responseData,
+                    'metadata' => $apiData['system_info'] ?? []
+                ];
+            }
+        }
+
+        // Handle error cases according to API documentation
+        if (!$result['success']) {
+            // Transform API error to match expected format
+            return [
+                'success' => false,
+                'message' => $result['message'] ?? 'Export request failed',
+                'error_code' => $result['error_code'] ?? 'UNKNOWN_ERROR',
+                'details' => $result['details'] ?? [],
+                'request_id' => $result['request_id'] ?? null
+            ];
+        }
+
+        // If we get here, there was an unexpected response format
+        return [
+            'success' => false,
+            'message' => 'Unexpected API response format',
+            'error_code' => 'RESPONSE_FORMAT_ERROR'
+        ];
     }
     
     /**
@@ -383,7 +509,43 @@ class YbbExport
             ];
             
             if ($data && in_array($method, ['POST', 'PUT', 'PATCH'])) {
-                $curlOptions[CURLOPT_POSTFIELDS] = json_encode($data);
+                // Force garbage collection before processing large datasets
+                if (function_exists('gc_collect_cycles')) {
+                    gc_collect_cycles();
+                }
+                
+                // Memory-safe JSON encoding for large datasets
+                $estimatedSize = $this->_estimateJsonSize($data);
+                $memoryUsage = memory_get_usage(true);
+                $memoryLimit = $this->_getMemoryLimitBytes();
+                $availableMemory = $memoryLimit - $memoryUsage;
+                
+                if ($this->config->enableDebugLogging) {
+                    log_message('debug', "YBB Export: Estimated JSON size: " . round($estimatedSize / 1024 / 1024, 2) . "MB, Available memory: " . round($availableMemory / 1024 / 1024, 2) . "MB, Current usage: " . round($memoryUsage / 1024 / 1024, 2) . "MB");
+                }
+                
+                // Be more conservative - if estimated size would use more than 30% of available memory, use safe encoding
+                if ($estimatedSize > ($availableMemory * 0.3)) {
+                    log_message('warning', "YBB Export: Large payload detected. Using memory-safe JSON encoding.");
+                    
+                    // Try to encode with memory monitoring
+                    $jsonData = $this->_safeJsonEncode($data);
+                    if ($jsonData === false) {
+                        return [
+                            'success' => false,
+                            'message' => 'Failed to encode data - dataset too large for available memory. Consider reducing the dataset size or enabling chunking.',
+                            'error_code' => 'MEMORY_EXHAUSTION',
+                            'memory_info' => [
+                                'estimated_size_mb' => round($estimatedSize / 1024 / 1024, 2),
+                                'available_memory_mb' => round($availableMemory / 1024 / 1024, 2),
+                                'current_usage_mb' => round($memoryUsage / 1024 / 1024, 2)
+                            ]
+                        ];
+                    }
+                    $curlOptions[CURLOPT_POSTFIELDS] = $jsonData;
+                } else {
+                    $curlOptions[CURLOPT_POSTFIELDS] = json_encode($data);
+                }
             }
             
             curl_setopt_array($curl, $curlOptions);
@@ -626,5 +788,118 @@ class YbbExport
         log_message('info', "YBB Export: Cleaned up {$cleanedCount} temporary files");
         
         return $cleanedCount;
+    }
+
+    /**
+     * Estimate JSON size without actually encoding (to avoid memory issues)
+     */
+    private function _estimateJsonSize($data): int
+    {
+        if (is_array($data)) {
+            // Rough estimation: 
+            // - Each array element adds ~50 bytes overhead
+            // - Each string character is ~1.2 bytes in JSON (accounting for escaping)
+            // - Each number is ~8 bytes
+            // - Boolean is ~5 bytes
+            
+            $count = count($data);
+            $sampleSize = min(10, $count); // Sample first 10 items for estimation
+            $sampleItems = array_slice($data, 0, $sampleSize);
+            
+            $sampleJsonSize = strlen(json_encode($sampleItems));
+            
+            // Estimate total size with some overhead buffer
+            $estimatedSize = ($sampleJsonSize / $sampleSize) * $count * 1.3; // 30% buffer
+            
+            return (int) $estimatedSize;
+        }
+        
+        // For non-arrays, just use serialize length as approximation
+        return strlen(serialize($data)) * 1.5;
+    }
+
+    /**
+     * Get memory limit in bytes
+     */
+    private function _getMemoryLimitBytes(): int
+    {
+        $memoryLimit = ini_get('memory_limit');
+        
+        if ($memoryLimit === '-1') {
+            return PHP_INT_MAX; // No limit
+        }
+        
+        $unit = strtolower(substr($memoryLimit, -1));
+        $value = (int) substr($memoryLimit, 0, -1);
+        
+        switch ($unit) {
+            case 'g':
+                return $value * 1024 * 1024 * 1024;
+            case 'm':
+                return $value * 1024 * 1024;
+            case 'k':
+                return $value * 1024;
+            default:
+                return (int) $memoryLimit;
+        }
+    }
+
+    /**
+     * Memory-safe JSON encoding with error handling
+     */
+    private function _safeJsonEncode($data)
+    {
+        // Monitor memory before encoding
+        $memoryBefore = memory_get_usage(true);
+        $memoryLimit = $this->_getMemoryLimitBytes();
+        $availableMemory = $memoryLimit - $memoryBefore;
+        
+        // If we're already using more than 70% of memory, abort
+        if (($memoryBefore / $memoryLimit) > 0.7) {
+            log_message('error', "YBB Export: Memory usage too high (" . round(($memoryBefore / $memoryLimit) * 100, 1) . "%) to safely encode JSON");
+            return false;
+        }
+        
+        // Clear any unnecessary memory before encoding
+        if (function_exists('gc_collect_cycles')) {
+            gc_collect_cycles();
+        }
+        
+        // Try encoding with error handling and memory monitoring
+        set_error_handler(function($severity, $message, $file, $line) {
+            if (strpos($message, 'memory') !== false) {
+                throw new \Exception("Memory error during JSON encoding: " . $message);
+            }
+        });
+        
+        try {
+            $result = json_encode($data, JSON_UNESCAPED_UNICODE);
+            
+            if ($result === false) {
+                $error = json_last_error_msg();
+                log_message('error', "YBB Export: JSON encoding failed: {$error}");
+                return false;
+            }
+            
+            $memoryAfter = memory_get_usage(true);
+            $memoryUsed = $memoryAfter - $memoryBefore;
+            
+            if ($this->config->enableDebugLogging) {
+                log_message('debug', "YBB Export: JSON encoding used " . round($memoryUsed / 1024 / 1024, 2) . "MB additional memory. Total usage: " . round($memoryAfter / 1024 / 1024, 2) . "MB");
+            }
+            
+            // Check if we're approaching memory limits after encoding
+            if (($memoryAfter / $memoryLimit) > 0.8) {
+                log_message('warning', "YBB Export: High memory usage after JSON encoding (" . round(($memoryAfter / $memoryLimit) * 100, 1) . "%)");
+            }
+            
+            return $result;
+            
+        } catch (\Exception $e) {
+            log_message('error', "YBB Export: Exception during JSON encoding: " . $e->getMessage());
+            return false;
+        } finally {
+            restore_error_handler();
+        }
     }
 }

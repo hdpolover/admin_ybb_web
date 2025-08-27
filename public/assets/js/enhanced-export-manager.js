@@ -9,21 +9,74 @@ class EnhancedExportManager {
         this.currentExports = new Map();
         this.statusPollingInterval = null;
         this.currentProcessingTimer = null;
+        this.exportHistory = this.loadExportHistory();
+        console.log('🚀 Enhanced Export Manager initialized with comprehensive metrics support and history tracking');
+    }
+
+    // Export History Management
+    loadExportHistory() {
+        try {
+            const history = localStorage.getItem('ybb_export_history');
+            return history ? JSON.parse(history) : [];
+        } catch (e) {
+            console.warn('Failed to load export history:', e);
+            return [];
+        }
+    }
+
+    saveExportHistory() {
+        try {
+            // Keep only last 20 exports
+            const recentHistory = this.exportHistory.slice(-20);
+            localStorage.setItem('ybb_export_history', JSON.stringify(recentHistory));
+        } catch (e) {
+            console.warn('Failed to save export history:', e);
+        }
+    }
+
+    addToExportHistory(exportData) {
+        const historyEntry = {
+            id: exportData.export_id,
+            timestamp: new Date().toISOString(),
+            status: 'initiated',
+            type: exportData.export_type || 'participants',
+            template: exportData.template || 'standard',
+            filters: exportData.filters || {},
+            records_count: exportData.total_records || 0
+        };
+        
+        this.exportHistory.push(historyEntry);
+        this.saveExportHistory();
+        console.log('📝 Added export to history:', historyEntry);
+    }
+
+    updateExportHistoryStatus(exportId, status, additionalData = {}) {
+        const entry = this.exportHistory.find(e => e.id === exportId);
+        if (entry) {
+            entry.status = status;
+            entry.updated_at = new Date().toISOString();
+            
+            // Add additional data like completion time, file size, etc.
+            Object.assign(entry, additionalData);
+            
+            this.saveExportHistory();
+            console.log(`📊 Updated export ${exportId} status to ${status}`);
+        }
+    }
+
+    init() {
         this.intervalId = null;
         this.activeIntervals = [];
         // YBB Export Service base URL
         this.ybbApiBaseUrl = 'https://ybb-data-management-service-production.up.railway.app';
-        this.init();
-    }
-
-    init() {
-        console.log('Initializing Enhanced Export Manager...');
-        this.attachExportHandlers();
+        console.log('🚀 Initializing Enhanced Export Manager...');
         this.clearAnyExistingIntervals();
+        this.attachExportHandlers();
+        console.log('✅ Enhanced Export Manager initialization complete');
     }
 
     clearAnyExistingIntervals() {
-        console.log('Force stopping all active intervals:', this.activeIntervals);
+        console.log('🧹 Force stopping all active intervals:', this.activeIntervals);
         this.activeIntervals.forEach(id => {
             if (id) {
                 clearInterval(id);
@@ -40,19 +93,42 @@ class EnhancedExportManager {
     }
 
     attachExportHandlers() {
+        console.log('🔗 Attaching export handlers...');
+        
+        // Remove any existing handlers first
+        $(document).off('click.enhancedExport');
+        
         // Use event delegation to handle dynamically added export buttons
-        $(document).off('click.enhancedExport').on('click.enhancedExport', '.export-btn', (e) => {
+        $(document).on('click.enhancedExport', '.export-btn', (e) => {
             e.preventDefault();
+            e.stopPropagation();
+            
             const $btn = $(e.currentTarget);
+            console.log('🖱️ Export button clicked:', $btn[0]);
+            console.log('Button classes:', $btn[0].className);
+            console.log('Button data:', $btn.data());
             
             if (this.isProcessing) {
-                console.warn('Export already in progress, ignoring click');
+                console.warn('⚠️ Export already in progress, ignoring click');
                 return;
             }
 
-            console.log('Export button clicked, processing...');
+            console.log('✅ Processing export request...');
             this.handleExportRequest($btn);
         });
+        
+        // Also attach direct handler for immediate buttons
+        const exportButtons = document.querySelectorAll('.export-btn');
+        console.log(`🔍 Found ${exportButtons.length} export buttons`);
+        exportButtons.forEach((btn, index) => {
+            console.log(`Button ${index + 1}:`, {
+                id: btn.id,
+                classes: btn.className,
+                dataset: btn.dataset
+            });
+        });
+        
+        console.log('✅ Export handlers attached successfully');
     }
 
     async handleExportRequest($btn) {
@@ -104,14 +180,15 @@ class EnhancedExportManager {
             const ybbData = this.prepareYbbApiData(formData);
 
             // Make AJAX request
-            const exportUrl = this.getFullApiUrl($btn.data('url') || '/api/ybb/export/participants');
+            const exportUrl = $btn.data('url') || '/users/participants/export';
+            console.log('🌐 Making AJAX request to:', exportUrl);
             $.ajax({
                 url: exportUrl,
                 method: 'POST',
                 data: JSON.stringify(ybbData),
                 contentType: 'application/json',
                 dataType: 'json',
-                timeout: 30000,
+                timeout: 120000, // Increased to 2 minutes for large exports
                 success: (response) => {
                     console.log('=== AJAX SUCCESS RESPONSE ===');
                     console.log('Raw AJAX response:', response);
@@ -157,20 +234,39 @@ class EnhancedExportManager {
 
         console.log('=== EXPORT SUCCESS RESPONSE ===');
         console.log('Full response:', response);
+        console.log('Response.data keys:', Object.keys(response.data || {}));
+        console.log('Response.data content:', response.data);
 
         if (response.success) {
             // Store export information
             this.currentExports.set(response.exportId, response);
 
             // Check if we have an export ID for status polling
-            const exportId = response.data?.export_id || response.exportId;
-            const downloadUrl = response.data?.download_url || response.downloadUrl;
+            const exportId = response.data?.export_id || response.exportId || response.data?.id;
+            let downloadUrl = response.data?.download_url || response.downloadUrl || response.data?.downloadUrl;
+            
+            // Add to export history
+            if (exportId) {
+                this.addToExportHistory({
+                    export_id: exportId,
+                    export_type: 'participants',
+                    template: response.data?.template || 'standard',
+                    total_records: response.data?.total_records || response.data?.records_exported || 0
+                });
+            }
+            
+            // Convert relative download URL to full Railway API URL only if it's not a CodeIgniter proxy URL
+            if (downloadUrl && !downloadUrl.startsWith('http') && !downloadUrl.startsWith('/exports/')) {
+                downloadUrl = this.getFullApiUrl(downloadUrl);
+            }
             
             console.log('Determined exportId:', exportId);
             console.log('Determined downloadUrl:', downloadUrl);
+            console.log('Response status:', response.status);
+            console.log('Response.data status:', response.data?.status);
             
-            // Check if export is already completed (YBB API returns status: 'success' when done)
-            const isCompleted = response.status === 'success' && !!(downloadUrl);
+            // Check if export is already completed (since we have download_url, it's completed)
+            const isCompleted = !!(downloadUrl && exportId);
             console.log('Is export completed?', isCompleted);
             
             if (exportId && !isCompleted) {
@@ -194,10 +290,37 @@ class EnhancedExportManager {
             } else if (exportId && isCompleted) {
                 // Export is completed immediately, show results
                 console.log('✅ Export completed immediately, showing main success notification');
+                console.log('🎯 About to call showMainSuccessNotification with:', { response, processingTimer });
                 processingTimer.stop(response.processingTime || response.data?.processing_time);
                 
                 // Use the centralized success notification method
-                this.showMainSuccessNotification(response, processingTimer);
+                try {
+                    console.log('🚀 Calling showMainSuccessNotification...');
+                    this.showMainSuccessNotification(response, processingTimer);
+                    console.log('✅ showMainSuccessNotification call completed');
+                } catch (error) {
+                    console.error('❌ Error in showMainSuccessNotification:', error);
+                    console.error('❌ Error stack:', error.stack);
+                    // Fallback notification
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            title: 'Export Complete!',
+                            text: `Successfully exported ${response.data?.record_count || 'unknown'} records. Click Download to get your file.`,
+                            icon: 'success',
+                            showCancelButton: true,
+                            confirmButtonText: 'Download Now',
+                            cancelButtonText: 'Close',
+                            confirmButtonColor: '#28a745'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                const url = this.getDownloadUrl(response, exportId);
+                                if (url) {
+                                    this.downloadFile(url, response.data?.file_name || 'export.xlsx');
+                                }
+                            }
+                        });
+                    }
+                }
             } else {
                 console.error('❌ No valid export ID found in response');
                 this.showErrorMessage('Invalid export response: No export ID found');
@@ -213,14 +336,41 @@ class EnhancedExportManager {
     showMainSuccessNotification(response, processingTimer) {
         console.log('=== SHOWING MAIN SUCCESS NOTIFICATION ===');
         console.log('Response data:', response);
+        console.log('Response type:', typeof response);
+        console.log('Response keys:', Object.keys(response || {}));
         
+        // Check SweetAlert availability first
         const SwalInstance = window.Swal || window.swal;
+        console.log('🍬 SweetAlert availability check:');
+        console.log('  - window.Swal:', typeof window.Swal);
+        console.log('  - window.swal:', typeof window.swal);
+        console.log('  - SwalInstance:', typeof SwalInstance);
+        console.log('  - SwalInstance.fire:', typeof SwalInstance?.fire);
+        
         const exportId = response.exportId || response.export_id;
+        
+        // Add validation check
+        if (!response) {
+            console.error('❌ No response data provided to showMainSuccessNotification');
+            this.showErrorMessage('No export data available');
+            return;
+        }
         
         // Use helper method for robust data extraction
         const responseData = response.data || {};
         const metadata = response.metadata || {};
         
+        console.log('📊 Data extraction sources:', {
+            responseData: Object.keys(responseData),
+            metadata: Object.keys(metadata),
+            directFromResponse: {
+                recordCount: response.recordCount,
+                fileSize: response.fileSize,
+                fileName: response.fileName
+            }
+        });
+        
+        // Extract comprehensive data from the nested response.data structure
         const recordCount = this.extractValue(response, responseData, metadata, 
             ['record_count', 'recordCount', 'totalRecords'], 0);
         
@@ -232,8 +382,29 @@ class EnhancedExportManager {
         
         const exportType = this.extractValue(response, responseData, metadata, 
             ['exportType', 'export_type', 'type']) || this.guessExportTypeFromContext() || 'Data';
+            
+        // Extract performance metrics for detailed display
+        const performanceMetrics = responseData.performance_metrics || {};
+        const processingTime = performanceMetrics.processing_time_ms || performanceMetrics.total_processing_time_seconds * 1000 || null;
+        const recordsPerSecond = performanceMetrics.records_per_second || null;
+        const memoryUsed = performanceMetrics.memory_used_mb || performanceMetrics.peak_memory_mb || null;
+        const exportStrategy = this.extractValue(response, responseData, metadata, 
+            ['export_strategy', 'exportStrategy'], 'single_file');
+        const template = this.extractValue(response, responseData, metadata, 
+            ['template'], 'standard');
+        const isChunked = responseData.is_chunked_export || false;
+        const totalChunks = responseData.total_chunks || 1;
+        const compressionUsed = metadata.compression_used || 'none';
         
-        const downloadUrl = this.getDownloadUrl(response, exportId);
+            // Fix download URL extraction - make sure to convert relative URLs
+            let downloadUrl = this.getDownloadUrl(response, exportId);
+            
+            // Don't prepend API base URL to CodeIgniter proxy URLs
+            if (downloadUrl && !downloadUrl.startsWith('http') && !downloadUrl.startsWith('/exports/')) {
+                downloadUrl = this.getFullApiUrl(downloadUrl);
+            }        console.log('📋 Extracted values before processing:', {
+            recordCount, fileSize, fileName, exportType, downloadUrl, exportId
+        });
         
         // Format file size
         const fileSizeFormatted = fileSize ? this.formatFileSize(fileSize) : 'Unknown size';
@@ -244,32 +415,61 @@ class EnhancedExportManager {
         
         if (SwalInstance && typeof SwalInstance.fire === 'function') {
             try {
+                // Sanitize and validate data before building HTML
+                const safeRecordCount = (recordCount || 0).toLocaleString();
+                const safeFileSizeFormatted = this.escapeHtml(fileSizeFormatted || 'Unknown');
+                const safeExportType = this.escapeHtml(exportType || 'XLSX');
+                const safeFileName = this.escapeHtml(fileName || 'export.xlsx');
+                
+                // Build comprehensive metrics display
+                const performanceSection = this.buildPerformanceMetricsHtml({
+                    processingTime, recordsPerSecond, memoryUsed, exportStrategy, 
+                    template, isChunked, totalChunks, compressionUsed
+                });
+                
                 const htmlContent = `
                     <div class="export-success-details">
+                        <!-- Main Stats Row -->
                         <div class="row mb-3">
                             <div class="col-4">
                                 <div class="stat-item text-center p-3 bg-light rounded">
-                                    <div class="stat-number text-primary fw-bold fs-4">${recordCount.toLocaleString()}</div>
-                                    <div class="stat-label text-muted small">Records</div>
+                                    <div class="stat-number text-primary fw-bold fs-4">${safeRecordCount}</div>
+                                    <div class="stat-label text-muted small">Records Exported</div>
                                 </div>
                             </div>
                             <div class="col-4">
                                 <div class="stat-item text-center p-3 bg-light rounded">
-                                    <div class="stat-number text-success fw-bold fs-4">${fileSizeFormatted}</div>
+                                    <div class="stat-number text-success fw-bold fs-4">${safeFileSizeFormatted}</div>
                                     <div class="stat-label text-muted small">File Size</div>
                                 </div>
                             </div>
                             <div class="col-4">
                                 <div class="stat-item text-center p-3 bg-light rounded">
-                                    <div class="stat-number text-info fw-bold fs-4">${exportType}</div>
-                                    <div class="stat-label text-muted small">Export Type</div>
+                                    <div class="stat-number text-info fw-bold fs-4">${this.escapeHtml(template.toUpperCase())}</div>
+                                    <div class="stat-label text-muted small">Template</div>
                                 </div>
                             </div>
                         </div>
-                        <div class="text-center mt-3">
-                            <div class="text-muted">
-                                <i class="fas fa-file-excel text-success"></i>
-                                <strong>${fileName}</strong>
+                        
+                        <!-- Performance Metrics Section -->
+                        ${performanceSection}
+                        
+                        <!-- File Information -->
+                        <div class="text-center mt-3 p-3 bg-light rounded">
+                            <div class="row align-items-center">
+                                <div class="col-auto">
+                                    <i class="fas fa-file-excel text-success fs-3"></i>
+                                </div>
+                                <div class="col">
+                                    <div class="text-start">
+                                        <div class="fw-bold text-dark">${safeFileName}</div>
+                                        <div class="text-muted small">
+                                            Strategy: ${this.escapeHtml(exportStrategy.replace('_', ' ').toUpperCase())}
+                                            ${isChunked ? ` | Chunks: ${totalChunks}` : ''}
+                                            ${compressionUsed !== 'none' ? ` | Compressed: ${compressionUsed.toUpperCase()}` : ''}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -279,19 +479,53 @@ class EnhancedExportManager {
                     recordCount, fileSize, fileName, exportType, downloadUrl
                 });
                 
+                // Additional validation before showing SweetAlert
+                if (!downloadUrl) {
+                    console.error('❌ No download URL available for SweetAlert');
+                    this.showErrorMessage('Export completed but download URL is not available');
+                    return;
+                }
+                
                 SwalInstance.fire({
                     html: htmlContent,
                     title: '🎉 Export Complete!',
                     showCancelButton: true,
                     confirmButtonText: '<i class="fas fa-download"></i> Download Now',
-                    cancelButtonText: '<i class="fas fa-eye"></i> View Details',
+                    cancelButtonText: '<i class="fas fa-chart-line"></i> View Details',
                     confirmButtonColor: '#28a745',
                     cancelButtonColor: '#6c757d',
-                    width: 650,
+                    width: 750, // Increased width for metrics
                     customClass: {
-                        popup: 'export-success-popup',
+                        popup: 'export-success-popup enhanced-metrics',
                         title: 'export-success-title',
-                        htmlContainer: 'export-success-content'
+                        htmlContainer: 'export-success-content',
+                        confirmButton: 'btn btn-success',
+                        cancelButton: 'btn btn-outline-secondary'
+                    },
+                    didRender: () => {
+                        // Add custom CSS for metrics display
+                        const style = document.createElement('style');
+                        style.textContent = `
+                            .enhanced-metrics .metric-item {
+                                transition: transform 0.2s ease;
+                            }
+                            .enhanced-metrics .metric-item:hover {
+                                transform: translateY(-2px);
+                                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                            }
+                            .enhanced-metrics .stat-item:hover {
+                                transform: translateY(-2px);
+                                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                                transition: all 0.2s ease;
+                            }
+                            .enhanced-metrics .performance-metrics {
+                                background: #f8f9fa;
+                                border-radius: 8px;
+                                padding: 15px;
+                                margin: 10px 0;
+                            }
+                        `;
+                        document.head.appendChild(style);
                     },
                     allowOutsideClick: false,
                     allowEscapeKey: true,
@@ -326,17 +560,54 @@ class EnhancedExportManager {
                 
             } catch (error) {
                 console.error('❌ Error showing SweetAlert:', error);
-                // Fallback to simple alert
-                if (confirm(`Export Complete!\n\nSuccessfully exported ${recordCount.toLocaleString()} records.\n\nClick OK to download now, or Cancel to view details.`)) {
-                    console.log('Error fallback download - Using URL:', downloadUrl);
-                    this.downloadFile(downloadUrl, fileName);
-                } else {
-                    // Show detailed results
-                    if (response.exportStrategy === 'multi_file' || response.data?.export_strategy === 'multi_file') {
-                        this.showMultiFileExportResult(response, processingTimer);
-                    } else {
-                        this.showSingleFileExportResult(response, processingTimer);
+                console.error('❌ Error stack:', error.stack);
+                console.error('❌ Response data when error occurred:', response);
+                console.error('❌ HTML content that caused the error:', htmlContent);
+                
+                // Don't show an error message for successful exports - instead provide fallback
+                console.log('🎉 Export completed successfully, using fallback notification due to SweetAlert display issue');
+                
+                // Still try to provide download functionality as fallback
+                const downloadUrl = this.getDownloadUrl(response, exportId);
+                if (downloadUrl) {
+                    console.log('🔄 Attempting fallback download with URL:', downloadUrl);
+                    
+                    // Use a simpler SweetAlert or browser alert as fallback
+                    try {
+                        // Try a simple SweetAlert first
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                title: 'Export Complete!',
+                                text: `Successfully exported ${recordCount.toLocaleString()} records. Click Download to get your file.`,
+                                icon: 'success',
+                                showCancelButton: true,
+                                confirmButtonText: 'Download Now',
+                                cancelButtonText: 'Close',
+                                confirmButtonColor: '#28a745'
+                            }).then((result) => {
+                                if (result.isConfirmed) {
+                                    this.downloadFile(downloadUrl, fileName);
+                                }
+                            });
+                        } else {
+                            // Fallback to browser confirm
+                            if (confirm(`Export Complete!\n\nSuccessfully exported ${recordCount.toLocaleString()} records.\n\nClick OK to download now.`)) {
+                                console.log('Fallback download - Using URL:', downloadUrl);
+                                this.downloadFile(downloadUrl, fileName);
+                            }
+                        }
+                    } catch (fallbackError) {
+                        console.error('❌ Even fallback SweetAlert failed:', fallbackError);
+                        // Last resort - browser confirm
+                        if (confirm(`Export Complete!\n\nSuccessfully exported ${recordCount.toLocaleString()} records.\n\nClick OK to download now.`)) {
+                            console.log('Final fallback download - Using URL:', downloadUrl);
+                            this.downloadFile(downloadUrl, fileName);
+                        }
                     }
+                } else {
+                    console.error('❌ No download URL available even for fallback');
+                    // Only show an error if there's actually no download URL
+                    this.showErrorMessage('Export completed but download URL is not available. Please contact support.');
                 }
             }
         } else {
@@ -427,7 +698,8 @@ class EnhancedExportManager {
         try {
             console.log(`🔄 Checking export status for: ${exportId}`);
             
-            const statusUrl = this.getFullApiUrl(`/api/ybb/export/${exportId}/status`);
+            const statusUrl = `/exports/status/${exportId}`;
+            console.log('🔍 Polling status at:', statusUrl);
             const response = await fetch(statusUrl, {
                 method: 'GET',
                 headers: {
@@ -539,19 +811,138 @@ class EnhancedExportManager {
         this.hideExportLoading($btn);
         
         let errorMessage = 'An error occurred during export.';
+        let errorCode = 'UNKNOWN_ERROR';
+        let details = null;
         
-        if (xhr.responseJSON && xhr.responseJSON.message) {
-            errorMessage = xhr.responseJSON.message;
+        // Check for timeout error
+        if (xhr.statusText === 'timeout' || xhr.status === 0) {
+            errorMessage = 'Export request timed out. For large datasets, the export may still be processing in the background. Please check your exports list or try again with smaller data chunks.';
+            errorCode = 'REQUEST_TIMEOUT';
+            console.warn('⏰ Export request timed out, but export may still be processing');
+        } else if (xhr.responseJSON) {
+            // Parse API-documented error response format
+            const response = xhr.responseJSON;
+            errorMessage = response.message || errorMessage;
+            errorCode = response.error_code || errorCode;
+            details = response.details || null;
+            
+            // Provide specific guidance based on documented error codes
+            switch (errorCode) {
+                case 'VALIDATION_ERROR':
+                    errorMessage += ' Please check your data format and try again.';
+                    break;
+                case 'TEMPLATE_NOT_FOUND':
+                    errorMessage += ' Please select a valid template (standard, detailed, summary, or complete).';
+                    break;
+                case 'DATASET_TOO_LARGE':
+                    errorMessage += ' Try exporting smaller chunks or use filters to reduce the dataset size.';
+                    break;
+                case 'MEMORY_LIMIT_EXCEEDED':
+                    errorMessage += ' The dataset is too large for single processing. It will be automatically chunked.';
+                    break;
+                case 'PROCESSING_TIMEOUT':
+                    errorMessage += ' Please try again with a smaller dataset or contact support.';
+                    break;
+                case 'EXPORT_NOT_FOUND':
+                case 'EXPORT_EXPIRED':
+                    errorMessage += ' Please create a new export request.';
+                    break;
+                default:
+                    if (xhr.status >= 500) {
+                        errorMessage += ' Please try again in a few minutes or contact support if the issue persists.';
+                    }
+            }
         } else if (xhr.responseText) {
             try {
                 const response = JSON.parse(xhr.responseText);
                 errorMessage = response.message || response.error || errorMessage;
+                errorCode = response.error_code || errorCode;
             } catch (e) {
                 errorMessage = xhr.responseText;
             }
+        } else if (xhr.status) {
+            errorMessage = `HTTP ${xhr.status}: ${xhr.statusText || 'Unknown error'}`;
+            
+            // Provide guidance based on HTTP status codes
+            switch (xhr.status) {
+                case 400:
+                    errorMessage += ' Please check your request parameters.';
+                    break;
+                case 413:
+                    errorMessage += ' The dataset is too large. Try reducing the size or use chunked processing.';
+                    break;
+                case 429:
+                    errorMessage += ' Too many requests. Please wait a moment before trying again.';
+                    break;
+                case 503:
+                    errorMessage += ' The service is temporarily unavailable. Please try again later.';
+                    break;
+            }
         }
         
-        this.showErrorMessage(errorMessage);
+        console.error('Export error details:', {
+            status: xhr.status,
+            statusText: xhr.statusText,
+            responseText: xhr.responseText,
+            errorCode: errorCode,
+            errorMessage: errorMessage,
+            details: details
+        });
+        
+        // Show enhanced error message with code
+        this.showEnhancedErrorMessage(errorMessage, errorCode, details);
+    }
+
+    showEnhancedErrorMessage(message, errorCode = null, details = null) {
+        const SwalInstance = window.Swal || window.swal;
+        
+        if (SwalInstance && typeof SwalInstance.fire === 'function') {
+            let htmlContent = `
+                <div class="error-details">
+                    <div class="text-center mb-3">
+                        <i class="fas fa-exclamation-triangle text-warning fs-1"></i>
+                    </div>
+                    <p class="mb-3">${message}</p>
+            `;
+            
+            if (errorCode && errorCode !== 'UNKNOWN_ERROR') {
+                htmlContent += `
+                    <div class="alert alert-light border text-start">
+                        <small class="text-muted">
+                            <strong>Error Code:</strong> ${errorCode}<br>
+                            <strong>Request ID:</strong> ${Date.now().toString(36)}
+                        </small>
+                    </div>
+                `;
+            }
+            
+            if (details) {
+                htmlContent += `
+                    <div class="mt-3">
+                        <details class="text-start">
+                            <summary class="text-muted small">Technical Details</summary>
+                            <pre class="small mt-2 text-muted">${JSON.stringify(details, null, 2)}</pre>
+                        </details>
+                    </div>
+                `;
+            }
+            
+            htmlContent += '</div>';
+            
+            SwalInstance.fire({
+                html: htmlContent,
+                title: 'Export Error',
+                icon: 'error',
+                confirmButtonText: 'Try Again',
+                showCancelButton: true,
+                cancelButtonText: 'Close',
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                width: 600
+            });
+        } else {
+            alert(`Export Error: ${message}`);
+        }
     }
 
     showExportLoading($btn) {
@@ -685,7 +1076,330 @@ class EnhancedExportManager {
         }
     }
 
+    // Export Status Tracking Methods
+    checkExportStatus(exportId) {
+        if (!exportId) {
+            console.warn('No export ID provided for status check');
+            return;
+        }
+        
+        console.log(`📋 Checking status for export: ${exportId}`);
+        
+        $.ajax({
+            url: '/participants/export_status',
+            method: 'GET',
+            data: { export_id: exportId },
+            timeout: 30000,
+            success: (response) => {
+                this.handleStatusResponse(response, exportId);
+            },
+            error: (xhr, status, error) => {
+                console.error('Status check failed:', { xhr, status, error });
+                this.showStatusError(exportId, error);
+            }
+        });
+    }
+    
+    handleStatusResponse(response, exportId) {
+        console.log('📊 Export status response:', response);
+        
+        if (response.success && response.data) {
+            const status = response.data.status || 'unknown';
+            const progress = response.data.progress || 0;
+            const estimated_completion = response.data.estimated_completion;
+            
+            console.log(`Status: ${status}, Progress: ${progress}%`);
+            
+            switch (status.toLowerCase()) {
+                case 'queued':
+                case 'pending':
+                    this.showStatusMessage(exportId, 'Export is queued for processing...', 'info', progress);
+                    break;
+                case 'processing':
+                case 'running':
+                    this.showStatusMessage(
+                        exportId, 
+                        `Export is processing... (${progress}% complete)`,
+                        'info',
+                        progress,
+                        estimated_completion
+                    );
+                    break;
+                case 'completed':
+                case 'ready':
+                    if (response.data.download_url) {
+                        this.showCompletedExport(exportId, response.data);
+                    } else {
+                        this.showStatusMessage(exportId, 'Export completed successfully!', 'success', 100);
+                    }
+                    break;
+                case 'failed':
+                case 'error':
+                    const errorMsg = response.data.error_message || 'Export failed';
+                    this.showStatusMessage(exportId, errorMsg, 'error', progress);
+                    break;
+                default:
+                    this.showStatusMessage(exportId, `Export status: ${status}`, 'info', progress);
+            }
+        } else {
+            this.showStatusError(exportId, response.message || 'Unable to retrieve export status');
+        }
+    }
+    
+    showStatusMessage(exportId, message, type = 'info', progress = null, estimatedCompletion = null) {
+        if (typeof Swal !== 'undefined') {
+            let htmlContent = `
+                <div class="status-display">
+                    <div class="text-center mb-3">
+                        <strong>Export ID:</strong> ${exportId}
+                    </div>
+                    <p class="mb-3">${message}</p>
+            `;
+            
+            if (progress !== null && progress >= 0) {
+                htmlContent += `
+                    <div class="progress mb-3">
+                        <div class="progress-bar progress-bar-striped ${type === 'error' ? 'bg-danger' : 'bg-primary'}" 
+                             role="progressbar" 
+                             style="width: ${Math.min(progress, 100)}%"
+                             aria-valuenow="${progress}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                            ${Math.round(progress)}%
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (estimatedCompletion) {
+                htmlContent += `
+                    <div class="alert alert-light border text-center">
+                        <small class="text-muted">
+                            <strong>Estimated Completion:</strong> ${estimatedCompletion}
+                        </small>
+                    </div>
+                `;
+            }
+            
+            htmlContent += '</div>';
+            
+            const iconMap = {
+                'info': 'info',
+                'success': 'success',
+                'error': 'error',
+                'warning': 'warning'
+            };
+            
+            Swal.fire({
+                title: 'Export Status',
+                html: htmlContent,
+                icon: iconMap[type] || 'info',
+                confirmButtonText: 'Check Again',
+                showCancelButton: true,
+                cancelButtonText: 'Close',
+                width: 500
+            }).then((result) => {
+                if (result.isConfirmed && (type === 'info' || progress < 100)) {
+                    // Auto-refresh status for ongoing processes
+                    setTimeout(() => this.checkExportStatus(exportId), 2000);
+                }
+            });
+        } else {
+            alert(`Export Status: ${message}`);
+        }
+    }
+    
+    showCompletedExport(exportId, data) {
+        if (typeof Swal !== 'undefined') {
+            let htmlContent = `
+                <div class="completed-export">
+                    <div class="text-center mb-3">
+                        <i class="fas fa-check-circle text-success fs-1"></i>
+                    </div>
+                    <p class="mb-3">Export completed successfully!</p>
+                    <div class="text-center">
+                        <strong>Export ID:</strong> ${exportId}<br>
+            `;
+            
+            if (data.file_name) {
+                htmlContent += `<strong>File:</strong> ${data.file_name}<br>`;
+            }
+            
+            if (data.file_size) {
+                htmlContent += `<strong>Size:</strong> ${this.formatFileSize(data.file_size)}<br>`;
+            }
+            
+            if (data.records_exported) {
+                htmlContent += `<strong>Records:</strong> ${data.records_exported}<br>`;
+            }
+            
+            htmlContent += '</div>';
+            
+            if (data.download_url) {
+                htmlContent += `
+                    <div class="mt-3 text-center">
+                        <a href="${data.download_url}" 
+                           class="btn btn-success btn-lg" 
+                           download="${data.file_name || 'export.xlsx'}">
+                            <i class="fas fa-download me-2"></i>Download Export
+                        </a>
+                    </div>
+                `;
+            }
+            
+            htmlContent += '</div>';
+            
+            Swal.fire({
+                title: 'Export Ready',
+                html: htmlContent,
+                icon: 'success',
+                confirmButtonText: 'Close',
+                width: 500
+            });
+        }
+    }
+    
+    showStatusError(exportId, error) {
+        console.error(`Status check error for export ${exportId}:`, error);
+        
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Status Check Failed',
+                text: `Unable to check status for export ${exportId}: ${error}`,
+                icon: 'warning',
+                confirmButtonText: 'OK'
+            });
+        } else {
+            alert(`Status check failed for export ${exportId}: ${error}`);
+        }
+    }
+    
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // Debug methods for testing
+    testSweetAlert() {
+        console.log('Testing SweetAlert2...');
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'SweetAlert2 Test',
+                text: 'SweetAlert2 is working correctly!',
+                icon: 'success',
+                confirmButtonText: 'Great!'
+            });
+        } else {
+            console.error('SweetAlert2 not available');
+            alert('SweetAlert2 not available');
+        }
+    }
+
+    testExportSuccessNotification() {
+        console.log('Testing export success notification...');
+        const mockResponse = {
+            success: true,
+            exportId: 'test-123',
+            message: 'Test export completed successfully',
+            data: {
+                recordCount: 1500,
+                fileSize: 2048576,
+                fileName: 'test_export.xlsx',
+                downloadUrl: '#test-download',
+                exportType: 'XLSX'
+            }
+        };
+        const mockTimer = { getElapsedTime: () => '2.5 seconds' };
+        this.showMainSuccessNotification(mockResponse, mockTimer);
+    }
+
+    // Utility method to escape HTML to prevent XSS and parsing issues
+    escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    buildPerformanceMetricsHtml(metrics) {
+        const {
+            processingTime, recordsPerSecond, memoryUsed, exportStrategy, 
+            template, isChunked, totalChunks, compressionUsed
+        } = metrics;
+        
+        let performanceHtml = '';
+        
+        // Only show performance section if we have meaningful metrics
+        if (processingTime || recordsPerSecond || memoryUsed) {
+            const metricsItems = [];
+            
+            if (processingTime) {
+                const timeDisplay = processingTime < 1000 
+                    ? `${Math.round(processingTime)}ms`
+                    : `${(processingTime / 1000).toFixed(1)}s`;
+                metricsItems.push(`
+                    <div class="col-md-4 col-6">
+                        <div class="metric-item text-center p-2 bg-white rounded border">
+                            <div class="metric-value text-warning fw-bold">${timeDisplay}</div>
+                            <div class="metric-label text-muted small">Processing Time</div>
+                        </div>
+                    </div>
+                `);
+            }
+            
+            if (recordsPerSecond) {
+                const rpsDisplay = recordsPerSecond > 1000 
+                    ? `${(recordsPerSecond / 1000).toFixed(1)}K/s`
+                    : `${Math.round(recordsPerSecond)}/s`;
+                metricsItems.push(`
+                    <div class="col-md-4 col-6">
+                        <div class="metric-item text-center p-2 bg-white rounded border">
+                            <div class="metric-value text-primary fw-bold">${rpsDisplay}</div>
+                            <div class="metric-label text-muted small">Records/Sec</div>
+                        </div>
+                    </div>
+                `);
+            }
+            
+            if (memoryUsed) {
+                const memoryDisplay = memoryUsed < 1 
+                    ? `${Math.round(memoryUsed * 1024)}KB`
+                    : `${memoryUsed.toFixed(1)}MB`;
+                metricsItems.push(`
+                    <div class="col-md-4 col-6">
+                        <div class="metric-item text-center p-2 bg-white rounded border">
+                            <div class="metric-value text-secondary fw-bold">${memoryDisplay}</div>
+                            <div class="metric-label text-muted small">Memory Used</div>
+                        </div>
+                    </div>
+                `);
+            }
+            
+            if (metricsItems.length > 0) {
+                performanceHtml = `
+                    <div class="performance-metrics mb-3">
+                        <div class="text-center mb-2">
+                            <small class="text-muted fw-bold">📊 Performance Metrics</small>
+                        </div>
+                        <div class="row g-2">
+                            ${metricsItems.join('')}
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        return performanceHtml;
+    }
+
     getDownloadUrl(response, exportId) {
+        console.log('🔗 Getting download URL for:', { response, exportId });
+        
         const possibleUrls = [
             response.downloadUrl,
             response.download_url,
@@ -693,13 +1407,37 @@ class EnhancedExportManager {
             response.data?.downloadUrl
         ];
 
+        console.log('🔍 Checking possible URLs:', possibleUrls);
+
         for (const url of possibleUrls) {
             if (url && typeof url === 'string' && url.trim()) {
-                return url;
+                // Convert YBB API URLs to CodeIgniter proxy URLs
+                if (url.includes('/api/ybb/export/') && url.includes('/download')) {
+                    // Extract export ID from the URL and create CodeIgniter proxy URL
+                    const match = url.match(/\/api\/ybb\/export\/([^\/]+)\/download/);
+                    if (match && match[1]) {
+                        // Create absolute URL for CodeIgniter proxy
+                        const proxyUrl = `${window.location.origin}/exports/download/${match[1]}`;
+                        console.log('✅ Converted to CodeIgniter proxy URL:', proxyUrl);
+                        return proxyUrl;
+                    }
+                } else if (url.startsWith('http')) {
+                    // Already a full URL, use as-is
+                    console.log('✅ Using full URL as-is:', url);
+                    return url;
+                } else if (url.startsWith('/exports/download/')) {
+                    // Convert relative CodeIgniter proxy URL to absolute
+                    const absoluteUrl = `${window.location.origin}${url}`;
+                    console.log('✅ Converted relative CodeIgniter proxy URL to absolute:', absoluteUrl);
+                    return absoluteUrl;
+                }
             }
         }
 
-        return this.getFullApiUrl(`/api/ybb/export/${exportId}/download`);
+        // Create absolute fallback URL
+        const fallbackUrl = `${window.location.origin}/exports/download/${exportId}`;
+        console.log('🔄 Using fallback URL:', fallbackUrl);
+        return fallbackUrl;
     }
 
     downloadFile(downloadUrl, filename = '') {
@@ -785,6 +1523,197 @@ class ProcessingTimer {
 
     getServerTime() {
         return this.serverProcessingTime;
+    }
+
+    // Export History UI Methods
+    showExportHistory() {
+        if (this.exportHistory.length === 0) {
+            this.showInfoMessage('No export history available', 'You haven\'t performed any exports yet.');
+            return;
+        }
+
+        const historyHtml = this.buildExportHistoryHtml();
+        
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Export History',
+                html: historyHtml,
+                width: 900,
+                customClass: {
+                    container: 'export-history-modal'
+                },
+                showCloseButton: true,
+                showConfirmButton: false,
+                didOpen: () => {
+                    // Add click handlers for status check buttons
+                    document.querySelectorAll('.check-export-status').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            const exportId = e.target.dataset.exportId;
+                            this.checkExportStatus(exportId);
+                        });
+                    });
+                }
+            });
+        }
+    }
+
+    buildExportHistoryHtml() {
+        const sortedHistory = this.exportHistory
+            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+            .slice(0, 15); // Show last 15 exports
+
+        let html = `
+            <div class="export-history-container">
+                <div class="mb-3 text-muted text-center">
+                    <small>Showing ${sortedHistory.length} recent exports</small>
+                </div>
+                <div class="export-history-list">
+        `;
+
+        sortedHistory.forEach(entry => {
+            const statusIcon = this.getStatusIcon(entry.status);
+            const statusClass = this.getStatusClass(entry.status);
+            const timeAgo = this.getTimeAgo(entry.timestamp);
+            
+            html += `
+                <div class="export-history-item border rounded p-3 mb-2">
+                    <div class="row align-items-center">
+                        <div class="col-md-2 text-center">
+                            <span class="status-indicator ${statusClass}">
+                                <i class="fas ${statusIcon}"></i>
+                            </span>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="export-details">
+                                <strong>Export ID:</strong> ${entry.id}<br>
+                                <small class="text-muted">
+                                    ${entry.type} • ${entry.template} template • ${timeAgo}
+                                </small>
+                                ${entry.records_count ? `<br><small class="text-info">${entry.records_count} records</small>` : ''}
+                            </div>
+                        </div>
+                        <div class="col-md-2 text-center">
+                            <span class="badge badge-${this.getStatusBadgeClass(entry.status)}">
+                                ${entry.status.toUpperCase()}
+                            </span>
+                        </div>
+                        <div class="col-md-2 text-center">
+                            <button class="btn btn-sm btn-outline-primary check-export-status" 
+                                    data-export-id="${entry.id}" title="Check Status">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += `
+                </div>
+                <div class="mt-3 text-center">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="localStorage.removeItem('ybb_export_history'); location.reload();">
+                        <i class="fas fa-trash-alt me-1"></i>Clear History
+                    </button>
+                </div>
+            </div>
+            <style>
+                .export-history-container {
+                    max-height: 500px;
+                    overflow-y: auto;
+                }
+                .export-history-item:hover {
+                    background-color: #f8f9fa;
+                }
+                .status-indicator {
+                    display: inline-block;
+                    width: 30px;
+                    height: 30px;
+                    border-radius: 50%;
+                    line-height: 30px;
+                    color: white;
+                }
+                .status-indicator.success { background-color: #28a745; }
+                .status-indicator.processing { background-color: #007bff; }
+                .status-indicator.error { background-color: #dc3545; }
+                .status-indicator.pending { background-color: #ffc107; color: #000; }
+            </style>
+        `;
+
+        return html;
+    }
+
+    getStatusIcon(status) {
+        const icons = {
+            'initiated': 'fa-clock',
+            'queued': 'fa-hourglass-start',
+            'pending': 'fa-hourglass-half',
+            'processing': 'fa-spinner fa-spin',
+            'running': 'fa-cog fa-spin',
+            'completed': 'fa-check',
+            'ready': 'fa-check-circle',
+            'failed': 'fa-times',
+            'error': 'fa-exclamation-triangle'
+        };
+        return icons[status] || 'fa-question';
+    }
+
+    getStatusClass(status) {
+        const classes = {
+            'initiated': 'pending',
+            'queued': 'pending',
+            'pending': 'pending',
+            'processing': 'processing',
+            'running': 'processing',
+            'completed': 'success',
+            'ready': 'success',
+            'failed': 'error',
+            'error': 'error'
+        };
+        return classes[status] || 'pending';
+    }
+
+    getStatusBadgeClass(status) {
+        const classes = {
+            'initiated': 'secondary',
+            'queued': 'warning',
+            'pending': 'warning',
+            'processing': 'info',
+            'running': 'info',
+            'completed': 'success',
+            'ready': 'success',
+            'failed': 'danger',
+            'error': 'danger'
+        };
+        return classes[status] || 'secondary';
+    }
+
+    getTimeAgo(timestamp) {
+        const now = new Date();
+        const time = new Date(timestamp);
+        const diffMs = now - time;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins} min ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        if (diffDays < 7) return `${diffDays}d ago`;
+        
+        return time.toLocaleDateString();
+    }
+
+    showInfoMessage(title, message) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: title,
+                text: message,
+                icon: 'info',
+                confirmButtonText: 'OK'
+            });
+        } else {
+            alert(`${title}: ${message}`);
+        }
     }
 }
 
