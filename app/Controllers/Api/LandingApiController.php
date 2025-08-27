@@ -582,8 +582,20 @@ class LandingApiController extends ApiBaseController
                     return null;
                 }
 
-                // Get latest program for this category
-                $currentActiveProgram = $this->programModel->getActivePrograms($programCategory->id);
+                // Get active programs for this category (now returns array)
+                $activePrograms = $this->programModel->getActivePrograms($programCategory->id);
+
+                if (!$activePrograms || empty($activePrograms)) {
+                    return ['category' => $programCategory, 'error' => 'No active program found'];
+                }
+
+                // Get the latest active program (most recent by end_date)
+                $currentActiveProgram = null;
+                foreach ($activePrograms as $program) {
+                    if ($currentActiveProgram === null || strtotime($program->end_date) > strtotime($currentActiveProgram->end_date)) {
+                        $currentActiveProgram = $program;
+                    }
+                }
 
                 if (!$currentActiveProgram) {
                     return ['category' => $programCategory, 'error' => 'No active program found'];
@@ -617,7 +629,7 @@ class LandingApiController extends ApiBaseController
                     'category' => $programCategory,
                     'insightsData' => $categoryInsightsData,
                 ];
-            }, ['web_url' => $normalizedWebUrl], null, 3600); // 1 hour cache
+            }, ['web_url' => $normalizedWebUrl, 'v' => '2'], null, 1800); // 30 minutes cache for faster loading
 
             if ($data === null) {
                 return $this->respondNotFound('Program category not found');
@@ -988,8 +1000,20 @@ class LandingApiController extends ApiBaseController
                 return $this->respondNotFound('Program category not found');
             }
 
-            // Get latest program for this category
-            $currentActiveProgram = $this->programModel->getActivePrograms($programCategory->id);
+            // Get active programs for this category (now returns array)
+            $activePrograms = $this->programModel->getActivePrograms($programCategory->id);
+
+            if (!$activePrograms || empty($activePrograms)) {
+                return $this->respondNotFound('No active program found for this category');
+            }
+
+            // Get the latest active program (most recent by end_date)
+            $currentActiveProgram = null;
+            foreach ($activePrograms as $program) {
+                if ($currentActiveProgram === null || strtotime($program->end_date) > strtotime($currentActiveProgram->end_date)) {
+                    $currentActiveProgram = $program;
+                }
+            }
 
             if (!$currentActiveProgram) {
                 return $this->respondNotFound('No active program found for this category');
