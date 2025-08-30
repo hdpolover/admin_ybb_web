@@ -68,29 +68,4 @@ class ProgramSchedulesApiController extends ApiBaseController
         return $this->respondSuccess($programSchedules, self::HTTP_OK, 'Program schedules retrieved successfully');
     }
 
-
-    /**
-     * program - GET {{api_url}}/program-schedules/program/{{program_id}}
-     * Auto-generated method
-     */
-    public function program($id = null)
-    {
-        try {
-            $data = $this->request->getJSON(true);
-            
-            // TODO: Implement program logic
-            
-            return $this->respond([
-                'success' => true,
-                'data' => $data ?? ['id' => $id],
-                'message' => 'program executed successfully'
-            ]);
-        } catch (\Exception $e) {
-            return $this->respond([
-                'success' => false,
-                'message' => 'Failed to execute program',
-                'error' => $e->getMessage()
-            ], ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
-        }
-    }
 }

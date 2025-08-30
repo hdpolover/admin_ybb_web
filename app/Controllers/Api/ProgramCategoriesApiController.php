@@ -72,29 +72,4 @@ class ProgramCategoriesApiController extends ApiBaseController
         return $programs ? $this->respondSuccess($programs, self::HTTP_OK, 'Programs retrieved successfully') : $this->failNotFound("Programs not found");
     }
 
-
-    /**
-     * programs - GET {{api_url}}/program-categories/1/programs
-     * Auto-generated method
-     */
-    public function programs($id = null)
-    {
-        try {
-            $data = $this->request->getJSON(true);
-            
-            // TODO: Implement programs logic
-            
-            return $this->respond([
-                'success' => true,
-                'data' => $data ?? ['id' => $id],
-                'message' => 'programs executed successfully'
-            ]);
-        } catch (\Exception $e) {
-            return $this->respond([
-                'success' => false,
-                'message' => 'Failed to execute programs',
-                'error' => $e->getMessage()
-            ], ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
-        }
-    }
 }
