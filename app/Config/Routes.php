@@ -135,7 +135,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
         $routes->post('refresh', 'Auth\JwtAuthController::refreshToken');
 
         // User registration
-        $routes->post('participant/sign-up', 'Auth\JwtAuthController::participantSignUp');
+        $routes->post('participant/sign-up', 'Auth\ParticipantAuthController::signUp');
 
         // Password Recovery
         $routes->post('forgot-password', 'Auth\JwtAuthController::forgotPassword');

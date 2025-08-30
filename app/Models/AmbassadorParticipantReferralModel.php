@@ -83,4 +83,29 @@ class AmbassadorParticipantReferralModel extends Model
     {
         return $this->where('is_deleted', 0)->findAll();
     }
+
+    /**
+     * Get ambassador information for a participant
+     * 
+     * @param int $participantId
+     * @param int $programId Optional program ID for validation
+     * @return object|null Ambassador information or null if not found
+     */
+    public function getAmbassadorInfoByParticipantId($participantId, $programId = null)
+    {
+        $builder = $this->builder();
+        $builder->select('ambassadors.id, ambassadors.name as full_name, ambassadors.email, ambassadors.ref_code, ambassadors.program_id, ambassadors.institution')
+                ->join('ambassadors', 'ambassadors.id = ambassador_participant_referrals.ambassador_id')
+                ->where('ambassador_participant_referrals.participant_id', $participantId)
+                ->where('ambassador_participant_referrals.is_deleted', 0)
+                ->where('ambassadors.is_deleted', 0)
+                ->where('ambassadors.is_active', 1);
+        
+        // Add program validation
+        if ($programId !== null) {
+            $builder->where('ambassadors.program_id', $programId);
+        }
+        
+        return $builder->get()->getFirstRow();
+    }
 }

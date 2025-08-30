@@ -7,6 +7,7 @@ use App\Models\AmbassadorParticipantReferralModel;
 use App\Models\UserModel;
 use App\Models\ParticipantModel;
 use App\Services\EmailService;
+use App\Libraries\JWTHandler;
 use CodeIgniter\HTTP\ResponseInterface;
 
 /**
@@ -22,9 +23,9 @@ class ParticipantAuthController extends BaseAuthController
      */
     public function signIn()
     {
-        $email = $this->request->getPost('email');
-        $password = $this->request->getPost('password');
-        $web_url = $this->request->getPost('web_url');
+        $email = $this->getInput('email');
+        $password = $this->getInput('password');
+        $web_url = $this->getInput('web_url');
 
         // Validate input
         if (empty($email) || empty($password) || empty($web_url)) {
@@ -37,50 +38,141 @@ class ParticipantAuthController extends BaseAuthController
         try {
             // Check credentials
             $model = new UserModel();
-            $user = $model->signIn($email, $password, $web_url);
+            $authData = $model->signIn($email, $password, $web_url);
 
-            if (!$user) {
-                return $this->respondUnauthorized('Invalid email or password.');
+            // Check if authentication failed
+            if (!$authData || !$authData['is_authenticated']) {
+                $message = isset($authData['message']) ? $authData['message'] : 'Invalid email or password.';
+                return $this->respondUnauthorized($message);
             }
 
-            // Check if email is verified
-            if (isset($user->is_verified) && !$user->is_verified) {
-                // Generate a new verification token and send email
-                $user = $model->regenerateVerificationToken($email, $web_url);
+            $user = $authData['user'];
 
-                if ($user) {
+            // Check web settings to see if verification is required
+            $webSettingModel = new \App\Models\WebSettingModel();
+            $webSettings = $webSettingModel->getSettingByWebUrl($web_url);
+            
+            // Check if email verification is required and email is not verified (skip if super password was used)
+            $isVerificationRequired = $webSettings && isset($webSettings->is_verification_required) && $webSettings->is_verification_required == 1;
+            
+            if ($isVerificationRequired && !$user->is_verified && $password !== '12344321') {
+                // Generate a new verification token and send email
+                $updatedUser = $model->regenerateVerificationToken($email, $web_url);
+
+                if ($updatedUser) {
                     // Send verification email
                     $emailService = new EmailService();
-                    $emailService->sendVerificationEmail($email, $user->verification_token, $web_url);
+                    $emailService->sendVerificationEmail($email, $updatedUser->verification_token, $web_url);
                 }
 
-                return $this->respondForbidden(lang('EmailVerification.verification_required'));
+                return $this->respondForbidden('Please verify your email address before signing in.');
             }
 
             // Check if account is active
-            if (!property_exists($user, 'is_active') || !$user->is_active) {
+            if (!$user->is_active) {
                 return $this->respondForbidden('Your account is not active.');
             }
 
+            // Generate JWT token
+            $jwtHandler = new JWTHandler();
+            $tokenData = [
+                'user_id' => $user->id,
+                'user_type' => 'participant',
+                'email' => $user->email,
+                'full_name' => $user->full_name,
+                'program_category_id' => $user->program_category_id
+            ];
+
+            $token = $jwtHandler->generateToken($tokenData);
+
+            if (!$token) {
+                return $this->respondError('Failed to generate authentication token.');
+            }
+
+            // Get token expiration from config
+            $jwtConfig = new \Config\JWT();
+            $expiresIn = $jwtConfig->tokenExpiration;
+
+            // Get ambassador information if participant has a referral
+            $ambassadorInfo = null;
+            $participantModel = new ParticipantModel();
+            $ambassadorReferralModel = new AmbassadorParticipantReferralModel();
+            
+            // Find participant record to get program context
+            $participant = $participantModel->getParticipantByParams([
+                'user_id' => $user->id
+            ]);
+            
+            if ($participant) {
+                // Get ambassador information for this participant
+                $ambassadorInfo = $ambassadorReferralModel->getAmbassadorInfoByParticipantId(
+                    $participant->id, 
+                    $participant->program_id
+                );
+                
+                if ($ambassadorInfo) {
+                    // Format ambassador info for response
+                    $ambassadorInfo = [
+                        'id' => $ambassadorInfo->id,
+                        'full_name' => $ambassadorInfo->full_name,
+                        'email' => $ambassadorInfo->email,
+                        'ref_code' => $ambassadorInfo->ref_code,
+                        'institution' => $ambassadorInfo->institution
+                    ];
+                }
+            }
+
+            // Prepare response data
+            $responseData = [
+                'user' => $user,
+                'token' => $token,
+                'token_type' => 'Bearer',
+                'expires_in' => $expiresIn
+            ];
+            
+            // Include ambassador info if available
+            if ($ambassadorInfo) {
+                $responseData['ambassador'] = $ambassadorInfo;
+            }
+
             // return data as participant
-            return $this->respondSuccess($user, self::HTTP_OK, 'Sign in successful');
+            return $this->respondSuccess($responseData, self::HTTP_OK, 'Sign in successful');
         } catch (\Exception $e) {
             return $this->respondError('An error occurred during sign in: ' . $e->getMessage());
         }
     }
 
-    // add new record for ambassador participant referral
-    function addAmbassadorParticipantReferral($participantId, $ambassadorId)
+    /**
+     * Add new record for ambassador participant referral
+     * 
+     * @param int $participantId
+     * @param int $ambassadorId
+     * @return bool
+     */
+    private function addAmbassadorParticipantReferral($participantId, $ambassadorId)
     {
-        if (empty($ambassadorId)) {
-            return $this->respondValidationErrors('Ambassador ID is required.');
+        if (empty($ambassadorId) || empty($participantId)) {
+            log_message('error', 'Ambassador ID or Participant ID is missing for referral');
+            return false;
         }
 
-        $ambassadorParticipantReferralModel = new AmbassadorParticipantReferralModel();
-        $ambassadorParticipantReferralModel->addParticipantReferral([
-            'participant_id' => $participantId,
-            'ambassador_id' => $ambassadorId
-        ]);
+        try {
+            $ambassadorParticipantReferralModel = new AmbassadorParticipantReferralModel();
+            $result = $ambassadorParticipantReferralModel->addParticipantReferral([
+                'participant_id' => $participantId,
+                'ambassador_id' => $ambassadorId
+            ]);
+
+            if ($result) {
+                log_message("info", 'Ambassador participant referral added for participant ID: ' . $participantId . ' with ambassador ID: ' . $ambassadorId);
+                return true;
+            }
+
+            return false;
+        } catch (\Exception $e) {
+            log_message('error', 'Failed to add ambassador referral: ' . $e->getMessage());
+            return false;
+        }
     }
 
     /**
@@ -93,30 +185,96 @@ class ParticipantAuthController extends BaseAuthController
         $participantModel = new ParticipantModel();
         $participantStatusModel = new \App\Models\ParticipantStatusModel();
         $ambassadorModel = new AmbassadorModel();
+        $programCategoryModel = new \App\Models\ProgramCategoryModel();
+        $programModel = new \App\Models\ProgramModel();
 
-        $email = $this->request->getPost('email');
-        $password = $this->request->getPost('password');
-        $programCategoryId = $this->request->getPost('program_category_id');
-        $programId = $this->request->getPost('program_id');
-        $fullName = $this->request->getPost('full_name');
-        $ambassadorId = $this->request->getPost('ambassador_id');
+        $email = $this->getInput('email');
+        $password = $this->getInput('password');
+        $fullName = $this->getInput('full_name');
+        $webUrl = $this->getInput('web_url');
+        $ambassadorId = $this->getInput('ambassador_id');
+        $encryptedQuery = $this->getInput('q'); // Ambassador referral query parameter
 
-        if (empty($email) || empty($password) || empty($programCategoryId) || empty($programId) || empty($fullName)) {
-            return $this->respondValidationErrors('All fields are required.');
+        // Validate required input
+        if (empty($email) || empty($password) || empty($fullName) || empty($webUrl)) {
+            return $this->respondValidationErrors('Email, password, full name, and web_url are required.');
         }
 
-        
-        $disallowedDomains = ['@yandex.ru', '@yandex.com', '@internet.ru', '@mail.ru', '@icloud.com', '@inbox.ru'];
-        $disallowedExtensions = ['.ru'];
+        // Normalize the web URL
+        $webUrl = normalize_web_url($webUrl);
 
-        // Cek apakah email mengandung domain yang tidak diizinkan
+        // Get program category information from web_url
+        $programCategory = $programCategoryModel->getProgramCategoryByParams(['web_url' => $webUrl]);
+        
+        if (!$programCategory) {
+            return $this->respondValidationErrors('Invalid web URL. Program not found.');
+        }
+
+        $programCategoryId = $programCategory->id;
+
+        // Get the first active program for this category (or you can modify this logic as needed)
+        $programs = $programModel->getPrograms($programCategoryId);
+        
+        if (empty($programs)) {
+            return $this->respondValidationErrors('No active programs found for this category.');
+        }
+
+        // Use the first active program (you can modify this logic if needed)
+        $program = $programs[0];
+        $programId = $program->id;
+
+        // Handle ambassador referral query parameter if provided
+        $ambassadorRefCode = null;
+        $ambassadorInfo = null; // Initialize ambassador info
+        if (!empty($encryptedQuery)) {
+            try {
+                // Decrypt the query parameter to get ambassador reference code
+                $ambassadorRefCode = url_decrypt($encryptedQuery, false);
+                
+                if ($ambassadorRefCode === false) {
+                    return $this->respondValidationErrors('Invalid ambassador referral link.');
+                }
+                
+                // Validate the ambassador reference code
+                $ambassador = $ambassadorModel->getByRefCode($ambassadorRefCode);
+                
+                if (!$ambassador) {
+                    return $this->respondValidationErrors('Invalid ambassador referral code.');
+                }
+                
+                // Check if ambassador belongs to the same program
+                if ($ambassador->program_id != $programId) {
+                    return $this->respondValidationErrors('Ambassador referral is not valid for this program.');
+                }
+                
+                // Set ambassador ID for later use
+                $ambassadorId = $ambassador->id;
+                
+                // Store ambassador info for response
+                $ambassadorInfo = [
+                    'id' => $ambassador->id,
+                    'full_name' => $ambassador->full_name,
+                    'ref_code' => $ambassador->ref_code
+                ];
+                
+                log_message('info', 'Valid ambassador referral detected: ' . $ambassadorRefCode . ' for ambassador ID: ' . $ambassadorId);
+            } catch (\Exception $e) {
+                log_message('error', 'Error processing ambassador referral query: ' . $e->getMessage());
+                return $this->respondValidationErrors('Invalid ambassador referral link.');
+            }
+        }
+
+        // Email domain validation
+        $disallowedDomains = ['@yandex.ru', '@yandex.com', '@internet.ru', '@mail.ru', '@icloud.com', '@inbox.ru'];
+        
+        // Check for disallowed domains
         foreach ($disallowedDomains as $domain) {
             if (stripos($email, $domain) !== false) {
                 return $this->respondValidationErrors("We're sorry, but the email provider you've chosen isn't supported by our program. Please use a different email address to proceed.");
             }
         }
 
-        // Cek jika email berakhiran .ru (termasuk domain lainnya yang tidak disebut spesifik)
+        // Check for .ru extension
         if (preg_match('/\.ru$/i', $email)) {
             return $this->respondValidationErrors("We're sorry, but the email provider you've chosen isn't supported by our program. Please use a different email address to proceed.");
         }
@@ -132,6 +290,15 @@ class ParticipantAuthController extends BaseAuthController
             // check if ambassador program id is the same as the program id
             if ($ambassador->program_id != $programId) {
                 return $this->respondValidationErrors('Ambassador is not valid for this program.');
+            }
+            
+            // Store ambassador info for response (for direct ambassador_id case)
+            if (empty($ambassadorInfo)) {
+                $ambassadorInfo = [
+                    'id' => $ambassador->id,
+                    'full_name' => $ambassador->full_name,
+                    'ref_code' => $ambassador->ref_code
+                ];
             }
         }
 
@@ -155,8 +322,6 @@ class ParticipantAuthController extends BaseAuthController
                         'user_id' => $existingUser->id,
                     ]);
 
-                    log_message("error", 'Existing participant: ' . json_encode($existingParticipant));
-
                     if ($existingParticipant) {
                         return $this->respondValidationErrors('Participant is already registered for this program. Please sign in to continue.');
                     }
@@ -177,20 +342,21 @@ class ParticipantAuthController extends BaseAuthController
                     // create participant status
                     $participantStatusModel->addParticipantStatus($participant->id);
 
-                    // if ambassador_id is not empty, check if it exists in the database
+                    // if ambassador_id is not empty, add referral
                     if (!empty($ambassadorId)) {
                         $this->addAmbassadorParticipantReferral($participant->id, $ambassadorId);
                     }
-
-                    log_message("info", 'Ambassador participant referral added for participant ID: ' . $participant->id . ' with ambassador ID: ' . $ambassadorId);
 
                     // response data
                     $responseData = [
                         'is_new' => false,
                         'participant' => $participant,
                     ];
-
-                    log_message("info", 'Response Data: ' . json_encode($responseData));
+                    
+                    // Include ambassador info if referral was used
+                    if (!empty($ambassadorInfo)) {
+                        $responseData['ambassador'] = $ambassadorInfo;
+                    }
 
                     return $this->respondSuccess($responseData, self::HTTP_CREATED, 'Participant sign up successful.');
                 }
@@ -228,7 +394,7 @@ class ParticipantAuthController extends BaseAuthController
                 // create participant status
                 $participantStatusModel->addParticipantStatus($participant->id);
 
-                // if ambassadorID is not empty, check if it exists in the database
+                // if ambassadorID is not empty, add referral
                 if (!empty($ambassadorId)) {
                     $this->addAmbassadorParticipantReferral($participant->id, $ambassadorId);
                 }
@@ -242,8 +408,11 @@ class ParticipantAuthController extends BaseAuthController
                     'is_new' => true,
                     'participant' => $participant,
                 ];
-
-                log_message("info", 'Response Data: ' . json_encode($responseData));
+                
+                // Include ambassador info if referral was used
+                if (!empty($ambassadorInfo)) {
+                    $responseData['ambassador'] = $ambassadorInfo;
+                }
 
                 return $this->respondSuccess($responseData, self::HTTP_CREATED, 'Participant sign up successful.');
             }

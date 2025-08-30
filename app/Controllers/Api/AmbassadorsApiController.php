@@ -58,7 +58,30 @@ class AmbassadorsApiController extends ApiBaseController
             return false;
         }
         
-        return $this->jwtHandler->getUserFromToken($token);
+        $userData = $this->jwtHandler->getUserFromToken($token);
+        
+        if (!$userData) {
+            return false;
+        }
+        
+        // Handle different token formats for backward compatibility
+        if (isset($userData->type) && $userData->type == 3) {
+            // Legacy JwtAuthController format: type=3 means ambassador
+            return (object) [
+                'ambassador_id' => $userData->id,
+                'user_type' => 'ambassador',
+                'email' => $userData->email,
+                'name' => $userData->name ?? null,
+                'program_id' => $userData->program_id ?? null,
+                'ref_code' => $userData->ref_code ?? null,
+                'is_active' => true // Assume active if token is valid
+            ];
+        } elseif (isset($userData->user_type) && $userData->user_type === 'ambassador') {
+            // New AmbassadorAuthController format: user_type='ambassador'
+            return $userData;
+        }
+        
+        return false;
     }
 
     /**
@@ -433,12 +456,17 @@ class AmbassadorsApiController extends ApiBaseController
             return $this->respondUnauthorized('No authentication data found');
         }
         
-        if (intval($userData->type) !== 3) {
-            return $this->respondUnauthorized('User type is ' . $userData->type . ' (int: ' . intval($userData->type) . '), expected 3 (ambassador)');
+        if ($userData->user_type !== 'ambassador') {
+            return $this->respondUnauthorized('User type is ' . $userData->user_type . ', expected ambassador');
+        }
+
+        // Additional security: check if ambassador is still active
+        if (isset($userData->is_active) && !$userData->is_active) {
+            return $this->respondForbidden('Ambassador account is not active');
         }
 
         try {
-            $ambassadorId = $userData->id;
+            $ambassadorId = $userData->ambassador_id;
             $programId = $userData->program_id;
 
             // Get basic ambassador info
@@ -1098,12 +1126,17 @@ class AmbassadorsApiController extends ApiBaseController
     {
         // Authenticate ambassador
         $userData = $this->getAuthenticatedUser();
-        if (!$userData || intval($userData->type) !== 3) {
+        if (!$userData || $userData->user_type !== 'ambassador') {
             return $this->respondUnauthorized('Ambassador authentication required');
         }
 
+        // Additional security: check if ambassador is still active
+        if (isset($userData->is_active) && !$userData->is_active) {
+            return $this->respondForbidden('Ambassador account is not active');
+        }
+
         try {
-            $ambassadorId = $userData->id;
+            $ambassadorId = $userData->ambassador_id;
             $programId = $userData->program_id;
 
             // Get comprehensive filter parameters
@@ -1179,12 +1212,17 @@ class AmbassadorsApiController extends ApiBaseController
     {
         // Authenticate ambassador
         $userData = $this->getAuthenticatedUser();
-        if (!$userData || intval($userData->type) !== 3) {
+        if (!$userData || $userData->user_type !== 'ambassador') {
             return $this->respond(['status' => 'error', 'message' => 'Ambassador authentication required'], ResponseInterface::HTTP_UNAUTHORIZED);
         }
 
+        // Additional security: check if ambassador is still active
+        if (isset($userData->is_active) && !$userData->is_active) {
+            return $this->respond(['status' => 'error', 'message' => 'Ambassador account is not active'], ResponseInterface::HTTP_FORBIDDEN);
+        }
+
         try {
-            $ambassadorId = $userData->id;
+            $ambassadorId = $userData->ambassador_id;
             $programId = $userData->program_id;
 
             // Get participant IDs referred by this ambassador (cached for performance)
@@ -1703,12 +1741,17 @@ class AmbassadorsApiController extends ApiBaseController
     {
         // Authenticate ambassador
         $userData = $this->getAuthenticatedUser();
-        if (!$userData || intval($userData->type) !== 3) {
+        if (!$userData || $userData->user_type !== 'ambassador') {
             return $this->respondUnauthorized('Ambassador authentication required');
         }
 
+        // Additional security: check if ambassador is still active
+        if (isset($userData->is_active) && !$userData->is_active) {
+            return $this->respondForbidden('Ambassador account is not active');
+        }
+
         try {
-            $ambassadorId = $userData->id;
+            $ambassadorId = $userData->ambassador_id;
             $programId = $userData->program_id;
 
             // Get ambassador information
@@ -1811,12 +1854,17 @@ class AmbassadorsApiController extends ApiBaseController
     {
         // Authenticate ambassador
         $userData = $this->getAuthenticatedUser();
-        if (!$userData || intval($userData->type) !== 3) {
+        if (!$userData || $userData->user_type !== 'ambassador') {
             return $this->respond(['status' => 'error', 'message' => 'Ambassador authentication required'], ResponseInterface::HTTP_UNAUTHORIZED);
         }
 
+        // Additional security: check if ambassador is still active
+        if (isset($userData->is_active) && !$userData->is_active) {
+            return $this->respond(['status' => 'error', 'message' => 'Ambassador account is not active'], ResponseInterface::HTTP_FORBIDDEN);
+        }
+
         try {
-            $ambassadorId = $userData->id;
+            $ambassadorId = $userData->ambassador_id;
             $programId = $userData->program_id;
 
             // Get participant IDs referred by this ambassador
@@ -1983,12 +2031,17 @@ class AmbassadorsApiController extends ApiBaseController
     {
         // Authenticate ambassador
         $userData = $this->getAuthenticatedUser();
-        if (!$userData || intval($userData->type) !== 3) {
+        if (!$userData || $userData->user_type !== 'ambassador') {
             return $this->respondUnauthorized('Ambassador authentication required');
         }
 
+        // Additional security: check if ambassador is still active
+        if (isset($userData->is_active) && !$userData->is_active) {
+            return $this->respondForbidden('Ambassador account is not active');
+        }
+
         try {
-            $ambassadorId = $userData->id;
+            $ambassadorId = $userData->ambassador_id;
             $programId = $userData->program_id;
 
             // Get participant IDs referred by this ambassador

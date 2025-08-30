@@ -222,20 +222,20 @@ class JwtAuthController extends BaseAuthController
 
         // Get complete user data from database based on user type
         $user = null;
-        switch ($userData->type) {
-            case 1: // admin
+        switch ($userData->user_type) {
+            case 'admin':
                 $adminModel = new AdminModel();
-                $user = $adminModel->find($userData->id);
+                $user = $adminModel->find($userData->user_id);
                 break;
 
-            case 2: // participant
+            case 'participant':
                 $userModel = new UserModel();
-                $user = $userModel->find($userData->id);
+                $user = $userModel->find($userData->user_id);
                 break;
 
-            case 3: // ambassador
+            case 'ambassador':
                 $ambassadorModel = new AmbassadorModel();
-                $user = $ambassadorModel->find($userData->id);
+                $user = $ambassadorModel->find($userData->ambassador_id);
                 if (!$user) {
                     return $this->respondNotFound('Ambassador profile not found');
                 }

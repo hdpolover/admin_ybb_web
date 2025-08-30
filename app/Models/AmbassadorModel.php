@@ -398,12 +398,15 @@ class AmbassadorModel extends Model
         
         // Step 1: Get participant IDs from the new structure (ambassador_participant_referrals table)
         $newReferralsBuilder = $db->table('ambassador_participant_referrals');
-        $newReferralsBuilder->select('participant_id')
-            ->where('ambassador_id', $ambassadorId)
-            ->where('is_deleted', 0);
+        $newReferralsBuilder->select('ambassador_participant_referrals.participant_id')
+            ->where('ambassador_participant_referrals.ambassador_id', $ambassadorId)
+            ->where('ambassador_participant_referrals.is_deleted', 0);
             
         if ($programId !== null) {
-            $newReferralsBuilder->where('program_id', $programId);
+            // Join with participants table to filter by program_id
+            $newReferralsBuilder->join('participants', 'participants.id = ambassador_participant_referrals.participant_id')
+                ->where('participants.program_id', $programId)
+                ->where('participants.is_deleted', 0);
         } 
             
         $newReferrals = $newReferralsBuilder->get()->getResult();
@@ -440,5 +443,35 @@ class AmbassadorModel extends Model
         }
         
         return $participantIds;
+    }
+
+    /**
+     * Get individual ambassador details with referral count
+     * 
+     * @param int $ambassadorId
+     * @return object Ambassador details with stats
+     */
+    public function getAmbassadorDetails($ambassadorId)
+    {
+        $ambassador = $this->find($ambassadorId);
+        
+        if (!$ambassador) {
+            return null;
+        }
+
+        // Get referral count using existing method
+        $referralParticipantIds = $this->getComprehensiveReferralParticipantIds($ambassadorId, $ambassador->program_id);
+        $referralCount = count($referralParticipantIds);
+
+        return (object) [
+            'id' => $ambassador->id,
+            'name' => $ambassador->name,
+            'full_name' => $ambassador->name, // Add alias for consistency
+            'email' => $ambassador->email,
+            'ref_code' => $ambassador->ref_code,
+            'institution' => $ambassador->institution,
+            'program_id' => $ambassador->program_id,
+            'referral_count' => $referralCount
+        ];
     }
 }

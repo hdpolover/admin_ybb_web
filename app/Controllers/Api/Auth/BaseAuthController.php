@@ -45,6 +45,53 @@ class BaseAuthController extends ApiBaseController
             return false;
         }
         
-        return $this->jwtHandler->getUserFromToken($token);
+        $userData = $this->jwtHandler->getUserFromToken($token);
+        
+        if (!$userData) {
+            return false;
+        }
+        
+        // Handle different token formats for backward compatibility
+        if (isset($userData->type)) {
+            // Legacy JwtAuthController format
+            switch ($userData->type) {
+                case 3: // ambassador
+                    return (object) [
+                        'ambassador_id' => $userData->id,
+                        'user_type' => 'ambassador',
+                        'email' => $userData->email,
+                        'name' => $userData->name ?? null,
+                        'program_id' => $userData->program_id ?? null,
+                        'ref_code' => $userData->ref_code ?? null,
+                        'is_active' => true // Assume active if token is valid
+                    ];
+                    
+                case 2: // participant
+                    return (object) [
+                        'user_id' => $userData->id,
+                        'user_type' => 'participant',
+                        'email' => $userData->email,
+                        'full_name' => $userData->full_name ?? null,
+                        'role' => $userData->role ?? null,
+                        'program_category_id' => $userData->program_category_id ?? null
+                    ];
+                    
+                case 1: // admin
+                    return (object) [
+                        'user_id' => $userData->id,
+                        'user_type' => 'admin',
+                        'email' => $userData->email,
+                        'role' => $userData->role ?? null
+                    ];
+                    
+                default:
+                    return false;
+            }
+        } elseif (isset($userData->user_type)) {
+            // New format: user_type field is already present
+            return $userData;
+        }
+        
+        return false;
     }
 }

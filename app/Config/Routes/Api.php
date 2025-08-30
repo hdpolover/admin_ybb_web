@@ -5,13 +5,20 @@ namespace Config\Routes;
 $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes) {
     // Auth routes - organized by functionality
     $routes->group('auth', function ($routes) {
-        // JWT Authentication
+        // JWT Authentication - Participants
+        $routes->post('participant/sign-in', 'Auth\ParticipantAuthController::signIn');
+        $routes->post('participant/sign-up', 'Auth\ParticipantAuthController::signUp');
+        
+        // JWT Authentication - Ambassadors
+        $routes->post('ambassador/sign-in', 'Auth\AmbassadorAuthController::signIn');
+        
+        // JWT Authentication - Admins (if needed)
+        $routes->post('admin/sign-in', 'Auth\AdminAuthController::signIn');
+        
+        // Generic sign-in (for backward compatibility)
         $routes->post('sign-in', 'AuthApiController::signIn');
         $routes->get('profile', 'AuthApiController::profile', ['filter' => 'jwt']);
         $routes->post('refresh', 'AuthApiController::refreshToken');
-
-        // User registration
-        $routes->post('participant/sign-up', 'AuthApiController::participantSignUp');
 
         // Password Recovery
         $routes->post('forgot-password', 'AuthApiController::forgotPassword');
