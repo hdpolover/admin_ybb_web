@@ -119,22 +119,22 @@ class ProgramDocumentsApiController extends ApiBaseController
 
                 $model->update($existing['id'], $updateData);
 
-                return $this->respond([
-                    'status' => true,
-                    'message' => 'Data berhasil diperbarui.',
-                    'data' => $updateData
-                ]);
+                return $this->respondSuccess(
+                    $updateData,
+                    self::HTTP_OK,
+                    'Data berhasil diperbarui.'
+                );
             } else {
                 // Insert jika belum ada
                 if (!$model->insert($data)) {
                     return $this->failServerError("Gagal menyimpan data.");
                 }
 
-                return $this->respond([
-                    'status' => true,
-                    'message' => 'Data berhasil disimpan.',
-                    'data' => $data
-                ]);
+                return $this->respondSuccess(
+                    $data,
+                    self::HTTP_CREATED,
+                    'Data berhasil disimpan.'
+                );
             }
         // if (!$model->insert($data)) {
         //     return $this->failServerError("Gagal menyimpan data.");
@@ -810,6 +810,85 @@ class ProgramDocumentsApiController extends ApiBaseController
             // Detailed error logging for production debugging
             log_message('error', 'Error loading signature for PDF: ' . $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine());
             return $signatureHtml;
+        }
+    }
+
+
+    /**
+     * program - GET {{api_url}}/program-documents/program/{{program_id}}
+     * Auto-generated method
+     */
+    public function program($id = null)
+    {
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // TODO: Implement program logic
+            
+            return $this->respondSuccess(
+                $data ?? ['id' => $id],
+                self::HTTP_OK,
+                'program executed successfully'
+            );
+        } catch (\Exception $e) {
+            log_message('error', 'Failed to execute program: ' . $e->getMessage());
+            return $this->respondError(
+                'Failed to execute program',
+                self::HTTP_INTERNAL_ERROR,
+                ['error' => $e->getMessage()]
+            );
+        }
+    }
+
+    /**
+     * upload - POST {{api_url}}/program-documents/upload
+     * Auto-generated method
+     */
+    public function upload($id = null)
+    {
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // TODO: Implement upload logic
+            
+            return $this->respondSuccess(
+                $data ?? ['id' => $id],
+                self::HTTP_OK,
+                'upload executed successfully'
+            );
+        } catch (\Exception $e) {
+            log_message('error', 'Failed to execute upload: ' . $e->getMessage());
+            return $this->respondError(
+                'Failed to execute upload',
+                self::HTTP_INTERNAL_ERROR,
+                ['error' => $e->getMessage()]
+            );
+        }
+    }
+
+    /**
+     * generate - GET {{api_url}}/program-documents/1/participants/{{participant_id}}/generate
+     * Auto-generated method
+     */
+    public function generate($id = null)
+    {
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // TODO: Implement generate logic
+            
+            return $this->respondSuccess(
+                $data ?? ['id' => $id],
+                self::HTTP_OK,
+                'generate executed successfully'
+            );
+        } catch (\Exception $e) {
+            log_message('error', 'Failed to execute generate: ' . $e->getMessage());
+            return $this->respondError(
+                'Failed to execute generate',
+                self::HTTP_INTERNAL_ERROR,
+                ['error' => $e->getMessage()]
+            );
         }
     }
 }

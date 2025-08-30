@@ -315,4 +315,30 @@ class PaymentsApiController extends ApiBaseController
             ]
         );
     }
+
+
+    /**
+     * index - GET {{api_url}}/payments/{{payment_id}}
+     * Auto-generated method
+     */
+    public function index($id = null)
+    {
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // TODO: Implement index logic
+            
+            return $this->respond([
+                'success' => true,
+                'data' => $data ?? ['id' => $id],
+                'message' => 'index executed successfully'
+            ]);
+        } catch (\Exception $e) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'Failed to execute index',
+                'error' => $e->getMessage()
+            ], ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
 }

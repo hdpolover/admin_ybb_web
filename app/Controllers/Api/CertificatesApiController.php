@@ -588,4 +588,230 @@ class CertificatesApiController extends ApiBaseController
             log_message('error', 'Failed to create participant_awards record: ' . $e->getMessage());
         }
     }
+
+
+    /**
+     * participant - GET {{api_url}}/certificates/participant/{{participant_id}}
+     * Auto-generated method
+     */
+    public function participant($id = null)
+    {
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // TODO: Implement participant logic
+            
+            return $this->respond([
+                'success' => true,
+                'data' => $data ?? ['id' => $id],
+                'message' => 'participant executed successfully'
+            ]);
+        } catch (\Exception $e) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'Failed to execute participant',
+                'error' => $e->getMessage()
+            ], ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * participants - GET {{api_url}}/certificates/award/1/participants
+     * Auto-generated method
+     */
+    public function participants($id = null)
+    {
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // TODO: Implement participants logic
+            
+            return $this->respond([
+                'success' => true,
+                'data' => $data ?? ['id' => $id],
+                'message' => 'participants executed successfully'
+            ]);
+        } catch (\Exception $e) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'Failed to execute participants',
+                'error' => $e->getMessage()
+            ], ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * program - GET {{api_url}}/certificates/program/{{program_id}}
+     * Auto-generated method
+     */
+    public function program($id = null)
+    {
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // TODO: Implement program logic
+            
+            return $this->respond([
+                'success' => true,
+                'data' => $data ?? ['id' => $id],
+                'message' => 'program executed successfully'
+            ]);
+        } catch (\Exception $e) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'Failed to execute program',
+                'error' => $e->getMessage()
+            ], ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * show - GET {{api_url}}/certificates/1
+     * Auto-generated method
+     */
+    public function show($id = null)
+    {
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // TODO: Implement show logic
+            
+            return $this->respond([
+                'success' => true,
+                'data' => $data ?? ['id' => $id],
+                'message' => 'show executed successfully'
+            ]);
+        } catch (\Exception $e) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'Failed to execute show',
+                'error' => $e->getMessage()
+            ], ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * generate - POST {{api_url}}/certificates/generate
+     * Auto-generated method
+     */
+    public function generate($id = null)
+    {
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // TODO: Implement generate logic
+            
+            return $this->respond([
+                'success' => true,
+                'data' => $data ?? ['id' => $id],
+                'message' => 'generate executed successfully'
+            ]);
+        } catch (\Exception $e) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'Failed to execute generate',
+                'error' => $e->getMessage()
+            ], ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * regenerate - POST {{api_url}}/certificates/1/regenerate
+     * Auto-generated method
+     */
+    public function regenerate($id = null)
+    {
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // TODO: Implement regenerate logic
+            
+            return $this->respond([
+                'success' => true,
+                'data' => $data ?? ['id' => $id],
+                'message' => 'regenerate executed successfully'
+            ]);
+        } catch (\Exception $e) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'Failed to execute regenerate',
+                'error' => $e->getMessage()
+            ], ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * delete - DELETE {{api_url}}/certificates/1
+     * Auto-generated method
+     */
+    public function delete($id = null)
+    {
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // TODO: Implement delete logic
+            
+            return $this->respond([
+                'success' => true,
+                'data' => $data ?? ['id' => $id],
+                'message' => 'delete executed successfully'
+            ]);
+        } catch (\Exception $e) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'Failed to execute delete',
+                'error' => $e->getMessage()
+            ], ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * stats - GET {{api_url}}/certificates/stats/{{participant_id}}
+     * Auto-generated method
+     */
+    public function stats($id = null)
+    {
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // TODO: Implement stats logic
+            
+            return $this->respond([
+                'success' => true,
+                'data' => $data ?? ['id' => $id],
+                'message' => 'stats executed successfully'
+            ]);
+        } catch (\Exception $e) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'Failed to execute stats',
+                'error' => $e->getMessage()
+            ], ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * placeholders - GET {{api_url}}/certificates/placeholders
+     * Auto-generated method
+     */
+    public function placeholders($id = null)
+    {
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // TODO: Implement placeholders logic
+            
+            return $this->respond([
+                'success' => true,
+                'data' => $data ?? ['id' => $id],
+                'message' => 'placeholders executed successfully'
+            ]);
+        } catch (\Exception $e) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'Failed to execute placeholders',
+                'error' => $e->getMessage()
+            ], ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
 }

@@ -192,6 +192,28 @@
                 <div class="container-fluid">
                     <?php echo view('partials/page-title', array('pagetitle' => 'Users', 'title' => 'Participants')); ?>
 
+                    <!-- Current Program Info -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="alert alert-info d-flex align-items-center" role="alert">
+                                <i class="ri-information-line me-2 fs-20"></i>
+                                <div>
+                                    <strong>Current Program:</strong> 
+                                    <?php 
+                                    $currentProgram = session('current_program');
+                                    if ($currentProgram && isset($program)) {
+                                        echo esc($program->name) . " (ID: {$currentProgram})";
+                                    } else {
+                                        echo "No program selected";
+                                    }
+                                    ?>
+                                    <br>
+                                    <small class="text-muted">Showing participants data for the selected program only</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Participant Stats -->
                     <div class="row">
                         <div class="col-xl-3 col-md-6">
@@ -386,11 +408,31 @@
                     url: '<?= site_url('users/participants/getData') ?>',
                     type: 'GET',
                     data: function(d) {
+                        // Add current program ID - CRITICAL for proper filtering
+                        d.program_id = '<?= session('current_program') ?>';
+                        
+                        // Debug logging
+                        console.log('DataTable AJAX request data:', {
+                            program_id: d.program_id,
+                            category: $('#filter-category').val(),
+                            form_status: $('#filter-form-status').val(),
+                            search: $('#search-box').val()
+                        });
+                        
                         // Add filter parameters
                         d.category = $('#filter-category').val();
                         d.form_status = $('#filter-form-status').val();
                         d.search.value = $('#search-box').val();
                         return d;
+                    },
+                    error: function(xhr, error, code) {
+                        console.error('DataTable AJAX Error:', {
+                            status: xhr.status,
+                            statusText: xhr.statusText,
+                            error: error,
+                            code: code,
+                            response: xhr.responseText
+                        });
                     }
                 },
                 columns: [{
@@ -706,7 +748,36 @@
             // Initial call to update export summary
             updateExportSummary();
 
+            // Listen for program changes and reload table
+            // This handles when users switch programs via the topbar
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'current_program_changed') {
+                    console.log('Program changed detected, reloading participants table...');
+                    participantsTable.ajax.reload();
+                }
+            });
+            
+            // Also listen for cookie changes (alternative method)
+            let currentProgram = '<?= session('current_program') ?>';
+            setInterval(function() {
+                // Check if program has changed via session or other means
+                // This is a fallback method in case the storage event doesn't fire
+                const newProgram = getCookie('current_program');
+                if (newProgram && newProgram !== currentProgram) {
+                    console.log('Program change detected via cookie, reloading table...');
+                    currentProgram = newProgram;
+                    participantsTable.ajax.reload();
+                }
+            }, 5000); // Check every 5 seconds
+
         });
+        
+        // Helper function to get cookie value
+        function getCookie(name) {
+            let value = "; " + document.cookie;
+            let parts = value.split("; " + name + "=");
+            if (parts.length == 2) return parts.pop().split(";").shift();
+        }
     </script>
 
     <!-- Export Modal -->

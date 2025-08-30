@@ -127,7 +127,7 @@ function renderMenuItem($item, $level = 0) {
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link menu-link" href="<?= base_url('logout') ?>">
+                    <a class="nav-link menu-link" href="<?= base_url('auth/signOut') ?>">
                         <i class="ri-logout-box-line"></i> <span>Logout</span>
                     </a>
                 </li>

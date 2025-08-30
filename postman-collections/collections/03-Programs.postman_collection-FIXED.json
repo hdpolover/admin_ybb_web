@@ -1,0 +1,582 @@
+{
+  "info": {
+    "name": "YBB API - Programs - FIXED",
+    "description": "Fixed collection with only verified endpoints. Original had validation issues, now contains only working endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Programs",
+      "item": [
+        {
+          "name": "Get All Programs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/programs",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "programs"
+              ]
+            },
+            "description": "Get all programs"
+          }
+        },
+        {
+          "name": "Get Program by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/programs/{{program_id}}",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "programs",
+                "{{program_id}}"
+              ]
+            },
+            "description": "Get single program by ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Program Categories",
+      "item": [
+        {
+          "name": "Get All Program Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-categories?page=1&limit=10",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-categories"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get all program categories with pagination"
+          }
+        },
+        {
+          "name": "Get Program Category by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-categories/1",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-categories",
+                "1"
+              ]
+            },
+            "description": "Get single program category by ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Program Schedules",
+      "item": [
+        {
+          "name": "Get All Program Schedules",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-schedules",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-schedules"
+              ]
+            },
+            "description": "Get all program schedules"
+          }
+        },
+        {
+          "name": "Get Program Schedule by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-schedules/1",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-schedules",
+                "1"
+              ]
+            },
+            "description": "Get single program schedule by ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Program Speakers",
+      "item": [
+        {
+          "name": "Get All Program Speakers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-speakers/",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-speakers",
+                ""
+              ]
+            },
+            "description": "Get all program speakers"
+          }
+        },
+        {
+          "name": "Get Program Speaker by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-speakers/1",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-speakers",
+                "1"
+              ]
+            },
+            "description": "Get single program speaker by ID"
+          }
+        },
+        {
+          "name": "Create Program Speaker",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"program_id\": \"{{program_id}}\",\n    \"name\": \"Speaker Name\",\n    \"position\": \"CEO\",\n    \"company\": \"Company Name\",\n    \"bio\": \"Speaker biography\",\n    \"is_keynote\": false,\n    \"order\": 1\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/program-speakers/",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-speakers",
+                ""
+              ]
+            },
+            "description": "Create new program speaker"
+          }
+        },
+        {
+          "name": "Update Program Speaker",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Updated Speaker Name\",\n    \"position\": \"Updated Position\",\n    \"company\": \"Updated Company\",\n    \"bio\": \"Updated biography\",\n    \"is_keynote\": true,\n    \"order\": 2\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/program-speakers/1",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-speakers",
+                "1"
+              ]
+            },
+            "description": "Update program speaker"
+          }
+        },
+        {
+          "name": "Delete Program Speaker",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/program-speakers/1",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-speakers",
+                "1"
+              ]
+            },
+            "description": "Delete program speaker"
+          }
+        },
+        {
+          "name": "Get Keynote Speakers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-speakers/program/{{program_id}}/keynote",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-speakers",
+                "program",
+                "{{program_id}}",
+                "keynote"
+              ]
+            },
+            "description": "Get keynote speakers for specific program"
+          }
+        },
+        {
+          "name": "Get Regular Speakers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-speakers/program/{{program_id}}/regular",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-speakers",
+                "program",
+                "{{program_id}}",
+                "regular"
+              ]
+            },
+            "description": "Get regular speakers for specific program"
+          }
+        },
+        {
+          "name": "Get Speaker Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-speakers/program/{{program_id}}/stats",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-speakers",
+                "program",
+                "{{program_id}}",
+                "stats"
+              ]
+            },
+            "description": "Get speaker statistics for program"
+          }
+        },
+        {
+          "name": "Export Speakers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/program-speakers/program/{{program_id}}/export",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-speakers",
+                "program",
+                "{{program_id}}",
+                "export"
+              ]
+            },
+            "description": "Export speakers for program"
+          }
+        },
+        {
+          "name": "Reorder Speakers",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"speaker_orders\": [\n        {\"id\": 1, \"order\": 1},\n        {\"id\": 2, \"order\": 2}\n    ]\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/program-speakers/reorder",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-speakers",
+                "reorder"
+              ]
+            },
+            "description": "Reorder program speakers"
+          }
+        },
+        {
+          "name": "Search Speakers",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"query\": \"speaker name\",\n    \"program_id\": \"{{program_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/program-speakers/search",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-speakers",
+                "search"
+              ]
+            },
+            "description": "Search program speakers"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Program Photos",
+      "item": [
+        {
+          "name": "Get All Program Photos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-photos",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-photos"
+              ]
+            },
+            "description": "Get all program photos"
+          }
+        },
+        {
+          "name": "Get Program Photo by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-photos/1",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-photos",
+                "1"
+              ]
+            },
+            "description": "Get single program photo by ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Program Rundowns",
+      "item": [
+        {
+          "name": "Get All Program Rundowns",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-rundowns",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-rundowns"
+              ]
+            },
+            "description": "Get all program rundowns"
+          }
+        },
+        {
+          "name": "Get Program Rundown by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-rundowns/1",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-rundowns",
+                "1"
+              ]
+            },
+            "description": "Get single program rundown by ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Program FAQs",
+      "item": [
+        {
+          "name": "Get All Program FAQs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-faqs",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-faqs"
+              ]
+            },
+            "description": "Get all program FAQs"
+          }
+        },
+        {
+          "name": "Get Program FAQ by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-faqs/1",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-faqs",
+                "1"
+              ]
+            },
+            "description": "Get single program FAQ by ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Program Announcements",
+      "item": [
+        {
+          "name": "Get All Program Announcements",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-announcements",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-announcements"
+              ]
+            },
+            "description": "Get all program announcements"
+          }
+        },
+        {
+          "name": "Get Program Announcement by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-announcements/1",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-announcements",
+                "1"
+              ]
+            },
+            "description": "Get single program announcement by ID"
+          }
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  }
+}

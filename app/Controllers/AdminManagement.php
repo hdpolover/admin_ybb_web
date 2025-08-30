@@ -78,13 +78,25 @@ class AdminManagement extends AdminBaseController
                 continue;
             }
 
+            // Format program names
+            $programDisplay = '<span class="text-muted">No Programs</span>';
+            if (!empty($admin->program_names)) {
+                $programs = explode(', ', $admin->program_names);
+                if (count($programs) > 2) {
+                    $programDisplay = esc(implode(', ', array_slice($programs, 0, 2))) . 
+                                    ' <span class="badge bg-secondary">+' . (count($programs) - 2) . ' more</span>';
+                } else {
+                    $programDisplay = esc($admin->program_names);
+                }
+            }
+
             $data[] = [
                 'id' => $admin->id,
                 'name' => esc($admin->name),
                 'email' => esc($admin->email),
                 'role' => AdminModel::getRoleDisplayName($admin->role),
                 'role_raw' => $admin->role,
-                'program_name' => $admin->program_name ? esc($admin->program_name) : '<span class="text-muted">All Programs</span>',
+                'program_name' => $programDisplay,
                 'is_active' => $admin->is_active ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-danger">Inactive</span>',
                 'last_login' => $admin->last_login ? date('M j, Y g:i A', strtotime($admin->last_login)) : '<span class="text-muted">Never</span>',
                 'created_at' => date('M j, Y', strtotime($admin->created_at)),

@@ -235,8 +235,10 @@ class AdminModel extends Model
         }
 
         $stats = [
-            'total' => $this->where(['is_deleted' => 0])->countAllResults(),
-            'active' => $this->where(['is_active' => 1, 'is_deleted' => 0])->countAllResults(),
+            'total_admins' => $this->where(['is_deleted' => 0])->countAllResults(),
+            'active_admins' => $this->where(['is_active' => 1, 'is_deleted' => 0])->countAllResults(),
+            'super_admins' => $this->where(['role' => 'super_admin', 'is_active' => 1, 'is_deleted' => 0])->countAllResults(),
+            'recent_logins' => $this->where(['last_login >=' => date('Y-m-d H:i:s', strtotime('-7 days')), 'is_deleted' => 0])->countAllResults(),
             'by_role' => []
         ];
 
@@ -261,9 +263,11 @@ class AdminModel extends Model
     public function searchAdmins(array $filters = []): array
     {
         $builder = $this->db->table($this->table . ' a')
-                           ->select('a.*, p.name as program_name')
-                           ->join('programs p', 'a.program_id = p.id', 'left')
-                           ->where('a.is_deleted', 0);
+                           ->select('a.*, GROUP_CONCAT(DISTINCT p.name SEPARATOR ", ") as program_names')
+                           ->join('admin_programs ap', 'a.id = ap.admin_id', 'left')
+                           ->join('programs p', 'ap.program_id = p.id AND p.is_active = 1', 'left')
+                           ->where('a.is_deleted', 0)
+                           ->groupBy('a.id');
         
         // Apply search filter
         if (!empty($filters['search'])) {
@@ -283,7 +287,7 @@ class AdminModel extends Model
         
         // Apply program filter
         if (!empty($filters['program_id'])) {
-            $builder->where('a.program_id', $filters['program_id']);
+            $builder->having('FIND_IN_SET(?, GROUP_CONCAT(DISTINCT ap.program_id))', [$filters['program_id']]);
         }
         
         // Apply active status filter

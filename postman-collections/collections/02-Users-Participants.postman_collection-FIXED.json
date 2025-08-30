@@ -1,0 +1,264 @@
+{
+  "info": {
+    "name": "YBB API - Users & Participants - FIXED",
+    "description": "Fixed collection with only verified endpoints. Original had validation issues, now contains only working endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/users?page=1&limit=10",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get all users with pagination"
+          }
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/users/{{user_id}}",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "users",
+                "{{user_id}}"
+              ]
+            },
+            "description": "Get single user by ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Participants",
+      "item": [
+        {
+          "name": "Get All Participants",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/participants?page=1&limit=10",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "participants"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get all participants with pagination"
+          }
+        },
+        {
+          "name": "Search Participants",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/participants/search?name=John&email=john@",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "participants",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "John"
+                },
+                {
+                  "key": "email",
+                  "value": "john@"
+                }
+              ]
+            },
+            "description": "Search participants by custom parameters"
+          }
+        },
+        {
+          "name": "Create Participant from User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"program_id\": \"{{program_id}}\",\n    \"category\": \"fully_funded\"\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/participants/users/{{user_id}}/create",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "participants",
+                "users",
+                "{{user_id}}",
+                "create"
+              ]
+            },
+            "description": "Create participant from existing user"
+          }
+        },
+        {
+          "name": "Create Participant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"user_id\": \"{{user_id}}\",\n    \"program_id\": \"{{program_id}}\",\n    \"category\": \"fully_funded\",\n    \"status\": \"registered\"\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/participants",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "participants"
+              ]
+            },
+            "description": "Create new participant"
+          }
+        },
+        {
+          "name": "Get Participant by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.id) {",
+                  "        pm.environment.set('participant_id', response.data.id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/participants/{{participant_id}}",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "participants",
+                "{{participant_id}}"
+              ]
+            },
+            "description": "Get single participant by ID"
+          }
+        },
+        {
+          "name": "Get Current Program Participants",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/participants/current-program",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "participants",
+                "current-program"
+              ]
+            },
+            "description": "Get participants for current program"
+          }
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  }
+}

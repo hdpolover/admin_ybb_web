@@ -27,6 +27,9 @@ class BaseAuthController extends ApiBaseController
 
          // Load the helper that contains the generate_token function
          helper('otp');
+         
+         // Load the helper that contains the normalize_web_url function
+         helper('web_url');
     }
     
     /**

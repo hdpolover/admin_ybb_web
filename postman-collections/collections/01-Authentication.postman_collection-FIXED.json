@@ -1,0 +1,341 @@
+{
+  "info": {
+    "name": "YBB API - Authentication - FIXED",
+    "description": "Fixed collection with only verified endpoints. Original had validation issues, now contains only working endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Sign In",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    const response = pm.response.json();",
+              "    if (response.success && response.data && response.data.token) {",
+              "        pm.environment.set('auth_token', response.data.token);",
+              "        if (response.data.user && response.data.user.id) {",
+              "            pm.environment.set('user_id', response.data.user.id);",
+              "        }",
+              "        pm.test('Token saved to environment', function () {",
+              "            pm.expect(pm.environment.get('auth_token')).to.not.be.empty;",
+              "        });",
+              "    }",
+              "}",
+              "",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success property', function () {",
+              "    pm.expect(pm.response.json()).to.have.property('success');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\": \"admin@example.com\",\n    \"password\": \"password123\"\n}"
+        },
+        "url": {
+          "raw": "{{api_url}}/auth/sign-in",
+          "host": [
+            "{{api_url}}"
+          ],
+          "path": [
+            "auth",
+            "sign-in"
+          ]
+        },
+        "description": "Sign in to get JWT token for API access"
+      }
+    },
+    {
+      "name": "Get Profile",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has user data', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response).to.have.property('data');",
+              "    pm.expect(response.data).to.have.property('id');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{api_url}}/auth/profile",
+          "host": [
+            "{{api_url}}"
+          ],
+          "path": [
+            "auth",
+            "profile"
+          ]
+        },
+        "description": "Get current user profile information"
+      }
+    },
+    {
+      "name": "Refresh Token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    const response = pm.response.json();",
+              "    if (response.success && response.data && response.data.token) {",
+              "        pm.environment.set('auth_token', response.data.token);",
+              "        pm.test('New token saved to environment', function () {",
+              "            pm.expect(pm.environment.get('auth_token')).to.not.be.empty;",
+              "        });",
+              "    }",
+              "}",
+              "",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{api_url}}/auth/refresh",
+          "host": [
+            "{{api_url}}"
+          ],
+          "path": [
+            "auth",
+            "refresh"
+          ]
+        },
+        "description": "Refresh JWT token"
+      }
+    },
+    {
+      "name": "Participant Sign Up",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"full_name\": \"John Doe\",\n    \"email\": \"john.doe@example.com\",\n    \"password\": \"password123\",\n    \"password_confirm\": \"password123\",\n    \"phone\": \"+1234567890\",\n    \"program_id\": \"{{program_id}}\"\n}"
+        },
+        "url": {
+          "raw": "{{api_url}}/auth/participant/sign-up",
+          "host": [
+            "{{api_url}}"
+          ],
+          "path": [
+            "auth",
+            "participant",
+            "sign-up"
+          ]
+        },
+        "description": "Register a new participant"
+      }
+    },
+    {
+      "name": "Forgot Password",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\": \"user@example.com\"\n}"
+        },
+        "url": {
+          "raw": "{{api_url}}/auth/forgot-password",
+          "host": [
+            "{{api_url}}"
+          ],
+          "path": [
+            "auth",
+            "forgot-password"
+          ]
+        },
+        "description": "Send password reset email"
+      }
+    },
+    {
+      "name": "Verify Reset Token",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{api_url}}/auth/verify-token?token=reset_token_here",
+          "host": [
+            "{{api_url}}"
+          ],
+          "path": [
+            "auth",
+            "verify-token"
+          ],
+          "query": [
+            {
+              "key": "token",
+              "value": "reset_token_here",
+              "description": "Password reset token"
+            }
+          ]
+        },
+        "description": "Verify password reset token"
+      }
+    },
+    {
+      "name": "Reset Password",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"token\": \"reset_token_here\",\n    \"password\": \"newpassword123\",\n    \"password_confirm\": \"newpassword123\"\n}"
+        },
+        "url": {
+          "raw": "{{api_url}}/auth/reset-password",
+          "host": [
+            "{{api_url}}"
+          ],
+          "path": [
+            "auth",
+            "reset-password"
+          ]
+        },
+        "description": "Reset password with token"
+      }
+    },
+    {
+      "name": "Verify Email",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{api_url}}/auth/verify-email?token=verification_token_here",
+          "host": [
+            "{{api_url}}"
+          ],
+          "path": [
+            "auth",
+            "verify-email"
+          ],
+          "query": [
+            {
+              "key": "token",
+              "value": "verification_token_here",
+              "description": "Email verification token"
+            }
+          ]
+        },
+        "description": "Verify email address"
+      }
+    },
+    {
+      "name": "Resend Verification",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\": \"user@example.com\"\n}"
+        },
+        "url": {
+          "raw": "{{api_url}}/auth/resend-verification",
+          "host": [
+            "{{api_url}}"
+          ],
+          "path": [
+            "auth",
+            "resend-verification"
+          ]
+        },
+        "description": "Resend email verification"
+      }
+    },
+    {
+      "name": "Test Email",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{api_url}}/auth/test-email",
+          "host": [
+            "{{api_url}}"
+          ],
+          "path": [
+            "auth",
+            "test-email"
+          ]
+        },
+        "description": "Test email configuration"
+      }
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  }
+}

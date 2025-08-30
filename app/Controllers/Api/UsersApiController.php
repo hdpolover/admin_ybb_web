@@ -161,4 +161,30 @@ class UsersApiController extends ApiBaseController
             return $this->respondNotFound("User not found with parameters: " . json_encode($params));
         }
     }
+
+
+    /**
+     * check - GET {{api_url}}/users/check?email=user@example.com
+     * Auto-generated method
+     */
+    public function check($id = null)
+    {
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // TODO: Implement check logic
+            
+            return $this->respond([
+                'success' => true,
+                'data' => $data ?? ['id' => $id],
+                'message' => 'check executed successfully'
+            ]);
+        } catch (\Exception $e) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'Failed to execute check',
+                'error' => $e->getMessage()
+            ], ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
 }

@@ -42,6 +42,38 @@
             border-radius: 8px;
             font-size: 24px;
         }
+        
+        .admin-details {
+            line-height: 1.4;
+        }
+        
+        .admin-details .badge {
+            font-size: 0.7rem;
+        }
+        
+        #admin-table {
+            font-size: 0.9rem;
+        }
+        
+        #admin-table td {
+            vertical-align: middle;
+            padding: 0.75rem 0.5rem;
+        }
+        
+        .text-wrap {
+            word-break: break-word;
+            white-space: normal !important;
+        }
+        
+        @media (max-width: 768px) {
+            #admin-table {
+                font-size: 0.8rem;
+            }
+            
+            .admin-details {
+                font-size: 0.85rem;
+            }
+        }
     </style>
 </head>
 
@@ -169,17 +201,15 @@
                                     </div>
 
                                     <!-- Data Table -->
-                                    <table id="admin-table" class="table table-bordered dt-responsive nowrap table-striped align-middle" style="width:100%">
+                                    <table id="admin-table" class="table table-bordered dt-responsive table-striped align-middle" style="width:100%">
                                         <thead class="table-light">
                                             <tr>
-                                                <th scope="col">#</th>
-                                                <th scope="col">Name</th>
-                                                <th scope="col">Email</th>
-                                                <th scope="col">Role</th>
-                                                <th scope="col">Program</th>
-                                                <th scope="col">Status</th>
-                                                <th scope="col">Last Login</th>
-                                                <th scope="col">Actions</th>
+                                                <th scope="col" style="width: 5%">#</th>
+                                                <th scope="col" style="width: 30%">Admin Details</th>
+                                                <th scope="col" style="width: 25%">Programs</th>
+                                                <th scope="col" style="width: 10%">Status</th>
+                                                <th scope="col" style="width: 15%">Last Login</th>
+                                                <th scope="col" style="width: 15%">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -233,22 +263,36 @@
                 },
                 columns: [
                     { data: null, render: function(data, type, row, meta) { return meta.row + 1; } },
-                    { data: 'name' },
-                    { data: 'email' },
-                    { data: 'role' },
-                    { data: 'program_name' },
+                    { 
+                        data: null,
+                        render: function(data, type, row) {
+                            return `
+                                <div class="admin-details">
+                                    <div class="fw-bold text-primary">${row.name}</div>
+                                    <div class="text-muted small">${row.email}</div>
+                                    <span class="badge bg-secondary-subtle text-secondary mt-1">${row.role}</span>
+                                </div>
+                            `;
+                        }
+                    },
+                    { 
+                        data: 'program_name',
+                        render: function(data, type, row) {
+                            return '<div class="text-wrap" style="max-width: 200px; word-wrap: break-word;">' + data + '</div>';
+                        }
+                    },
                     { data: 'is_active' },
                     { data: 'last_login' },
                     { 
                         data: null,
                         render: function(data, type, row) {
-                            let actions = '<div class="d-flex gap-2">';
-                            actions += '<button class="btn btn-sm btn-info view-admin" data-id="' + row.id + '"><i class="ri-eye-line"></i></button>';
+                            let actions = '<div class="d-flex gap-1 flex-wrap">';
+                            actions += '<button class="btn btn-sm btn-info view-admin" data-id="' + row.id + '" title="View Details"><i class="ri-eye-line"></i></button>';
                             if (row.can_edit) {
-                                actions += '<button class="btn btn-sm btn-success edit-admin" data-id="' + row.id + '"><i class="ri-pencil-line"></i></button>';
+                                actions += '<button class="btn btn-sm btn-success edit-admin" data-id="' + row.id + '" title="Edit"><i class="ri-pencil-line"></i></button>';
                             }
                             if (row.can_delete) {
-                                actions += '<button class="btn btn-sm btn-danger delete-admin" data-id="' + row.id + '"><i class="ri-delete-bin-line"></i></button>';
+                                actions += '<button class="btn btn-sm btn-danger delete-admin" data-id="' + row.id + '" title="Delete"><i class="ri-delete-bin-line"></i></button>';
                             }
                             actions += '</div>';
                             return actions;
@@ -454,8 +498,10 @@
             // Populate roles dropdown
             const roleSelect = $('#admin-role');
             roleSelect.empty();
+            roleSelect.append('<option value="">Select Role</option>');
             data.roles.forEach(role => {
-                roleSelect.append(`<option value="${role}">${role.replace('_', ' ').toUpperCase()}</option>`);
+                const roleName = role.replace(/_/g, ' ').toUpperCase();
+                roleSelect.append(`<option value="${role}">${roleName}</option>`);
             });
 
             // Populate programs dropdown
@@ -473,7 +519,7 @@
             $('#admin-is-active').prop('checked', admin.is_active == 1);
             
             // Set selected programs
-            const programIds = admin.programs.map(p => p.program_id.toString());
+            const programIds = admin.programs ? admin.programs.map(p => p.id || p.program_id).filter(id => id).map(id => id.toString()) : [];
             $('#admin-programs').val(programIds);
         }
 
@@ -486,29 +532,104 @@
         }
 
         function showAdminDetails(admin) {
-            let programsList = 'All Programs';
+            // Populate modal with admin details
+            $('#view-admin-name').text(admin.name);
+            $('#view-admin-email').text(admin.email);
+            $('#view-admin-role').text(admin.role.replace(/_/g, ' ').toUpperCase());
+            $('#view-admin-status').html(admin.is_active ? 
+                '<span class="badge bg-success">Active</span>' : 
+                '<span class="badge bg-danger">Inactive</span>'
+            );
+            $('#view-admin-last-login').text(admin.last_login || 'Never');
+            $('#view-admin-created').text(new Date(admin.created_at).toLocaleDateString());
+            
+            // Handle programs list
+            const programsContainer = $('#view-admin-programs');
+            programsContainer.empty();
+            
             if (admin.programs && admin.programs.length > 0) {
-                programsList = admin.programs.map(p => p.program_name).join(', ');
+                admin.programs.forEach(program => {
+                    programsContainer.append(`
+                        <span class="badge bg-primary me-1 mb-1">${program.name}</span>
+                    `);
+                });
+            } else {
+                programsContainer.html('<span class="text-muted">No programs assigned</span>');
             }
-
-            Swal.fire({
-                title: admin.name,
-                html: `
-                    <div class="text-start">
-                        <p><strong>Email:</strong> ${admin.email}</p>
-                        <p><strong>Role:</strong> ${admin.role.replace('_', ' ').toUpperCase()}</p>
-                        <p><strong>Status:</strong> ${admin.is_active ? 'Active' : 'Inactive'}</p>
-                        <p><strong>Programs:</strong> ${programsList}</p>
-                        <p><strong>Last Login:</strong> ${admin.last_login || 'Never'}</p>
-                        <p><strong>Created:</strong> ${new Date(admin.created_at).toLocaleDateString()}</p>
-                    </div>
-                `,
-                showConfirmButton: false,
-                showCloseButton: true,
-                width: '500px'
-            });
+            
+            // Show modal
+            $('#admin-view-modal').modal('show');
         }
     </script>
+
+<!-- Admin View Modal -->
+<div class="modal fade" id="admin-view-modal" tabindex="-1" aria-labelledby="admin-view-modal-title" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title" id="admin-view-modal-title">
+                    <i class="ri-user-line me-2"></i>Administrator Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card border-0 bg-light h-100">
+                            <div class="card-header bg-transparent border-0">
+                                <h6 class="mb-0"><i class="ri-information-line me-1"></i>Basic Information</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Full Name</label>
+                                    <p class="mb-0" id="view-admin-name">-</p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Email Address</label>
+                                    <p class="mb-0" id="view-admin-email">-</p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Role</label>
+                                    <p class="mb-0" id="view-admin-role">-</p>
+                                </div>
+                                <div class="mb-0">
+                                    <label class="form-label fw-bold">Status</label>
+                                    <div id="view-admin-status">-</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card border-0 bg-light h-100">
+                            <div class="card-header bg-transparent border-0">
+                                <h6 class="mb-0"><i class="ri-folder-line me-1"></i>Program Assignments</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Assigned Programs</label>
+                                    <div id="view-admin-programs">-</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Last Login</label>
+                                    <p class="mb-0" id="view-admin-last-login">-</p>
+                                </div>
+                                <div class="mb-0">
+                                    <label class="form-label fw-bold">Created Date</label>
+                                    <p class="mb-0" id="view-admin-created">-</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="ri-close-line me-1"></i>Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Admin Management Modal -->
 <div class="modal fade" id="admin-modal" tabindex="-1" aria-labelledby="admin-modal-title" aria-hidden="true">
@@ -556,10 +677,10 @@
 
                     <div class="mb-3">
                         <label for="admin-programs" class="form-label">Assign to Programs</label>
-                        <select class="form-select" id="admin-programs" name="program_ids[]" multiple>
+                        <select class="form-select" id="admin-programs" name="program_ids[]" multiple size="5">
                             <option value="">Loading...</option>
                         </select>
-                        <small class="text-muted">Leave empty to assign to all programs. Hold Ctrl/Cmd to select multiple programs.</small>
+                        <small class="text-muted">Hold Ctrl/Cmd to select multiple programs. Leave empty to assign to all programs.</small>
                     </div>
 
                     <div class="form-check">

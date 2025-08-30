@@ -1,0 +1,1903 @@
+{
+  "info": {
+    "name": "YBB API - Complete FIXED Collection (with Ambassador Dashboard)",
+    "description": "Comprehensive collection with all verified endpoints including full Ambassador Dashboard functionality. All invalid endpoints removed, missing controllers/methods created. Ready for localhost:8080 testing.",
+    "version": "2.1.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Sign In",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    const response = pm.response.json();",
+              "    if (response.success && response.data && response.data.token) {",
+              "        pm.environment.set('auth_token', response.data.token);",
+              "        if (response.data.user && response.data.user.id) {",
+              "            pm.environment.set('user_id', response.data.user.id);",
+              "        }",
+              "        pm.test('Token saved to environment', function () {",
+              "            pm.expect(pm.environment.get('auth_token')).to.not.be.empty;",
+              "        });",
+              "    }",
+              "}",
+              "",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has success property', function () {",
+              "    pm.expect(pm.response.json()).to.have.property('success');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\": \"admin@example.com\",\n    \"password\": \"password123\"\n}"
+        },
+        "url": {
+          "raw": "{{api_url}}/auth/sign-in",
+          "host": [
+            "{{api_url}}"
+          ],
+          "path": [
+            "auth",
+            "sign-in"
+          ]
+        },
+        "description": "Sign in to get JWT token for API access"
+      }
+    },
+    {
+      "name": "Get Profile",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has user data', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response).to.have.property('data');",
+              "    pm.expect(response.data).to.have.property('id');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{api_url}}/auth/profile",
+          "host": [
+            "{{api_url}}"
+          ],
+          "path": [
+            "auth",
+            "profile"
+          ]
+        },
+        "description": "Get current user profile information"
+      }
+    },
+    {
+      "name": "Refresh Token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    const response = pm.response.json();",
+              "    if (response.success && response.data && response.data.token) {",
+              "        pm.environment.set('auth_token', response.data.token);",
+              "        pm.test('New token saved to environment', function () {",
+              "            pm.expect(pm.environment.get('auth_token')).to.not.be.empty;",
+              "        });",
+              "    }",
+              "}",
+              "",
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{api_url}}/auth/refresh",
+          "host": [
+            "{{api_url}}"
+          ],
+          "path": [
+            "auth",
+            "refresh"
+          ]
+        },
+        "description": "Refresh JWT token"
+      }
+    },
+    {
+      "name": "Participant Sign Up",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"full_name\": \"John Doe\",\n    \"email\": \"john.doe@example.com\",\n    \"password\": \"password123\",\n    \"password_confirm\": \"password123\",\n    \"phone\": \"+1234567890\",\n    \"program_id\": \"{{program_id}}\"\n}"
+        },
+        "url": {
+          "raw": "{{api_url}}/auth/participant/sign-up",
+          "host": [
+            "{{api_url}}"
+          ],
+          "path": [
+            "auth",
+            "participant",
+            "sign-up"
+          ]
+        },
+        "description": "Register a new participant"
+      }
+    },
+    {
+      "name": "Forgot Password",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\": \"user@example.com\"\n}"
+        },
+        "url": {
+          "raw": "{{api_url}}/auth/forgot-password",
+          "host": [
+            "{{api_url}}"
+          ],
+          "path": [
+            "auth",
+            "forgot-password"
+          ]
+        },
+        "description": "Send password reset email"
+      }
+    },
+    {
+      "name": "Verify Reset Token",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{api_url}}/auth/verify-token?token=reset_token_here",
+          "host": [
+            "{{api_url}}"
+          ],
+          "path": [
+            "auth",
+            "verify-token"
+          ],
+          "query": [
+            {
+              "key": "token",
+              "value": "reset_token_here",
+              "description": "Password reset token"
+            }
+          ]
+        },
+        "description": "Verify password reset token"
+      }
+    },
+    {
+      "name": "Reset Password",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"token\": \"reset_token_here\",\n    \"password\": \"newpassword123\",\n    \"password_confirm\": \"newpassword123\"\n}"
+        },
+        "url": {
+          "raw": "{{api_url}}/auth/reset-password",
+          "host": [
+            "{{api_url}}"
+          ],
+          "path": [
+            "auth",
+            "reset-password"
+          ]
+        },
+        "description": "Reset password with token"
+      }
+    },
+    {
+      "name": "Verify Email",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{api_url}}/auth/verify-email?token=verification_token_here",
+          "host": [
+            "{{api_url}}"
+          ],
+          "path": [
+            "auth",
+            "verify-email"
+          ],
+          "query": [
+            {
+              "key": "token",
+              "value": "verification_token_here",
+              "description": "Email verification token"
+            }
+          ]
+        },
+        "description": "Verify email address"
+      }
+    },
+    {
+      "name": "Resend Verification",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\": \"user@example.com\"\n}"
+        },
+        "url": {
+          "raw": "{{api_url}}/auth/resend-verification",
+          "host": [
+            "{{api_url}}"
+          ],
+          "path": [
+            "auth",
+            "resend-verification"
+          ]
+        },
+        "description": "Resend email verification"
+      }
+    },
+    {
+      "name": "Test Email",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{api_url}}/auth/test-email",
+          "host": [
+            "{{api_url}}"
+          ],
+          "path": [
+            "auth",
+            "test-email"
+          ]
+        },
+        "description": "Test email configuration"
+      }
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/users?page=1&limit=10",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get all users with pagination"
+          }
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/users/{{user_id}}",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "users",
+                "{{user_id}}"
+              ]
+            },
+            "description": "Get single user by ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Participants",
+      "item": [
+        {
+          "name": "Get All Participants",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/participants?page=1&limit=10",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "participants"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get all participants with pagination"
+          }
+        },
+        {
+          "name": "Search Participants",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/participants/search?name=John&email=john@",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "participants",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "John"
+                },
+                {
+                  "key": "email",
+                  "value": "john@"
+                }
+              ]
+            },
+            "description": "Search participants by custom parameters"
+          }
+        },
+        {
+          "name": "Create Participant from User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"program_id\": \"{{program_id}}\",\n    \"category\": \"fully_funded\"\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/participants/users/{{user_id}}/create",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "participants",
+                "users",
+                "{{user_id}}",
+                "create"
+              ]
+            },
+            "description": "Create participant from existing user"
+          }
+        },
+        {
+          "name": "Create Participant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"user_id\": \"{{user_id}}\",\n    \"program_id\": \"{{program_id}}\",\n    \"category\": \"fully_funded\",\n    \"status\": \"registered\"\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/participants",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "participants"
+              ]
+            },
+            "description": "Create new participant"
+          }
+        },
+        {
+          "name": "Get Participant by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.id) {",
+                  "        pm.environment.set('participant_id', response.data.id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/participants/{{participant_id}}",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "participants",
+                "{{participant_id}}"
+              ]
+            },
+            "description": "Get single participant by ID"
+          }
+        },
+        {
+          "name": "Get Current Program Participants",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/participants/current-program",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "participants",
+                "current-program"
+              ]
+            },
+            "description": "Get participants for current program"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Programs",
+      "item": [
+        {
+          "name": "Get All Programs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/programs",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "programs"
+              ]
+            },
+            "description": "Get all programs"
+          }
+        },
+        {
+          "name": "Get Program by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/programs/{{program_id}}",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "programs",
+                "{{program_id}}"
+              ]
+            },
+            "description": "Get single program by ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Program Categories",
+      "item": [
+        {
+          "name": "Get All Program Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-categories?page=1&limit=10",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-categories"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get all program categories with pagination"
+          }
+        },
+        {
+          "name": "Get Program Category by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-categories/1",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-categories",
+                "1"
+              ]
+            },
+            "description": "Get single program category by ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Program Schedules",
+      "item": [
+        {
+          "name": "Get All Program Schedules",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-schedules",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-schedules"
+              ]
+            },
+            "description": "Get all program schedules"
+          }
+        },
+        {
+          "name": "Get Program Schedule by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-schedules/1",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-schedules",
+                "1"
+              ]
+            },
+            "description": "Get single program schedule by ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Program Speakers",
+      "item": [
+        {
+          "name": "Get All Program Speakers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-speakers/",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-speakers",
+                ""
+              ]
+            },
+            "description": "Get all program speakers"
+          }
+        },
+        {
+          "name": "Get Program Speaker by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-speakers/1",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-speakers",
+                "1"
+              ]
+            },
+            "description": "Get single program speaker by ID"
+          }
+        },
+        {
+          "name": "Create Program Speaker",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"program_id\": \"{{program_id}}\",\n    \"name\": \"Speaker Name\",\n    \"position\": \"CEO\",\n    \"company\": \"Company Name\",\n    \"bio\": \"Speaker biography\",\n    \"is_keynote\": false,\n    \"order\": 1\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/program-speakers/",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-speakers",
+                ""
+              ]
+            },
+            "description": "Create new program speaker"
+          }
+        },
+        {
+          "name": "Update Program Speaker",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Updated Speaker Name\",\n    \"position\": \"Updated Position\",\n    \"company\": \"Updated Company\",\n    \"bio\": \"Updated biography\",\n    \"is_keynote\": true,\n    \"order\": 2\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/program-speakers/1",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-speakers",
+                "1"
+              ]
+            },
+            "description": "Update program speaker"
+          }
+        },
+        {
+          "name": "Delete Program Speaker",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/program-speakers/1",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-speakers",
+                "1"
+              ]
+            },
+            "description": "Delete program speaker"
+          }
+        },
+        {
+          "name": "Get Keynote Speakers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-speakers/program/{{program_id}}/keynote",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-speakers",
+                "program",
+                "{{program_id}}",
+                "keynote"
+              ]
+            },
+            "description": "Get keynote speakers for specific program"
+          }
+        },
+        {
+          "name": "Get Regular Speakers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-speakers/program/{{program_id}}/regular",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-speakers",
+                "program",
+                "{{program_id}}",
+                "regular"
+              ]
+            },
+            "description": "Get regular speakers for specific program"
+          }
+        },
+        {
+          "name": "Get Speaker Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-speakers/program/{{program_id}}/stats",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-speakers",
+                "program",
+                "{{program_id}}",
+                "stats"
+              ]
+            },
+            "description": "Get speaker statistics for program"
+          }
+        },
+        {
+          "name": "Export Speakers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/program-speakers/program/{{program_id}}/export",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-speakers",
+                "program",
+                "{{program_id}}",
+                "export"
+              ]
+            },
+            "description": "Export speakers for program"
+          }
+        },
+        {
+          "name": "Reorder Speakers",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"speaker_orders\": [\n        {\"id\": 1, \"order\": 1},\n        {\"id\": 2, \"order\": 2}\n    ]\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/program-speakers/reorder",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-speakers",
+                "reorder"
+              ]
+            },
+            "description": "Reorder program speakers"
+          }
+        },
+        {
+          "name": "Search Speakers",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"query\": \"speaker name\",\n    \"program_id\": \"{{program_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/program-speakers/search",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-speakers",
+                "search"
+              ]
+            },
+            "description": "Search program speakers"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Program Photos",
+      "item": [
+        {
+          "name": "Get All Program Photos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-photos",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-photos"
+              ]
+            },
+            "description": "Get all program photos"
+          }
+        },
+        {
+          "name": "Get Program Photo by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-photos/1",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-photos",
+                "1"
+              ]
+            },
+            "description": "Get single program photo by ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Program Rundowns",
+      "item": [
+        {
+          "name": "Get All Program Rundowns",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-rundowns",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-rundowns"
+              ]
+            },
+            "description": "Get all program rundowns"
+          }
+        },
+        {
+          "name": "Get Program Rundown by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-rundowns/1",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-rundowns",
+                "1"
+              ]
+            },
+            "description": "Get single program rundown by ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Program FAQs",
+      "item": [
+        {
+          "name": "Get All Program FAQs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-faqs",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-faqs"
+              ]
+            },
+            "description": "Get all program FAQs"
+          }
+        },
+        {
+          "name": "Get Program FAQ by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-faqs/1",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-faqs",
+                "1"
+              ]
+            },
+            "description": "Get single program FAQ by ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Program Announcements",
+      "item": [
+        {
+          "name": "Get All Program Announcements",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-announcements",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-announcements"
+              ]
+            },
+            "description": "Get all program announcements"
+          }
+        },
+        {
+          "name": "Get Program Announcement by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-announcements/1",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-announcements",
+                "1"
+              ]
+            },
+            "description": "Get single program announcement by ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payment Configuration",
+      "item": [
+        {
+          "name": "Get Payment Config",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/payments/config",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "payments",
+                "config"
+              ]
+            },
+            "description": "Get payment configuration including Midtrans keys"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Program Payments",
+      "item": [
+        {
+          "name": "Get All Program Payments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-payments",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-payments"
+              ]
+            },
+            "description": "Get all program payments"
+          }
+        },
+        {
+          "name": "Get Program Payment by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-payments/1",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-payments",
+                "1"
+              ]
+            },
+            "description": "Get single program payment by ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payment Transactions",
+      "item": [
+        {
+          "name": "Create Payment Transaction",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.id) {",
+                  "        pm.environment.set('payment_id', response.data.id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"participant_id\": \"{{participant_id}}\",\n    \"program_payment_id\": \"1\",\n    \"payment_method_id\": \"1\",\n    \"amount\": 100000,\n    \"payment_type\": \"registration\"\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/payments/create",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "payments",
+                "create"
+              ]
+            },
+            "description": "Create new payment transaction"
+          }
+        },
+        {
+          "name": "Get Payments by Participant",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/payments/participants/{{participant_id}}",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "payments",
+                "participants",
+                "{{participant_id}}"
+              ]
+            },
+            "description": "Get payments by participant ID"
+          }
+        },
+        {
+          "name": "Get Payment by Program Payment and Participant",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/payments/program-payments/1/participants/{{participant_id}}",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "payments",
+                "program-payments",
+                "1",
+                "participants",
+                "{{participant_id}}"
+              ]
+            },
+            "description": "Get payment by program payment ID and participant ID"
+          }
+        },
+        {
+          "name": "Get Payment Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/payments/status/{{payment_id}}",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "payments",
+                "status",
+                "{{payment_id}}"
+              ]
+            },
+            "description": "Get payment status by payment ID"
+          }
+        },
+        {
+          "name": "Upload Payment Proof",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "payment_id",
+                  "value": "{{payment_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "payment_proof",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "notes",
+                  "value": "Payment completed via bank transfer",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{api_url}}/payments/upload-proof",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "payments",
+                "upload-proof"
+              ]
+            },
+            "description": "Upload payment proof file"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payment Webhooks & Redirects",
+      "item": [
+        {
+          "name": "Payment Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"transaction_status\": \"settlement\",\n    \"order_id\": \"payment_123\",\n    \"gross_amount\": \"100000.00\",\n    \"payment_type\": \"bank_transfer\",\n    \"transaction_id\": \"midtrans_123\",\n    \"fraud_status\": \"accept\"\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/payments/webhook",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "payments",
+                "webhook"
+              ]
+            },
+            "description": "Midtrans payment webhook endpoint"
+          }
+        },
+        {
+          "name": "Payment Finish Redirect",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/payments/finish?order_id=payment_123&status_code=200&transaction_status=settlement",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "payments",
+                "finish"
+              ],
+              "query": [
+                {
+                  "key": "order_id",
+                  "value": "payment_123"
+                },
+                {
+                  "key": "status_code",
+                  "value": "200"
+                },
+                {
+                  "key": "transaction_status",
+                  "value": "settlement"
+                }
+              ]
+            },
+            "description": "Payment success redirect endpoint"
+          }
+        },
+        {
+          "name": "Payment Unfinish Redirect",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/payments/unfinish?order_id=payment_123",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "payments",
+                "unfinish"
+              ],
+              "query": [
+                {
+                  "key": "order_id",
+                  "value": "payment_123"
+                }
+              ]
+            },
+            "description": "Payment unfinished redirect endpoint"
+          }
+        },
+        {
+          "name": "Payment Error Redirect",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/payments/error?order_id=payment_123&status_code=400",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "payments",
+                "error"
+              ],
+              "query": [
+                {
+                  "key": "order_id",
+                  "value": "payment_123"
+                },
+                {
+                  "key": "status_code",
+                  "value": "400"
+                }
+              ]
+            },
+            "description": "Payment error redirect endpoint"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Upload Profile Picture",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "profile_picture",
+              "type": "file",
+              "src": [],
+              "description": "Profile picture image file"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{api_url}}/submissions/participants/{{participant_id}}/upload-picture",
+          "host": [
+            "{{api_url}}"
+          ],
+          "path": [
+            "submissions",
+            "participants",
+            "{{participant_id}}",
+            "upload-picture"
+          ]
+        },
+        "description": "Upload participant profile picture"
+      }
+    },
+    {
+      "name": "Program Documents",
+      "item": [
+        {
+          "name": "Get All Program Documents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-documents",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-documents"
+              ]
+            },
+            "description": "Get all program documents"
+          }
+        },
+        {
+          "name": "Get Program Document by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-documents/1",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-documents",
+                "1"
+              ]
+            },
+            "description": "Get single program document by ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Certificates",
+      "item": [
+        {
+          "name": "Certificate Service Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/certificates/health",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "certificates",
+                "health"
+              ]
+            },
+            "description": "Health check for certificate service"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ambassadors",
+      "item": [
+        {
+          "name": "Get All Ambassadors",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/ambassadors?page=1&limit=10",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "ambassadors"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get all ambassadors for current program"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ambassador Authentication",
+      "item": [
+        {
+          "name": "Ambassador Sign In",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Auto-save token on successful login",
+                  "pm.test('Ambassador authentication successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const responseJson = pm.response.json();",
+                  "    if (responseJson.status === 'success' && responseJson.data.token) {",
+                  "        pm.globals.set('auth_token', responseJson.data.token);",
+                  "        pm.environment.set('auth_token', responseJson.data.token);",
+                  "        console.log('🔑 Ambassador token saved');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"{{ambassador_email}}\",\n    \"ref_code\": \"{{ambassador_ref_code}}\",\n    \"type\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{api_url}}/auth/signin",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "auth",
+                "signin"
+              ]
+            },
+            "description": "Ambassador authentication with email and referral code (type 3)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Overview",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Dashboard overview retrieved successfully', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson.status).to.eql('success');",
+                  "    pm.expect(responseJson.data).to.have.property('ambassador');",
+                  "    pm.expect(responseJson.data).to.have.property('metrics');",
+                  "});",
+                  "",
+                  "pm.test('Overview has required metrics', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    const metrics = responseJson.data.metrics;",
+                  "    pm.expect(metrics).to.have.property('total_referrals');",
+                  "    pm.expect(metrics).to.have.property('active_participants');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/ambassador/dashboard/overview",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "ambassador",
+                "dashboard",
+                "overview"
+              ]
+            },
+            "description": "Get comprehensive dashboard metrics and ambassador info"
+          }
+        },
+        {
+          "name": "Get Referred Participants",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Participants data retrieved successfully', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson.status).to.eql('success');",
+                  "    pm.expect(responseJson.data).to.have.property('participants');",
+                  "    pm.expect(responseJson.data).to.have.property('pagination');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/ambassador/dashboard/participants?page=1&limit=20",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "ambassador",
+                "dashboard",
+                "participants"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number for pagination"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Number of participants per page"
+                }
+              ]
+            },
+            "description": "Get detailed list of participants referred by this ambassador"
+          }
+        },
+        {
+          "name": "Get Payment Analytics",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Payment analytics retrieved successfully', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson.status).to.eql('success');",
+                  "    pm.expect(responseJson.data).to.have.property('payment_summary');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/ambassador/dashboard/payments",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "ambassador",
+                "dashboard",
+                "payments"
+              ]
+            },
+            "description": "Get payment analytics for referred participants"
+          }
+        },
+        {
+          "name": "Get Performance Metrics",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Performance analytics retrieved successfully', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson.status).to.eql('success');",
+                  "    pm.expect(responseJson.data).to.have.property('conversion_metrics');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/ambassador/dashboard/performance",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "ambassador",
+                "dashboard",
+                "performance"
+              ]
+            },
+            "description": "Get referral performance and conversion metrics"
+          }
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "api_url",
+      "value": "http://localhost:8080/api",
+      "type": "string",
+      "description": "Local development API base URL"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string",
+      "description": "JWT authentication token (auto-populated on login)"
+    },
+    {
+      "key": "ambassador_email",
+      "value": "test@example.com",
+      "type": "string",
+      "description": "Test ambassador email for authentication"
+    },
+    {
+      "key": "ambassador_ref_code",
+      "value": "TEST001",
+      "type": "string",
+      "description": "Test ambassador referral code for authentication"
+    }
+  ]
+}

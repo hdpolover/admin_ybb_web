@@ -775,4 +775,130 @@ class SubmissionApiController extends ApiBaseController
             return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
         }
     }
+
+
+    /**
+     * participants - GET {{api_url}}/submissions/participants/{{participant_id}}
+     * Auto-generated method
+     */
+    public function participants($id = null)
+    {
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // TODO: Implement participants logic
+            
+            return $this->respond([
+                'success' => true,
+                'data' => $data ?? ['id' => $id],
+                'message' => 'participants executed successfully'
+            ]);
+        } catch (\Exception $e) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'Failed to execute participants',
+                'error' => $e->getMessage()
+            ], ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * getParticipantSubmissions - GET {{api_url}}/submissions/participants
+     * Get submissions for participants
+     */
+    public function getParticipantSubmissions($id = null)
+    {
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // TODO: Implement participants logic
+            
+            return $this->respond([
+                'success' => true,
+                'data' => $data ?? ['id' => $id],
+                'message' => 'participants executed successfully'
+            ]);
+        } catch (\Exception $e) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'Failed to execute participants',
+                'error' => $e->getMessage()
+            ], ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * getByProgramId - GET {{api_url}}/submissions/program/{{program_id}}/form
+     * Auto-generated method
+     */
+    public function getByProgramId($id = null)
+    {
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // TODO: Implement getByProgramId logic
+            
+            return $this->respond([
+                'success' => true,
+                'data' => $data ?? ['id' => $id],
+                'message' => 'getByProgramId executed successfully'
+            ]);
+        } catch (\Exception $e) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'Failed to execute getByProgramId',
+                'error' => $e->getMessage()
+            ], ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * update - POST {{api_url}}/submissions/participants/{{participant_id}}/update
+     * Auto-generated method
+     */
+    public function update($id = null)
+    {
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // TODO: Implement update logic
+            
+            return $this->respond([
+                'success' => true,
+                'data' => $data ?? ['id' => $id],
+                'message' => 'update executed successfully'
+            ]);
+        } catch (\Exception $e) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'Failed to execute update',
+                'error' => $e->getMessage()
+            ], ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * submit - POST {{api_url}}/submissions/participants/{{participant_id}}/submit
+     * Auto-generated method
+     */
+    public function submit($id = null)
+    {
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // TODO: Implement submit logic
+            
+            return $this->respond([
+                'success' => true,
+                'data' => $data ?? ['id' => $id],
+                'message' => 'submit executed successfully'
+            ]);
+        } catch (\Exception $e) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'Failed to execute submit',
+                'error' => $e->getMessage()
+            ], ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
 }

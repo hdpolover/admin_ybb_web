@@ -63,110 +63,70 @@ class Participants extends BaseController
         // Process DataTables server-side request
         $request = $this->request->getGet();
 
-        $draw = $request['draw'] ?? 1;
-        $start = $request['start'] ?? 0;
-        $length = $request['length'] ?? 10;
-        $search = $request['search']['value'] ?? '';
-        $order = isset($request['order'][0]) ? [
-            'column' => $request['order'][0]['column'],
-            'dir' => $request['order'][0]['dir']
-        ] : ['column' => 4, 'dir' => 'desc'];
-
-        // Column names
-        $columns = [
-            'created_at',               // Order number
-            'participants.account_id',  // Account ID
-            'full_name',               // Participant Details
-            'participant_statuses.form_status', // Submission Status
-            'created_at',              // Registered On
-        ];
-
-        $orderColumn = $columns[$order['column']] ?? 'created_at';
-        $programId = session('current_program');
-
-        // Get data from database
-        $builder = $this->participantModel->select('
-                participants.*, 
-                users.email,
-                participants.phone_number,
-                participant_statuses.form_status
-            ')
-            ->join('users', 'users.id = participants.user_id')
-            ->join('participant_statuses', 'participant_statuses.participant_id = participants.id', 'left')
-            ->where('participants.program_id', $programId)
-            ->where('participants.is_deleted', 0)
-            ->limit($length, $start);
-
-        // Apply search
-        if (!empty($search)) {
-            $builder->groupStart()
-                ->like('participants.full_name', $search)
-                ->orLike('users.email', $search)
-                ->orLike('participants.phone_number', $search)
-                ->orLike('participants.account_id', $search)
-                ->orLike('participants.nationality', $search)
-                ->groupEnd();
-        }        // Apply filters
-        $category = $this->request->getGet('category');
-        if ($category !== '' && $category !== null) {
-            $builder->where('participants.category', $category);
+        // Get program ID - use consistent session key
+        $programId = $request['program_id'] ?? session('current_program');
+        
+        if (!$programId) {
+            return $this->response->setJSON([
+                'draw' => intval($request['draw'] ?? 1),
+                'recordsTotal' => 0,
+                'recordsFiltered' => 0,
+                'data' => [],
+                'error' => 'No program selected'
+            ])->setStatusCode(400);
         }
 
-        // Apply form status filter
-        $form_status = $this->request->getGet('form_status');
-        if ($form_status !== '' && $form_status !== null) {
-            $builder->where('participant_statuses.form_status', $form_status);
-        }
-
-        // Get total count
-        $totalRecords = $builder->countAllResults(false);
-
-        // Order and limit
-        $result = $builder->orderBy($orderColumn, $order['dir'])
-            ->limit($length, $start)
-            ->get()->getResult();
-        // Format data for DataTable
-        $data = [];
-        $counter = $start + 1;
-
-        foreach ($result as $row) {
-            // Get submission status based only on form_status
-            $submissionStatus = $this->getFormStatusBadge($row->form_status ?? 0);
-            $data[] = [
-                'order_number' => $counter++,
-                'account_id' => $row->account_id,
-                'participant_details' => [
-                    'full_name' => $row->full_name,
-                    'picture_url' => $row->picture_url,
-                    'email' => $row->email,
-                    'nationality' => $row->nationality ?? 'N/A'
+        try {
+            // Prepare DataTable parameters for the model
+            $dataTableParams = [
+                'draw' => $request['draw'] ?? 1,
+                'start' => intval($request['start'] ?? 0),
+                'length' => intval($request['length'] ?? 10),
+                'search' => $request['search']['value'] ?? '',
+                'order' => [
+                    'column' => intval($request['order'][0]['column'] ?? 4),
+                    'dir' => $request['order'][0]['dir'] ?? 'desc'
                 ],
-                'submission_status' => $submissionStatus,
-                'registered_on' => date('M d, Y', strtotime($row->created_at)),
-                'actions' => '
-                    <div class="d-flex gap-2">
-                        <a href="' . base_url('users/participants/view/' . $row->id) . '" class="btn btn-sm btn-soft-primary">
-                            <i class="ri-eye-fill align-bottom"></i>
-                        </a>
-                        <a href="' . base_url('participants/edit/' . $row->id) . '" class="btn btn-sm btn-soft-warning">
-                            <i class="ri-pencil-fill align-bottom"></i>
-                        </a>
-                        <button type="button" class="btn btn-sm btn-soft-danger delete-participant" data-id="' . $row->id . '">
-                            <i class="ri-delete-bin-2-line align-bottom"></i>
-                        </button>
-                    </div>'
+                'program_id' => $programId,
+                'category' => $request['category'] ?? null,
+                'form_status' => $request['form_status'] ?? null
             ];
+
+            // Log request for debugging
+            log_message('debug', 'Participants DataTable request: ' . json_encode([
+                'program_id' => $programId,
+                'filters' => [
+                    'category' => $dataTableParams['category'],
+                    'form_status' => $dataTableParams['form_status'],
+                    'search' => $dataTableParams['search']
+                ]
+            ]));
+
+            // Get data from model using optimized query
+            $result = $this->participantModel->getDataTableData($dataTableParams);
+
+            // Log successful response
+            log_message('debug', 'Participants DataTable response: ' . json_encode([
+                'total_records' => $result['recordsTotal'],
+                'filtered_records' => $result['recordsFiltered'],
+                'data_count' => count($result['data'])
+            ]));
+
+            return $this->response->setJSON($result);
+
+        } catch (\Exception $e) {
+            // Log error
+            log_message('error', 'Participants getData error: ' . $e->getMessage());
+            
+            return $this->response->setJSON([
+                'draw' => intval($request['draw'] ?? 1),
+                'recordsTotal' => 0,
+                'recordsFiltered' => 0,
+                'data' => [],
+                'error' => 'Failed to load participant data',
+                'message' => $e->getMessage()
+            ])->setStatusCode(500);
         }
-
-        // Response for DataTables
-        $response = [
-            'draw' => intval($draw),
-            'recordsTotal' => $totalRecords,
-            'recordsFiltered' => $totalRecords,
-            'data' => $data
-        ];
-
-        return $this->response->setJSON($response);
     }
 
     /**
@@ -454,20 +414,6 @@ class Participants extends BaseController
     /**
      * Get HTML badge for form status only
      */
-    private function getFormStatusBadge($formStatus)
-    {
-        // Status values: 0 = not started, 1 = on progress, 2 = submitted
-        $statusInfo = [
-            0 => ['Not Started', 'secondary'],
-            1 => ['On Progress', 'warning'],
-            2 => ['Submitted', 'success']
-        ];
-
-        $status = $statusInfo[$formStatus] ?? $statusInfo[0];
-
-        return '<span class="badge bg-' . $status[1] . '-subtle text-' . $status[1] . '">' . $status[0] . '</span>';
-    }
-
     /**
      * Export participants data using YBB Export API
      */

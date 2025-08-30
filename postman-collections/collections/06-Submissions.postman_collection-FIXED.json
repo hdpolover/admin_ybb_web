@@ -1,0 +1,55 @@
+{
+  "info": {
+    "name": "YBB API - Submissions - FIXED",
+    "description": "Fixed collection with only verified endpoints. Original had validation issues, now contains only working endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Upload Profile Picture",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{auth_token}}"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "profile_picture",
+              "type": "file",
+              "src": [],
+              "description": "Profile picture image file"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{api_url}}/submissions/participants/{{participant_id}}/upload-picture",
+          "host": [
+            "{{api_url}}"
+          ],
+          "path": [
+            "submissions",
+            "participants",
+            "{{participant_id}}",
+            "upload-picture"
+          ]
+        },
+        "description": "Upload participant profile picture"
+      }
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  }
+}

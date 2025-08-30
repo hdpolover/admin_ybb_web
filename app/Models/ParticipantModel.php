@@ -1796,4 +1796,183 @@ class ParticipantModel extends Model
                 return 1000; // Default limit for other fields
         }
     }
+
+    /**
+     * Get participants data for DataTable with optimized single query
+     * 
+     * @param array $params DataTable parameters
+     * @return array
+     */
+    public function getDataTableData($params)
+    {
+        $draw = $params['draw'] ?? 1;
+        $start = $params['start'] ?? 0;
+        $length = $params['length'] ?? 10;
+        $search = $params['search'] ?? '';
+        $order = $params['order'] ?? ['column' => 4, 'dir' => 'desc'];
+        $programId = $params['program_id'] ?? null;
+        
+        // Validate program ID
+        if (!$programId) {
+            return [
+                'draw' => $draw,
+                'recordsTotal' => 0,
+                'recordsFiltered' => 0,
+                'data' => [],
+                'error' => 'No program selected'
+            ];
+        }
+
+        // Column names for ordering
+        $columns = [
+            'participants.created_at',           // Order number
+            'participants.account_id',           // Account ID
+            'participants.full_name',            // Participant Details
+            'participant_statuses.form_status',  // Submission Status
+            'participants.created_at',           // Registered On
+        ];
+
+        $orderColumn = $columns[$order['column']] ?? 'participants.created_at';
+
+        // Base query with optimized joins - single query to get all needed data
+        $builder = $this->db->table('participants')
+            ->select('
+                participants.id,
+                participants.account_id,
+                participants.full_name,
+                participants.picture_url,
+                participants.nationality,
+                participants.category,
+                participants.created_at,
+                users.email,
+                users.id as user_id,
+                COALESCE(participant_statuses.form_status, 0) as form_status
+            ')
+            ->join('users', 'users.id = participants.user_id', 'inner')
+            ->join('participant_statuses', 'participant_statuses.participant_id = participants.id', 'left')
+            ->where('participants.program_id', $programId)
+            ->where('participants.is_deleted', 0);
+
+        // Clone builder for count query (before filters)
+        $countBuilder = clone $builder;
+
+        // Apply search filters
+        if (!empty($search)) {
+            $builder->groupStart()
+                ->like('participants.full_name', $search)
+                ->orLike('users.email', $search)
+                ->orLike('participants.phone_number', $search)
+                ->orLike('participants.account_id', $search)
+                ->orLike('participants.nationality', $search)
+                ->groupEnd();
+                
+            // Apply same search to count builder
+            $countBuilder->groupStart()
+                ->like('participants.full_name', $search)
+                ->orLike('users.email', $search)
+                ->orLike('participants.phone_number', $search)
+                ->orLike('participants.account_id', $search)
+                ->orLike('participants.nationality', $search)
+                ->groupEnd();
+        }
+
+        // Apply category filter
+        if (isset($params['category']) && $params['category'] !== '' && $params['category'] !== null) {
+            $builder->where('participants.category', $params['category']);
+            $countBuilder->where('participants.category', $params['category']);
+        }
+
+        // Apply form status filter
+        if (isset($params['form_status']) && $params['form_status'] !== '' && $params['form_status'] !== null) {
+            $builder->where('COALESCE(participant_statuses.form_status, 0)', $params['form_status']);
+            $countBuilder->where('COALESCE(participant_statuses.form_status, 0)', $params['form_status']);
+        }
+
+        // Get total and filtered counts efficiently
+        $totalRecords = $countBuilder->countAllResults();
+        
+        // Get paginated results with ordering
+        $results = $builder
+            ->orderBy($orderColumn, $order['dir'])
+            ->limit($length, $start)
+            ->get()
+            ->getResult();
+
+        // Format data for DataTable
+        $data = [];
+        $counter = $start + 1;
+
+        foreach ($results as $row) {
+            $data[] = [
+                'order_number' => $counter++,
+                'account_id' => $row->account_id,
+                'participant_details' => [
+                    'full_name' => $row->full_name,
+                    'picture_url' => $row->picture_url,
+                    'email' => $row->email,
+                    'nationality' => $row->nationality ?? 'N/A'
+                ],
+                'submission_status' => $this->getFormStatusBadge($row->form_status),
+                'registered_on' => date('M d, Y', strtotime($row->created_at)),
+                'actions' => $this->generateActionButtons($row->id)
+            ];
+        }
+
+        return [
+            'draw' => intval($draw),
+            'recordsTotal' => $totalRecords,
+            'recordsFiltered' => $totalRecords,
+            'data' => $data
+        ];
+    }
+
+    /**
+     * Generate form status badge HTML
+     * 
+     * @param int $formStatus
+     * @return string
+     */
+    private function getFormStatusBadge($formStatus)
+    {
+        switch ($formStatus) {
+            case 0:
+                return '<div class="submission-status-container">
+                    <span class="badge bg-secondary-subtle text-secondary">Not Started</span>
+                </div>';
+            case 1:
+                return '<div class="submission-status-container">
+                    <span class="badge bg-warning-subtle text-warning">In Progress</span>
+                </div>';
+            case 2:
+                return '<div class="submission-status-container">
+                    <span class="badge bg-success-subtle text-success">Submitted</span>
+                </div>';
+            default:
+                return '<div class="submission-status-container">
+                    <span class="badge bg-secondary-subtle text-secondary">Unknown</span>
+                </div>';
+        }
+    }
+
+    /**
+     * Generate action buttons HTML
+     * 
+     * @param int $participantId
+     * @return string
+     */
+    private function generateActionButtons($participantId)
+    {
+        return '
+            <div class="d-flex gap-2">
+                <a href="' . base_url('users/participants/view/' . $participantId) . '" class="btn btn-sm btn-soft-primary" title="View">
+                    <i class="ri-eye-fill align-bottom"></i>
+                </a>
+                <a href="' . base_url('participants/edit/' . $participantId) . '" class="btn btn-sm btn-soft-warning" title="Edit">
+                    <i class="ri-pencil-fill align-bottom"></i>
+                </a>
+                <button type="button" class="btn btn-sm btn-soft-danger delete-participant" data-id="' . $participantId . '" title="Delete">
+                    <i class="ri-delete-bin-2-line align-bottom"></i>
+                </button>
+            </div>';
+    }
 }

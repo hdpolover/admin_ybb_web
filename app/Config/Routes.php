@@ -33,6 +33,11 @@ $routes->group('', ['namespace' => 'App\Controllers'], function ($routes) {
     $routes->get('/', 'Auth::index');
     $routes->post('sign-in', 'Auth::signIn');
     
+    // Auth routes
+    $routes->group('auth', function ($routes) {
+        $routes->get('signOut', 'Auth::signOut');
+    });
+    
     // Debug authentication routes
     $routes->get('debug-auth', 'DebugAuth::index');
     $routes->post('debug-auth/sign-in', 'DebugAuth::signIn');
@@ -94,27 +99,64 @@ $routes->get('api/payment/error/midtrans', 'Api\Payment\NotificationController::
 $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes) {
     // Auth routes - organized by functionality
     $routes->group('auth', function ($routes) {
+        // Simple test route
+        $routes->get('test', function() {
+            return service('response')->setJSON(['status' => 'success', 'message' => 'API is working']);
+        });
+        
+        // Test route for ambassador auth
+        $routes->post('test-ambassador', function() {
+            try {
+                // Simple test of ambassador authentication components
+                $request = service('request');
+                $json = $request->getJSON(true);
+                
+                if (!$json) {
+                    return service('response')->setJSON(['error' => 'No JSON data provided']);
+                }
+                
+                // Load ambassador model
+                $ambassadorModel = new \App\Models\AmbassadorModel();
+                $result = $ambassadorModel->signIn($json['email'] ?? '', $json['ref_code'] ?? '');
+                
+                return service('response')->setJSON([
+                    'status' => 'success',
+                    'found_ambassador' => $result ? true : false,
+                    'ambassador_data' => $result ? ['id' => $result->id, 'name' => $result->name, 'email' => $result->email] : null
+                ]);
+            } catch (\Exception $e) {
+                return service('response')->setJSON(['error' => $e->getMessage()]);
+            }
+        });
+        
         // JWT Authentication
-        $routes->post('sign-in', 'AuthApiController::signIn');
-        $routes->get('profile', 'AuthApiController::profile', ['filter' => 'jwt']);
-        $routes->post('refresh', 'AuthApiController::refreshToken');
+        $routes->post('signin', 'Auth\JwtAuthController::signInJwt');
+        $routes->get('verify', 'Auth\JwtAuthController::verify', ['filter' => 'jwt']);
+        $routes->post('refresh', 'Auth\JwtAuthController::refreshToken');
 
         // User registration
-        $routes->post('participant/sign-up', 'AuthApiController::participantSignUp');
+        $routes->post('participant/sign-up', 'Auth\JwtAuthController::participantSignUp');
 
         // Password Recovery
-        $routes->post('forgot-password', 'AuthApiController::forgotPassword');
-        $routes->get('verify-token', 'AuthApiController::verifyToken');
-        $routes->post('reset-password', 'AuthApiController::resetPassword');
+        $routes->post('forgot-password', 'Auth\JwtAuthController::forgotPassword');
+        $routes->get('verify-token', 'Auth\JwtAuthController::verifyToken');
+        $routes->post('reset-password', 'Auth\JwtAuthController::resetPassword');
 
         // Email Verification
-        $routes->get('verify-email', 'AuthApiController::verifyEmail');
-        $routes->post('resend-verification', 'AuthApiController::resendVerification');
-        $routes->get('test-email', 'AuthApiController::testEmail');
+        $routes->get('verify-email', 'Auth\JwtAuthController::verifyEmail');
+        $routes->post('resend-verification', 'Auth\JwtAuthController::resendVerification');
+        $routes->get('test-email', 'Auth\JwtAuthController::testEmail');
 
         // For backward compatibility - can be removed after updating client apps
-        $routes->post('sign-in-jwt', 'AuthApiController::signIn');
+        $routes->post('sign-in', 'Auth\JwtAuthController::signInJwt');
+        $routes->post('sign-in-jwt', 'Auth\JwtAuthController::signInJwt');
     });
+
+    // Ambassador Dashboard API routes - JWT protected
+    $routes->get('ambassador/dashboard/overview', 'AmbassadorsApiController::getDashboardOverview', ['filter' => 'jwt']);
+    $routes->get('ambassador/dashboard/participants', 'AmbassadorsApiController::getDashboardParticipants', ['filter' => 'jwt']);
+    $routes->get('ambassador/dashboard/payments', 'AmbassadorsApiController::getDashboardPayments', ['filter' => 'jwt']);
+    $routes->get('ambassador/dashboard/performance', 'AmbassadorsApiController::getDashboardPerformance', ['filter' => 'jwt']);
 
     // routes for program documents
     $routes->post('program-documents/upload', 'ProgramDocumentsApiController::addDocument');

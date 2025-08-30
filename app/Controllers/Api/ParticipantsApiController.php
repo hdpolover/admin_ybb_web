@@ -919,4 +919,255 @@ class ParticipantsApiController extends ApiBaseController
         }
         
     }
+
+
+    /**
+     * user - GET {{api_url}}/participants/user/{{user_id}}
+     * Auto-generated method
+     */
+    public function user($id = null)
+    {
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // TODO: Implement user logic
+            
+            return $this->respond([
+                'success' => true,
+                'data' => $data ?? ['id' => $id],
+                'message' => 'user executed successfully'
+            ]);
+        } catch (\Exception $e) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'Failed to execute user',
+                'error' => $e->getMessage()
+            ], ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * getByProgramId - GET {{api_url}}/participants/program/{{program_id}}/photos
+     * Auto-generated method
+     */
+    public function getByProgramId($id = null)
+    {
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // TODO: Implement getByProgramId logic
+            
+            return $this->respond([
+                'success' => true,
+                'data' => $data ?? ['id' => $id],
+                'message' => 'getByProgramId executed successfully'
+            ]);
+        } catch (\Exception $e) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'Failed to execute getByProgramId',
+                'error' => $e->getMessage()
+            ], ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * essays - GET {{api_url}}/participants/{{participant_id}}/essays
+     * Auto-generated method
+     */
+    public function essays($id = null)
+    {
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // TODO: Implement essays logic
+            
+            return $this->respond([
+                'success' => true,
+                'data' => $data ?? ['id' => $id],
+                'message' => 'essays executed successfully'
+            ]);
+        } catch (\Exception $e) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'Failed to execute essays',
+                'error' => $e->getMessage()
+            ], ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * subthemes - GET {{api_url}}/participants/{{participant_id}}/subthemes
+     * Auto-generated method
+     */
+    public function subthemes($id = null)
+    {
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // TODO: Implement subthemes logic
+            
+            return $this->respond([
+                'success' => true,
+                'data' => $data ?? ['id' => $id],
+                'message' => 'subthemes executed successfully'
+            ]);
+        } catch (\Exception $e) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'Failed to execute subthemes',
+                'error' => $e->getMessage()
+            ], ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * status - GET {{api_url}}/participants/{{participant_id}}/status
+     * Auto-generated method
+     */
+    public function status($id = null)
+    {
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // TODO: Implement status logic
+            
+            return $this->respond([
+                'success' => true,
+                'data' => $data ?? ['id' => $id],
+                'message' => 'status executed successfully'
+            ]);
+        } catch (\Exception $e) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'Failed to execute status',
+                'error' => $e->getMessage()
+            ], ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * documents - GET {{api_url}}/participants/{{participant_id}}/documents
+     * Auto-generated method
+     */
+    public function documents($id = null)
+    {
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // TODO: Implement documents logic
+            
+            return $this->respond([
+                'success' => true,
+                'data' => $data ?? ['id' => $id],
+                'message' => 'documents executed successfully'
+            ]);
+        } catch (\Exception $e) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'Failed to execute documents',
+                'error' => $e->getMessage()
+            ], ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * referrals - GET {{api_url}}/participants/{{participant_id}}/referrals
+     * Auto-generated method
+     */
+    public function referrals($id = null)
+    {
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // TODO: Implement referrals logic
+            
+            return $this->respond([
+                'success' => true,
+                'data' => $data ?? ['id' => $id],
+                'message' => 'referrals executed successfully'
+            ]);
+        } catch (\Exception $e) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'Failed to execute referrals',
+                'error' => $e->getMessage()
+            ], ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * check - GET {{api_url}}/participants/{{participant_id}}/switch-category/check
+     * Auto-generated method
+     */
+    public function check($id = null)
+    {
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // TODO: Implement check logic
+            
+            return $this->respond([
+                'success' => true,
+                'data' => $data ?? ['id' => $id],
+                'message' => 'check executed successfully'
+            ]);
+        } catch (\Exception $e) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'Failed to execute check',
+                'error' => $e->getMessage()
+            ], ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * switchCategoryById - POST {{api_url}}/participants/{{participant_id}}/switch-category
+     * Switch participant category by ID
+     */
+    public function switchCategoryById($id = null)
+    {
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // TODO: Implement switch-category logic
+            
+            return $this->respond([
+                'success' => true,
+                'data' => $data ?? ['id' => $id],
+                'message' => 'switch-category executed successfully'
+            ]);
+        } catch (\Exception $e) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'Failed to execute switch-category',
+                'error' => $e->getMessage()
+            ], ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * upload-picture - POST {{api_url}}/participants/{{participant_id}}/upload-picture
+     * Auto-generated method
+     */
+    public function uploadPicture($id = null)
+    {
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // TODO: Implement upload-picture logic
+            
+            return $this->respond([
+                'success' => true,
+                'data' => $data ?? ['id' => $id],
+                'message' => 'upload-picture executed successfully'
+            ]);
+        } catch (\Exception $e) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'Failed to execute upload-picture',
+                'error' => $e->getMessage()
+            ], ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
 }

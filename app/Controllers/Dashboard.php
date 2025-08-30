@@ -2,19 +2,38 @@
 
 namespace App\Controllers;
 
-class Dashboard extends BaseController
+class Dashboard extends AdminBaseController
 {
     protected $dashboardModel;
     protected $programModel;
+    protected $programCategoryModel;
+    protected $adminModel;
 
     public function __construct()
     {
         $this->dashboardModel = new \App\Models\DashboardModel();
         $this->programModel = new \App\Models\ProgramModel();
+        $this->programCategoryModel = new \App\Models\ProgramCategoryModel();
+        $this->adminModel = new \App\Models\AdminModel();
     }    public function index()
     {
         $programId = session('current_program');
+        
+        // If no program is selected, redirect to welcome page
+        if (!$programId) {
+            return redirect()->to('welcome')->with('error', 'Please select a program to continue.');
+        }
+        
         $program = $this->programModel->find($programId);
+        
+        // If program not found or inactive, redirect to welcome
+        if (!$program || !$program->is_active) {
+            session()->remove('current_program');
+            return redirect()->to('welcome')->with('error', 'Selected program is not available. Please select another program.');
+        }
+        
+        // Prepare topbar data for navigation (now handled by AdminBaseController)
+        $topbarData = session('topbar_data') ?? [];
         
         // Ensure the cookie that indicates a program is selected persists
         // This ensures proper JS detection across all pages
@@ -29,6 +48,7 @@ class Dashboard extends BaseController
             'nationalityStats' => $this->dashboardModel->getNationalityDistribution($programId, 10),
             'ageStats' => $this->dashboardModel->getAgeDistribution($programId),
             'ambassadorStats' => $this->dashboardModel->getAmbassadorReferrals($programId, 5),
+            'topbarData' => $topbarData,
         ];
         
         // Prepare chart data in JSON format for JavaScript
@@ -100,6 +120,9 @@ class Dashboard extends BaseController
         return view('dashboard/index', $data);
     }
     
+    /**
+     * Prepare topbar data for navigation
+     */
     public function ajaxRegistrationStats()
     {
         $programId = session('current_program');

@@ -1,0 +1,35 @@
+{
+  "name": "ybb-api-postman-collections",
+  "version": "1.0.0",
+  "description": "Postman collections for YBB Admin API with modular structure and merge functionality",
+  "main": "merge-collections.js",
+  "scripts": {
+    "merge": "node merge-collections.js",
+    "validate": "node merge-collections.js --validate-only",
+    "help": "echo 'Available commands: npm run merge, npm run validate'"
+  },
+  "keywords": [
+    "postman",
+    "api",
+    "ybb",
+    "testing",
+    "codeigniter",
+    "collections"
+  ],
+  "author": "YBB Development Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=12.0.0"
+  },
+  "devDependencies": {
+    "newman": "^5.3.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "."
+  },
+  "bugs": {
+    "url": "."
+  },
+  "homepage": "."
+}

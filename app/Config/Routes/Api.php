@@ -77,4 +77,13 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
         $routes->post('reorder', 'ProgramSpeakersApiController::reorder');
         $routes->post('search', 'ProgramSpeakersApiController::search');
     });
+
+    // Ambassador Dashboard API routes - JWT protected
+    $routes->get('ambassador/dashboard/overview', 'AmbassadorsApiController::getDashboardOverview', ['filter' => 'jwt']);
+    $routes->get('ambassador/dashboard/profile', 'AmbassadorsApiController::getDashboardProfile', ['filter' => 'jwt']);
+    $routes->get('ambassador/dashboard/participants', 'AmbassadorsApiController::getDashboardParticipants', ['filter' => 'jwt']);
+    $routes->get('ambassador/dashboard/payments', 'AmbassadorsApiController::getDashboardPayments', ['filter' => 'jwt']);
+    $routes->get('ambassador/dashboard/performance', 'AmbassadorsApiController::getDashboardPerformance', ['filter' => 'jwt']);
+    $routes->get('ambassador/dashboard/participant-payment/(:num)', 'AmbassadorsApiController::getParticipantPaymentSummary/$1', ['filter' => 'jwt']);
+    $routes->get('ambassador/dashboard/participants-payment', 'AmbassadorsApiController::getParticipantPaymentSummary', ['filter' => 'jwt']);
 });

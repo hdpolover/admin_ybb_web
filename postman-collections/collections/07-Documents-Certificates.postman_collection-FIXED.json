@@ -1,0 +1,82 @@
+{
+  "info": {
+    "name": "YBB API - Documents & Certificates - FIXED",
+    "description": "Fixed collection with only verified endpoints. Original had validation issues, now contains only working endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Program Documents",
+      "item": [
+        {
+          "name": "Get All Program Documents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-documents",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-documents"
+              ]
+            },
+            "description": "Get all program documents"
+          }
+        },
+        {
+          "name": "Get Program Document by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-documents/1",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-documents",
+                "1"
+              ]
+            },
+            "description": "Get single program document by ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Certificates",
+      "item": [
+        {
+          "name": "Certificate Service Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/certificates/health",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "certificates",
+                "health"
+              ]
+            },
+            "description": "Health check for certificate service"
+          }
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  }
+}

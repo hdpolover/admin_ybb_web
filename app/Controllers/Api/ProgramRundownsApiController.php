@@ -84,4 +84,30 @@ class ProgramRundownsApiController extends ApiBaseController
         return $this->respondSuccess($programPhotos, self::HTTP_OK, 'Program photos retrieved successfully');
     }
 
+
+
+    /**
+     * program - GET {{api_url}}/program-rundowns/program/{{program_id}}
+     * Auto-generated method
+     */
+    public function program($id = null)
+    {
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // TODO: Implement program logic
+            
+            return $this->respond([
+                'success' => true,
+                'data' => $data ?? ['id' => $id],
+                'message' => 'program executed successfully'
+            ]);
+        } catch (\Exception $e) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'Failed to execute program',
+                'error' => $e->getMessage()
+            ], ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
 }

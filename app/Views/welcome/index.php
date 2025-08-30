@@ -31,6 +31,30 @@
 
                     <?php echo view('partials/page-title', array('pagetitle' => 'Welcome', 'title' => 'Program Selection')); ?>
 
+                    <?php if (isset($hasLimitedAccess) && $hasLimitedAccess): ?>
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <div class="alert alert-info border-0 bg-info-subtle text-info">
+                                    <i class="ri-information-line me-2"></i>
+                                    <strong>Limited Access:</strong> You can only access programs assigned to your role. 
+                                    Contact your administrator if you need access to additional programs.
+                                </div>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if (empty($programs)): ?>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="alert alert-warning border-0 bg-warning-subtle text-warning">
+                                    <i class="ri-alert-line me-2"></i>
+                                    <strong>No Programs Available:</strong> You do not have access to any programs. 
+                                    Please contact your administrator to assign programs to your account.
+                                </div>
+                            </div>
+                        </div>
+                    <?php else: ?>
+
                     <?php foreach ($programs as $categoryProgram): ?>
                         <?php
                         $logoUrl = $categoryProgram->logo_url;
@@ -72,6 +96,8 @@
                             <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
+
+                    <?php endif; // End of empty programs check ?>
 
                 </div>
                 <!-- container-fluid -->

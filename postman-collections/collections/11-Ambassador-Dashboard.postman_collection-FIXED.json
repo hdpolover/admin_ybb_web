@@ -1,0 +1,245 @@
+{
+  "info": {
+    "name": "YBB API - Ambassador Dashboard - FIXED",
+    "description": "Ambassador dashboard endpoints including authentication, overview, participants, payments, and performance metrics. All endpoints verified and working.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Ambassador Authentication",
+      "item": [
+        {
+          "name": "Ambassador Sign In",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Auto-save token on successful login",
+                  "pm.test('Ambassador authentication successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const responseJson = pm.response.json();",
+                  "    if (responseJson.status === 'success' && responseJson.data.token) {",
+                  "        pm.globals.set('auth_token', responseJson.data.token);",
+                  "        pm.environment.set('auth_token', responseJson.data.token);",
+                  "        console.log('🔑 Ambassador token saved');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"{{ambassador_email}}\",\n    \"ref_code\": \"{{ambassador_ref_code}}\",\n    \"type\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{api_url}}/auth/signin",
+              "host": ["{{api_url}}"],
+              "path": ["auth", "signin"]
+            },
+            "description": "Ambassador authentication with email and referral code (type 3)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Overview",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Dashboard overview retrieved successfully', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson.status).to.eql('success');",
+                  "    pm.expect(responseJson.data).to.have.property('ambassador');",
+                  "    pm.expect(responseJson.data).to.have.property('metrics');",
+                  "});",
+                  "",
+                  "pm.test('Overview has required metrics', function () {",
+                  "    const responseJson = pm.response.json();",
+                  "    const metrics = responseJson.data.metrics;",
+                  "    pm.expect(metrics).to.have.property('total_referrals');",
+                  "    pm.expect(metrics).to.have.property('active_participants');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/ambassador/dashboard/overview",
+              "host": ["{{api_url}}"],
+              "path": ["ambassador", "dashboard", "overview"]
+            },
+            "description": "Get comprehensive dashboard metrics and ambassador info"
+          }
+        },
+        {
+          "name": "Get Referred Participants",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Participants data retrieved successfully', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson.status).to.eql('success');",
+                  "    pm.expect(responseJson.data).to.have.property('participants');",
+                  "    pm.expect(responseJson.data).to.have.property('pagination');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/ambassador/dashboard/participants?page=1&limit=20",
+              "host": ["{{api_url}}"],
+              "path": ["ambassador", "dashboard", "participants"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number for pagination"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Number of participants per page"
+                }
+              ]
+            },
+            "description": "Get detailed list of participants referred by this ambassador"
+          }
+        },
+        {
+          "name": "Get Payment Analytics",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Payment analytics retrieved successfully', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson.status).to.eql('success');",
+                  "    pm.expect(responseJson.data).to.have.property('payment_summary');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/ambassador/dashboard/payments",
+              "host": ["{{api_url}}"],
+              "path": ["ambassador", "dashboard", "payments"]
+            },
+            "description": "Get payment analytics for referred participants"
+          }
+        },
+        {
+          "name": "Get Performance Metrics",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Performance analytics retrieved successfully', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.expect(responseJson.status).to.eql('success');",
+                  "    pm.expect(responseJson.data).to.have.property('conversion_metrics');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/ambassador/dashboard/performance",
+              "host": ["{{api_url}}"],
+              "path": ["ambassador", "dashboard", "performance"]
+            },
+            "description": "Get referral performance and conversion metrics"
+          }
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "ambassador_email",
+      "value": "test@example.com",
+      "description": "Test ambassador email"
+    },
+    {
+      "key": "ambassador_ref_code", 
+      "value": "TEST001",
+      "description": "Test ambassador referral code"
+    }
+  ]
+}

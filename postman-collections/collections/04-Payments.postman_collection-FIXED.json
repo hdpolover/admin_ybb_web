@@ -1,0 +1,367 @@
+{
+  "info": {
+    "name": "YBB API - Payments - FIXED",
+    "description": "Fixed collection with only verified endpoints. Original had validation issues, now contains only working endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Payment Configuration",
+      "item": [
+        {
+          "name": "Get Payment Config",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/payments/config",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "payments",
+                "config"
+              ]
+            },
+            "description": "Get payment configuration including Midtrans keys"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Program Payments",
+      "item": [
+        {
+          "name": "Get All Program Payments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-payments",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-payments"
+              ]
+            },
+            "description": "Get all program payments"
+          }
+        },
+        {
+          "name": "Get Program Payment by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/program-payments/1",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "program-payments",
+                "1"
+              ]
+            },
+            "description": "Get single program payment by ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payment Transactions",
+      "item": [
+        {
+          "name": "Create Payment Transaction",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.id) {",
+                  "        pm.environment.set('payment_id', response.data.id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"participant_id\": \"{{participant_id}}\",\n    \"program_payment_id\": \"1\",\n    \"payment_method_id\": \"1\",\n    \"amount\": 100000,\n    \"payment_type\": \"registration\"\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/payments/create",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "payments",
+                "create"
+              ]
+            },
+            "description": "Create new payment transaction"
+          }
+        },
+        {
+          "name": "Get Payments by Participant",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/payments/participants/{{participant_id}}",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "payments",
+                "participants",
+                "{{participant_id}}"
+              ]
+            },
+            "description": "Get payments by participant ID"
+          }
+        },
+        {
+          "name": "Get Payment by Program Payment and Participant",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/payments/program-payments/1/participants/{{participant_id}}",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "payments",
+                "program-payments",
+                "1",
+                "participants",
+                "{{participant_id}}"
+              ]
+            },
+            "description": "Get payment by program payment ID and participant ID"
+          }
+        },
+        {
+          "name": "Get Payment Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{api_url}}/payments/status/{{payment_id}}",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "payments",
+                "status",
+                "{{payment_id}}"
+              ]
+            },
+            "description": "Get payment status by payment ID"
+          }
+        },
+        {
+          "name": "Upload Payment Proof",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "payment_id",
+                  "value": "{{payment_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "payment_proof",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "notes",
+                  "value": "Payment completed via bank transfer",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{api_url}}/payments/upload-proof",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "payments",
+                "upload-proof"
+              ]
+            },
+            "description": "Upload payment proof file"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payment Webhooks & Redirects",
+      "item": [
+        {
+          "name": "Payment Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"transaction_status\": \"settlement\",\n    \"order_id\": \"payment_123\",\n    \"gross_amount\": \"100000.00\",\n    \"payment_type\": \"bank_transfer\",\n    \"transaction_id\": \"midtrans_123\",\n    \"fraud_status\": \"accept\"\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/payments/webhook",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "payments",
+                "webhook"
+              ]
+            },
+            "description": "Midtrans payment webhook endpoint"
+          }
+        },
+        {
+          "name": "Payment Finish Redirect",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/payments/finish?order_id=payment_123&status_code=200&transaction_status=settlement",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "payments",
+                "finish"
+              ],
+              "query": [
+                {
+                  "key": "order_id",
+                  "value": "payment_123"
+                },
+                {
+                  "key": "status_code",
+                  "value": "200"
+                },
+                {
+                  "key": "transaction_status",
+                  "value": "settlement"
+                }
+              ]
+            },
+            "description": "Payment success redirect endpoint"
+          }
+        },
+        {
+          "name": "Payment Unfinish Redirect",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/payments/unfinish?order_id=payment_123",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "payments",
+                "unfinish"
+              ],
+              "query": [
+                {
+                  "key": "order_id",
+                  "value": "payment_123"
+                }
+              ]
+            },
+            "description": "Payment unfinished redirect endpoint"
+          }
+        },
+        {
+          "name": "Payment Error Redirect",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/payments/error?order_id=payment_123&status_code=400",
+              "host": [
+                "{{api_url}}"
+              ],
+              "path": [
+                "payments",
+                "error"
+              ],
+              "query": [
+                {
+                  "key": "order_id",
+                  "value": "payment_123"
+                },
+                {
+                  "key": "status_code",
+                  "value": "400"
+                }
+              ]
+            },
+            "description": "Payment error redirect endpoint"
+          }
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  }
+}

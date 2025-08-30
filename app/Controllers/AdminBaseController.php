@@ -56,7 +56,7 @@ abstract class AdminBaseController extends Controller
      *
      * @var string
      */
-    protected $userRole = 'super';
+    protected $userRole = 'super_admin';
 
     /**
      * Menu items for current user
@@ -103,7 +103,13 @@ abstract class AdminBaseController extends Controller
             $this->currentUser = $adminModel->find($adminId);
             if ($this->currentUser) {
                 $this->userType = 'admin';
-                $this->userRole = $this->currentUser->role ?? 'super';
+                $this->userRole = $this->currentUser->role ?? 'super_admin';
+                
+                // Store role in session for consistency
+                $this->session->set('userRole', $this->userRole);
+                
+                // Debug logging for role
+                log_message('debug', 'Admin role loaded: ' . $this->userRole . ' for admin ID: ' . $adminId);
             }
         }
 
@@ -127,6 +133,129 @@ abstract class AdminBaseController extends Controller
 
         $currentUrl = $this->request->getUri()->getPath();
         $this->menuItems = MenuService::getMenuWithActiveStates($this->userType, $this->userRole, $currentUrl);
+        
+        // Load topbar data for program selection
+        $this->loadTopbarData();
+    }
+    
+    /**
+     * Load topbar data for program selection
+     */
+    protected function loadTopbarData()
+    {
+        // Check if topbar data is already cached in session
+        $topbarData = $this->session->get('topbar_data');
+        $lastUpdated = $this->session->get('topbar_data_updated');
+        
+        // Refresh topbar data if not cached or older than 1 hour
+        if (!$topbarData || !$lastUpdated || (time() - $lastUpdated) > 3600) {
+            $topbarData = $this->prepareTopbarData();
+            $this->session->set('topbar_data', $topbarData);
+            $this->session->set('topbar_data_updated', time());
+        }
+    }
+    
+    /**
+     * Prepare topbar data for program selection
+     */
+    protected function prepareTopbarData()
+    {
+        $programCategoryModel = new \App\Models\ProgramCategoryModel();
+        $adminModel = new \App\Models\AdminModel();
+        
+        // Get all available programs
+        $allPrograms = $programCategoryModel->getAllCategoriesWithPrograms();
+        
+        // Filter programs based on admin access
+        $accessiblePrograms = $this->filterProgramsByAdminAccess($allPrograms, $adminModel);
+        
+        // Sort programs by category name
+        usort($accessiblePrograms, function ($a, $b) {
+            return strcmp($a->name, $b->name);
+        });
+
+        // Group by active and inactive
+        $activePrograms = array_filter($accessiblePrograms, function ($program) {
+            return $program->is_active == 1;
+        });
+
+        $inactivePrograms = array_filter($accessiblePrograms, function ($program) {
+            return $program->is_active == 0;
+        });
+
+        $currentProgramId = $this->session->get('current_program');
+        
+        // Check if a program is already selected and if admin has access to it
+        $selectedProgram = null;
+        if ($currentProgramId) {
+            $selectedProgram = $this->validateProgramAccess($currentProgramId, $accessiblePrograms);
+        }
+
+        return [
+            'selectedProgram' => $selectedProgram,
+            'activePrograms' => $activePrograms,
+            'inactivePrograms' => $inactivePrograms,
+            'currentUser' => $this->currentUser,
+        ];
+    }
+    
+    /**
+     * Filter programs based on admin access
+     */
+    protected function filterProgramsByAdminAccess($allPrograms, $adminModel)
+    {
+        // Super admin has access to all programs
+        if ($this->userRole === 'super_admin') {
+            return $allPrograms;
+        }
+        
+        // Get admin's assigned programs
+        $adminPrograms = $adminModel->getAdminPrograms($this->currentUser->id);
+        $adminProgramIds = array_column($adminPrograms, 'id');
+        
+        // If admin has no program assignments, return empty array
+        if (empty($adminProgramIds)) {
+            return [];
+        }
+        
+        // Filter categories and programs
+        $filteredPrograms = [];
+        foreach ($allPrograms as $category) {
+            $filteredCategory = clone $category;
+            $filteredCategory->programs = [];
+            
+            if (!empty($category->programs)) {
+                foreach ($category->programs as $program) {
+                    if (in_array($program->id, $adminProgramIds)) {
+                        $filteredCategory->programs[] = $program;
+                    }
+                }
+            }
+            
+            // Only include category if it has accessible programs
+            if (!empty($filteredCategory->programs)) {
+                $filteredPrograms[] = $filteredCategory;
+            }
+        }
+        
+        return $filteredPrograms;
+    }
+    
+    /**
+     * Validate if admin has access to the selected program
+     */
+    protected function validateProgramAccess($programId, $accessiblePrograms)
+    {
+        foreach ($accessiblePrograms as $category) {
+            if (!empty($category->programs)) {
+                foreach ($category->programs as $program) {
+                    if ($program->id == $programId) {
+                        return $program;
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     /**
@@ -215,5 +344,22 @@ abstract class AdminBaseController extends Controller
     {
         $viewData = $this->prepareViewData($data);
         return view($view, $viewData, $options);
+    }
+    
+    /**
+     * Debug method to check current admin state
+     */
+    protected function debugAdminState()
+    {
+        if (ENVIRONMENT === 'development') {
+            log_message('debug', 'Admin State Debug: ' . json_encode([
+                'adminId' => $this->session->get('adminId'),
+                'userRole' => $this->userRole,
+                'userType' => $this->userType,
+                'currentProgram' => $this->session->get('current_program'),
+                'isLoggedIn' => $this->session->get('isLoggedIn'),
+                'sessionData' => $this->session->get()
+            ]));
+        }
     }
 }

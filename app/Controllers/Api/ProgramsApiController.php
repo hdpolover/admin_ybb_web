@@ -255,4 +255,87 @@ class ProgramsApiController extends ApiBaseController
         
         return $this->respondSuccess($programs, self::HTTP_OK, 'Programs retrieved successfully');
     }
+
+
+    /**
+     * programslug - GET {{api_url}}/programs/slug/program-slug
+     * Auto-generated method
+     */
+    public function programslug($id = null)
+    {
+        try {
+            $data = $this->request->getJSON(true);
+            
+            // TODO: Implement programslug logic
+            
+            return $this->respondSuccess(
+                $data ?? ['id' => $id], 
+                self::HTTP_OK, 
+                'programslug executed successfully'
+            );
+        } catch (\Exception $e) {
+            log_message('error', 'Failed to execute programslug: ' . $e->getMessage());
+            return $this->respondError(
+                'Failed to execute programslug', 
+                self::HTTP_INTERNAL_ERROR,
+                ['error' => $e->getMessage()]
+            );
+        }
+    }
+
+    /**
+     * category - GET {{api_url}}/programs/category/1
+     * Get programs by category ID
+     */
+    public function category($id = null)
+    {
+        try {
+            if (!$id) {
+                return $this->respondError('Category ID is required', self::HTTP_BAD_REQUEST);
+            }
+            
+            // TODO: Implement category logic to get programs by category ID
+            
+            return $this->respondSuccess(
+                ['category_id' => $id], 
+                self::HTTP_OK, 
+                'Programs by category retrieved successfully'
+            );
+        } catch (\Exception $e) {
+            log_message('error', 'Failed to retrieve programs by category: ' . $e->getMessage());
+            return $this->respondError(
+                'Failed to retrieve programs by category', 
+                self::HTTP_INTERNAL_ERROR,
+                ['error' => $e->getMessage()]
+            );
+        }
+    }
+
+    /**
+     * notInCategory - GET {{api_url}}/programs/not-in-category/1
+     * Get programs not in a specific category
+     */
+    public function notInCategory($id = null)
+    {
+        try {
+            if (!$id) {
+                return $this->respondError('Category ID is required', self::HTTP_BAD_REQUEST);
+            }
+            
+            // TODO: Implement logic to get programs not in the specified category ID
+            
+            return $this->respondSuccess(
+                ['excluded_category_id' => $id], 
+                self::HTTP_OK, 
+                'Programs not in category retrieved successfully'
+            );
+        } catch (\Exception $e) {
+            log_message('error', 'Failed to retrieve programs not in category: ' . $e->getMessage());
+            return $this->respondError(
+                'Failed to retrieve programs not in category', 
+                self::HTTP_INTERNAL_ERROR,
+                ['error' => $e->getMessage()]
+            );
+        }
+    }
 }
