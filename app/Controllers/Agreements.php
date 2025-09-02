@@ -22,7 +22,7 @@ class Agreements extends BaseController
         $programId = session('current_program');
         $documentName = 'Agreement Letter';
         $type = 'agreement';
-        
+
         // $document = $this->DocModel->getDocumentIdByName($programId, $documentName);
         $document = $this->DocModel->getDocumentIdByType($programId, $type);
         if ($document) {
@@ -31,7 +31,7 @@ class Agreements extends BaseController
             // Handle jika tidak ditemukan
             $programDocumentId = null;
         }
-        
+
         $docs = $this->ProgramDoc->getAllDocsByProgramId($programDocumentId);
 
         if (empty($docs)) {
@@ -73,9 +73,38 @@ class Agreements extends BaseController
             $updated = $this->ProgramDoc->update($idDoc, $data);
 
             if ($updated) {
-                session()->setFlashdata('success', 'Agreement letter status updated successfully');
-            } else {
-                session()->setFlashdata('error', 'Failed to update agreement letter status');
+                // Ambil data dokumen yang sudah diupdate
+                $doc = $this->ProgramDoc->find($idDoc);
+
+                // Debug 1: cek isi $doc
+                var_dump($doc);
+                exit;
+
+                if ($doc) {
+                    // Ambil participant
+                    $participantModel = new \App\Models\ParticipantModel();
+                    $participant = $participantModel->getById($doc->participant_id);
+
+                    // Debug 2: cek isi $participant
+                    var_dump($participant);
+                    exit;
+
+                    if ($participant && $participant->user_id) {
+                        // Ambil user
+                        $userModel = new \App\Models\UserModel();
+                        $user = $userModel->find($participant->user_id);
+
+                        // Debug 3: cek isi $user
+                        var_dump($user);
+                        exit;
+
+                        if ($user && !empty($user->email)) {
+                            // Debug 4: cek email aja
+                            var_dump("Email tujuan: " . $user->email);
+                            exit;
+                        }
+                    }
+                }
             }
         } catch (\Exception $e) {
             log_message('error', 'Error updating agreement status: ' . $e->getMessage());
