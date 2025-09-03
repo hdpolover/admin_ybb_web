@@ -6,7 +6,7 @@ use App\Models\ProgramTestimonyModel;
 use App\Models\ProgramModel;
 use App\Traits\Cacheable;
 
-class ProgramTestimonies extends BaseController
+class ProgramTestimonies extends AdminBaseController
 {
     use Cacheable;
     

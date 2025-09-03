@@ -255,9 +255,9 @@ trait TimeTrait
      *
      * @throws Exception
      */
-    public static function createFromTimestamp(int $timestamp, $timezone = null, ?string $locale = null)
+    public static function createFromTimestamp(int|float $timestamp, $timezone = null, ?string $locale = null)
     {
-        $time = new self(gmdate('Y-m-d H:i:s', $timestamp), 'UTC', $locale);
+        $time = new self(gmdate('Y-m-d H:i:s', (int) $timestamp), 'UTC', $locale);
         $timezone ??= 'UTC';
 
         return $time->setTimezone($timezone);
@@ -1004,7 +1004,7 @@ trait TimeTrait
      */
     public function humanize()
     {
-        $now  = IntlCalendar::fromDateTime(self::now($this->timezone));
+        $now  = IntlCalendar::fromDateTime(self::now($this->timezone), $this->locale);
         $time = $this->getCalendar()->getTime();
 
         $years   = $now->fieldDifference($time, IntlCalendar::FIELD_YEAR);
@@ -1105,7 +1105,7 @@ trait TimeTrait
      */
     public function getCalendar()
     {
-        return IntlCalendar::fromDateTime($this);
+        return IntlCalendar::fromDateTime($this, $this->locale);
     }
 
     /**

@@ -8,7 +8,7 @@ use App\Models\ProgramCertificateContentBlockModel;
 use App\Traits\Cacheable;
 use Exception;
 
-class ProgramCertificates extends BaseController
+class ProgramCertificates extends AdminBaseController
 {
     use Cacheable;
     
@@ -37,10 +37,14 @@ class ProgramCertificates extends BaseController
             // Get awards for dropdown
             $awards = $this->programAwardModel->getActiveAwardsByProgram($programId);
 
+            // Get topbar data from session (already loaded by AdminBaseController)
+            $topbarData = $this->session->get('topbar_data', []);
+
             $data = [
                 'title' => 'Program Certificates',
                 'certificates' => [],
-                'awards' => $awards
+                'awards' => $awards,
+                'topbarData' => $topbarData
             ];
 
             return view('master-data/program-certificates/index', $data);
@@ -126,9 +130,13 @@ class ProgramCertificates extends BaseController
                 return redirect()->to('/master-data/program-certificates')->with('error', 'Certificate not found');
             }
 
+            // Get topbar data from session (already loaded by AdminBaseController)
+            $topbarData = $this->session->get('topbar_data', []);
+
             $data = [
                 'title' => 'Certificate Details',
-                'certificate' => $certificate
+                'certificate' => $certificate,
+                'topbarData' => $topbarData
             ];
 
             return view('master-data/program-certificates/view', $data);

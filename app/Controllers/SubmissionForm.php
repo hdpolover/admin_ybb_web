@@ -11,7 +11,7 @@ use App\Models\ProgramEssayModel;
 use App\Models\ProgramSubthemeModel;
 use App\Traits\Cacheable;
 
-class SubmissionForm extends BaseController
+class SubmissionForm extends AdminBaseController
 {
     use Cacheable;
     

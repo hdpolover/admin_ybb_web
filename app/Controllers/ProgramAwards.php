@@ -5,7 +5,7 @@ namespace App\Controllers;
 use App\Models\ProgramAwardModel;
 use App\Traits\Cacheable;
 
-class ProgramAwards extends BaseController
+class ProgramAwards extends AdminBaseController
 {
     use Cacheable;
     

@@ -7,7 +7,7 @@ use App\Models\ProgramModel;
 use App\Models\WebSettingModel;
 use App\Traits\Cacheable;
 
-class AbstractSettings extends BaseController
+class AbstractSettings extends AdminBaseController
 {
     use Cacheable;
     
@@ -43,11 +43,15 @@ class AbstractSettings extends BaseController
 
         $webSettings = $this->webSettingModel->getSettingByProgramId($program->program_category_id);
 
+        // Get topbar data from session (already loaded by AdminBaseController)
+        $topbarData = $this->session->get('topbar_data', []);
+
         $data = [
             'title' => 'Abstract Settings',
             'abstractSettings' => $abstractSettings,
             'webSettings' => $webSettings,
             'program' => $program,
+            'topbarData' => $topbarData,
         ];
 
         return view('master-data/abstract-settings/index', $data);
@@ -68,10 +72,14 @@ class AbstractSettings extends BaseController
         // Get abstract settings for the current program
         $abstractSettings = $this->abstractSettingModel->getByProgramId($programId);
 
+        // Get topbar data from session (already loaded by AdminBaseController)
+        $topbarData = $this->session->get('topbar_data', []);
+
         $data = [
             'title' => 'View Abstract Settings',
             'abstractSettings' => $abstractSettings,
-            'programId' => $programId
+            'programId' => $programId,
+            'topbarData' => $topbarData
         ];
 
         return view('master-data/abstract-settings/view', $data);

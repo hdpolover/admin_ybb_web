@@ -11,6 +11,10 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
     // welcome
     $routes->get('welcome', 'Welcome::index');
     $routes->get('welcome/set-program/(:num)', 'Welcome::setProgram/$1');
+    
+    // topbar program selection
+    $routes->get('topbar/set-program/(:num)', 'Topbar::setProgram/$1');
+    
     $routes->get('sign-out', 'Auth::signOut');
 
     // YBB Export API routes (Python Flask service integration)

@@ -35,21 +35,43 @@ class Welcome extends AdminBaseController
             return strcmp($a->name, $b->name);
         });
 
-        // Group by active and inactive
-        $activePrograms = array_filter($accessiblePrograms, function ($program) {
-            return $program->is_active == 1;
-        });
-
-        $inactivePrograms = array_filter($accessiblePrograms, function ($program) {
-            return $program->is_active == 0;
-        });
+        // Extract individual programs from categories and group by active and inactive
+        $allIndividualPrograms = [];
+        $activePrograms = [];
+        $inactivePrograms = [];
+        
+        foreach ($accessiblePrograms as $category) {
+            if (isset($category->programs) && is_array($category->programs)) {
+                foreach ($category->programs as $program) {
+                    // Add logo URL and category name to the program
+                    $program->logo_url = $category->logo_url ?? null;
+                    $program->category_name = $category->name ?? null;
+                    
+                    $allIndividualPrograms[] = $program;
+                    
+                    if ($program->is_active == 1) {
+                        $activePrograms[] = $program;
+                    } else {
+                        $inactivePrograms[] = $program;
+                    }
+                }
+            }
+        }
 
         $currentProgramId = session('current_program');
         
         // Check if a program is already selected and if admin has access to it
         $selectedProgram = null;
         if ($currentProgramId) {
-            $selectedProgram = $this->validateProgramAccess($currentProgramId, $accessiblePrograms);
+            // Create a mock structure that validateProgramAccess expects
+            $mockAccessiblePrograms = [
+                (object)[
+                    'programs' => $allIndividualPrograms,
+                    'logo_url' => null,
+                    'name' => 'All Programs'
+                ]
+            ];
+            $selectedProgram = $this->validateProgramAccess($currentProgramId, $mockAccessiblePrograms);
             
             // If the selected program is not accessible, unset the session variable
             if (!$selectedProgram) {
@@ -57,9 +79,8 @@ class Welcome extends AdminBaseController
                 
                 // If admin has limited access, auto-select the first available program
                 if (!empty($activePrograms) && $this->currentUser->role !== 'super_admin') {
-                    $firstCategory = reset($activePrograms);
-                    if (!empty($firstCategory->programs)) {
-                        $firstProgram = reset($firstCategory->programs);
+                    $firstProgram = reset($activePrograms);
+                    if ($firstProgram) {
                         session()->set('current_program', $firstProgram->id);
                         $selectedProgram = $firstProgram;
                     }
@@ -86,6 +107,9 @@ class Welcome extends AdminBaseController
      */
     public function setProgram($program_id)
     {
+        // Debug logging
+        log_message('debug', "Welcome::setProgram called with program_id: {$program_id}");
+        
         // Ensure user authentication
         $this->requireAuth();
         
@@ -93,40 +117,68 @@ class Welcome extends AdminBaseController
         $allPrograms = $this->programCategoryModel->getAllCategoriesWithPrograms();
         $accessiblePrograms = $this->filterProgramsByAdminAccess($allPrograms, $this->adminModel);
         
+        // Extract individual programs from categories for validation
+        $allIndividualPrograms = [];
+        foreach ($accessiblePrograms as $category) {
+            if (isset($category->programs) && is_array($category->programs)) {
+                foreach ($category->programs as $program) {
+                    // Add logo URL and category name to the program
+                    $program->logo_url = $category->logo_url ?? null;
+                    $program->category_name = $category->name ?? null;
+                    $allIndividualPrograms[] = $program;
+                }
+            }
+        }
+        
+        log_message('debug', "Welcome::setProgram - Found " . count($accessiblePrograms) . " accessible program categories with " . count($allIndividualPrograms) . " total programs");
+        
+        // Create mock structure for validateProgramAccess
+        $mockAccessiblePrograms = [
+            (object)[
+                'programs' => $allIndividualPrograms,
+                'logo_url' => null,
+                'name' => 'All Programs'
+            ]
+        ];
+        
         // Validate that the admin has access to this program
-        $program = $this->validateProgramAccess($program_id, $accessiblePrograms);
+        $program = $this->validateProgramAccess($program_id, $mockAccessiblePrograms);
+        
+        log_message('debug', "Welcome::setProgram - validateProgramAccess result: " . ($program ? "Found program: {$program->name}" : "Program not found"));
         
         if (!$program) {
+            log_message('debug', "Welcome::setProgram - Access denied for program_id: {$program_id}");
             return redirect()->to('welcome')->with('error', 'You do not have access to the selected program.');
         }
         
-        // Ensure the program is active
-        if (!$program->is_active) {
-            return redirect()->to('welcome')->with('error', 'The selected program is not currently active.');
-        }
+        // Allow selection of both active and inactive programs
+        log_message('debug', "Welcome::setProgram - Program status: " . ($program->is_active ? 'Active' : 'Inactive') . " - {$program_id}");
         
         // Set the program in session
         session()->set('current_program', $program_id);
+        log_message('debug', "Welcome::setProgram - Set current_program in session: {$program_id}");
         
         // Clear topbar cache to force refresh with new program selection
         session()->remove('topbar_data');
         session()->remove('topbar_data_updated');
         
-        // Force immediate preparation of topbar data with the new program selection
-        $topbarData = $this->prepareTopbarData();
-        session()->set('topbar_data', $topbarData);
-        session()->set('topbar_data_updated', time());
+        // Force refresh of topbar data by clearing cache and reloading
+        $this->loadTopbarData();
         
         // Set a cookie to indicate a program has been selected (for JavaScript detection)
         $this->response->setCookie('has_program_selected', 'true', time() + 86400, '', '/', '', false, true);
         
         // If coming from another page (like dashboard), redirect back there
         $referer = $this->request->getServer('HTTP_REFERER');
+        log_message('debug', "Welcome::setProgram - Referer: " . ($referer ?? 'None'));
+        
         if (!empty($referer) && strpos($referer, 'welcome') === false) {
+            log_message('debug', "Welcome::setProgram - Redirecting back to referer");
             return redirect()->to($referer)->with('success', "Program switched to: {$program->name}");
         }
         
         // Otherwise redirect to dashboard
+        log_message('debug', "Welcome::setProgram - Redirecting to dashboard");
         return redirect()->to('dashboard')->with('success', "Program selected: {$program->name}");
     }
     

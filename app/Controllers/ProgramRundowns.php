@@ -5,7 +5,7 @@ namespace App\Controllers;
 use App\Models\ProgramRundownModel;
 use App\Models\ProgramModel;
 
-class ProgramRundowns extends BaseController
+class ProgramRundowns extends AdminBaseController
 {
     protected $programRundownModel;
     protected $programModel;

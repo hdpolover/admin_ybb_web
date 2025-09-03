@@ -5,7 +5,7 @@ namespace App\Controllers;
 use App\Models\WebSettingModel;
 use App\Traits\Cacheable;
 
-class MainConfig extends BaseController
+class MainConfig extends AdminBaseController
 {
     use Cacheable;
     
@@ -50,10 +50,14 @@ class MainConfig extends BaseController
             $settings = $this->webSettingModel->getSettingByProgramCategoryId($program->program_category_id);
         }
 
+        // Get topbar data from session (already loaded by AdminBaseController)
+        $topbarData = $this->session->get('topbar_data', []);
+
         $data = [
             'title' => 'Main Configuration',
             'settings' => $settings,
-            'program' => $program
+            'program' => $program,
+            'topbarData' => $topbarData
         ];
 
         return view('settings/main-config/index', $data);

@@ -6,7 +6,7 @@ use App\Models\ProgramVideoTestimonyModel;
 use App\Models\ProgramModel;
 use App\Traits\Cacheable;
 
-class ProgramVideoTestimonies extends BaseController
+class ProgramVideoTestimonies extends AdminBaseController
 {
     use Cacheable;
     

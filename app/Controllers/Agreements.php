@@ -2,7 +2,7 @@
 
 namespace App\Controllers;
 
-class Agreements extends BaseController
+class Agreements extends AdminBaseController
 {
     protected $ProgramDoc;
     protected $DocModel;

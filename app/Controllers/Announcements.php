@@ -5,7 +5,7 @@ namespace App\Controllers;
 use App\Models\AnnouncementModel;
 use App\Traits\Cacheable;
 
-class Announcements extends BaseController
+class Announcements extends AdminBaseController
 {
     use Cacheable;
     

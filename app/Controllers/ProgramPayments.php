@@ -7,7 +7,7 @@ use App\Models\ProgramModel;
 use App\Models\WebSettingModel;
 use App\Traits\Cacheable;
 
-class ProgramPayments extends BaseController
+class ProgramPayments extends AdminBaseController
 {
     use Cacheable;
     

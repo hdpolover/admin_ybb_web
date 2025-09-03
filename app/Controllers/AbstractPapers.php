@@ -6,7 +6,7 @@ use App\Models\ProgramModel;
 use App\Models\AbstractModel;
 use App\Models\ParticipantModel;
 
-class AbstractPapers extends BaseController
+class AbstractPapers extends AdminBaseController
 {
     protected $abstractModel;
     protected $programModel;
@@ -902,6 +902,11 @@ class AbstractPapers extends BaseController
                 throw new \Exception('Abstract not found');
             }
 
+            // Check if Dompdf is available
+            if (!class_exists('Dompdf\Dompdf')) {
+                throw new \Exception('PDF generation library not available');
+            }
+
             // Generate PDF using dompdf
             $options = new \Dompdf\Options();
             $options->set('defaultFont', 'DejaVu Sans');
@@ -933,7 +938,7 @@ class AbstractPapers extends BaseController
 
         } catch (\Exception $e) {
             log_message('error', 'Error generating PDF: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Failed to generate PDF');
+            return redirect()->back()->with('error', 'Failed to generate PDF: ' . $e->getMessage());
         }
     }
 

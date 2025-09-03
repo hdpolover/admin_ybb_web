@@ -4,7 +4,7 @@ namespace App\Controllers;
 
 use App\Models\ParticipantCertificateModel;
 
-class ParticipantCertificates extends BaseController
+class ParticipantCertificates extends AdminBaseController
 {
     protected $participantCertificateModel;
 

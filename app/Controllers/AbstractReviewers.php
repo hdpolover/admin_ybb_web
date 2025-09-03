@@ -8,7 +8,7 @@ use App\Models\ProgramModel;
 use App\Models\ProgramSubthemeModel;
 use App\Models\WebSettingModel;
 
-class AbstractReviewers extends BaseController
+class AbstractReviewers extends AdminBaseController
 {
     protected $abstractReviewerModel;
     protected $abstractReviewerSubthemeModel;

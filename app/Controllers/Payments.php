@@ -2,7 +2,7 @@
 
 namespace App\Controllers;
 
-class Payments extends BaseController
+class Payments extends AdminBaseController
 {
     protected $paymentModel;
     protected $programModel;

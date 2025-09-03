@@ -2,12 +2,12 @@
 
 namespace App\Controllers;
 
-use App\Controllers\BaseController;
+use App\Controllers\AdminBaseController;
 use App\Models\MenuItemModel;
 use App\Models\RoleModel;
 use App\Models\PermissionModel;
 
-class MenuSetup extends BaseController
+class MenuSetup extends AdminBaseController
 {
     protected $menuItemModel;
     protected $roleModel;

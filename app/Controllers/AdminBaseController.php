@@ -12,16 +12,13 @@ use App\Services\MenuService;
 use App\Models\AdminModel;
 
 /**
- * Class BaseController
+ * Class AdminBaseController
  *
- * BaseController provides a convenient place for loading components
- * and performing functions that are needed by all your controllers.
- * Extend this class in any new controllers:
- *     class Home extends BaseController
- *
- * For security be sure to declare any new methods as protected or private.
+ * AdminBaseController extends BaseController and adds admin-specific functionality
+ * like authentication, authorization, menu management, and access control.
+ * It inherits all the topbar data loading functionality from BaseController.
  */
-abstract class AdminBaseController extends Controller
+abstract class AdminBaseController extends BaseController
 {
     /**
      * Instance of the main Request object.
@@ -33,11 +30,12 @@ abstract class AdminBaseController extends Controller
     /**
      * An array of helpers to be loaded automatically upon
      * class instantiation. These helpers will be available
-     * to all other controllers that extend BaseController.
+     * to all other controllers that extend AdminBaseController.
+     * Merges with BaseController helpers.
      *
      * @var array
      */
-    protected $helpers = ['menu'];
+    protected $helpers = ["url", "excel_helper", "date_helper", "cache_helper", "text", "menu"];
 
     /**
      * Current user data
@@ -77,13 +75,10 @@ abstract class AdminBaseController extends Controller
      */
     public function initController(RequestInterface $request, ResponseInterface $response, LoggerInterface $logger)
     {
-        // Do Not Edit This Line
+        // Call parent initController which handles session, models, and topbar data
         parent::initController($request, $response, $logger);
-
-        // Preload any models, libraries, etc, here.
-        $this->session = session();
         
-        // Load current user and menu
+        // Add admin-specific initialization
         $this->loadCurrentUser();
         $this->loadUserMenu();
     }
@@ -134,130 +129,9 @@ abstract class AdminBaseController extends Controller
         $currentUrl = $this->request->getUri()->getPath();
         $this->menuItems = MenuService::getMenuWithActiveStates($this->userType, $this->userRole, $currentUrl);
         
-        // Load topbar data for program selection
-        $this->loadTopbarData();
+        // Topbar data is already loaded by BaseController
     }
     
-    /**
-     * Load topbar data for program selection
-     */
-    protected function loadTopbarData()
-    {
-        // Check if topbar data is already cached in session
-        $topbarData = $this->session->get('topbar_data');
-        $lastUpdated = $this->session->get('topbar_data_updated');
-        
-        // Refresh topbar data if not cached or older than 1 hour
-        if (!$topbarData || !$lastUpdated || (time() - $lastUpdated) > 3600) {
-            $topbarData = $this->prepareTopbarData();
-            $this->session->set('topbar_data', $topbarData);
-            $this->session->set('topbar_data_updated', time());
-        }
-    }
-    
-    /**
-     * Prepare topbar data for program selection
-     */
-    protected function prepareTopbarData()
-    {
-        $programCategoryModel = new \App\Models\ProgramCategoryModel();
-        $adminModel = new \App\Models\AdminModel();
-        
-        // Get all available programs
-        $allPrograms = $programCategoryModel->getAllCategoriesWithPrograms();
-        
-        // Filter programs based on admin access
-        $accessiblePrograms = $this->filterProgramsByAdminAccess($allPrograms, $adminModel);
-        
-        // Sort programs by category name
-        usort($accessiblePrograms, function ($a, $b) {
-            return strcmp($a->name, $b->name);
-        });
-
-        // Group by active and inactive
-        $activePrograms = array_filter($accessiblePrograms, function ($program) {
-            return $program->is_active == 1;
-        });
-
-        $inactivePrograms = array_filter($accessiblePrograms, function ($program) {
-            return $program->is_active == 0;
-        });
-
-        $currentProgramId = $this->session->get('current_program');
-        
-        // Check if a program is already selected and if admin has access to it
-        $selectedProgram = null;
-        if ($currentProgramId) {
-            $selectedProgram = $this->validateProgramAccess($currentProgramId, $accessiblePrograms);
-        }
-
-        return [
-            'selectedProgram' => $selectedProgram,
-            'activePrograms' => $activePrograms,
-            'inactivePrograms' => $inactivePrograms,
-            'currentUser' => $this->currentUser,
-        ];
-    }
-    
-    /**
-     * Filter programs based on admin access
-     */
-    protected function filterProgramsByAdminAccess($allPrograms, $adminModel)
-    {
-        // Super admin has access to all programs
-        if ($this->userRole === 'super_admin') {
-            return $allPrograms;
-        }
-        
-        // Get admin's assigned programs
-        $adminPrograms = $adminModel->getAdminPrograms($this->currentUser->id);
-        $adminProgramIds = array_column($adminPrograms, 'id');
-        
-        // If admin has no program assignments, return empty array
-        if (empty($adminProgramIds)) {
-            return [];
-        }
-        
-        // Filter categories and programs
-        $filteredPrograms = [];
-        foreach ($allPrograms as $category) {
-            $filteredCategory = clone $category;
-            $filteredCategory->programs = [];
-            
-            if (!empty($category->programs)) {
-                foreach ($category->programs as $program) {
-                    if (in_array($program->id, $adminProgramIds)) {
-                        $filteredCategory->programs[] = $program;
-                    }
-                }
-            }
-            
-            // Only include category if it has accessible programs
-            if (!empty($filteredCategory->programs)) {
-                $filteredPrograms[] = $filteredCategory;
-            }
-        }
-        
-        return $filteredPrograms;
-    }
-    
-    /**
-     * Validate if admin has access to the selected program
-     */
-    protected function validateProgramAccess($programId, $accessiblePrograms)
-    {
-        foreach ($accessiblePrograms as $category) {
-            if (!empty($category->programs)) {
-                foreach ($category->programs as $program) {
-                    if ($program->id == $programId) {
-                        return $program;
-                    }
-                }
-            }
-        }
-        return null;
-    }
-
     /**
      * Check if current user has access to a specific URL
      *
@@ -346,6 +220,75 @@ abstract class AdminBaseController extends Controller
         return view($view, $viewData, $options);
     }
     
+    /**
+     * Filter programs based on admin access permissions
+     * 
+     * @param array $allPrograms Array of program categories with programs
+     * @param \App\Models\AdminModel $adminModel
+     * @return array Filtered programs accessible to current admin
+     */
+    protected function filterProgramsByAdminAccess($allPrograms, $adminModel)
+    {
+        if (!$this->currentUser) {
+            return [];
+        }
+
+        // Super admins have access to all programs
+        if ($this->currentUser->role === 'super_admin') {
+            return $allPrograms;
+        }
+
+        // For other roles, get assigned programs
+        $assignedPrograms = $adminModel->getAdminPrograms($this->currentUser->id);
+        $assignedProgramIds = array_column($assignedPrograms, 'id');
+
+        // Filter categories to only include programs admin has access to
+        $filteredPrograms = [];
+        foreach ($allPrograms as $category) {
+            if (isset($category->programs) && is_array($category->programs)) {
+                $accessiblePrograms = array_filter($category->programs, function ($program) use ($assignedProgramIds) {
+                    return in_array($program->id, $assignedProgramIds);
+                });
+
+                // Only include category if it has accessible programs
+                if (!empty($accessiblePrograms)) {
+                    $filteredCategory = clone $category;
+                    $filteredCategory->programs = array_values($accessiblePrograms);
+                    $filteredPrograms[] = $filteredCategory;
+                }
+            }
+        }
+
+        return $filteredPrograms;
+    }
+
+    /**
+     * Validate if admin has access to a specific program
+     * 
+     * @param int $programId
+     * @param array $accessiblePrograms Array of accessible program categories
+     * @return object|null Program object if accessible, null otherwise
+     */
+    protected function validateProgramAccess($programId, $accessiblePrograms)
+    {
+        if (!$programId || !is_numeric($programId)) {
+            return null;
+        }
+
+        // Search through all accessible programs
+        foreach ($accessiblePrograms as $category) {
+            if (isset($category->programs) && is_array($category->programs)) {
+                foreach ($category->programs as $program) {
+                    if ($program->id == $programId) {
+                        return $program;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
     /**
      * Debug method to check current admin state
      */

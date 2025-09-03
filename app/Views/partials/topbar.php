@@ -140,7 +140,7 @@
                                     <h6 class="dropdown-header border-bottom bg-light-subtle">Active Programs</h6>
                                     <?php foreach ($activePrograms as $program): ?>
                                         <a class="dropdown-item d-flex align-items-center <?= (isset($selectedProgram) && $program->id == $selectedProgram->id) ? 'active' : '' ?>"
-                                            href="<?= site_url('welcome/set-program/' . $program->id) ?>">
+                                            href="<?= site_url('topbar/set-program/' . $program->id) ?>">
                                             <div class="d-flex align-items-center flex-grow-1">
                                                 <?php if (!empty($program->logo_url)): ?>
                                                     <div class="program-logo-wrapper me-2">
@@ -154,6 +154,9 @@
                                                 <?php endif; ?>
                                                 <div>
                                                     <span class="fw-medium"><?= esc($program->name) ?></span>
+                                                    <?php if (!empty($program->category_name)): ?>
+                                                        <p class="text-muted mb-0 fs-11"><?= esc($program->category_name) ?></p>
+                                                    <?php endif; ?>
                                                     <?php if (!empty($program->short_description)): ?>
                                                         <p class="text-muted mb-0 fs-12"><?= esc(substr($program->short_description, 0, 30)) ?><?= (strlen($program->short_description) > 30) ? '...' : '' ?></p>
                                                     <?php endif; ?>
@@ -179,7 +182,7 @@
                                         <div class="collapse" id="inactiveProgramsCollapse">
                                             <?php foreach ($inactivePrograms as $program): ?>
                                                 <a class="dropdown-item d-flex align-items-center ps-4 <?= (isset($selectedProgram) && $program->id == $selectedProgram->id) ? 'active' : '' ?>"
-                                                    href="<?= site_url('welcome/set-program/' . $program->id) ?>">
+                                                    href="<?= site_url('topbar/set-program/' . $program->id) ?>">
                                                     <div class="d-flex align-items-center flex-grow-1">
                                                         <?php if (!empty($program->logo_url)): ?>
                                                             <div class="program-logo-wrapper me-2">
@@ -193,6 +196,9 @@
                                                         <?php endif; ?>
                                                         <div>
                                                             <span class="fw-medium text-muted"><?= esc($program->name) ?></span>
+                                                            <?php if (!empty($program->category_name)): ?>
+                                                                <p class="text-muted mb-0 fs-11"><?= esc($program->category_name) ?></p>
+                                                            <?php endif; ?>
                                                             <?php if (!empty($program->short_description)): ?>
                                                                 <p class="text-muted mb-0 fs-12"><?= esc(substr($program->short_description, 0, 30)) ?><?= (strlen($program->short_description) > 30) ? '...' : '' ?></p>
                                                             <?php endif; ?>

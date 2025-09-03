@@ -7,7 +7,7 @@ use App\Models\ProgramModel;
 use App\Models\WebSettingModel;
 use App\Traits\Cacheable;
 
-class AbstractTopics extends BaseController
+class AbstractTopics extends AdminBaseController
 {
     use Cacheable;
     

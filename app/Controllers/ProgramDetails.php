@@ -7,7 +7,7 @@ use App\Models\ProgramCategoryModel;
 use App\Models\ProgramTypeModel;
 use App\Traits\Cacheable;
 
-class ProgramDetails extends BaseController
+class ProgramDetails extends AdminBaseController
 {
     use Cacheable;
     

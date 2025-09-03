@@ -5,7 +5,7 @@ namespace App\Controllers;
 use App\Models\FaqModel;
 use App\Traits\Cacheable;
 
-class Faqs extends BaseController
+class Faqs extends AdminBaseController
 {
     use Cacheable;
     

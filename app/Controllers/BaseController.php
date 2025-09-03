@@ -104,12 +104,14 @@ abstract class BaseController extends Controller
             // Filter active and inactive programs and add them to the respective arrays
             foreach ($currentCategoryPrograms as $program) {
                 if ($program->is_active == 1) {
-                    // Add logo URL to the program object
+                    // Add logo URL and category name to the program object
                     $program->logo_url = $logoUrl;
+                    $program->category_name = $category->name ?? null;
                     $activePrograms[] = $program;
                 } else {
-                    // Add logo URL to the program object
+                    // Add logo URL and category name to the program object
                     $program->logo_url = $logoUrl;
+                    $program->category_name = $category->name ?? null;
                     $inactivePrograms[] = $program;
                 }
             }
@@ -125,8 +127,9 @@ abstract class BaseController extends Controller
                 foreach ($category->programs as $program) {
                     if ($program->id == $currentProgramId) {
                         $selectedProgram = $program;
-                        // Add logo URL from category to the selected program
+                        // Add logo URL and category name from category to the selected program
                         $selectedProgram->logo_url = $category->logo_url ?? null;
+                        $selectedProgram->category_name = $category->name ?? null;
                         break 2; // Break out of both loops
                     }
                 }
