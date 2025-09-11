@@ -65,6 +65,24 @@
             white-space: normal !important;
         }
         
+        /* Enhanced checkbox styling */
+        .program-checkbox-container {
+            transition: background-color 0.2s ease;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin: 2px 0;
+        }
+        
+        .program-checkbox-container:hover {
+            background-color: rgba(13, 110, 253, 0.05);
+        }
+        
+        .program-checkbox-container .form-check-input:checked + .form-check-label {
+            color: #0d6efd;
+            font-weight: 500;
+        }
+        
+        
         @media (max-width: 768px) {
             #admin-table {
                 font-size: 0.8rem;
@@ -373,6 +391,11 @@
                         $('#admin-modal-title').text('Add New Admin');
                         $('#admin-form')[0].reset();
                         $('#admin-id').val('');
+                        
+                        // Reset all checkboxes
+                        $('.program-checkbox').prop('checked', false);
+                        $('#select-all-programs').prop('checked', false).prop('indeterminate', false);
+                        
                         $('#save-admin-btn').show();
                         $('#update-admin-btn').hide();
                         $('#password-group').show();
@@ -400,7 +423,7 @@
             $.get(`/settings/admin-management/edit/${adminId}`)
                 .done(function(response) {
                     if (response.success) {
-                        populateFormOptions(response.data);
+                        populateFormOptions(response.data, response.data.admin);
                         populateAdminForm(response.data.admin);
                         $('#admin-modal-title').text('Edit Admin');
                         $('#admin-id').val(adminId);
@@ -418,6 +441,11 @@
         function saveAdmin() {
             const formData = new FormData($('#admin-form')[0]);
             
+            // Show loading state
+            const saveBtn = $('#save-admin-btn');
+            const originalText = saveBtn.html();
+            saveBtn.html('<i class="ri-loader-2-line"></i> Creating...').prop('disabled', true);
+            
             $.ajax({
                 url: '/settings/admin-management/store',
                 method: 'POST',
@@ -427,14 +455,38 @@
                 success: function(response) {
                     if (response.success) {
                         $('#admin-modal').modal('hide');
-                        adminTable.ajax.reload();
-                        Swal.fire('Success', response.message, 'success');
+                        
+                        // Show success notification with page reload
+                        Swal.fire({
+                            title: 'Success!',
+                            text: response.message || 'Admin created successfully',
+                            icon: 'success',
+                            confirmButtonColor: '#0ab39c',
+                            confirmButtonText: 'OK',
+                            allowOutsideClick: false,
+                            allowEscapeKey: false
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                // Reload the entire page to show fresh data
+                                window.location.reload();
+                            }
+                        });
                     } else {
                         showValidationErrors(response.errors);
                     }
                 },
-                error: function() {
-                    Swal.fire('Error', 'Failed to create admin', 'error');
+                error: function(xhr, status, error) {
+                    console.error('AJAX Error:', xhr.responseText);
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'Failed to create admin. Please try again.',
+                        icon: 'error',
+                        confirmButtonColor: '#f06548'
+                    });
+                },
+                complete: function() {
+                    // Reset button state
+                    saveBtn.html(originalText).prop('disabled', false);
                 }
             });
         }
@@ -442,6 +494,11 @@
         function updateAdmin() {
             const adminId = $('#admin-id').val();
             const formData = new FormData($('#admin-form')[0]);
+            
+            // Show loading state
+            const updateBtn = $('#update-admin-btn');
+            const originalText = updateBtn.html();
+            updateBtn.html('<i class="ri-loader-2-line"></i> Updating...').prop('disabled', true);
             
             $.ajax({
                 url: `/settings/admin-management/update/${adminId}`,
@@ -452,14 +509,38 @@
                 success: function(response) {
                     if (response.success) {
                         $('#admin-modal').modal('hide');
-                        adminTable.ajax.reload();
-                        Swal.fire('Success', response.message, 'success');
+                        
+                        // Show success notification with page reload
+                        Swal.fire({
+                            title: 'Success!',
+                            text: response.message || 'Admin updated successfully',
+                            icon: 'success',
+                            confirmButtonColor: '#0ab39c',
+                            confirmButtonText: 'OK',
+                            allowOutsideClick: false,
+                            allowEscapeKey: false
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                // Reload the entire page to show fresh data
+                                window.location.reload();
+                            }
+                        });
                     } else {
                         showValidationErrors(response.errors);
                     }
                 },
-                error: function() {
-                    Swal.fire('Error', 'Failed to update admin', 'error');
+                error: function(xhr, status, error) {
+                    console.error('AJAX Error:', xhr.responseText);
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'Failed to update admin. Please try again.',
+                        icon: 'error',
+                        confirmButtonColor: '#f06548'
+                    });
+                },
+                complete: function() {
+                    // Reset button state
+                    updateBtn.html(originalText).prop('disabled', false);
                 }
             });
         }
@@ -472,44 +553,135 @@
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
                 cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Yes, delete it!'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
+                confirmButtonText: 'Yes, delete it!',
+                showLoaderOnConfirm: true,
+                preConfirm: () => {
+                    return $.ajax({
                         url: `/settings/admin-management/delete/${adminId}`,
-                        method: 'GET',
-                        success: function(response) {
-                            if (response.success) {
-                                adminTable.ajax.reload();
-                                Swal.fire('Deleted!', response.message, 'success');
-                            } else {
-                                Swal.fire('Error', response.message, 'error');
-                            }
-                        },
-                        error: function() {
-                            Swal.fire('Error', 'Failed to delete admin', 'error');
+                        method: 'GET'
+                    }).then(response => {
+                        if (!response.success) {
+                            throw new Error(response.message || 'Failed to delete admin');
+                        }
+                        return response;
+                    }).catch(error => {
+                        Swal.showValidationMessage('Request failed: ' + error.message);
+                    });
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            }).then((result) => {
+                if (result.isConfirmed && result.value) {
+                    // Show success notification with page reload
+                    Swal.fire({
+                        title: 'Deleted!',
+                        text: result.value.message || 'Admin deleted successfully',
+                        icon: 'success',
+                        confirmButtonColor: '#0ab39c',
+                        confirmButtonText: 'OK',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false
+                    }).then((deleteResult) => {
+                        if (deleteResult.isConfirmed) {
+                            // Reload the entire page to show fresh data
+                            window.location.reload();
                         }
                     });
                 }
             });
         }
 
-        function populateFormOptions(data) {
+        function populateFormOptions(data, admin = null) {
             // Populate roles dropdown
             const roleSelect = $('#admin-role');
             roleSelect.empty();
             roleSelect.append('<option value="">Select Role</option>');
             data.roles.forEach(role => {
-                const roleName = role.replace(/_/g, ' ').toUpperCase();
-                roleSelect.append(`<option value="${role}">${roleName}</option>`);
+                // Handle both old format (string) and new format (object)
+                if (typeof role === 'string') {
+                    const roleName = role.replace(/_/g, ' ').toUpperCase();
+                    roleSelect.append(`<option value="${role}">${roleName}</option>`);
+                } else {
+                    // New format with display_name
+                    roleSelect.append(`<option value="${role.name}">${role.display_name}</option>`);
+                }
             });
 
-            // Populate programs dropdown
-            const programSelect = $('#admin-programs');
-            programSelect.empty();
+            // Populate programs checkboxes
+            const programsContainer = $('#admin-programs-checkboxes');
+            programsContainer.empty();
+            
+            // Create a map of all programs to show (active programs + assigned inactive programs)
+            const allProgramsToShow = new Map();
+            
+            // Add all active programs from data.programs
             data.programs.forEach(program => {
-                programSelect.append(`<option value="${program.id}">${program.name}</option>`);
+                allProgramsToShow.set(program.id, {
+                    ...program,
+                    is_active: 1,
+                    is_assigned: false
+                });
             });
+            
+            // Add assigned programs (including inactive ones) if this is for editing
+            if (admin && admin.programs) {
+                admin.programs.forEach(program => {
+                    if (!allProgramsToShow.has(program.id)) {
+                        // This is an inactive assigned program, add it
+                        allProgramsToShow.set(program.id, {
+                            ...program,
+                            is_assigned: true
+                        });
+                    } else {
+                        // Mark as assigned
+                        allProgramsToShow.get(program.id).is_assigned = true;
+                    }
+                });
+            }
+            
+            // Sort programs by name
+            const sortedPrograms = Array.from(allProgramsToShow.values()).sort((a, b) => a.name.localeCompare(b.name));
+            
+            sortedPrograms.forEach(program => {
+                const isInactive = program.is_active != 1;
+                const inactiveClass = isInactive ? ' text-muted' : '';
+                const inactiveLabel = isInactive ? ' (Inactive)' : '';
+                const disabledAttr = isInactive && !program.is_assigned ? ' disabled' : '';
+                
+                programsContainer.append(`
+                    <div class="form-check program-checkbox-container">
+                        <input class="form-check-input program-checkbox" type="checkbox" 
+                               name="program_ids[]" value="${program.id}" id="program-${program.id}"${disabledAttr}>
+                        <label class="form-check-label${inactiveClass}" for="program-${program.id}">
+                            ${program.name}${inactiveLabel}
+                        </label>
+                    </div>
+                `);
+            });
+
+            // Add select all functionality
+            $('#select-all-programs').off('change').on('change', function() {
+                const isChecked = $(this).is(':checked');
+                $('.program-checkbox').prop('checked', isChecked);
+                updateSelectAllState();
+            });
+
+            // Update select all when individual checkboxes change
+            $(document).off('change', '.program-checkbox').on('change', '.program-checkbox', function() {
+                updateSelectAllState();
+            });
+        }
+
+        function updateSelectAllState() {
+            const totalCheckboxes = $('.program-checkbox').length;
+            const checkedCheckboxes = $('.program-checkbox:checked').length;
+            
+            if (checkedCheckboxes === 0) {
+                $('#select-all-programs').prop('checked', false).prop('indeterminate', false);
+            } else if (checkedCheckboxes === totalCheckboxes) {
+                $('#select-all-programs').prop('checked', true).prop('indeterminate', false);
+            } else {
+                $('#select-all-programs').prop('checked', false).prop('indeterminate', true);
+            }
         }
 
         function populateAdminForm(admin) {
@@ -518,17 +690,34 @@
             $('#admin-role').val(admin.role);
             $('#admin-is-active').prop('checked', admin.is_active == 1);
             
+            // Clear all program checkboxes first
+            $('.program-checkbox').prop('checked', false);
+            $('#select-all-programs').prop('checked', false).prop('indeterminate', false);
+            
             // Set selected programs
-            const programIds = admin.programs ? admin.programs.map(p => p.id || p.program_id).filter(id => id).map(id => id.toString()) : [];
-            $('#admin-programs').val(programIds);
+            if (admin.programs && admin.programs.length > 0) {
+                const programIds = admin.programs.map(p => p.id || p.program_id).filter(id => id).map(id => id.toString());
+                programIds.forEach(programId => {
+                    $(`#program-${programId}`).prop('checked', true);
+                });
+                
+                // Update select all state
+                updateSelectAllState();
+            }
         }
 
         function showValidationErrors(errors) {
             let errorMessage = 'Please fix the following errors:\n';
             for (const field in errors) {
-                errorMessage += `- ${errors[field]}\n`;
+                errorMessage += `• ${errors[field]}\n`;
             }
-            Swal.fire('Validation Error', errorMessage, 'error');
+            Swal.fire({
+                title: 'Validation Error',
+                text: errorMessage,
+                icon: 'error',
+                confirmButtonColor: '#f06548',
+                confirmButtonText: 'OK'
+            });
         }
 
         function showAdminDetails(admin) {
@@ -676,11 +865,22 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="admin-programs" class="form-label">Assign to Programs</label>
-                        <select class="form-select" id="admin-programs" name="program_ids[]" multiple size="5">
-                            <option value="">Loading...</option>
-                        </select>
-                        <small class="text-muted">Hold Ctrl/Cmd to select multiple programs. Leave empty to assign to all programs.</small>
+                        <label class="form-label">Assign to Programs</label>
+                        <div class="border rounded p-3" style="background-color: #f8f9fa;">
+                            <div class="mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="select-all-programs">
+                                    <label class="form-check-label fw-bold text-primary" for="select-all-programs">
+                                        Select All Programs
+                                    </label>
+                                </div>
+                                <hr class="my-2">
+                            </div>
+                            <div id="admin-programs-checkboxes">
+                                <div class="text-muted">Loading programs...</div>
+                            </div>
+                        </div>
+                        <small class="text-muted">Select the programs this administrator should have access to. Leave all unchecked to assign to all programs.</small>
                     </div>
 
                     <div class="form-check">

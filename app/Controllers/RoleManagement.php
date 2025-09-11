@@ -2,8 +2,9 @@
 
 namespace App\Controllers;
 
-use App\Models\RoleModel;
+use App\Models\AdminRoleModel;
 use App\Models\PermissionModel;
+use App\Models\AdminRolePermissionModel;
 use App\Models\MenuItemModel;
 use App\Services\DynamicMenuService;
 use CodeIgniter\HTTP\RequestInterface;
@@ -14,14 +15,16 @@ class RoleManagement extends AdminBaseController
 {
     protected $roleModel;
     protected $permissionModel;
+    protected $rolePermissionModel;
     protected $menuItemModel;
     protected $menuService;
 
     public function initController(RequestInterface $request, ResponseInterface $response, LoggerInterface $logger)
     {
         parent::initController($request, $response, $logger);
-        $this->roleModel = new RoleModel();
+        $this->roleModel = new AdminRoleModel();
         $this->permissionModel = new PermissionModel();
+        $this->rolePermissionModel = new AdminRolePermissionModel();
         $this->menuItemModel = new MenuItemModel();
         $this->menuService = new DynamicMenuService();
     }
@@ -57,7 +60,29 @@ class RoleManagement extends AdminBaseController
         return $this->response->setJSON(['data' => $roles]);
     }
 
-    public function createRole()
+    /**
+     * Show the create role form (GET /roles/create)
+     */
+    public function showCreateForm()
+    {
+        $this->requireAuth();
+        
+        if (!$this->menuService->canAccessRoleManagement($this->currentUser)) {
+            return redirect()->to('/dashboard')->with('error', 'Access denied. Insufficient permissions.');
+        }
+
+        $data = $this->prepareViewData([
+            'pageTitle' => 'Create New Role',
+            'permissions' => $this->permissionModel->getPermissionsByCategory()
+        ]);
+        
+        return $this->renderView('admin/role_management/create', $data);
+    }
+
+    /**
+     * Process the create role form submission (POST /roles/create)
+     */
+    public function storeRole()
     {
         $this->requireAuth();
         
@@ -65,15 +90,7 @@ class RoleManagement extends AdminBaseController
             return $this->response->setJSON(['error' => 'Access denied'])->setStatusCode(403);
         }
 
-        if ($this->request->getMethod() === 'GET') {
-            $data = $this->prepareViewData([
-                'pageTitle' => 'Create New Role',
-                'permissions' => $this->permissionModel->getPermissionsByCategory()
-            ]);
-            return $this->renderView('admin/role_management/create', $data);
-        }
-
-        // Handle POST request
+        // Get form data
         $data = [
             'name' => $this->request->getPost('name'),
             'display_name' => $this->request->getPost('display_name'),
@@ -82,10 +99,31 @@ class RoleManagement extends AdminBaseController
             'is_active' => $this->request->getPost('is_active') ? 1 : 0
         ];
 
+        // Validate required fields
+        $errors = [];
+        if (empty($data['name'])) {
+            $errors['name'] = 'Role name is required';
+        }
+        if (empty($data['display_name'])) {
+            $errors['display_name'] = 'Display name is required';
+        }
+        if (empty($data['access_level'])) {
+            $errors['access_level'] = 'Access level is required';
+        }
+
+        if (!empty($errors)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $errors
+            ])->setStatusCode(400);
+        }
+
+        // Attempt to create the role
         if ($this->roleModel->insert($data)) {
             $roleId = $this->roleModel->getInsertID();
             
-            // Assign permissions
+            // Assign permissions if any were selected
             $permissions = $this->request->getPost('permissions') ?? [];
             if (!empty($permissions)) {
                 $this->roleModel->assignPermissions($roleId, $permissions, $this->currentUser->id);
@@ -108,7 +146,10 @@ class RoleManagement extends AdminBaseController
         }
     }
 
-    public function editRole($id)
+    /**
+     * Show the edit role form (GET /roles/edit/{id})
+     */
+    public function showEditForm($id)
     {
         $this->requireAuth();
         
@@ -118,20 +159,89 @@ class RoleManagement extends AdminBaseController
 
         $role = $this->roleModel->getRoleWithPermissions($id);
         if (!$role) {
-            return redirect()->to('/settings/roles')->with('error', 'Role not found');
+            return redirect()->to('/roles')->with('error', 'Role not found');
         }
 
-        if ($this->request->getMethod() === 'GET') {
-            $data = $this->prepareViewData([
-                'pageTitle' => 'Edit Role: ' . $role->display_name,
-                'role' => $role,
-                'permissions' => $this->permissionModel->getPermissionsByCategory(),
-                'rolePermissions' => array_column($role->permissions, 'id')
+        $data = $this->prepareViewData([
+            'pageTitle' => 'Edit Role: ' . $role->display_name,
+            'role' => $role,
+            'permissions' => $this->permissionModel->getPermissionsByCategory(),
+            'rolePermissions' => array_column($role->permissions, 'id')
+        ]);
+        
+        return $this->renderView('admin/role_management/edit', $data);
+    }
+
+    /**
+     * View role details (GET /roles/view/{id})
+     */
+    public function view($id)
+    {
+        $this->requireAuth();
+        
+        if (!$this->menuService->canAccessRoleManagement($this->currentUser)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Access denied'])->setStatusCode(403);
+        }
+
+        try {
+            $role = $this->roleModel->getRoleWithPermissions($id);
+            if (!$role) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Role not found'])->setStatusCode(404);
+            }
+
+            // Get additional role statistics
+            $adminModel = new \App\Models\AdminModel();
+            $adminsWithRole = $adminModel->where('role', $role->name)->where('is_deleted', 0)->findAll();
+            
+            $roleDetails = [
+                'id' => $role->id,
+                'name' => $role->name,
+                'display_name' => $role->display_name,
+                'description' => $role->description,
+                'access_level' => $role->access_level,
+                'is_active' => $role->is_active,
+                'permissions' => $role->permissions,
+                'permission_count' => count($role->permissions),
+                'admins' => $adminsWithRole,
+                'admin_count' => count($adminsWithRole),
+                'created_at' => $role->created_at,
+                'updated_at' => $role->updated_at
+            ];
+
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => $roleDetails
             ]);
-            return $this->renderView('admin/role_management/edit', $data);
+            
+        } catch (\Exception $e) {
+            log_message('error', 'Role view error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false, 
+                'message' => 'An error occurred while loading role details'
+            ])->setStatusCode(500);
+        }
+    }
+
+    /**
+     * Process the edit role form submission (POST /roles/edit/{id})
+     */
+    public function updateRole($id)
+    {
+        $this->requireAuth();
+        
+        if (!$this->menuService->canAccessRoleManagement($this->currentUser)) {
+            return $this->response->setJSON(['error' => 'Access denied'])->setStatusCode(403);
         }
 
-        // Handle POST request
+        $role = $this->roleModel->find($id);
+        if (!$role) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Role not found'
+            ])->setStatusCode(404);
+        }
+
+        // Get form data
         $updateData = [
             'display_name' => $this->request->getPost('display_name'),
             'description' => $this->request->getPost('description'),

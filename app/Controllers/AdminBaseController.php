@@ -224,10 +224,9 @@ abstract class AdminBaseController extends BaseController
      * Filter programs based on admin access permissions
      * 
      * @param array $allPrograms Array of program categories with programs
-     * @param \App\Models\AdminModel $adminModel
      * @return array Filtered programs accessible to current admin
      */
-    protected function filterProgramsByAdminAccess($allPrograms, $adminModel)
+    protected function filterProgramsByAdminAccess($allPrograms)
     {
         if (!$this->currentUser) {
             return [];
@@ -239,6 +238,7 @@ abstract class AdminBaseController extends BaseController
         }
 
         // For other roles, get assigned programs
+        $adminModel = new \App\Models\AdminModel();
         $assignedPrograms = $adminModel->getAdminPrograms($this->currentUser->id);
         $assignedProgramIds = array_column($assignedPrograms, 'id');
 

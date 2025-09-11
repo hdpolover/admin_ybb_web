@@ -42,7 +42,7 @@ class MenuItemModel extends Model
                 CASE 
                     WHEN mi.required_permission IS NULL THEN 1
                     WHEN EXISTS (
-                        SELECT 1 FROM role_permissions rp 
+                        SELECT 1 FROM admin_role_permissions rp 
                         INNER JOIN permissions p ON p.id = rp.permission_id 
                         WHERE rp.role_id = ? AND p.name = mi.required_permission AND p.is_active = 1
                     ) THEN 1
@@ -232,5 +232,48 @@ class MenuItemModel extends Model
         }
         
         return $breadcrumb;
+    }
+
+    /**
+     * Get all menu items for management interface
+     */
+    public function getAllMenuItems(): array
+    {
+        $db = \Config\Database::connect();
+        
+        $query = $db->query("
+            SELECT mi.*, p.display_name as permission_display_name
+            FROM menu_items mi
+            LEFT JOIN permissions p ON p.name = mi.required_permission
+            ORDER BY mi.sort_order ASC, mi.id ASC
+        ");
+        
+        return $query->getResult();
+    }
+
+    /**
+     * Get menu items with their children
+     */
+    public function getMenuHierarchy(): array
+    {
+        $allItems = $this->getAllMenuItems();
+        $hierarchy = [];
+        
+        // First pass: get all parent items
+        foreach ($allItems as $item) {
+            if (!$item->parent_id) {
+                $item->children = [];
+                $hierarchy[$item->id] = $item;
+            }
+        }
+        
+        // Second pass: attach children to parents
+        foreach ($allItems as $item) {
+            if ($item->parent_id && isset($hierarchy[$item->parent_id])) {
+                $hierarchy[$item->parent_id]->children[] = $item;
+            }
+        }
+        
+        return array_values($hierarchy);
     }
 }

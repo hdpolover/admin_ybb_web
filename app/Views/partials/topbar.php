@@ -69,6 +69,36 @@
             border: 2px solid #fff;
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
         }
+        .profile-image-container {
+            cursor: pointer;
+        }
+        .profile-image-container:hover .profile-upload-indicator {
+            background-color: rgba(var(--bs-primary-rgb), 0.9) !important;
+            transform: scale(1.1);
+            transition: all 0.2s ease;
+        }
+        .profile-upload-overlay {
+            transition: opacity 0.3s ease;
+        }
+        .profile-image-container .rounded-circle {
+            transition: all 0.3s ease;
+        }
+        .profile-image-container:hover .rounded-circle {
+            transform: scale(1.05);
+        }
+        .alert {
+            animation: slideInRight 0.3s ease-out;
+        }
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
     </style>
     
     <div class="layout-width">
@@ -227,12 +257,37 @@
                             <span class="d-flex align-items-center">
                                 <?php 
                                 $currentUser = $topbarData['currentUser'] ?? null;
-                                $userAvatar = $currentUser->avatar ?? '/assets/images/users/avatar-1.jpg';
+                                $userAvatar = $currentUser->avatar ?? null;
                                 $userName = $currentUser->name ?? 'Admin User';
                                 $userRole = $currentUser->role ?? 'user';
                                 $displayRole = ucwords(str_replace('_', ' ', $userRole));
+                                $userInitials = '';
+                                if ($userName) {
+                                    $nameParts = explode(' ', $userName);
+                                    $userInitials = strtoupper(substr($nameParts[0], 0, 1));
+                                    if (count($nameParts) > 1) {
+                                        $userInitials .= strtoupper(substr($nameParts[1], 0, 1));
+                                    }
+                                }
                                 ?>
-                                <img class="rounded-circle header-profile-user" src="<?= $userAvatar ?>" alt="<?= esc($userName) ?>">
+                                <!-- Profile Image Container with Placeholder -->
+                                <div class="profile-image-container position-relative">
+                                    <?php if (!empty($userAvatar) && file_exists(FCPATH . ltrim($userAvatar, '/'))): ?>
+                                        <img class="rounded-circle header-profile-user" src="<?= $userAvatar ?>" alt="<?= esc($userName) ?>" style="width: 42px; height: 42px; object-fit: cover;">
+                                    <?php else: ?>
+                                        <!-- Default Avatar Placeholder -->
+                                        <div class="rounded-circle header-profile-user bg-primary text-white d-flex align-items-center justify-content-center fw-medium" 
+                                             style="width: 42px; height: 42px; font-size: 16px;">
+                                            <?= $userInitials ?: 'AD' ?>
+                                        </div>
+                                    <?php endif; ?>
+                                    <!-- Upload indicator icon -->
+                                    <div class="profile-upload-indicator position-absolute bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" 
+                                         style="width: 16px; height: 16px; bottom: -2px; right: -2px; font-size: 10px; cursor: pointer;" 
+                                         title="Change Profile Picture">
+                                        <i class="ri-camera-line"></i>
+                                    </div>
+                                </div>
                                 <span class="text-start ms-xl-2">
                                     <span class="d-none d-xl-inline-block ms-1 fw-medium user-name-text"><?= esc($userName) ?></span>
                                     <span class="d-none d-xl-block ms-1 fs-12 user-name-sub-text text-muted"><?= esc($displayRole) ?></span>
@@ -244,7 +299,25 @@
                             <!-- item-->
                             <div class="p-3 border-bottom">
                                 <div class="d-flex align-items-center">
-                                    <img class="rounded-circle me-3" src="<?= $userAvatar ?>" alt="<?= esc($userName) ?>" width="50">
+                                    <div class="profile-image-container position-relative me-3">
+                                        <?php if (!empty($userAvatar) && file_exists(FCPATH . ltrim($userAvatar, '/'))): ?>
+                                            <img class="rounded-circle" src="<?= $userAvatar ?>" alt="<?= esc($userName) ?>" style="width: 50px; height: 50px; object-fit: cover;">
+                                        <?php else: ?>
+                                            <!-- Default Avatar Placeholder in dropdown -->
+                                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-medium" 
+                                                 style="width: 50px; height: 50px; font-size: 18px;">
+                                                <?= $userInitials ?: 'AD' ?>
+                                            </div>
+                                        <?php endif; ?>
+                                        <!-- Upload overlay on hover -->
+                                        <div class="profile-upload-overlay position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 rounded-circle d-flex align-items-center justify-content-center text-white opacity-0 transition-opacity" 
+                                             style="cursor: pointer; transition: opacity 0.3s ease;" 
+                                             onclick="document.getElementById('profileImageInput').click()"
+                                             onmouseover="this.style.opacity='1'" 
+                                             onmouseout="this.style.opacity='0'">
+                                            <i class="ri-camera-line fs-16"></i>
+                                        </div>
+                                    </div>
                                     <div>
                                         <h6 class="mb-0 fs-15"><?= esc($userName) ?></h6>
                                         <p class="mb-0 text-muted fs-13"><?= esc($displayRole) ?></p>
@@ -253,7 +326,7 @@
                                 </div>
                             </div>
                             <div class="p-2">
-                                <a class="dropdown-item d-flex align-items-center" href="<?= base_url('profile') ?>">
+                                <a class="dropdown-item d-flex align-items-center" href="<?= site_url('profile') ?>">
                                     <i class="ri-user-line text-muted fs-16 align-middle me-2"></i> 
                                     <span class="align-middle">My Profile</span>
                                 </a>
@@ -279,3 +352,81 @@
             </div>
         </div>
 </header>
+
+<!-- Hidden File Input for Profile Image Upload -->
+<input type="file" id="profileImageInput" accept="image/*" style="display: none;" onchange="handleProfileImageUpload(this)">
+
+<script>
+function handleProfileImageUpload(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            alert('Please select a valid image file.');
+            return;
+        }
+        
+        // Validate file size (max 2MB)
+        if (file.size > 2 * 1024 * 1024) {
+            alert('Please select an image smaller than 2MB.');
+            return;
+        }
+        
+        // Preview the image
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            // Update all profile image containers with the new image
+            const profileImages = document.querySelectorAll('.profile-image-container img');
+            const profilePlaceholders = document.querySelectorAll('.profile-image-container > div:not(.profile-upload-overlay):not(.profile-upload-indicator)');
+            
+            profileImages.forEach(img => {
+                img.src = e.target.result;
+                img.style.display = 'block';
+            });
+            
+            // Hide placeholders and show images
+            profilePlaceholders.forEach(placeholder => {
+                if (placeholder.classList.contains('bg-primary')) {
+                    placeholder.style.display = 'none';
+                    // Create or update img element
+                    let img = placeholder.parentNode.querySelector('img');
+                    if (!img) {
+                        img = document.createElement('img');
+                        img.className = 'rounded-circle';
+                        img.style.width = placeholder.style.width;
+                        img.style.height = placeholder.style.height;
+                        img.style.objectFit = 'cover';
+                        placeholder.parentNode.insertBefore(img, placeholder);
+                    }
+                    img.src = e.target.result;
+                    img.style.display = 'block';
+                }
+            });
+        };
+        reader.readAsDataURL(file);
+        
+        // Here you would typically upload the file to the server
+        // For now, we'll just show a success message
+        setTimeout(() => {
+            // Show success notification (you can replace this with your notification system)
+            const notification = document.createElement('div');
+            notification.className = 'alert alert-success alert-dismissible fade show position-fixed';
+            notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 300px;';
+            notification.innerHTML = `
+                <i class="ri-check-line me-2"></i>
+                Profile picture updated successfully!
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(notification);
+            
+            // Auto-remove notification after 3 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 3000);
+        }, 500);
+    }
+}
+</script>

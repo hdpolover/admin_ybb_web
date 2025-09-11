@@ -25,7 +25,7 @@ class AdminModel extends Model
         'name' => 'required|min_length[2]|max_length[255]',
         'email' => 'required|valid_email|is_unique[admins.email,id,{id}]',
         'password' => 'required|min_length[8]',
-        'role' => 'required|in_list[super_admin,tnd,reviewer,ambassador_coordinator,news_writer]',
+        'role' => 'required', // Role validation will be handled in controller
         'department' => 'permit_empty|max_length[100]',
         'phone' => 'permit_empty|max_length[20]',
         'access_level' => 'permit_empty|integer|greater_than[0]|less_than[6]',
@@ -126,7 +126,7 @@ class AdminModel extends Model
     /**
      * Get admins with role-based filtering
      */
-    public function getAdminsByRole(string $role = null, int $programId = null): array
+    public function getAdminsByRole(?string $role = null, ?int $programId = null): array
     {
         $cacheKey = $this->cacheName . 'role_' . ($role ?? 'all') . '_prog_' . ($programId ?? 'all');
         
@@ -207,7 +207,7 @@ class AdminModel extends Model
     /**
      * Update last login timestamp
      */
-    public function updateLastLogin(int $id, string $sessionToken = null): bool
+    public function updateLastLogin(int $id, ?string $sessionToken = null): bool
     {
         $data = ['last_login' => Time::now()->toDateTimeString()];
         
@@ -263,9 +263,9 @@ class AdminModel extends Model
     public function searchAdmins(array $filters = []): array
     {
         $builder = $this->db->table($this->table . ' a')
-                           ->select('a.*, GROUP_CONCAT(DISTINCT p.name SEPARATOR ", ") as program_names')
+                           ->select('a.*, GROUP_CONCAT(DISTINCT CASE WHEN p.is_active = 1 THEN p.name ELSE CONCAT(p.name, " (Inactive)") END SEPARATOR ", ") as program_names')
                            ->join('admin_programs ap', 'a.id = ap.admin_id', 'left')
-                           ->join('programs p', 'ap.program_id = p.id AND p.is_active = 1', 'left')
+                           ->join('programs p', 'ap.program_id = p.id', 'left')
                            ->where('a.is_deleted', 0)
                            ->groupBy('a.id');
         
@@ -430,7 +430,7 @@ class AdminModel extends Model
             SELECT p.*, ap.assigned_at 
             FROM programs p 
             INNER JOIN admin_programs ap ON p.id = ap.program_id 
-            WHERE ap.admin_id = ? AND p.is_active = 1
+            WHERE ap.admin_id = ?
             ORDER BY p.name
         ", [$adminId]);
         
@@ -440,7 +440,7 @@ class AdminModel extends Model
     /**
      * Assign admin to programs
      */
-    public function assignToPrograms(int $adminId, array $programIds, int $assignedBy = null): bool
+    public function assignToPrograms(int $adminId, array $programIds, ?int $assignedBy = null): bool
     {
         $db = \Config\Database::connect();
         

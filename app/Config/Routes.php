@@ -30,7 +30,10 @@ $routes->setAutoRoute(false);
 
 // Basic routes
 $routes->group('', ['namespace' => 'App\Controllers'], function ($routes) {
+    // Root route - should redirect to login if not authenticated
     $routes->get('/', 'Auth::index');
+    
+    // Authentication routes
     $routes->post('sign-in', 'Auth::signIn');
     
     // Auth routes
@@ -38,50 +41,20 @@ $routes->group('', ['namespace' => 'App\Controllers'], function ($routes) {
         $routes->get('signOut', 'Auth::signOut');
     });
     
-    // Debug authentication routes
-    $routes->get('debug-auth', 'DebugAuth::index');
-    $routes->post('debug-auth/sign-in', 'DebugAuth::signIn');
-    $routes->get('debug-menu', 'DebugMenu::index');
-    $routes->get('debug-session', 'DebugSession::index');
-    $routes->get('fix-menu', 'FixMenuSystem::index');
-    $routes->get('test-routes', 'TestRoutes::index');
+    // Debug authentication routes (only for development)
+    $routes->group('debug', function ($routes) {
+        $routes->get('auth', 'DebugAuth::index');
+        $routes->post('auth/sign-in', 'DebugAuth::signIn');
+        $routes->get('menu', 'DebugMenu::index');
+        $routes->get('session', 'DebugSession::index');
+    });
     
     // Simple Excel export routes
     $routes->get('simpleexport', 'SimpleExportController::index');
     $routes->get('simpleexport/exportSimple', 'SimpleExportController::exportSimple');
     
-    // Test routes for certificate debugging
-    $routes->get('test-certificates', 'CertificateTest::testPage');
-    $routes->get('test-certificates/data', 'CertificateTest::testData');
-    
-    // Certificate service test routes
-    $routes->group('test-certificate-service', function ($routes) {
-        $routes->get('connection', 'CertificateTestController::testConnection');
-        $routes->get('placeholders', 'CertificateTestController::testPlaceholders');
-        $routes->get('generation-data', 'CertificateTestController::testGeneration');
-    });
-    
-    // Certificate debug routes
-    $routes->group('debug-certificate', function ($routes) {
-        $routes->get('/', 'CertificateDebugController::index');
-        $routes->get('step1', 'CertificateDebugController::testStep1');
-        $routes->get('step2', 'CertificateDebugController::testStep2');
-        $routes->get('step3', 'CertificateDebugController::testStep3');
-        $routes->get('step4', 'CertificateDebugController::testStep4');
-        $routes->get('step5', 'CertificateDebugController::testStep5');
-    });
-    
-    // YBB Export Test Routes
-    $routes->group('test-export', function ($routes) {
-        $routes->get('/', 'TestExportController::index');
-        $routes->get('test-connection', 'TestExportController::testConnection');
-        $routes->post('test-participant-export', 'TestExportController::testParticipantExport');
-        $routes->post('test-payment-export', 'TestExportController::testPaymentExport');
-        $routes->get('get-templates', 'TestExportController::getTemplates');
-        $routes->get('get-templates/(:any)', 'TestExportController::getTemplates/$1');
-        $routes->get('status/(:any)', 'TestExportController::getExportStatus/$1');
-        $routes->get('download/(:any)', 'TestExportController::downloadExport/$1');
-    });
+    // Menu test
+    $routes->get('menu-test', 'MenuTest::index');
 });
 
 // We get a performance increase by specifying the default
@@ -431,6 +404,50 @@ $routes->group('menu-test', ['namespace' => 'App\Controllers', 'filter' => 'acce
     $routes->get('program-admin', 'MenuTestController::programAdminAccess');
     $routes->get('editor', 'MenuTestController::editorAccess');
     $routes->get('user-info', 'MenuTestController::userInfo');
+});
+
+// Development test routes (remove in production)
+$routes->group('test', ['namespace' => 'App\Controllers'], function ($routes) {
+    $routes->get('roles', 'TestRoles::testRoles');
+    $routes->get('routes', 'TestRoutes::index');
+    
+    // Certificate testing
+    $routes->get('certificates', 'CertificateTest::testPage');
+    $routes->get('certificates/data', 'CertificateTest::testData');
+    
+    // YBB Export Testing
+    $routes->group('export', function ($routes) {
+        $routes->get('/', 'TestExportController::index');
+        $routes->get('connection', 'TestExportController::testConnection');
+        $routes->post('participant-export', 'TestExportController::testParticipantExport');
+        $routes->post('payment-export', 'TestExportController::testPaymentExport');
+        $routes->get('templates', 'TestExportController::getTemplates');
+        $routes->get('templates/(:any)', 'TestExportController::getTemplates/$1');
+        $routes->get('status/(:any)', 'TestExportController::getExportStatus/$1');
+        $routes->get('download/(:any)', 'TestExportController::downloadExport/$1');
+    });
+    
+    // Certificate service testing
+    $routes->group('certificate-service', function ($routes) {
+        $routes->get('connection', 'CertificateTestController::testConnection');
+        $routes->get('placeholders', 'CertificateTestController::testPlaceholders');
+        $routes->get('generation-data', 'CertificateTestController::testGeneration');
+    });
+});
+
+// Development debug routes (remove in production)
+$routes->group('debug', ['namespace' => 'App\Controllers'], function ($routes) {
+    $routes->get('fix-menu', 'FixMenuSystem::index');
+    
+    // Certificate debug routes
+    $routes->group('certificate', function ($routes) {
+        $routes->get('/', 'CertificateDebugController::index');
+        $routes->get('step1', 'CertificateDebugController::testStep1');
+        $routes->get('step2', 'CertificateDebugController::testStep2');
+        $routes->get('step3', 'CertificateDebugController::testStep3');
+        $routes->get('step4', 'CertificateDebugController::testStep4');
+        $routes->get('step5', 'CertificateDebugController::testStep5');
+    });
 });
 
 /*

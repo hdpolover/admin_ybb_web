@@ -28,7 +28,7 @@ class Welcome extends AdminBaseController
         $allPrograms = $this->programCategoryModel->getAllCategoriesWithPrograms();
         
         // Filter programs based on admin access
-        $accessiblePrograms = $this->filterProgramsByAdminAccess($allPrograms, $this->adminModel);
+        $accessiblePrograms = $this->filterProgramsByAdminAccess($allPrograms);
         
         // Sort programs by category name
         usort($accessiblePrograms, function ($a, $b) {
@@ -115,7 +115,7 @@ class Welcome extends AdminBaseController
         
         // Get all available programs for access checking
         $allPrograms = $this->programCategoryModel->getAllCategoriesWithPrograms();
-        $accessiblePrograms = $this->filterProgramsByAdminAccess($allPrograms, $this->adminModel);
+        $accessiblePrograms = $this->filterProgramsByAdminAccess($allPrograms);
         
         // Extract individual programs from categories for validation
         $allIndividualPrograms = [];
@@ -161,6 +161,7 @@ class Welcome extends AdminBaseController
         // Clear topbar cache to force refresh with new program selection
         session()->remove('topbar_data');
         session()->remove('topbar_data_updated');
+        $this->clearTopbarCache();
         
         // Force refresh of topbar data by clearing cache and reloading
         $this->loadTopbarData();

@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\RoleModel;
+use App\Models\AdminRoleModel;
 use App\Models\PermissionModel;
 use App\Models\MenuItemModel;
 
@@ -15,7 +15,7 @@ class DynamicMenuService
 
     public function __construct()
     {
-        $this->roleModel = new RoleModel();
+        $this->roleModel = new AdminRoleModel();
         $this->permissionModel = new PermissionModel();
         $this->menuItemModel = new MenuItemModel();
         $this->cache = \Config\Services::cache();
@@ -26,15 +26,21 @@ class DynamicMenuService
      */
     public function getMenuForUser($user): array
     {
-        if (!$user || !isset($user->role_id)) {
+        if (!$user || !isset($user->role)) {
             return [];
         }
 
-        $cacheKey = "menu_user_role_{$user->role_id}";
+        // Get role ID from role name
+        $role = $this->roleModel->where('name', $user->role)->first();
+        if (!$role) {
+            return [];
+        }
+
+        $cacheKey = "menu_user_role_{$role->id}";
         $menu = $this->cache->get($cacheKey);
 
         if ($menu === null) {
-            $menu = $this->menuItemModel->getMenuForUser($user->role_id);
+            $menu = $this->menuItemModel->getMenuForUser($role->id);
             $this->cache->save($cacheKey, $menu, 1800); // Cache for 30 minutes
         }
 
@@ -46,7 +52,7 @@ class DynamicMenuService
      */
     public function hasPermission($user, string $permission): bool
     {
-        if (!$user || !isset($user->role_id)) {
+        if (!$user || !isset($user->role)) {
             return false;
         }
 
@@ -55,11 +61,17 @@ class DynamicMenuService
             return true;
         }
 
-        $cacheKey = "user_permission_{$user->role_id}_{$permission}";
+        // Get role ID from role name
+        $role = $this->roleModel->where('name', $user->role)->first();
+        if (!$role) {
+            return false;
+        }
+
+        $cacheKey = "user_permission_{$role->id}_{$permission}";
         $hasPermission = $this->cache->get($cacheKey);
 
         if ($hasPermission === null) {
-            $hasPermission = $this->roleModel->hasPermission($user->role_id, $permission);
+            $hasPermission = $this->roleModel->hasPermission($role->id, $permission);
             $this->cache->save($cacheKey, $hasPermission, 1800); // Cache for 30 minutes
         }
 
@@ -329,8 +341,8 @@ class DynamicMenuService
             // Legacy compatibility
             'canViewUsers' => $this->canViewParticipants($user),
             'canViewSubmissions' => $this->canViewEssays($user),
-            'canViewDocuments' => $this->canViewNews($user),
-            'canViewAnnouncements' => $this->canViewNews($user),
+            'canViewDocuments' => $this->hasPermission($user, 'view_documents'),
+            'canViewAnnouncements' => $this->hasPermission($user, 'view_announcements'),
             'canViewMasterData' => $this->canAccessSystemSettings($user),
             'canViewPayments' => $this->hasPermission($user, 'view_payments'),
         ];

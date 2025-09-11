@@ -43,6 +43,7 @@ abstract class BaseController extends Controller
      */    protected $session;
     protected $programModel;
     protected $programCategoryModel;
+    protected $currentUser;
 
     /**
      * Constructor.
@@ -53,12 +54,31 @@ abstract class BaseController extends Controller
         parent::initController($request, $response, $logger);
         $this->session = \Config\Services::session();
 
+        // Load current admin user if logged in
+        $this->loadCurrentUser();
+
         // Initialize program models for topbar data
         $this->programModel = new \App\Models\ProgramModel();
         $this->programCategoryModel = new \App\Models\ProgramCategoryModel();
 
         // Get program data for the topbar
         $this->loadTopbarData();
+    }
+
+    /**
+     * Load current user data
+     */
+    protected function loadCurrentUser()
+    {
+        if (!$this->session->get('isLoggedIn')) {
+            return;
+        }
+
+        $adminId = $this->session->get('adminId');
+        if ($adminId) {
+            $adminModel = new \App\Models\AdminModel();
+            $this->currentUser = $adminModel->find($adminId);
+        }
     }    /**
      * Load program data for topbar
      * This ensures program data is available across all views
@@ -73,8 +93,8 @@ abstract class BaseController extends Controller
 
         // Try to get the topbar data from cache
         $cache = \Config\Services::cache();
-        $userId = session()->get('userId') ?? 'guest';
-        $cacheKey = "topbar_data_{$userId}";
+        $adminId = session()->get('adminId') ?? 'guest';
+        $cacheKey = "topbar_data_{$adminId}";
         $topbarData = $cache->get($cacheKey);
         
         if ($topbarData !== null) {
@@ -86,8 +106,14 @@ abstract class BaseController extends Controller
         // Cache miss - generate topbar data
         log_message('info', 'BaseController::loadTopbarData - Cache miss, generating topbar data');
 
-        // Get program category with categoryWithPrograms
-        $categoryWithPrograms = $this->programCategoryModel->getAllCategoriesWithPrograms();
+        // Get all program categories with programs
+        $allCategoryWithPrograms = $this->programCategoryModel->getAllCategoriesWithPrograms();
+
+        // Filter programs based on admin access if user is logged in
+        $categoryWithPrograms = $allCategoryWithPrograms;
+        if (session()->get('isLoggedIn') && session()->get('adminId') && $this->currentUser) {
+            $categoryWithPrograms = $this->filterProgramsByAdminAccess($allCategoryWithPrograms);
+        }
 
         // Sort categoryWithPrograms by category name
         usort($categoryWithPrograms, function ($a, $b) {
@@ -96,7 +122,8 @@ abstract class BaseController extends Controller
         
         // Group by active and inactive
         $activePrograms = [];
-        $inactivePrograms = [];        foreach ($categoryWithPrograms as $category) {
+        $inactivePrograms = [];        
+        foreach ($categoryWithPrograms as $category) {
             $logoUrl = $category->logo_url ?? null;
 
             // Get categoryWithPrograms from category
@@ -155,6 +182,7 @@ abstract class BaseController extends Controller
 
         // Prepare topbar data
         $topbarData = [
+            'currentUser' => $this->currentUser, // Add current user data for menu permissions
             'selectedProgram' => $selectedProgram,
             'activePrograms' => $activePrograms,
             'inactivePrograms' => $inactivePrograms,
@@ -226,6 +254,7 @@ abstract class BaseController extends Controller
         
         // Prepare reviewer topbar data
         $topbarData = [
+            'currentUser' => $this->currentUser, // Add current user data for menu permissions
             'selectedProgram' => $selectedProgram,
             'activePrograms' => [], // Reviewers don't need to see other programs
             'inactivePrograms' => [],
@@ -247,16 +276,65 @@ abstract class BaseController extends Controller
     protected function clearTopbarCache()
     {
         $cache = \Config\Services::cache();
-        $userId = session()->get('userId') ?? 'guest';
+        $adminId = session()->get('adminId') ?? 'guest';
         $userType = session()->get('userType');
         
         if ($userType === 'reviewer') {
             $reviewerId = session()->get('reviewerId');
             $cacheKey = "reviewer_topbar_data_{$reviewerId}";
         } else {
-            $cacheKey = "topbar_data_{$userId}";
+            $cacheKey = "topbar_data_{$adminId}";
         }
         
         return $cache->delete($cacheKey);
+    }
+
+    /**
+     * Filter programs based on admin access permissions
+     * 
+     * @param array $allPrograms Array of program categories with programs
+     * @return array Filtered programs accessible to current admin
+     */
+    protected function filterProgramsByAdminAccess($allPrograms)
+    {
+        if (!$this->currentUser) {
+            log_message('debug', 'BaseController::filterProgramsByAdminAccess - No current user found');
+            return [];
+        }
+
+        log_message('debug', 'BaseController::filterProgramsByAdminAccess - User role: ' . $this->currentUser->role . ' for admin ID: ' . $this->currentUser->id);
+
+        // Super admins have access to all programs
+        if ($this->currentUser->role === 'super_admin') {
+            log_message('debug', 'BaseController::filterProgramsByAdminAccess - Super admin, returning all programs: ' . count($allPrograms) . ' categories');
+            return $allPrograms;
+        }
+
+        // For other roles, get assigned programs
+        $adminModel = new \App\Models\AdminModel();
+        $assignedPrograms = $adminModel->getAdminPrograms($this->currentUser->id);
+        $assignedProgramIds = array_column($assignedPrograms, 'id');
+
+        log_message('debug', 'BaseController::filterProgramsByAdminAccess - Assigned program IDs: ' . json_encode($assignedProgramIds));
+
+        // Filter categories to only include programs admin has access to
+        $filteredPrograms = [];
+        foreach ($allPrograms as $category) {
+            if (isset($category->programs) && is_array($category->programs)) {
+                $accessiblePrograms = array_filter($category->programs, function ($program) use ($assignedProgramIds) {
+                    return in_array($program->id, $assignedProgramIds);
+                });
+
+                // Only include category if it has accessible programs
+                if (!empty($accessiblePrograms)) {
+                    $filteredCategory = clone $category;
+                    $filteredCategory->programs = array_values($accessiblePrograms);
+                    $filteredPrograms[] = $filteredCategory;
+                }
+            }
+        }
+
+        log_message('debug', 'BaseController::filterProgramsByAdminAccess - Filtered to ' . count($filteredPrograms) . ' categories');
+        return $filteredPrograms;
     }
 }

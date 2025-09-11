@@ -20,7 +20,7 @@ class Topbar extends AdminBaseController
         
         // Validate program access (using existing method from AdminBaseController)
         $allPrograms = $this->programCategoryModel->getAllCategoriesWithPrograms();
-        $accessiblePrograms = $this->filterProgramsByAdminAccess($allPrograms, new \App\Models\AdminModel());
+        $accessiblePrograms = $this->filterProgramsByAdminAccess($allPrograms);
         
         // Validate that the admin has access to this program
         $program = $this->validateProgramAccess($program_id, $accessiblePrograms);
@@ -38,6 +38,7 @@ class Topbar extends AdminBaseController
         // Clear topbar cache to force refresh with new program selection
         session()->remove('topbar_data');
         session()->remove('topbar_data_updated');
+        $this->clearTopbarCache();
         
         // Force refresh of topbar data by clearing cache and reloading
         $this->loadTopbarData();

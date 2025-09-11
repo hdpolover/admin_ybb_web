@@ -408,6 +408,11 @@ if ($isSuperAdmin || !$dynamicPermissionsWorking) {
                                     class="nav-link <?= url_is('settings/roles*') ? 'active' : '' ?>"> <i
                                         class="ri-user-settings-line"></i> Roles & Permissions </a>
                             </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url("settings/menu-management") ?>"
+                                    class="nav-link <?= url_is('settings/menu-management*') ? 'active' : '' ?>"> <i
+                                        class="ri-menu-line"></i> Menu Management </a>
+                            </li>
                             <?php endif; ?>
                             <?php endif; ?>
                         </ul>

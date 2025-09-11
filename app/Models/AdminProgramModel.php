@@ -66,7 +66,7 @@ class AdminProgramModel extends Model
     /**
      * Assign admin to program
      */
-    public function assignAdminToProgram(int $adminId, int $programId, int $assignedBy = null): bool
+    public function assignAdminToProgram(int $adminId, int $programId, ?int $assignedBy = null): bool
     {
         // Check if already assigned
         if ($this->isAdminAssigned($adminId, $programId)) {

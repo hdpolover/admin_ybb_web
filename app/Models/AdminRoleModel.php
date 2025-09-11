@@ -4,9 +4,9 @@ namespace App\Models;
 
 use CodeIgniter\Model;
 
-class RoleModel extends Model
+class AdminRoleModel extends Model
 {
-    protected $table = 'roles';
+    protected $table = 'admin_roles';
     protected $primaryKey = 'id';
     protected $useAutoIncrement = true;
     protected $returnType = 'object';
@@ -23,7 +23,7 @@ class RoleModel extends Model
 
     // Validation rules
     protected $validationRules = [
-        'name' => 'required|min_length[2]|max_length[50]|is_unique[roles.name,id,{id}]',
+        'name' => 'required|min_length[2]|max_length[50]|is_unique[admin_roles.name,id,{id}]',
         'display_name' => 'required|min_length[2]|max_length[100]',
         'access_level' => 'required|integer|greater_than[0]|less_than[11]'
     ];
@@ -50,7 +50,7 @@ class RoleModel extends Model
         $query = $db->query("
             SELECT p.*, rp.granted_at
             FROM permissions p
-            INNER JOIN role_permissions rp ON rp.permission_id = p.id
+            INNER JOIN admin_role_permissions rp ON rp.permission_id = p.id
             WHERE rp.role_id = ? AND p.is_active = 1
             ORDER BY p.category, p.display_name
         ", [$roleId]);
@@ -68,13 +68,21 @@ class RoleModel extends Model
         return $db->query("
             SELECT 
                 r.*,
-                COUNT(rp.permission_id) as permission_count,
-                COUNT(a.id) as admin_count
-            FROM roles r
-            LEFT JOIN role_permissions rp ON rp.role_id = r.id
-            LEFT JOIN admins a ON a.role_id = r.id AND a.is_active = 1
+                IFNULL(pc.permission_count, 0) as permission_count,
+                IFNULL(uc.user_count, 0) as user_count
+            FROM admin_roles r
+            LEFT JOIN (
+                SELECT role_id, COUNT(*) as permission_count 
+                FROM admin_role_permissions 
+                GROUP BY role_id
+            ) pc ON pc.role_id = r.id
+            LEFT JOIN (
+                SELECT role_id, COUNT(*) as user_count 
+                FROM admins 
+                WHERE is_active = 1 AND is_deleted = 0 
+                GROUP BY role_id
+            ) uc ON uc.role_id = r.id
             WHERE r.is_active = 1
-            GROUP BY r.id
             ORDER BY r.access_level DESC
         ")->getResult();
     }
@@ -82,7 +90,7 @@ class RoleModel extends Model
     /**
      * Assign permissions to role
      */
-    public function assignPermissions(int $roleId, array $permissionIds, int $grantedBy = null): bool
+    public function assignPermissions(int $roleId, array $permissionIds, ?int $grantedBy = null): bool
     {
         $db = \Config\Database::connect();
         
@@ -90,7 +98,7 @@ class RoleModel extends Model
             $db->transStart();
             
             // Remove existing permissions
-            $db->query("DELETE FROM role_permissions WHERE role_id = ?", [$roleId]);
+            $db->query("DELETE FROM admin_role_permissions WHERE role_id = ?", [$roleId]);
             
             // Add new permissions
             if (!empty($permissionIds)) {
@@ -104,7 +112,7 @@ class RoleModel extends Model
                     $params[] = $grantedBy;
                 }
                 
-                $sql = "INSERT INTO role_permissions (role_id, permission_id, granted_at, granted_by) VALUES " . implode(', ', $values);
+                $sql = "INSERT INTO admin_role_permissions (role_id, permission_id, granted_at, granted_by) VALUES " . implode(', ', $values);
                 $db->query($sql, $params);
             }
             
@@ -125,7 +133,7 @@ class RoleModel extends Model
         $db = \Config\Database::connect();
         $query = $db->query("
             SELECT COUNT(*) as count
-            FROM role_permissions rp
+            FROM admin_role_permissions rp
             INNER JOIN permissions p ON p.id = rp.permission_id
             WHERE rp.role_id = ? AND p.name = ? AND p.is_active = 1
         ", [$roleId, $permissionName]);
