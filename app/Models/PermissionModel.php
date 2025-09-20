@@ -63,7 +63,7 @@ class PermissionModel extends Model
         return $db->query("
             SELECT p.*
             FROM permissions p
-            INNER JOIN role_permissions rp ON rp.permission_id = p.id
+            INNER JOIN admin_role_permissions rp ON rp.permission_id = p.id
             WHERE rp.role_id = ? AND p.is_active = 1
             ORDER BY p.category, p.display_name
         ", [$roleId])->getResult();
@@ -146,6 +146,19 @@ class PermissionModel extends Model
     {
         $db = \Config\Database::connect();
         
+        // Count total permissions
+        $totalQuery = $db->query("SELECT COUNT(*) as total FROM permissions WHERE is_active = 1");
+        $total = $totalQuery->getRow()->total;
+        
+        // Count active roles (roles that have permissions assigned)
+        $activeRolesQuery = $db->query("
+            SELECT COUNT(DISTINCT rp.role_id) as active_roles
+            FROM admin_role_permissions rp
+            INNER JOIN admin_roles r ON r.id = rp.role_id
+            WHERE r.is_active = 1
+        ");
+        $activeRoles = $activeRolesQuery->getRow()->active_roles;
+        
         // Count by category
         $categoryStats = $db->query("
             SELECT category, COUNT(*) as count
@@ -161,7 +174,7 @@ class PermissionModel extends Model
                 p.display_name,
                 COUNT(rp.role_id) as role_count
             FROM permissions p
-            LEFT JOIN role_permissions rp ON rp.permission_id = p.id
+            LEFT JOIN admin_role_permissions rp ON rp.permission_id = p.id
             WHERE p.is_active = 1
             GROUP BY p.id, p.display_name
             ORDER BY role_count DESC
@@ -169,7 +182,8 @@ class PermissionModel extends Model
         ")->getResult();
         
         return [
-            'total_permissions' => $this->where('is_active', 1)->countAllResults(),
+            'total' => $total,
+            'active_roles' => $activeRoles,
             'category_stats' => $categoryStats,
             'most_assigned' => $mostAssigned
         ];

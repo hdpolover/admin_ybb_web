@@ -4,7 +4,7 @@ namespace App\Controllers;
 
 use App\Models\ProgramCertificateContentBlockModel;
 
-class ProgramCertificateContentBlocks extends BaseController
+class ProgramCertificateContentBlocks extends AdminBaseController
 {
     protected $contentBlockModel;
 

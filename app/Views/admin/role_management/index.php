@@ -41,6 +41,35 @@
             border-radius: 8px;
             font-size: 24px;
         }
+
+        /* Table row hover effects */
+        #role-table tbody tr {
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        
+        #role-table tbody tr:hover {
+            background-color: rgba(0, 123, 255, 0.1) !important;
+        }
+        
+        .table-hover-row {
+            background-color: rgba(0, 123, 255, 0.05) !important;
+        }
+
+        /* Modal improvements */
+        .modal-lg {
+            max-width: 900px;
+        }
+        
+        .permission-badge {
+            margin: 2px;
+            font-size: 0.75rem;
+        }
+        
+        .list-group-item {
+            border: 1px solid rgba(0,0,0,.125);
+            padding: 0.75rem 1rem;
+        }
     </style>
 </head>
 
@@ -115,7 +144,7 @@
                                             <i class="ri-group-line"></i>
                                         </div>
                                         <div>
-                                            <p class="text-muted mb-0">Categories</p>
+                                            <p class="text-muted mb-0">Permission Categories</p>
                                             <h4 class="mb-0"><?= count($permissions ?? []) ?></h4>
                                         </div>
                                     </div>
@@ -131,15 +160,20 @@
                                 <div class="card-header">
                                     <div class="d-flex align-items-center justify-content-between">
                                         <h4 class="card-title mb-0">Roles & Permissions</h4>
-                                        <div class="d-flex gap-2">
-                                            <button type="button" class="btn btn-primary" onclick="createRole()">
+                                        <div>
+                                            <a href="/roles/create" class="btn btn-primary">
                                                 <i class="ri-add-line align-bottom me-1"></i> Create Role
-                                            </button>
+                                            </a>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="card-body">
+                                    <div class="alert alert-info alert-dismissible fade show" role="alert">
+                                        <i class="ri-information-line me-2"></i>
+                                        <strong>Tip:</strong> Click on any role row to view detailed information, or use the action buttons for specific operations.
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
                                     <div class="table-responsive">
                                         <table id="role-table" class="table table-bordered dt-responsive nowrap table-striped align-middle" style="width:100%">
                                             <thead class="table-light">
@@ -236,6 +270,90 @@
     </div>
     <!-- END layout-wrapper -->
 
+    <!-- Role Details Modal -->
+    <div class="modal fade" id="roleDetailsModal" tabindex="-1" aria-labelledby="roleDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="roleDetailsModalLabel">Role Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Role Name:</label>
+                                <p id="role-name" class="mb-0 text-muted">-</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Display Name:</label>
+                                <p id="role-display-name" class="mb-0 text-muted">-</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Description:</label>
+                                <p id="role-description" class="mb-0 text-muted">-</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Access Level:</label>
+                                <p id="role-access-level" class="mb-0 text-muted">-</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Status:</label>
+                                <p id="role-status" class="mb-0">-</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Total Users:</label>
+                                <p id="role-user-count" class="mb-0 text-muted">-</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Permissions (<span id="permission-count">0</span>):</label>
+                                <div id="role-permissions" class="d-flex flex-wrap gap-1">
+                                    <!-- Permissions will be dynamically loaded -->
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Users with this role:</label>
+                                <div id="role-users" class="list-group list-group-flush" style="max-height: 200px; overflow-y: auto;">
+                                    <!-- Users will be dynamically loaded -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Created:</label>
+                                <p id="role-created-at" class="mb-0 text-muted">-</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Last Updated:</label>
+                                <p id="role-updated-at" class="mb-0 text-muted">-</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-success" id="editRoleBtn">
+                        <i class="ri-pencil-line"></i> Edit Role
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <?= $this->include('partials/vendor-scripts') ?>
 
     <!--datatable js-->
@@ -249,12 +367,37 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize DataTable
-            $('#role-table').DataTable({
+            const table = $('#role-table').DataTable({
                 responsive: true,
                 lengthChange: false,
                 pageLength: 10,
                 searching: true,
                 ordering: true
+            });
+
+            // Add click event to table rows (except action buttons)
+            $('#role-table tbody').on('click', 'tr', function(e) {
+                // Don't trigger row click if clicking on action buttons
+                if ($(e.target).closest('.btn').length > 0) {
+                    return;
+                }
+                
+                // Get role ID from the view button data attribute
+                const viewBtn = $(this).find('.btn-info[onclick*="viewRole"]');
+                if (viewBtn.length > 0) {
+                    const onclickAttr = viewBtn.attr('onclick');
+                    const roleId = onclickAttr.match(/viewRole\((\d+)\)/);
+                    if (roleId && roleId[1]) {
+                        viewRole(parseInt(roleId[1]));
+                    }
+                }
+            });
+
+            // Add hover effect to table rows
+            $('#role-table tbody').on('mouseenter', 'tr', function() {
+                $(this).addClass('table-hover-row');
+            }).on('mouseleave', 'tr', function() {
+                $(this).removeClass('table-hover-row');
             });
 
             // Initialize tooltips
@@ -283,13 +426,122 @@
             <?php endif; ?>
         });
 
-        function createRole() {
-            window.location.href = '/roles/create';
+        function viewRole(id) {
+            // Show loading state
+            Swal.fire({
+                title: 'Loading...',
+                text: 'Fetching role details',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Fetch role details
+            fetch(`/settings/roles/view/${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    Swal.close();
+                    
+                    if (data.success) {
+                        populateRoleModal(data.data);
+                        $('#roleDetailsModal').modal('show');
+                    } else {
+                        Swal.fire('Error', data.message || 'Failed to load role details', 'error');
+                    }
+                })
+                .catch(error => {
+                    Swal.close();
+                    console.error('Error:', error);
+                    Swal.fire('Error', 'Failed to load role details', 'error');
+                });
         }
 
-        function viewRole(id) {
-            // Implement view role functionality
-            Swal.fire('Info', 'View role functionality will be implemented soon', 'info');
+        function populateRoleModal(role) {
+            // Basic role information
+            document.getElementById('role-name').textContent = role.name || '-';
+            document.getElementById('role-display-name').textContent = role.display_name || '-';
+            document.getElementById('role-description').textContent = role.description || 'No description available';
+            document.getElementById('role-access-level').textContent = role.access_level || '-';
+            
+            // Status badge
+            const statusElement = document.getElementById('role-status');
+            if (role.is_active == 1) {
+                statusElement.innerHTML = '<span class="badge bg-success">Active</span>';
+            } else {
+                statusElement.innerHTML = '<span class="badge bg-danger">Inactive</span>';
+            }
+            
+            // User count
+            document.getElementById('role-user-count').textContent = role.admin_count || 0;
+            
+            // Permission count
+            document.getElementById('permission-count').textContent = role.permission_count || 0;
+            
+            // Permissions
+            const permissionsContainer = document.getElementById('role-permissions');
+            permissionsContainer.innerHTML = '';
+            if (role.permissions && role.permissions.length > 0) {
+                role.permissions.forEach(permission => {
+                    const badge = document.createElement('span');
+                    badge.className = 'badge bg-info permission-badge';
+                    badge.textContent = permission.name;
+                    permissionsContainer.appendChild(badge);
+                });
+            } else {
+                permissionsContainer.innerHTML = '<span class="text-muted">No permissions assigned</span>';
+            }
+            
+            // Users
+            const usersContainer = document.getElementById('role-users');
+            usersContainer.innerHTML = '';
+            if (role.admins && role.admins.length > 0) {
+                role.admins.forEach(admin => {
+                    const userItem = document.createElement('div');
+                    userItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+                    
+                    const userInfo = document.createElement('div');
+                    userInfo.innerHTML = `
+                        <strong>${admin.name}</strong>
+                        <br><small class="text-muted">${admin.email}</small>
+                    `;
+                    
+                    const statusBadge = document.createElement('span');
+                    statusBadge.className = admin.is_active == 1 ? 'badge bg-success' : 'badge bg-danger';
+                    statusBadge.textContent = admin.is_active == 1 ? 'Active' : 'Inactive';
+                    
+                    userItem.appendChild(userInfo);
+                    userItem.appendChild(statusBadge);
+                    usersContainer.appendChild(userItem);
+                });
+            } else {
+                usersContainer.innerHTML = '<div class="text-muted text-center p-3">No users assigned to this role</div>';
+            }
+            
+            // Timestamps
+            document.getElementById('role-created-at').textContent = role.created_at ? 
+                new Date(role.created_at).toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }) : '-';
+                
+            document.getElementById('role-updated-at').textContent = role.updated_at ? 
+                new Date(role.updated_at).toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }) : '-';
+            
+            // Set up edit button
+            document.getElementById('editRoleBtn').onclick = function() {
+                $('#roleDetailsModal').modal('hide');
+                editRole(role.id);
+            };
         }
 
         function editRole(id) {

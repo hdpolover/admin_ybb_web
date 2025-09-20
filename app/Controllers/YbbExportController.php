@@ -13,7 +13,7 @@ use App\Helpers\ExportFilenameHelper;
  * 
  * Handles data exports using the YBB Export API (Python Flask service)
  */
-class YbbExportController extends BaseController
+class YbbExportController extends AdminBaseController
 {
     private YbbExport $ybbExport;
     private ParticipantModel $participantModel;

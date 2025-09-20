@@ -26,8 +26,8 @@ class Dashboard extends AdminBaseController
         
         $program = $this->programModel->find($programId);
         
-        // If program not found or inactive, redirect to welcome
-        if (!$program || !$program->is_active) {
+        // If program not found, redirect to welcome (allow both active and inactive programs)
+        if (!$program) {
             session()->remove('current_program');
             return redirect()->to('welcome')->with('error', 'Selected program is not available. Please select another program.');
         }

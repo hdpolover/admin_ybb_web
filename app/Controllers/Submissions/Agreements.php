@@ -25,7 +25,7 @@ class Agreements extends BaseController
         $programId = session('current_program');
         $documentName = 'Agreement Letter'; // Ganti sesuai kebutuhan
         $type = 'agreement'; // Ganti sesuai kebutuhan
-        
+
         // $document = $this->DocModel->getDocumentIdByName($programId, $documentName);
         $document = $this->DocModel->getDocumentIdByType($programId, $type);
         if ($document) {
@@ -34,7 +34,7 @@ class Agreements extends BaseController
             // Handle jika tidak ditemukan
             $programDocumentId = null;
         }
-        
+
         $docs = $this->ProgramDoc->getAllDocsByProgramId($programDocumentId);
 
         if (empty($docs)) {
@@ -54,6 +54,9 @@ class Agreements extends BaseController
      * 
      * @return \CodeIgniter\HTTP\Response
      */
+
+
+
     public function updateStatus()
     {
         $idDoc = $this->request->getPost('id_doc');
@@ -68,15 +71,50 @@ class Agreements extends BaseController
         try {
             // Update the document status
             $data = [
-                'status' => $statusDoc,
-                'notes' => $notes,
+                'status'     => $statusDoc,
+                'notes'      => $notes,
                 'updated_at' => date('Y-m-d H:i:s')
             ];
 
             $updated = $this->ProgramDoc->update($idDoc, $data);
 
             if ($updated) {
-                session()->setFlashdata('success', 'Agreement letter status updated successfully');
+                $doc = $this->ProgramDoc->find($idDoc);
+
+                if ($doc) {
+                    $participantModel = new \App\Models\ParticipantModel();
+                    $participant = $participantModel->getById($doc->participant_id);
+
+                    if ($participant && $participant->user_id) {
+                        $userModel = new \App\Models\UserModel();
+                        $user = $userModel->find($participant->user_id);
+
+                        if ($user && !empty($user->email)) {
+
+                            $emailService = new \App\Services\EmailService();
+
+                            $emailSent = $emailService->sendStatus(
+                                $user->email,
+                                $user->full_name ?? 'User',
+                                $statusDoc
+                            );
+
+                            if ($emailSent) {
+                                session()->setFlashdata(
+                                    'success',
+                                    'Agreement letter updated & notification email sent to: ' . $user->email
+                                );
+                            } else {
+                                session()->setFlashdata(
+                                    'warning',
+                                    'Status updated, but failed to send email to: ' . $user->email
+                                );
+                            }
+                        } else {
+                            session()->setFlashdata('warning', 'Status updated, but user email not found.');
+                        }
+                    }
+                }
             } else {
                 session()->setFlashdata('error', 'Failed to update agreement letter status');
             }

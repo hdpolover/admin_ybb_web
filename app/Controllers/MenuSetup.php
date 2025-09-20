@@ -2,22 +2,24 @@
 
 namespace App\Controllers;
 
-use App\Controllers\BaseController;
+use App\Controllers\AdminBaseController;
 use App\Models\MenuItemModel;
-use App\Models\RoleModel;
+use App\Models\AdminRoleModel;
 use App\Models\PermissionModel;
+use CodeIgniter\HTTP\RequestInterface;
+use CodeIgniter\HTTP\ResponseInterface;
+use Psr\Log\LoggerInterface;
 
-class MenuSetup extends BaseController
+class MenuSetup extends AdminBaseController
 {
     protected $menuItemModel;
     protected $roleModel;
     protected $permissionModel;
 
-    public function initController(\CodeIgniter\HTTP\RequestInterface $request, \CodeIgniter\HTTP\ResponseInterface $response, \Psr\Log\LoggerInterface $logger)
+    public function initController(RequestInterface $request, ResponseInterface $response, LoggerInterface $logger)
     {
         parent::initController($request, $response, $logger);
-        $this->menuItemModel = new MenuItemModel();
-        $this->roleModel = new RoleModel();
+        $this->roleModel = new AdminRoleModel();
         $this->permissionModel = new PermissionModel();
     }
 
@@ -36,7 +38,7 @@ class MenuSetup extends BaseController
         $db = \Config\Database::connect();
         $tables = $db->listTables();
         
-        $requiredTables = ['menu_items', 'roles', 'permissions', 'role_permissions'];
+        $requiredTables = ['menu_items', 'admin_roles', 'permissions', 'admin_role_permissions'];
         
         echo "<h2>Database Tables:</h2>";
         foreach ($requiredTables as $table) {

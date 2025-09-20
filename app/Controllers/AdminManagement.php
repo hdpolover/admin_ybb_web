@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Controllers\AdminBaseController;
 use App\Models\AdminModel;
+use App\Models\AdminRoleModel;
 use App\Models\ProgramModel;
 use App\Services\MenuService;
 use CodeIgniter\HTTP\RequestInterface;
@@ -13,12 +14,14 @@ use Psr\Log\LoggerInterface;
 class AdminManagement extends AdminBaseController
 {
     protected $adminModel;
+    protected $adminRoleModel;
     protected $programModel;
 
     public function initController(RequestInterface $request, ResponseInterface $response, LoggerInterface $logger)
     {
         parent::initController($request, $response, $logger);
         $this->adminModel = new AdminModel();
+        $this->adminRoleModel = new AdminRoleModel();
         $this->programModel = new ProgramModel();
     }
 
@@ -100,8 +103,8 @@ class AdminManagement extends AdminBaseController
                 'is_active' => $admin->is_active ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-danger">Inactive</span>',
                 'last_login' => $admin->last_login ? date('M j, Y g:i A', strtotime($admin->last_login)) : '<span class="text-muted">Never</span>',
                 'created_at' => date('M j, Y', strtotime($admin->created_at)),
-                'can_edit' => AdminModel::canManageRole($this->currentUser->role, $admin->role),
-                'can_delete' => AdminModel::canManageRole($this->currentUser->role, $admin->role) && $admin->id != $this->currentUser->id
+                'can_edit' => $this->canManageRole($this->currentUser->role, $admin->role),
+                'can_delete' => $this->canManageRole($this->currentUser->role, $admin->role) && $admin->id != $this->currentUser->id
             ];
         }
 
@@ -114,20 +117,67 @@ class AdminManagement extends AdminBaseController
     }
 
     /**
-     * Get roles that current admin can manage
+     * Get roles that current admin can manage with details
      */
-    private function getManageableRoles(): array
+    private function getManageableRolesWithDetails(): array
     {
-        $allRoles = AdminModel::getAllRoles();
+        // Get all active roles from database
+        $allRoles = $this->adminRoleModel->getActiveRoles();
         $manageableRoles = [];
 
         foreach ($allRoles as $role) {
-            if (AdminModel::canManageRole($this->currentUser->role, $role)) {
-                $manageableRoles[] = $role;
+            // Check if current user can manage this role based on access level
+            if ($this->canManageRole($this->currentUser->role, $role->name)) {
+                $manageableRoles[] = [
+                    'name' => $role->name,
+                    'display_name' => $role->display_name,
+                    'description' => $role->description
+                ];
             }
         }
 
         return $manageableRoles;
+    }
+
+    /**
+     * Get roles that current admin can manage
+     */
+    private function getManageableRoles(): array
+    {
+        // Get all active roles from database
+        $allRoles = $this->adminRoleModel->getActiveRoles();
+        $manageableRoles = [];
+
+        foreach ($allRoles as $role) {
+            // Check if current user can manage this role based on access level
+            if ($this->canManageRole($this->currentUser->role, $role->name)) {
+                $manageableRoles[] = $role->name;
+            }
+        }
+
+        return $manageableRoles;
+    }
+
+    /**
+     * Check if current user can manage a specific role
+     */
+    private function canManageRole(string $currentUserRole, string $targetRole): bool
+    {
+        // Super admin can manage all roles except themselves
+        if ($currentUserRole === 'super_admin') {
+            return true;
+        }
+
+        // Get role access levels from database
+        $currentRole = $this->adminRoleModel->where('name', $currentUserRole)->first();
+        $targetRoleObj = $this->adminRoleModel->where('name', $targetRole)->first();
+
+        if (!$currentRole || !$targetRoleObj) {
+            return false;
+        }
+
+        // Users can only manage roles with lower access levels
+        return $currentRole->access_level > $targetRoleObj->access_level;
     }
 
     /**
@@ -157,8 +207,8 @@ class AdminManagement extends AdminBaseController
         }
 
         $data = [
-            'programs' => $this->programModel->findAll(),
-            'roles' => $this->getManageableRoles()
+            'programs' => $this->programModel->where('is_active', 1)->findAll(),
+            'roles' => $this->getManageableRolesWithDetails()
         ];
 
         return $this->response->setJSON([
@@ -177,11 +227,14 @@ class AdminManagement extends AdminBaseController
         }
 
         $validation = \Config\Services::validation();
+        $manageableRoles = $this->getManageableRoles();
+        log_message('debug', 'Manageable roles for validation: ' . json_encode($manageableRoles));
+        
         $validation->setRules([
             'name' => 'required|min_length[2]|max_length[100]',
             'email' => 'required|valid_email|is_unique[admins.email]',
             'password' => 'required|min_length[8]',
-            'role' => 'required|in_list[' . implode(',', $this->getManageableRoles()) . ']',
+            'role' => 'required|in_list[' . implode(',', $manageableRoles) . ']',
             'program_ids' => 'permit_empty|is_array',
             'is_active' => 'permit_empty|in_list[0,1]'
         ]);
@@ -207,16 +260,29 @@ class AdminManagement extends AdminBaseController
         $db->transStart();
 
         try {
+            log_message('debug', 'Attempting to create admin with data: ' . json_encode($data));
+            
             $adminId = $this->adminModel->insert($data);
             
+            log_message('debug', 'AdminModel::insert returned: ' . var_export($adminId, true));
+            
             if (!$adminId) {
-                throw new \Exception('Failed to create admin');
+                // Get more specific error information
+                $errors = $this->adminModel->errors();
+                log_message('error', 'AdminModel insert failed. Errors: ' . json_encode($errors));
+                throw new \Exception('Failed to create admin. Validation errors: ' . json_encode($errors));
             }
 
             // Assign to programs if specified
             $programIds = $this->request->getPost('program_ids');
+            log_message('debug', 'Program IDs received: ' . json_encode($programIds));
+            
             if (!empty($programIds)) {
-                $this->adminModel->assignToPrograms($adminId, $programIds, $this->currentUser->id);
+                log_message('debug', 'Calling assignToPrograms for admin ID: ' . $adminId);
+                $assignResult = $this->adminModel->assignToPrograms($adminId, $programIds, $this->currentUser->id);
+                log_message('debug', 'assignToPrograms result: ' . ($assignResult ? 'success' : 'failed'));
+            } else {
+                log_message('debug', 'No program IDs to assign - program_ids is empty');
             }
 
             $db->transCommit();
@@ -230,6 +296,7 @@ class AdminManagement extends AdminBaseController
         } catch (\Exception $e) {
             $db->transRollback();
             log_message('error', 'Admin creation failed: ' . $e->getMessage());
+            log_message('error', 'Admin creation stack trace: ' . $e->getTraceAsString());
             
             return $this->response->setJSON([
                 'success' => false,
@@ -253,7 +320,7 @@ class AdminManagement extends AdminBaseController
         }
 
         // Check if user can manage this admin's role
-        if (!AdminModel::canManageRole($this->currentUser->role, $admin->role)) {
+        if (!$this->canManageRole($this->currentUser->role, $admin->role)) {
             return $this->response->setJSON(['success' => false, 'message' => 'Access denied'])->setStatusCode(403);
         }
 
@@ -285,7 +352,7 @@ class AdminManagement extends AdminBaseController
         }
 
         // Check if user can manage this admin's role
-        if (!AdminModel::canManageRole($this->currentUser->role, $admin->role)) {
+        if (!$this->canManageRole($this->currentUser->role, $admin->role)) {
             return $this->response->setJSON(['success' => false, 'message' => 'Access denied'])->setStatusCode(403);
         }
 
@@ -294,8 +361,8 @@ class AdminManagement extends AdminBaseController
 
         $data = [
             'admin' => $admin,
-            'programs' => $this->programModel->findAll(),
-            'roles' => $this->getManageableRoles()
+            'programs' => $this->programModel->where('is_active', 1)->findAll(),
+            'roles' => $this->getManageableRolesWithDetails()
         ];
 
         return $this->response->setJSON([
@@ -319,7 +386,7 @@ class AdminManagement extends AdminBaseController
         }
 
         // Check if user can manage this admin's role
-        if (!AdminModel::canManageRole($this->currentUser->role, $admin->role)) {
+        if (!$this->canManageRole($this->currentUser->role, $admin->role)) {
             return $this->response->setJSON(['success' => false, 'message' => 'Access denied'])->setStatusCode(403);
         }
 
@@ -363,7 +430,10 @@ class AdminManagement extends AdminBaseController
 
             // Update program assignments
             $programIds = $this->request->getPost('program_ids') ?? [];
-            $this->adminModel->assignToPrograms($id, $programIds, $this->currentUser->id);
+            log_message('debug', 'Update - Program IDs received: ' . json_encode($programIds));
+            log_message('debug', 'Update - Calling assignToPrograms for admin ID: ' . $id);
+            $assignResult = $this->adminModel->assignToPrograms($id, $programIds, $this->currentUser->id);
+            log_message('debug', 'Update - assignToPrograms result: ' . ($assignResult ? 'success' : 'failed'));
 
             $db->transCommit();
 
@@ -403,7 +473,7 @@ class AdminManagement extends AdminBaseController
         }
 
         // Check if user can manage this admin's role
-        if (!AdminModel::canManageRole($this->currentUser->role, $admin->role)) {
+        if (!$this->canManageRole($this->currentUser->role, $admin->role)) {
             return $this->response->setJSON(['success' => false, 'message' => 'Access denied'])->setStatusCode(403);
         }
 

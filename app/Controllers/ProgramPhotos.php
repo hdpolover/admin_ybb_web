@@ -7,7 +7,7 @@ use App\Models\ProgramPhotoModel;
 use App\Models\ProgramModel;
 use App\Traits\Cacheable;
 
-class ProgramPhotos extends BaseController
+class ProgramPhotos extends AdminBaseController
 {
     use Cacheable;
     

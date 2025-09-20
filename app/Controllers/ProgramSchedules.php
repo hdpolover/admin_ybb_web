@@ -6,7 +6,7 @@ use App\Models\ProgramScheduleModel;
 use App\Models\ProgramModel;
 use App\Traits\Cacheable;
 
-class ProgramSchedules extends BaseController
+class ProgramSchedules extends AdminBaseController
 {
     use Cacheable;
     

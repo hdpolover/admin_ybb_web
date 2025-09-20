@@ -6,7 +6,7 @@ use App\Models\ProgramDocumentModel;
 use App\Models\ProgramModel;
 
 
-class ProgramDocuments extends BaseController
+class ProgramDocuments extends AdminBaseController
 {
     protected $programDocumentModel;
     protected $programModel;

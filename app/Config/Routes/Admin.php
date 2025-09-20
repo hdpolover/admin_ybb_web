@@ -11,7 +11,16 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
     // welcome
     $routes->get('welcome', 'Welcome::index');
     $routes->get('welcome/set-program/(:num)', 'Welcome::setProgram/$1');
+    
+    // topbar program selection
+    $routes->get('topbar/set-program/(:num)', 'Topbar::setProgram/$1');
+    
     $routes->get('sign-out', 'Auth::signOut');
+
+    // Profile routes
+    $routes->get('profile', 'Profile::index');
+    $routes->post('profile/update', 'Profile::update');
+    $routes->post('profile/change-password', 'Profile::changePassword');
 
     // YBB Export API routes (Python Flask service integration)
     $routes->group('exports', function ($routes) {
@@ -381,10 +390,11 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->group('roles', function ($routes) {
             $routes->get('/', 'RoleManagement::index');
             $routes->get('data', 'RoleManagement::getRoles');
-            $routes->get('create', 'RoleManagement::createRole');
-            $routes->post('create', 'RoleManagement::createRole');
-            $routes->get('edit/(:num)', 'RoleManagement::editRole/$1');
-            $routes->post('edit/(:num)', 'RoleManagement::editRole/$1');
+            $routes->get('create', 'RoleManagement::showCreateForm');
+            $routes->post('create', 'RoleManagement::storeRole');
+            $routes->get('view/(:num)', 'RoleManagement::view/$1');
+            $routes->get('edit/(:num)', 'RoleManagement::showEditForm/$1');
+            $routes->post('edit/(:num)', 'RoleManagement::updateRole/$1');
             $routes->delete('delete/(:num)', 'RoleManagement::deleteRole/$1');
             $routes->get('permissions', 'RoleManagement::permissions');
             $routes->post('permissions/create', 'RoleManagement::createPermission');
@@ -404,6 +414,16 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->get('edit/(:num)', 'AdminManagement::edit/$1');
             $routes->post('update/(:num)', 'AdminManagement::update/$1');
             $routes->get('delete/(:num)', 'AdminManagement::delete/$1');
+        });
+
+        // Menu Management routes
+        $routes->group('menu-management', function ($routes) {
+            $routes->get('/', 'MenuManagement::index');
+            $routes->post('create', 'MenuManagement::create');
+            $routes->post('update/(:num)', 'MenuManagement::update/$1');
+            $routes->delete('delete/(:num)', 'MenuManagement::delete/$1');
+            $routes->post('toggle-status/(:num)', 'MenuManagement::toggleStatus/$1');
+            $routes->post('update-sort-order', 'MenuManagement::updateSortOrder');
         });
 
     });

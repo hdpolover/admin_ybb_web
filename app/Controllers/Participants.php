@@ -11,7 +11,7 @@ use App\Models\ParticipantStatusModel;
 use App\Models\ParticipantSubthemeModel;
 use App\Libraries\YbbExport;
 
-class Participants extends BaseController
+class Participants extends AdminBaseController
 {
     protected $participantModel;
     protected $userModel;
@@ -42,9 +42,13 @@ class Participants extends BaseController
             // Get participant stats
             $stats = $this->participantModel->getParticipantStats($programId);
 
+            // Get topbar data from session (already loaded by AdminBaseController)
+            $topbarData = $this->session->get('topbar_data', []);
+
             $data = [
                 'program' => $program,
-                'stats' => $stats
+                'stats' => $stats,
+                'topbarData' => $topbarData
             ];
 
             return view('users/participants/index', $data);

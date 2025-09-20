@@ -4,7 +4,7 @@ namespace App\Controllers;
 
 use App\Traits\Cacheable;
 
-class CacheManager extends BaseController
+class CacheManager extends AdminBaseController
 {
     use Cacheable;
 

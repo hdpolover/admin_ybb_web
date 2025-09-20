@@ -9,7 +9,7 @@ use App\Models\ParticipantCertificateModel;
 use App\Models\ParticipantModel;
 use App\Models\ProgramModel;
 
-class Certificates extends BaseController
+class Certificates extends AdminBaseController
 {
     protected $programAwardModel;
     protected $programCertificateModel;

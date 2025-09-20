@@ -11,9 +11,9 @@ use App\Models\ParticipantStatusModel;
 use App\Models\ParticipantSubthemeModel;
 use App\Models\ScoreWeightModel;
 use App\Models\ScoreModel;
-use App\Services\ExcelExport;
+// use App\Services\ExcelExport;
 
-class Scorings extends BaseController
+class Scorings extends AdminBaseController
 {
     protected $participantModel;
     protected $userModel;
@@ -707,8 +707,8 @@ class Scorings extends BaseController
         try {
             log_message('debug', 'Starting Excel export with ' . count($participants) . ' participants');
             
-            $excelExport = new ExcelExport();
-            $excelExport->exportParticipants($participants, $filename);
+            // TODO: Implement ExcelExport service or use alternative export method
+            throw new \Exception('ExcelExport service not implemented');
             
             // The script will exit inside the exportParticipants method
             exit;

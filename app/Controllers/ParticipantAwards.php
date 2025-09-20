@@ -4,7 +4,7 @@ namespace App\Controllers;
 
 use App\Models\ParticipantAwardModel;
 
-class ParticipantAwards extends BaseController
+class ParticipantAwards extends AdminBaseController
 {
     protected $participantAwardModel;
 
