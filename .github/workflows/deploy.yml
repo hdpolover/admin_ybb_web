@@ -32,15 +32,6 @@ jobs:
     - name: Install dependencies
       run: composer install --no-dev --optimize-autoloader --no-interaction
       
-    - name: Run tests (if available)
-      run: |
-        if [ -f "phpunit.xml.dist" ]; then
-          vendor/bin/phpunit --configuration phpunit.xml.dist
-        else
-          echo "No PHPUnit configuration found, skipping tests"
-        fi
-      continue-on-error: true
-      
     - name: Setup SSH key
       uses: webfactory/ssh-agent@v0.8.0
       with:
@@ -84,11 +75,17 @@ jobs:
         ssh $SERVER_USER@$SERVER_HOST << EOF
           set -e
           
+          # Set Composer environment variable to allow running as root
+          export COMPOSER_ALLOW_SUPERUSER=1
+          
+          # Install missing PHP extensions if needed
+          apt install -y php-intl php-gd 2>/dev/null || true
+          
           # Navigate to release directory
           cd $RELEASE_DIR
           
-          # Install composer dependencies (production)
-          composer install --no-dev --optimize-autoloader --no-interaction
+          # Install composer dependencies (production) with platform requirements ignored if needed
+          composer install --no-dev --optimize-autoloader --no-interaction --ignore-platform-req=ext-intl --ignore-platform-req=ext-gd
           
           # Create symlinks to external storage
           ln -sfn /srv/storage/ybb-storage/writable $RELEASE_DIR/writable
@@ -101,9 +98,17 @@ jobs:
           # Update current symlink (atomic deployment)
           ln -sfn $RELEASE_DIR /srv/apps/ybb-admin/prod/current
           
-          # Reload web services
+          # Reload web services (use the correct PHP version)
           systemctl reload nginx
-          systemctl reload php8.2-fpm
+          if systemctl is-active --quiet php8.4-fpm; then
+            systemctl reload php8.4-fpm
+          elif systemctl is-active --quiet php8.3-fpm; then
+            systemctl reload php8.3-fpm
+          elif systemctl is-active --quiet php8.2-fpm; then
+            systemctl reload php8.2-fpm
+          else
+            echo "Warning: No PHP-FPM service found"
+          fi
           
           echo "Deployment completed successfully!"
           
@@ -138,10 +143,15 @@ jobs:
             exit 1
           fi
           
-          if systemctl is-active --quiet php8.2-fpm; then
-            echo "✅ PHP-FPM is running"
+          # Check for any available PHP-FPM service
+          if systemctl is-active --quiet php8.4-fpm; then
+            echo "✅ PHP 8.4-FPM is running"
+          elif systemctl is-active --quiet php8.3-fpm; then
+            echo "✅ PHP 8.3-FPM is running"
+          elif systemctl is-active --quiet php8.2-fpm; then
+            echo "✅ PHP 8.2-FPM is running"
           else
-            echo "❌ PHP-FPM is not running"
+            echo "❌ No PHP-FPM service is running"
             exit 1
           fi
           

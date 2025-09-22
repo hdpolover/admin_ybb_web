@@ -60,10 +60,10 @@ Your production `.env` file needs to be configured on the server **before** runn
    app.forceGlobalSecureRequests = true
    
    # Database Configuration
-   database.default.hostname = localhost
-   database.default.database = ybb_prod
-   database.default.username = ybb_user
-   database.default.password = your_secure_database_password
+   database.default.hostname = 194.163.42.101
+   database.default.database = u1437096_ybb_master_app_db
+   database.default.username = u1437096_ybb_master_app_admin_user
+   database.default.password = 7J8*^dFEa&lN
    database.default.DBDriver = MySQLi
    database.default.charset = utf8mb4
    database.default.DBCollat = utf8mb4_unicode_ci
