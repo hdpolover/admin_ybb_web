@@ -196,6 +196,9 @@ class ProgramSpeakers extends AdminBaseController
                 }
                 return redirect()->back()->with('error', 'File size too large. Maximum size is 5MB.');
             }
+            
+            // Process file upload
+            log_message('debug', 'Speaker photo upload - file received: ' . $imgFile->getName() . ', size: ' . $imgFile->getSize() . ', type: ' . $imgFile->getMimeType());
         }
 
         // Prepare data
@@ -238,35 +241,41 @@ class ProgramSpeakers extends AdminBaseController
 
             // Upload photo if provided
             if ($imgFile && $imgFile->isValid() && !$imgFile->hasMoved()) {
-                // Prepare file data for upload
-                $fileData = [
-                    'name' => $imgFile->getName(),
-                    'tmp_name' => $imgFile->getTempName(),
-                    'type' => $imgFile->getClientMimeType(),
-                    'size' => $imgFile->getSize(),
-                    'error' => 0
-                ];
-                
-                // Upload to storage server
-                $uploadResult = upload_file_to_storage(
-                    $fileData, 
-                    'profile-pictures', 
-                    'speaker_' . $insertId . '_' . time() . '.' . $imgFile->getExtension(),
-                    $allowedTypes
-                );
-                
-                // Log upload result for debugging
-                log_message('debug', 'Speaker photo upload result: ' . json_encode($uploadResult));
-                
-                if ($uploadResult['status']) {
-                    // Update the speaker with the photo URL
-                    $this->programSpeakerModel->update($insertId, [
-                        'photo_url' => $uploadResult['url']
-                    ]);
+                try {
+                    // Prepare file data for upload
+                    $fileData = [
+                        'name' => $imgFile->getName(),
+                        'tmp_name' => $imgFile->getTempName(),
+                        'type' => $imgFile->getClientMimeType(),
+                        'size' => $imgFile->getSize(),
+                        'error' => 0
+                    ];
                     
-                    log_message('debug', 'Setting speaker photo URL to: ' . $uploadResult['url']);
-                } else {
-                    log_message('error', 'Failed to upload speaker photo: ' . ($uploadResult['message'] ?? 'Unknown error'));
+                    // Upload to storage server
+                    $uploadResult = upload_file_to_storage(
+                        $fileData, 
+                        'profile-pictures', 
+                        'speaker_' . $insertId . '_' . time() . '.' . $imgFile->getExtension(),
+                        $allowedTypes
+                    );
+                    
+                    // Log upload result for debugging
+                    log_message('debug', 'Speaker photo upload result: ' . json_encode($uploadResult));
+                    
+                    if ($uploadResult['status']) {
+                        // Update the speaker with the photo URL
+                        $this->programSpeakerModel->update($insertId, [
+                            'photo_url' => $uploadResult['url']
+                        ]);
+                        
+                        log_message('info', 'Speaker photo uploaded successfully: ' . $uploadResult['url']);
+                    } else {
+                        log_message('error', 'Failed to upload speaker photo: ' . ($uploadResult['message'] ?? 'Unknown error'));
+                        // Don't fail the entire operation, just log the error
+                    }
+                } catch (\Exception $uploadEx) {
+                    log_message('error', 'Exception during speaker photo upload: ' . $uploadEx->getMessage());
+                    // Don't fail the entire operation, just log the error
                 }
             }
 
@@ -373,6 +382,9 @@ class ProgramSpeakers extends AdminBaseController
                 }
                 return redirect()->back()->with('error', 'File size too large. Maximum size is 5MB.');
             }
+            
+            // Process file upload
+            log_message('debug', 'Speaker photo update - file received: ' . $imgFile->getName() . ', size: ' . $imgFile->getSize() . ', type: ' . $imgFile->getMimeType());
         }
 
         // Prepare update data
@@ -399,35 +411,41 @@ class ProgramSpeakers extends AdminBaseController
             
             // Upload photo if provided
             if ($imgFile && $imgFile->isValid() && !$imgFile->hasMoved()) {
-                // Prepare file data for upload
-                $fileData = [
-                    'name' => $imgFile->getName(),
-                    'tmp_name' => $imgFile->getTempName(),
-                    'type' => $imgFile->getClientMimeType(),
-                    'size' => $imgFile->getSize(),
-                    'error' => 0
-                ];
-                
-                // Upload to storage server
-                $uploadResult = upload_file_to_storage(
-                    $fileData, 
-                    'profile-pictures', 
-                    'speaker_' . $id . '_' . time() . '.' . $imgFile->getExtension(),
-                    $allowedTypes
-                );
-                
-                // Log upload result for debugging
-                log_message('debug', 'Speaker photo upload result: ' . json_encode($uploadResult));
-                
-                if ($uploadResult['status']) {
-                    // Update the speaker with the new photo URL
-                    $this->programSpeakerModel->update($id, [
-                        'photo_url' => $uploadResult['url']
-                    ]);
+                try {
+                    // Prepare file data for upload
+                    $fileData = [
+                        'name' => $imgFile->getName(),
+                        'tmp_name' => $imgFile->getTempName(),
+                        'type' => $imgFile->getClientMimeType(),
+                        'size' => $imgFile->getSize(),
+                        'error' => 0
+                    ];
                     
-                    log_message('debug', 'Setting speaker photo URL to: ' . $uploadResult['url']);
-                } else {
-                    log_message('error', 'Failed to upload speaker photo: ' . ($uploadResult['message'] ?? 'Unknown error'));
+                    // Upload to storage server
+                    $uploadResult = upload_file_to_storage(
+                        $fileData, 
+                        'profile-pictures', 
+                        'speaker_' . $id . '_' . time() . '.' . $imgFile->getExtension(),
+                        $allowedTypes
+                    );
+                    
+                    // Log upload result for debugging
+                    log_message('debug', 'Speaker photo upload result (update): ' . json_encode($uploadResult));
+                    
+                    if ($uploadResult['status']) {
+                        // Update the speaker with the new photo URL
+                        $this->programSpeakerModel->update($id, [
+                            'photo_url' => $uploadResult['url']
+                        ]);
+                        
+                        log_message('info', 'Speaker photo updated successfully: ' . $uploadResult['url']);
+                    } else {
+                        log_message('error', 'Failed to update speaker photo: ' . ($uploadResult['message'] ?? 'Unknown error'));
+                        // Don't fail the entire operation, just log the error
+                    }
+                } catch (\Exception $uploadEx) {
+                    log_message('error', 'Exception during speaker photo update: ' . $uploadEx->getMessage());
+                    // Don't fail the entire operation, just log the error
                 }
             }
 
@@ -600,6 +618,73 @@ class ProgramSpeakers extends AdminBaseController
                 'message' => 'Failed to update speaker order'
             ])->setStatusCode(500);
         }
+    }
+    
+    /**
+     * Test storage connection
+     */
+    public function testStorage()
+    {
+        // For debugging purposes - remove in production
+        if (!ENVIRONMENT === 'development') {
+            return $this->response->setJSON(['error' => 'Not available'])->setStatusCode(403);
+        }
+        
+        $storageConfig = new \Config\Storage();
+        
+        $testData = [
+            'storage_url' => $storageConfig->storageUrl,
+            'use_ftp' => $storageConfig->useFtp,
+            'api_key_set' => !empty($storageConfig->apiKey),
+            'ftp_host' => $storageConfig->ftpHost,
+            'ftp_username' => $storageConfig->ftpUsername,
+            'max_file_size' => $storageConfig->maxFileSize,
+            'allowed_types' => $storageConfig->allowedProfilePictureTypes
+        ];
+        
+        // Test FTP connection if enabled
+        if ($storageConfig->useFtp) {
+            try {
+                $conn = ftp_connect($storageConfig->ftpHost, $storageConfig->ftpPort, 10);
+                if ($conn) {
+                    $login = @ftp_login($conn, $storageConfig->ftpUsername, $storageConfig->ftpPassword);
+                    $testData['ftp_connection'] = $conn ? 'success' : 'failed';
+                    $testData['ftp_login'] = $login ? 'success' : 'failed';
+                    ftp_close($conn);
+                } else {
+                    $testData['ftp_connection'] = 'failed';
+                    $testData['ftp_login'] = 'not_tested';
+                }
+            } catch (\Exception $e) {
+                $testData['ftp_connection'] = 'exception: ' . $e->getMessage();
+                $testData['ftp_login'] = 'not_tested';
+            }
+        } else {
+            // Test HTTP connection
+            try {
+                $ch = curl_init();
+                curl_setopt_array($ch, [
+                    CURLOPT_URL => $storageConfig->storageUrl . '/api/test',
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_TIMEOUT => 10,
+                    CURLOPT_HTTPHEADER => [
+                        'X-API-Key: ' . $storageConfig->apiKey,
+                        'Accept: application/json',
+                    ],
+                ]);
+                
+                $response = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+                
+                $testData['http_connection'] = $httpCode;
+                $testData['http_response'] = $response;
+            } catch (\Exception $e) {
+                $testData['http_connection'] = 'exception: ' . $e->getMessage();
+            }
+        }
+        
+        return $this->response->setJSON($testData);
     }
     
     /**

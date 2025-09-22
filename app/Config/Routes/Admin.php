@@ -308,6 +308,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->post('update/(:num)', 'ProgramSpeakers::update/$1');
             $routes->get('delete/(:num)', 'ProgramSpeakers::delete/$1');
             $routes->post('reorder', 'ProgramSpeakers::reorder');
+            $routes->get('test-storage', 'ProgramSpeakers::testStorage'); // Debug route
         });        
           // abstract topics
         $routes->group('abstract-topics', function ($routes) {

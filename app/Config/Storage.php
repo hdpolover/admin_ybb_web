@@ -15,7 +15,7 @@ class Storage extends BaseConfig
     /**
      * Storage API key (if required by your storage system)
      */
-    public $apiKey = '';
+    public $apiKey = 'ybb_storage_api_2024';
     
     /**
      * File upload path on the storage server

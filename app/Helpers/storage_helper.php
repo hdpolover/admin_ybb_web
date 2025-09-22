@@ -19,7 +19,25 @@ if (!function_exists('upload_file_to_storage')) {
 
         // Check if file was uploaded properly
         if (!isset($file['tmp_name']) || empty($file['tmp_name']) || $file['error'] !== 0) {
-            $response['message'] = 'No file was uploaded or upload error occurred.';
+            $errorMessages = [
+                UPLOAD_ERR_INI_SIZE => 'File exceeds upload_max_filesize directive',
+                UPLOAD_ERR_FORM_SIZE => 'File exceeds MAX_FILE_SIZE directive',
+                UPLOAD_ERR_PARTIAL => 'File was only partially uploaded',
+                UPLOAD_ERR_NO_FILE => 'No file was uploaded',
+                UPLOAD_ERR_NO_TMP_DIR => 'Missing temporary folder',
+                UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk',
+                UPLOAD_ERR_EXTENSION => 'File upload stopped by extension'
+            ];
+            
+            $errorCode = $file['error'] ?? UPLOAD_ERR_NO_FILE;
+            $response['message'] = isset($errorMessages[$errorCode]) 
+                ? $errorMessages[$errorCode] 
+                : 'No file was uploaded or upload error occurred.';
+            $response['debug'] = [
+                'error_code' => $errorCode,
+                'tmp_name' => $file['tmp_name'] ?? 'not set',
+                'file_size' => $file['size'] ?? 'not set'
+            ];
             return $response;
         }
 
@@ -209,7 +227,14 @@ if (!function_exists('upload_via_ftp')) {
             $remotePath = $config->ftpRootPath . '/' . ltrim($destination, '/');
 
             if (!@ftp_put($conn, $remotePath, $filePath, FTP_BINARY)) {
-                $result['message'] = 'Failed to upload file via FTP';
+                $result['message'] = 'Failed to upload file via FTP to: ' . $remotePath;
+                $result['debug'] = [
+                    'local_file' => $filePath,
+                    'remote_path' => $remotePath,
+                    'file_exists' => file_exists($filePath),
+                    'file_size' => file_exists($filePath) ? filesize($filePath) : 0,
+                    'ftp_passive' => $config->ftpPassive
+                ];
                 ftp_close($conn);
                 return $result;
             }

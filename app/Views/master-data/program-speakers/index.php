@@ -817,7 +817,16 @@
                 createImageThumbnails: true,
                 dictRemoveFile: "Remove",
                 dictFileTooBig: "File is too big ({{filesize}}MB). Max filesize: {{maxFilesize}}MB.",
-                dictInvalidFileType: "Invalid file type. Only JPG, PNG and GIF files are allowed."
+                dictInvalidFileType: "Invalid file type. Only JPG, PNG and GIF files are allowed.",
+                init: function() {
+                    console.log("Add photo dropzone initialized");
+                },
+                success: function(file, response) {
+                    console.log("Add photo upload success:", response);
+                },
+                error: function(file, errorMessage) {
+                    console.error("Add photo upload error:", errorMessage);
+                }
             });
 
             // Initialize Edit Speaker Photo Dropzone
@@ -834,7 +843,16 @@
                 createImageThumbnails: true,
                 dictRemoveFile: "Remove",
                 dictFileTooBig: "File is too big ({{filesize}}MB). Max filesize: {{maxFilesize}}MB.",
-                dictInvalidFileType: "Invalid file type. Only JPG, PNG and GIF files are allowed."
+                dictInvalidFileType: "Invalid file type. Only JPG, PNG and GIF files are allowed.",
+                init: function() {
+                    console.log("Edit photo dropzone initialized");
+                },
+                success: function(file, response) {
+                    console.log("Edit photo upload success:", response);
+                },
+                error: function(file, errorMessage) {
+                    console.error("Edit photo upload error:", errorMessage);
+                }
             });
 
             // Initialize DataTable with standard configuration
@@ -1166,8 +1184,19 @@
                         
                         // Add Dropzone file to the form data if available
                         const dropzoneFiles = addPhotoDropzone.getAcceptedFiles();
+                        console.log("Dropzone files:", dropzoneFiles);
+                        
                         if (dropzoneFiles.length > 0) {
+                            console.log("Adding file to FormData:", dropzoneFiles[0].name);
                             formData.append('photo_url', dropzoneFiles[0]);
+                        } else {
+                            console.log("No files in dropzone");
+                        }
+                        
+                        // Debug FormData contents
+                        console.log("FormData contents:");
+                        for (var pair of formData.entries()) {
+                            console.log(pair[0] + ': ' + pair[1]);
                         }
                         
                         // Send AJAX request
@@ -1277,8 +1306,19 @@
                         
                         // Add Dropzone file to the form data if available
                         const dropzoneFiles = editPhotoDropzone.getAcceptedFiles();
+                        console.log("Edit dropzone files:", dropzoneFiles);
+                        
                         if (dropzoneFiles.length > 0) {
+                            console.log("Adding edit file to FormData:", dropzoneFiles[0].name);
                             formData.append('photo_url', dropzoneFiles[0]);
+                        } else {
+                            console.log("No files in edit dropzone");
+                        }
+                        
+                        // Debug FormData contents
+                        console.log("Edit FormData contents:");
+                        for (var pair of formData.entries()) {
+                            console.log(pair[0] + ': ' + pair[1]);
                         }
                         
                         // Send AJAX request
