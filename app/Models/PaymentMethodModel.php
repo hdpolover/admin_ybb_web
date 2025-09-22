@@ -16,7 +16,26 @@ class PaymentMethodModel extends Model
     protected $updatedField  = 'updated_at';
     protected $returnType     = 'object';
     protected $useAutoIncrement = true;
-    protected $useSoftDeletes = false; // Using is_deleted field manually    
+    protected $useSoftDeletes = false; // Using is_deleted field manually
+
+    // Model event callbacks for cache invalidation
+    protected $beforeInsert   = [];
+    protected $afterInsert    = ['invalidateCacheAfterInsert'];
+    protected $beforeUpdate   = [];
+    protected $afterUpdate    = ['invalidateCacheAfterUpdate'];
+    protected $beforeFind     = [];
+    protected $afterFind      = [];
+    protected $beforeDelete   = [];
+    protected $afterDelete    = ['invalidateCacheAfterDelete'];
+
+    /**
+     * Constructor to load cache helper
+     */
+    public function __construct()
+    {
+        parent::__construct();
+        helper(['cache']);
+    }    
 
     protected $validationRules = [
         'program_id' => 'required|integer',
@@ -85,5 +104,82 @@ class PaymentMethodModel extends Model
     {
         return $this->where('id', $id)
             ->first();
+    }
+
+    /**
+     * Invalidate cache after insert operation
+     */
+    protected function invalidateCacheAfterInsert(array $data): array
+    {
+        if (isset($data['id'])) {
+            $this->invalidatePaymentMethodCaches($data['id']);
+        }
+        return $data;
+    }
+
+    /**
+     * Invalidate cache after update operation
+     */
+    protected function invalidateCacheAfterUpdate(array $data): array
+    {
+        if (isset($data['id'])) {
+            $ids = is_array($data['id']) ? $data['id'] : [$data['id']];
+            foreach ($ids as $id) {
+                $this->invalidatePaymentMethodCaches($id);
+            }
+        }
+        return $data;
+    }
+
+    /**
+     * Invalidate cache after delete operation
+     */
+    protected function invalidateCacheAfterDelete(array $data): array
+    {
+        if (isset($data['id'])) {
+            $ids = is_array($data['id']) ? $data['id'] : [$data['id']];
+            foreach ($ids as $id) {
+                $this->invalidatePaymentMethodCaches($id);
+            }
+        }
+        return $data;
+    }
+
+    /**
+     * Invalidate all caches related to payment methods
+     */
+    private function invalidatePaymentMethodCaches(int $paymentMethodId): void
+    {
+        try {
+            // Ensure cache helper is loaded
+            if (!function_exists('invalidate_program_cache')) {
+                helper(['cache']);
+            }
+            
+            $cache = \Config\Services::cache();
+            
+            // Get payment method to find program ID
+            $paymentMethod = $this->find($paymentMethodId);
+            
+            // Clear payment method specific caches
+            $cache->delete("payment_method_{$paymentMethodId}");
+            $cache->delete("payment_methods_all");
+            
+            if ($paymentMethod && isset($paymentMethod->program_id)) {
+                $cache->delete("payment_methods_program_{$paymentMethod->program_id}");
+                if (function_exists('invalidate_program_cache')) {
+                    invalidate_program_cache($paymentMethod->program_id);
+                }
+            }
+            
+            if (function_exists('invalidate_payment_cache')) {
+                invalidate_payment_cache();
+            }
+            
+            log_message('info', "PaymentMethodModel: Cache invalidated for payment method ID: {$paymentMethodId}");
+            
+        } catch (\Exception $e) {
+            log_message('error', 'PaymentMethodModel: Error invalidating cache - ' . $e->getMessage());
+        }
     }
 }

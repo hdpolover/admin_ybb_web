@@ -31,6 +31,25 @@ class AnnouncementModel extends Model
     protected $dateFormat    = 'datetime';
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
+
+    // Model event callbacks for cache invalidation
+    protected $beforeInsert   = [];
+    protected $afterInsert    = ['invalidateCacheAfterInsert'];
+    protected $beforeUpdate   = [];
+    protected $afterUpdate    = ['invalidateCacheAfterUpdate'];
+    protected $beforeFind     = [];
+    protected $afterFind      = [];
+    protected $beforeDelete   = [];
+    protected $afterDelete    = ['invalidateCacheAfterDelete'];
+
+    /**
+     * Constructor to load cache helper
+     */
+    public function __construct()
+    {
+        parent::__construct();
+        helper(['cache']);
+    }
     protected $deletedField  = ''; // Not using soft deletes
 
     // Validation
@@ -186,5 +205,84 @@ class AnnouncementModel extends Model
                ->where('a.is_deleted', 0);
                
         return $builder->get()->getRow();
+    }
+
+    /**
+     * Invalidate cache after insert operation
+     */
+    protected function invalidateCacheAfterInsert(array $data): array
+    {
+        if (isset($data['id'])) {
+            $this->invalidateAnnouncementCaches($data['id']);
+        }
+        return $data;
+    }
+
+    /**
+     * Invalidate cache after update operation
+     */
+    protected function invalidateCacheAfterUpdate(array $data): array
+    {
+        if (isset($data['id'])) {
+            $ids = is_array($data['id']) ? $data['id'] : [$data['id']];
+            foreach ($ids as $id) {
+                $this->invalidateAnnouncementCaches($id);
+            }
+        }
+        return $data;
+    }
+
+    /**
+     * Invalidate cache after delete operation
+     */
+    protected function invalidateCacheAfterDelete(array $data): array
+    {
+        if (isset($data['id'])) {
+            $ids = is_array($data['id']) ? $data['id'] : [$data['id']];
+            foreach ($ids as $id) {
+                $this->invalidateAnnouncementCaches($id);
+            }
+        }
+        return $data;
+    }
+
+    /**
+     * Invalidate all caches related to announcements
+     */
+    private function invalidateAnnouncementCaches(int $announcementId): void
+    {
+        try {
+            // Ensure cache helper is loaded
+            if (!function_exists('invalidate_program_cache')) {
+                helper(['cache']);
+            }
+            
+            $cache = \Config\Services::cache();
+            
+            // Get announcement to find program ID
+            $announcement = $this->find($announcementId);
+            
+            // Clear announcement specific caches
+            $cache->delete("announcement_{$announcementId}");
+            $cache->delete("announcements_all");
+            $cache->delete("announcements_active");
+            $cache->delete("announcements_latest");
+            
+            if ($announcement && isset($announcement->program_id)) {
+                $cache->delete("announcements_program_{$announcement->program_id}");
+                if (function_exists('invalidate_program_cache')) {
+                    invalidate_program_cache($announcement->program_id);
+                }
+            }
+            
+            if (function_exists('invalidate_topbar_data_cache')) {
+                invalidate_topbar_data_cache();
+            }
+            
+            log_message('info', "AnnouncementModel: Cache invalidated for announcement ID: {$announcementId}");
+            
+        } catch (\Exception $e) {
+            log_message('error', 'AnnouncementModel: Error invalidating cache - ' . $e->getMessage());
+        }
     }
 }

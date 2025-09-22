@@ -74,6 +74,25 @@ class ProgramSpeakerModel extends Model
             'valid_url' => 'Please provide a valid Twitter URL'
         ]
     ];
+
+    // Model event callbacks for cache invalidation
+    protected $beforeInsert   = [];
+    protected $afterInsert    = ['invalidateCacheAfterInsert'];
+    protected $beforeUpdate   = [];
+    protected $afterUpdate    = ['invalidateCacheAfterUpdate'];
+    protected $beforeFind     = [];
+    protected $afterFind      = [];
+    protected $beforeDelete   = [];
+    protected $afterDelete    = ['invalidateCacheAfterDelete'];
+
+    /**
+     * Constructor to load cache helper
+     */
+    public function __construct()
+    {
+        parent::__construct();
+        helper(['cache']);
+    }
     
     /**
      * Get speakers by program ID
@@ -298,67 +317,101 @@ class ProgramSpeakerModel extends Model
     }
     
     /**
-     * Cache management - invalidate speaker-related caches
-     *
-     * @param int $programId
-     * @return void
+     * Invalidate cache after insert operation
      */
-    protected function invalidateSpeakerCache($programId)
-    {
-        $cache = \Config\Services::cache();
-        
-        // Clear speaker-related cache keys
-        $cacheKeys = [
-            "program_speakers_{$programId}",
-            "keynote_speakers_{$programId}",
-            "speaker_stats_{$programId}",
-            "topbar_data_" . (session('userId') ?? 'guest')
-        ];
-        
-        foreach ($cacheKeys as $key) {
-            $cache->delete($key);
-        }
-    }
-    
-    /**
-     * After insert callback
-     */
-    protected function afterInsert(array $data)
-    {
-        if (isset($data['data']['program_id'])) {
-            $this->invalidateSpeakerCache($data['data']['program_id']);
-        }
-        
-        return $data;
-    }
-    
-    /**
-     * After update callback
-     */
-    protected function afterUpdate(array $data)
+    protected function invalidateCacheAfterInsert(array $data): array
     {
         if (isset($data['id'])) {
-            $speaker = $this->find($data['id']);
-            if ($speaker) {
-                $this->invalidateSpeakerCache($speaker->program_id);
-            }
+            $this->invalidateProgramSpeakerCaches($data['id']);
         }
-        
         return $data;
     }
-    
+
     /**
-     * After delete callback
+     * Invalidate cache after update operation
      */
-    protected function afterDelete(array $data)
+    protected function invalidateCacheAfterUpdate(array $data): array
     {
         if (isset($data['id'])) {
-            $speaker = $this->find($data['id']);
-            if ($speaker) {
-                $this->invalidateSpeakerCache($speaker->program_id);
+            $ids = is_array($data['id']) ? $data['id'] : [$data['id']];
+            foreach ($ids as $id) {
+                $this->invalidateProgramSpeakerCaches($id);
             }
         }
-        
         return $data;
+    }
+
+    /**
+     * Invalidate cache after delete operation
+     */
+    protected function invalidateCacheAfterDelete(array $data): array
+    {
+        if (isset($data['id'])) {
+            $ids = is_array($data['id']) ? $data['id'] : [$data['id']];
+            foreach ($ids as $id) {
+                $this->invalidateProgramSpeakerCaches($id);
+            }
+        }
+        return $data;
+    }
+
+    /**
+     * Invalidate all caches related to program speakers
+     */
+    private function invalidateProgramSpeakerCaches(int $speakerId): void
+    {
+        try {
+            // Ensure cache helper is loaded
+            if (!function_exists('invalidate_program_cache')) {
+                helper(['cache']);
+            }
+            
+            $cache = \Config\Services::cache();
+            
+            // Get speaker to find program ID
+            $speaker = $this->find($speakerId);
+            
+            // Clear speaker specific caches
+            $cache->delete("program_speaker_{$speakerId}");
+            $cache->delete("program_speakers_all");
+            $cache->delete("speakers_active");
+            $cache->delete("speakers_keynote");
+            
+            if ($speaker && isset($speaker->program_id)) {
+                $cache->delete("program_speakers_{$speaker->program_id}");
+                $cache->delete("keynote_speakers_{$speaker->program_id}");
+                $cache->delete("speaker_stats_{$speaker->program_id}");
+                
+                // Use helper functions if available, otherwise direct cache deletion
+                if (function_exists('invalidate_program_cache')) {
+                    invalidate_program_cache($speaker->program_id);
+                } else {
+                    // Fallback: direct cache deletion
+                    $cache->delete("participant_stats_{$speaker->program_id}_" . date('Ymd'));
+                    $cache->delete("total_countries_{$speaker->program_id}");
+                    $cache->delete("countries_data_{$speaker->program_id}");
+                    $cache->delete("program_certificates_{$speaker->program_id}");
+                }
+                
+                if (function_exists('invalidate_dashboard_cache')) {
+                    invalidate_dashboard_cache($speaker->program_id);
+                } else {
+                    // Fallback: direct cache deletion
+                    $cache->delete("dashboard_summary_{$speaker->program_id}");
+                }
+            }
+            
+            if (function_exists('invalidate_topbar_data_cache')) {
+                invalidate_topbar_data_cache();
+            } else {
+                // Fallback: set invalidation flag
+                $cache->save('topbar_data_invalid_flag', time(), 86400);
+            }
+            
+            log_message('info', "ProgramSpeakerModel: Cache invalidated for speaker ID: {$speakerId}");
+            
+        } catch (\Exception $e) {
+            log_message('error', 'ProgramSpeakerModel: Error invalidating cache - ' . $e->getMessage());
+        }
     }
 }

@@ -41,8 +41,27 @@ class ProgramModel extends Model
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
 
+    // Model event callbacks for cache invalidation
+    protected $beforeInsert   = [];
+    protected $afterInsert    = ['invalidateCacheAfterInsert'];
+    protected $beforeUpdate   = [];
+    protected $afterUpdate    = ['invalidateCacheAfterUpdate'];
+    protected $beforeFind     = [];
+    protected $afterFind      = [];
+    protected $beforeDelete   = [];
+    protected $afterDelete    = ['invalidateCacheAfterDelete'];
+
     // Model for getting payment information
     protected $programPaymentModel;
+
+    /**
+     * Constructor to load cache helper
+     */
+    public function __construct()
+    {
+        parent::__construct();
+        helper(['cache']);
+    }
 
     /**
      * Get program by name
@@ -294,5 +313,86 @@ class ProgramModel extends Model
         }
         
         return $programs;
+    }
+
+    /**
+     * Invalidate cache after insert operation
+     */
+    protected function invalidateCacheAfterInsert(array $data): array
+    {
+        if (isset($data['id'])) {
+            $this->invalidateProgramCaches($data['id']);
+        }
+        return $data;
+    }
+
+    /**
+     * Invalidate cache after update operation
+     */
+    protected function invalidateCacheAfterUpdate(array $data): array
+    {
+        if (isset($data['id'])) {
+            $ids = is_array($data['id']) ? $data['id'] : [$data['id']];
+            foreach ($ids as $id) {
+                $this->invalidateProgramCaches($id);
+            }
+        }
+        return $data;
+    }
+
+    /**
+     * Invalidate cache after delete operation
+     */
+    protected function invalidateCacheAfterDelete(array $data): array
+    {
+        if (isset($data['id'])) {
+            $ids = is_array($data['id']) ? $data['id'] : [$data['id']];
+            foreach ($ids as $id) {
+                $this->invalidateProgramCaches($id);
+            }
+        }
+        return $data;
+    }
+
+    /**
+     * Invalidate all caches related to a specific program
+     */
+    private function invalidateProgramCaches(int $programId): void
+    {
+        try {
+            // Ensure cache helper is loaded
+            if (!function_exists('invalidate_program_cache')) {
+                helper(['cache']);
+            }
+            
+            // Use helper functions to invalidate caches
+            if (function_exists('invalidate_program_cache')) {
+                invalidate_program_cache($programId);
+            }
+            
+            // Get program to find category ID
+            $program = $this->find($programId);
+            if ($program && isset($program->program_category_id)) {
+                if (function_exists('invalidate_program_category_cache')) {
+                    invalidate_program_category_cache($program->program_category_id);
+                }
+                if (function_exists('invalidate_web_settings_cache')) {
+                    invalidate_web_settings_cache($program->program_category_id);
+                }
+            }
+            
+            // Invalidate dashboard and topbar caches
+            if (function_exists('invalidate_dashboard_cache')) {
+                invalidate_dashboard_cache($programId);
+            }
+            if (function_exists('invalidate_topbar_data_cache')) {
+                invalidate_topbar_data_cache();
+            }
+            
+            log_message('info', "ProgramModel: Cache invalidated for program ID: {$programId}");
+            
+        } catch (\Exception $e) {
+            log_message('error', 'ProgramModel: Error invalidating cache - ' . $e->getMessage());
+        }
     }
 }
