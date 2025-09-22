@@ -118,6 +118,47 @@ chmod -R 755 /srv/storage/ybb-storage
 chmod -R 775 /srv/storage/ybb-storage/writable
 ```
 
+### Install Composer
+
+Composer is required for dependency management:
+
+```bash
+# Download and install Composer
+cd /tmp
+curl -sS https://getcomposer.org/installer | php
+mv composer.phar /usr/local/bin/composer
+chmod +x /usr/local/bin/composer
+
+# Verify installation
+composer --version
+```
+
+### Install Required PHP Extensions
+
+Make sure all required PHP extensions are installed:
+
+```bash
+# Update package lists
+apt update
+
+# Add Ondřej Surý PPA for PHP 8.2
+apt install -y software-properties-common
+add-apt-repository ppa:ondrej/php -y
+apt update
+
+# Install PHP 8.2 and required extensions (corrected package names)
+apt install -y php8.2-cli php8.2-fpm php8.2-mysql php8.2-mbstring php8.2-xml \
+php8.2-intl php8.2-gd php8.2-zip php8.2-curl php8.2-redis php8.2-common
+
+# Restart PHP-FPM
+systemctl restart php8.2-fpm
+systemctl enable php8.2-fpm
+
+# Verify PHP installation
+php --version
+php -m | grep -E "(mysql|mbstring|gd|zip|curl)"
+```
+
 ### Database Setup
 
 Make sure your production database is configured:
