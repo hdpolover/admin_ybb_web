@@ -90,8 +90,14 @@ class JwtAuthController extends BaseAuthController
                     $programCategoryModel = new ProgramCategoryModel();
                     $programCategory = $programCategoryModel->find($authData['user']->program_category_id ?? 0);
 
-                    // Only check verification if the program requires it
-                    if ($programCategory && $programCategory->verification_required) {
+                    // Check web settings to see if verification is required
+                    $webSettingModel = new \App\Models\WebSettingModel();
+                    $webSettings = $webSettingModel->getSettingByWebUrl($web_url);
+                    
+                    // Only check verification if the web settings require it
+                    $isVerificationRequired = $webSettings && isset($webSettings->is_verification_required) && $webSettings->is_verification_required == 1;
+                    
+                    if ($isVerificationRequired) {
                         // Now check if the user's email is not verified
                         if (isset($authData['user']) && isset($authData['user']->is_verified) && !$authData['user']->is_verified) {
                             // Generate a new verification token and send email

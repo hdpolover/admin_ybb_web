@@ -62,7 +62,7 @@ class ParticipantAuthController extends BaseAuthController
                 if ($updatedUser) {
                     // Send verification email
                     $emailService = new EmailService();
-                    $emailService->sendVerificationEmail($email, $updatedUser->verification_token, $web_url);
+                    $emailService->sendVerificationEmail($email, $updatedUser->verification_token, $user->program_category_id);
                 }
 
                 return $this->respondForbidden('Please verify your email address before signing in.');
@@ -399,9 +399,19 @@ class ParticipantAuthController extends BaseAuthController
                     $this->addAmbassadorParticipantReferral($participant->id, $ambassadorId);
                 }
 
-                // Send verification email
-                $emailService = new EmailService();
-                $emailService->sendVerificationEmail($email, $user->verification_token, $programCategoryId);
+                // Check web settings to see if verification is required
+                $webSettingModel = new \App\Models\WebSettingModel();
+                $webSettings = $webSettingModel->getSettingByProgramCategoryId($programCategoryId);
+                
+                // Only send verification email if verification is required
+                if ($webSettings && isset($webSettings->is_verification_required) && $webSettings->is_verification_required == 1) {
+                    // Send verification email
+                    $emailService = new EmailService();
+                    $emailService->sendVerificationEmail($email, $user->verification_token, $programCategoryId);
+                } else {
+                    // If verification is not required, mark user as verified immediately
+                    $userModel->update($user->id, ['is_verified' => 1, 'verification_token' => null]);
+                }
 
                 // response data
                 $responseData = [

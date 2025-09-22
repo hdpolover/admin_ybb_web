@@ -75,6 +75,17 @@ class EmailVerificationController extends BaseAuthController
                 return $this->respondSuccess(null, self::HTTP_OK, lang('EmailVerification.already_verified'));
             }
 
+            // Check web settings to see if verification is required
+            $webSettingModel = new \App\Models\WebSettingModel();
+            $webSettings = $webSettingModel->getSettingByWebUrl($web_url);
+            
+            // If verification is not required, mark user as verified and return success
+            if (!$webSettings || !isset($webSettings->is_verification_required) || $webSettings->is_verification_required == 0) {
+                // Mark user as verified since verification is not required
+                $userModel->update($user->id, ['is_verified' => 1, 'verification_token' => null]);
+                return $this->respondSuccess(null, self::HTTP_OK, 'Email verification is not required for this program.');
+            }
+
             // Generate new verification token
             $user = $userModel->regenerateVerificationToken($email, $web_url);
 
