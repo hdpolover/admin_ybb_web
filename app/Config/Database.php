@@ -26,10 +26,10 @@ class Database extends Config
      */
     public array $default = [
         'DSN'      => '',
-        'hostname' => '194.163.42.101',
-        'username' => 'u1437096_ybb_master_app_admin_user',
-        'password' => '7J8*^dFEa&lN',
-        'database' => 'u1437096_ybb_master_app_db',
+        'hostname' => 'localhost',
+        'username' => 'root',
+        'password' => '',
+        'database' => 'admin_ybb',
         'DBDriver' => 'MySQLi',
         'DBPrefix' => '',
         'pConnect' => false,
@@ -52,13 +52,14 @@ class Database extends Config
 
     /**
      * Long-running export database connection with extended timeouts
+     * Uses same credentials as default but with extended timeouts for large data exports
      */
     public array $export = [
         'DSN'      => '',
-        'hostname' => '194.163.42.101',
-        'username' => 'u1437096_ybb_master_app_admin_user',
-        'password' => '7J8*^dFEa&lN',
-        'database' => 'u1437096_ybb_master_app_db',
+        'hostname' => 'localhost',
+        'username' => 'root',
+        'password' => '',
+        'database' => 'admin_ybb',
         'DBDriver' => 'MySQLi',
         'DBPrefix' => '',
         'pConnect' => false,
@@ -82,25 +83,6 @@ class Database extends Config
         'timeout' => 300, // 5 minutes
     ];
 
-    // public array $default = [
-    //     'DSN'      => '',
-    //     'hostname' => 'localhost',
-    //     'username' => 'root',
-    //     'password' => '',
-    //     'database' => 'admin_ybb',
-    //     'DBDriver' => 'MySQLi',
-    //     'DBPrefix' => '',
-    //     'pConnect' => false,
-    //     'DBDebug'  => true,
-    //     'charset'  => 'utf8mb4',
-    //     'DBCollat' => 'utf8mb4_unicode_ci',
-    //     'swapPre'  => '',
-    //     'encrypt'  => false,
-    //     'compress' => false,
-    //     'strictOn' => false,
-    //     'failover' => [],
-    //     'port'     => 3306,
-    // ];
     /**
      * This database connection is used when
      * running PHPUnit database tests.

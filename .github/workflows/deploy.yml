@@ -1,0 +1,149 @@
+name: Deploy YBB Admin to Production
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, dom, filter, gd, json, zip
+        tools: composer:v2
+        
+    - name: Validate composer.json
+      run: composer validate --strict
+      
+    - name: Cache Composer dependencies
+      uses: actions/cache@v3
+      with:
+        path: /tmp/composer-cache
+        key: ${{ runner.os }}-${{ hashFiles('**/composer.lock') }}
+        
+    - name: Install dependencies
+      run: composer install --no-dev --optimize-autoloader --no-interaction
+      
+    - name: Run tests (if available)
+      run: |
+        if [ -f "phpunit.xml.dist" ]; then
+          vendor/bin/phpunit --configuration phpunit.xml.dist
+        else
+          echo "No PHPUnit configuration found, skipping tests"
+        fi
+      continue-on-error: true
+      
+    - name: Setup SSH key
+      uses: webfactory/ssh-agent@v0.8.0
+      with:
+        ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+        
+    - name: Add server to known hosts
+      run: |
+        mkdir -p ~/.ssh
+        ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+        
+    - name: Deploy to server
+      env:
+        SERVER_HOST: ${{ secrets.SERVER_HOST }}
+        SERVER_USER: ${{ secrets.SERVER_USER }}
+      run: |
+        # Create release directory with timestamp
+        RELEASE_DIR="/srv/apps/ybb-admin/prod/releases/$(date +%Y-%m-%d_%H%M%S)"
+        
+        echo "Creating release directory: $RELEASE_DIR"
+        ssh $SERVER_USER@$SERVER_HOST "mkdir -p $RELEASE_DIR"
+        
+        # Upload application files
+        echo "Uploading application files..."
+        rsync -avz --delete \
+          --exclude='.git' \
+          --exclude='.github' \
+          --exclude='node_modules' \
+          --exclude='.env' \
+          --exclude='writable' \
+          --exclude='public/uploads' \
+          --exclude='tests' \
+          --exclude='.gitignore' \
+          --exclude='README.md' \
+          --exclude='phpunit.xml.dist' \
+          --exclude='docs' \
+          --exclude='postman-collections' \
+          ./ $SERVER_USER@$SERVER_HOST:$RELEASE_DIR/
+        
+        # Run deployment commands on server
+        echo "Running deployment commands..."
+        ssh $SERVER_USER@$SERVER_HOST << EOF
+          set -e
+          
+          # Navigate to release directory
+          cd $RELEASE_DIR
+          
+          # Install composer dependencies (production)
+          composer install --no-dev --optimize-autoloader --no-interaction
+          
+          # Create symlinks to external storage
+          ln -sfn /srv/storage/ybb-storage/writable $RELEASE_DIR/writable
+          ln -sfn /srv/storage/ybb-storage/uploads $RELEASE_DIR/public/uploads
+          ln -sfn /etc/ybb-admin/prod/.env $RELEASE_DIR/.env
+          
+          # Set proper ownership for web server
+          chown -R www-data:www-data $RELEASE_DIR
+          
+          # Update current symlink (atomic deployment)
+          ln -sfn $RELEASE_DIR /srv/apps/ybb-admin/prod/current
+          
+          # Reload web services
+          systemctl reload nginx
+          systemctl reload php8.2-fpm
+          
+          echo "Deployment completed successfully!"
+          
+          # Cleanup old releases (keep last 5)
+          cd /srv/apps/ybb-admin/prod/releases
+          ls -t | tail -n +6 | xargs -r rm -rf
+          
+          echo "Cleaned up old releases"
+        EOF
+        
+    - name: Verify deployment
+      env:
+        SERVER_HOST: ${{ secrets.SERVER_HOST }}
+        SERVER_USER: ${{ secrets.SERVER_USER }}
+      run: |
+        echo "Verifying deployment..."
+        ssh $SERVER_USER@$SERVER_HOST << 'EOF'
+          # Check if current symlink exists and points to valid directory
+          if [ -L "/srv/apps/ybb-admin/prod/current" ] && [ -d "/srv/apps/ybb-admin/prod/current" ]; then
+            echo "✅ Current symlink is valid"
+            echo "Current release: $(readlink /srv/apps/ybb-admin/prod/current)"
+          else
+            echo "❌ Current symlink is invalid or missing"
+            exit 1
+          fi
+          
+          # Check if web services are running
+          if systemctl is-active --quiet nginx; then
+            echo "✅ Nginx is running"
+          else
+            echo "❌ Nginx is not running"
+            exit 1
+          fi
+          
+          if systemctl is-active --quiet php8.2-fpm; then
+            echo "✅ PHP-FPM is running"
+          else
+            echo "❌ PHP-FPM is not running"
+            exit 1
+          fi
+          
+          echo "✅ Deployment verification completed successfully!"
+        EOF

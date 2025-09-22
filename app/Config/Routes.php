@@ -55,6 +55,10 @@ $routes->group('', ['namespace' => 'App\Controllers'], function ($routes) {
     
     // Menu test
     $routes->get('menu-test', 'MenuTest::index');
+    
+    // Health check routes for deployment monitoring
+    $routes->get('health', 'HealthController::index');
+    $routes->get('ping', 'HealthController::ping');
 });
 
 // We get a performance increase by specifying the default

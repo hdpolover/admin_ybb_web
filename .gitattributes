@@ -1,0 +1,3 @@
+# Make deployment scripts executable
+scripts/deploy.sh
+scripts/rollback.sh
