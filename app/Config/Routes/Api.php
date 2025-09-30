@@ -64,6 +64,9 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     // Maintenance check endpoint - publicly accessible
     $routes->get('maintenance/check', 'Api\MaintenanceApiController::check');
 
+    // Server time endpoint - publicly accessible
+    $routes->get('server-time', 'ServerTimeController::getServerTime');
+
     // Program Speakers API routes
     $routes->group('program-speakers', function ($routes) {
         // Basic CRUD
