@@ -182,4 +182,27 @@ class Cache extends BaseConfig
         'redis'     => RedisHandler::class,
         'wincache'  => WincacheHandler::class,
     ];
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        // Load cache settings from environment variables
+        $this->handler = env('cache.handler', $this->handler);
+        $this->backupHandler = env('cache.backupHandler', $this->backupHandler);
+        $this->prefix = env('cache.prefix', $this->prefix);
+        $this->ttl = (int) env('cache.ttl', $this->ttl);
+
+        // Load Redis configuration from environment
+        $this->redis['host'] = env('cache.redis.host', $this->redis['host']);
+        $this->redis['port'] = (int) env('cache.redis.port', $this->redis['port']);
+        $this->redis['password'] = env('cache.redis.password', $this->redis['password']);
+        $this->redis['database'] = (int) env('cache.redis.database', $this->redis['database']);
+        $this->redis['prefix'] = env('cache.redis.prefix', $this->redis['prefix']);
+        $this->redis['timeout'] = (int) env('cache.redis.timeout', $this->redis['timeout']);
+
+        // Load Memcached configuration from environment
+        $this->memcached['host'] = env('cache.memcached.host', $this->memcached['host']);
+        $this->memcached['port'] = (int) env('cache.memcached.port', $this->memcached['port']);
+    }
 }

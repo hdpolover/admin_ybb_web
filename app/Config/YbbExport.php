@@ -76,9 +76,9 @@ class YbbExport extends BaseConfig
         parent::__construct();
 
         // Load from environment variables with production defaults
-        $this->apiUrl = getenv('YBB_EXPORT_API_URL') ?: 'https://ybb-data-management-service-production.up.railway.app';
-        $this->timeout = (int) (getenv('YBB_EXPORT_API_TIMEOUT') ?: 300);
-        $this->maxRecords = (int) (getenv('YBB_EXPORT_MAX_RECORDS') ?: 50000);
+        $this->apiUrl = env('YBB_EXPORT_API_URL', 'https://ybb-data-management-service-production.up.railway.app');
+        $this->timeout = (int) env('YBB_EXPORT_API_TIMEOUT', 300);
+        $this->maxRecords = (int) env('YBB_EXPORT_MAX_RECORDS', 50000);
         $this->enableDebugLogging = ENVIRONMENT === 'development';
     }
 }

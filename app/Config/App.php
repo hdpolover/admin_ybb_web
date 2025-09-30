@@ -17,14 +17,15 @@ class App extends BaseConfig
      *
      *    http://example.com/
      */
-    public string $baseURL = '';  // Fixed trailing slash
+    public string $baseURL = '';
     
     public function __construct()
     {
         parent::__construct();
         
-        // Set base URL dynamically
-        $this->baseURL = ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https" : "http")
+        // Set base URL from environment or dynamically
+        $this->baseURL = env('app.baseURL', '') ?: 
+            ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https" : "http")
             . "://" . ($_SERVER['HTTP_HOST'] ?? 'localhost') . "/";
     }
 

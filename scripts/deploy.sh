@@ -157,8 +157,12 @@ set_permissions() {
         chmod +x spark
     fi
     
-    # Set writable permissions
-    chmod -R 777 writable/
+    # Create and set writable directory permissions (YBB admin's own directories)
+    mkdir -p writable/{cache,logs,session,debugbar,uploads}
+    chmod -R 755 writable/
+    chmod -R 766 writable/{cache,logs,session}
+    chmod -R 755 writable/{debugbar,uploads}
+    chown -R www-data:www-data writable/
     
     # Set specific permissions for certain directories
     if [ -d "public" ]; then

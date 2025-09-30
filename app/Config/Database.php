@@ -113,6 +113,34 @@ class Database extends Config
     {
         parent::__construct();
 
+        // Load database configuration from environment variables
+        $this->default['hostname'] = env('database.default.hostname', $this->default['hostname']);
+        $this->default['username'] = env('database.default.username', $this->default['username']);
+        $this->default['password'] = env('database.default.password', $this->default['password']);
+        $this->default['database'] = env('database.default.database', $this->default['database']);
+        $this->default['DBDriver'] = env('database.default.DBDriver', $this->default['DBDriver']);
+        $this->default['DBPrefix'] = env('database.default.DBPrefix', $this->default['DBPrefix']);
+        $this->default['port'] = (int)env('database.default.port', $this->default['port']);
+        $this->default['charset'] = env('database.default.charset', $this->default['charset']);
+        $this->default['DBCollat'] = env('database.default.DBCollat', $this->default['DBCollat']);
+        
+        // Set DBDebug based on environment
+        $this->default['DBDebug'] = (ENVIRONMENT !== 'production');
+
+        // Apply same configuration to export connection
+        $this->export = array_merge($this->export, [
+            'hostname' => $this->default['hostname'],
+            'username' => $this->default['username'],
+            'password' => $this->default['password'],
+            'database' => $this->default['database'],
+            'DBDriver' => $this->default['DBDriver'],
+            'DBPrefix' => $this->default['DBPrefix'],
+            'port' => $this->default['port'],
+            'charset' => $this->default['charset'],
+            'DBCollat' => $this->default['DBCollat'],
+            'DBDebug' => $this->default['DBDebug'],
+        ]);
+
         // Ensure that we always set the database group to 'tests' if
         // we are currently running an automated test suite, so that
         // we don't overwrite live data on accident.
