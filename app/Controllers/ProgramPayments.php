@@ -26,6 +26,14 @@ class ProgramPayments extends AdminBaseController
     {
         // Get current program ID from session
         $programId = session('current_program');
+        
+        // Clear cache if requested
+        if ($this->request->getGet('clear_cache')) {
+            cache()->deleteMatching('payment_*');
+            cache()->deleteMatching('program_' . $programId . '_*');
+            log_message('info', "Payment cache cleared manually for program {$programId}");
+        }
+        
         // $program data
         $program = $this->programModel->find($programId);
         
@@ -287,6 +295,52 @@ class ProgramPayments extends AdminBaseController
             return $this->response->setJSON(['success' => false, 'message' => 'You do not have access to this payment option']);
         }
         
-        return $this->response->setJSON(['success' => true, 'data' => $paymentOption]);
+        // Get periods for this payment option
+        $periodModel = new \App\Models\ProgramPaymentPeriodModel();
+        $periods = $periodModel->getByPaymentId($id, false, false); // Get all periods (active and inactive)
+        
+        // Get current active period
+        $currentPeriod = $periodModel->getCurrentActivePeriod($id);
+        
+        // Get next upcoming period
+        $upcomingPeriod = $periodModel->getNextUpcomingPeriod($id);
+        
+        // Prepare response data
+        $responseData = [
+            'payment' => $paymentOption,
+            'periods' => $periods,
+            'current_period' => $currentPeriod,
+            'upcoming_period' => $upcomingPeriod,
+            'total_periods' => count($periods)
+        ];
+        
+        return $this->response->setJSON(['success' => true, 'data' => $responseData]);
+    }
+
+    /**
+     * Get current server time with timezone information
+     * This helps frontend synchronize with server time for accurate period status
+     * 
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function getCurrentServerTime()
+    {
+        helper('date');
+        $appTimezone = app_timezone();
+        
+        // Create DateTime in application timezone
+        $timezone = new \DateTimeZone($appTimezone);
+        $currentDateTime = new \DateTime('now', $timezone);
+        
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => [
+                'timestamp' => $currentDateTime->getTimestamp(),
+                'datetime' => $currentDateTime->format('Y-m-d H:i:s'),
+                'iso_format' => $currentDateTime->format('c'),
+                'timezone' => $appTimezone,
+                'timezone_offset' => $currentDateTime->format('P')
+            ]
+        ]);
     }
 }

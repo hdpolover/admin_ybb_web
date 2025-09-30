@@ -63,18 +63,35 @@ class ProgramPaymentPeriodModel extends Model
      */
     public function getCurrentActivePeriod($paymentId)
     {
-        $currentDateTime = date('Y-m-d H:i:s');
+        // Get current date/time using CodeIgniter's timezone handling
+        helper('date');
+        $appTimezone = app_timezone();
+        
+        // Create DateTime in application timezone
+        $timezone = new \DateTimeZone($appTimezone);
+        $currentDateTime = new \DateTime('now', $timezone);
+        $currentDateTimeString = $currentDateTime->format('Y-m-d H:i:s');
+        
+        log_message('debug', "Checking active period for payment {$paymentId} at {$currentDateTimeString} ({$appTimezone})");
         
         $builder = $this->builder();
-        return $builder
+        $result = $builder
             ->where('payment_id', $paymentId)
             ->where('is_active', 1)
             ->where('is_deleted', 0)
-            ->where('start_date <=', $currentDateTime)
-            ->where('end_date >=', $currentDateTime)
+            ->where('start_date <=', $currentDateTimeString)
+            ->where('end_date >=', $currentDateTimeString)
             ->orderBy('order_number', 'ASC')
             ->get()
             ->getFirstRow();
+            
+        if ($result) {
+            log_message('debug', "Active period found: {$result->name} ({$result->start_date} to {$result->end_date})");
+        } else {
+            log_message('debug', "No active period found for payment {$paymentId}");
+        }
+        
+        return $result;
     }
 
     /**
@@ -86,17 +103,30 @@ class ProgramPaymentPeriodModel extends Model
      */
     public function getNextUpcomingPeriod($paymentId)
     {
-        $currentDateTime = date('Y-m-d H:i:s');
+        // Get current date/time using CodeIgniter's timezone handling
+        helper('date');
+        $appTimezone = app_timezone();
+        
+        // Create DateTime in application timezone
+        $timezone = new \DateTimeZone($appTimezone);
+        $currentDateTime = new \DateTime('now', $timezone);
+        $currentDateTimeString = $currentDateTime->format('Y-m-d H:i:s');
         
         $builder = $this->builder();
-        return $builder
+        $result = $builder
             ->where('payment_id', $paymentId)
             ->where('is_active', 1)
             ->where('is_deleted', 0)
-            ->where('start_date >', $currentDateTime)
+            ->where('start_date >', $currentDateTimeString)
             ->orderBy('start_date', 'ASC')
             ->get()
             ->getFirstRow();
+            
+        if ($result) {
+            log_message('debug', "Upcoming period found: {$result->name} (starts {$result->start_date})");
+        }
+        
+        return $result;
     }
 
     /**
@@ -107,14 +137,21 @@ class ProgramPaymentPeriodModel extends Model
      */
     public function isPaymentAvailable($paymentId)
     {
-        $currentDateTime = date('Y-m-d H:i:s');
+        // Get current date/time using CodeIgniter's timezone handling
+        helper('date');
+        $appTimezone = app_timezone();
+        
+        // Create DateTime in application timezone
+        $timezone = new \DateTimeZone($appTimezone);
+        $currentDateTime = new \DateTime('now', $timezone);
+        $currentDateTimeString = $currentDateTime->format('Y-m-d H:i:s');
         
         $builder = $this->builder();
         $count = $builder
             ->where('payment_id', $paymentId)
             ->where('is_active', 1)
             ->where('is_deleted', 0)
-            ->where('end_date >=', $currentDateTime)
+            ->where('end_date >=', $currentDateTimeString)
             ->countAllResults();
             
         return $count > 0;

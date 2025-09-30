@@ -177,6 +177,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->get('view/(:num)', 'ProgramPayments::view/$1');
             $routes->get('getData', 'ProgramPayments::getData');
             $routes->get('getPaymentOption/(:num)', 'ProgramPayments::getPaymentOption/$1');
+            $routes->get('getCurrentServerTime', 'ProgramPayments::getCurrentServerTime');
             $routes->post('create', 'ProgramPayments::create');
             $routes->post('update/(:num)', 'ProgramPayments::update/$1');
             $routes->get('delete/(:num)', 'ProgramPayments::delete/$1');

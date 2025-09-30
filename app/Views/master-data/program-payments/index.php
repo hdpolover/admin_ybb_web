@@ -442,7 +442,7 @@
 
     <!-- View Payment Modal -->
     <div class="modal fade" id="view-payment-modal" tabindex="-1" aria-labelledby="view-payment-modal-label" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
             <div class="modal-content">
                 <div class="modal-loading" id="view-loading">
                     <div class="text-center">
@@ -485,20 +485,6 @@
                             </div>
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <h5 class="text-muted fw-normal">Valid From</h5>
-                                <p class="text-dark fw-medium fs-15 mb-3" id="view_start_date"></p>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <h5 class="text-muted fw-normal">Valid Until</h5>
-                                <p class="text-dark fw-medium fs-15 mb-3" id="view_end_date"></p>
-                            </div>
-                        </div>
-                    </div>
                     <div class="mb-3">
                         <h5 class="text-muted fw-normal">Description</h5>
                         <p class="text-dark fw-medium fs-15 mb-3" id="view_description"></p>
@@ -507,10 +493,33 @@
                         <h5 class="text-muted fw-normal">Status</h5>
                         <p class="text-dark fw-medium fs-15 mb-3" id="view_status"></p>
                     </div>
+
+                    <!-- Payment Periods Section -->
+                    <div class="mb-3" id="view_periods_section" style="display: none;">
+                        <hr class="my-4">
+                        <h5 class="text-muted fw-normal">Payment Periods</h5>
+                        <div id="view_periods_content">
+                            <!-- Periods will be populated here via JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Current Period Status -->
+                    <div class="mb-3" id="view_current_status_section" style="display: none;">
+                        <hr class="my-4">
+                        <h5 class="text-muted fw-normal">Current Status</h5>
+                        <div id="view_current_status_content">
+                            <!-- Current status will be populated here via JavaScript -->
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary view-edit-btn">Edit</button>
+                    <a href="#" class="btn btn-warning view-manage-periods-btn">
+                        <i class="ri-calendar-line me-1"></i> Manage Periods
+                    </a>
+                    <button type="button" class="btn btn-primary view-edit-btn">
+                        <i class="ri-pencil-line me-1"></i> Edit
+                    </button>
                 </div>
             </div>
         </div>
@@ -570,6 +579,243 @@
             }
         });
 
+        // Function to populate payment modal with server time synchronization
+        function populatePaymentModal(data, payment, currentTime) {
+            // Populate basic payment info
+            $('#view_name').text(payment.name || 'N/A');
+
+            // Format category for display
+            var categoryDisplay = payment.category || 'N/A';
+            if (categoryDisplay === 'registration') {
+                categoryDisplay = 'Registration Fee';
+            } else if (categoryDisplay === 'program_fee_1') {
+                categoryDisplay = 'Program Fee 1';
+            } else if (categoryDisplay === 'program_fee_2') {
+                categoryDisplay = 'Program Fee 2';
+            }
+            $('#view_category').text(categoryDisplay);
+
+            // Format funding type for display
+            var typeDisplay = payment.type || 'All';
+            if (typeDisplay === 'self_funded') {
+                typeDisplay = 'Self Funded';
+            } else if (typeDisplay === 'fully_funded') {
+                typeDisplay = 'Fully Funded';
+            }
+            $('#view_type').text(typeDisplay);
+
+            // Format currency values
+            var usdAmount = payment.usd_amount ?
+                '$ ' + Number(payment.usd_amount).toFixed(2) : 'N/A';
+            $('#view_usd_amount').text(usdAmount);
+
+            $('#view_description').text(payment.description || 'No description provided');
+
+            // Format status with badge
+            var statusBadge = payment.is_active == 1 ?
+                '<span class="badge bg-success">Active</span>' :
+                '<span class="badge bg-secondary">Inactive</span>';
+            $('#view_status').html(statusBadge);
+
+            // Handle periods data if available - using server time for accuracy
+            if (data.periods && data.periods.length > 0) {
+                $('#view_periods_section').show();
+                
+                // Sort periods by end date (most recent first) to find the latest period
+                var sortedPeriods = data.periods.slice().sort(function(a, b) {
+                    return new Date(b.end_date) - new Date(a.end_date);
+                });
+                
+                // Find the latest/most relevant period
+                var latestPeriod = sortedPeriods[0];
+                
+                var periodsHtml = '';
+                
+                // Show latest period prominently
+                if (latestPeriod) {
+                    var latestStartDate = new Date(latestPeriod.start_date);
+                    var latestEndDate = new Date(latestPeriod.end_date);
+                    
+                    var latestFormattedStart = latestStartDate.toLocaleDateString('en-US', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric'
+                    });
+                    
+                    var latestFormattedEnd = latestEndDate.toLocaleDateString('en-US', {
+                        day: 'numeric', 
+                        month: 'short',
+                        year: 'numeric'
+                    });
+                    
+                    // Determine latest period status using server time
+                    var latestPeriodStatus = '';
+                    var alertClass = 'alert-secondary';
+                    if (!latestPeriod.is_active) {
+                        latestPeriodStatus = 'Inactive';
+                        alertClass = 'alert-secondary';
+                    } else if (currentTime >= latestStartDate && currentTime <= latestEndDate) {
+                        latestPeriodStatus = 'Currently Active';
+                        alertClass = 'alert-success';
+                    } else if (currentTime < latestStartDate) {
+                        latestPeriodStatus = 'Upcoming';
+                        alertClass = 'alert-warning';
+                    } else {
+                        latestPeriodStatus = 'Ended';
+                        alertClass = 'alert-info';
+                    }
+                    
+                    periodsHtml += '<div class="alert ' + alertClass + ' mb-3">';
+                    periodsHtml += '<div class="d-flex justify-content-between align-items-start">';
+                    periodsHtml += '<div>';
+                    periodsHtml += '<h6 class="alert-heading mb-1"><i class="ri-calendar-check-line me-2"></i>Latest Period</h6>';
+                    periodsHtml += '<strong>' + (latestPeriod.name || 'N/A') + '</strong>';
+                    if (latestPeriod.description) {
+                        periodsHtml += '<br><small>' + latestPeriod.description + '</small>';
+                    }
+                    periodsHtml += '<br><small class="fw-medium">' + latestFormattedStart + ' - ' + latestFormattedEnd + '</small>';
+                    periodsHtml += '</div>';
+                    periodsHtml += '<span class="badge ' + (latestPeriodStatus === 'Currently Active' ? 'bg-success' : 
+                                                             latestPeriodStatus === 'Upcoming' ? 'bg-warning' :
+                                                             latestPeriodStatus === 'Ended' ? 'bg-light text-dark' : 'bg-secondary') + '">' + latestPeriodStatus + '</span>';
+                    periodsHtml += '</div>';
+                    periodsHtml += '</div>';
+                }
+                
+                periodsHtml += '<div class="mb-3">';
+                periodsHtml += '<h6 class="text-muted fw-normal mb-2">All Periods (' + data.total_periods + ' total)</h6>';
+                periodsHtml += '</div>';
+
+                // Display all periods in a table
+                periodsHtml += '<div class="table-responsive">';
+                periodsHtml += '<table class="table table-sm table-bordered">';
+                periodsHtml += '<thead class="table-light">';
+                periodsHtml += '<tr>';
+                periodsHtml += '<th>Period Name</th>';
+                periodsHtml += '<th>Start Date</th>';
+                periodsHtml += '<th>End Date</th>';
+                periodsHtml += '<th>Status</th>';
+                periodsHtml += '</tr>';
+                periodsHtml += '</thead>';
+                periodsHtml += '<tbody>';
+
+                // Display periods sorted by end date (most recent first)
+                sortedPeriods.forEach(function(period, index) {
+                    var startDate = new Date(period.start_date);
+                    var endDate = new Date(period.end_date);
+                    
+                    // Format dates
+                    var formattedStart = startDate.toLocaleDateString('en-US', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric'
+                    });
+                    
+                    var formattedEnd = endDate.toLocaleDateString('en-US', {
+                        day: 'numeric', 
+                        month: 'short',
+                        year: 'numeric'
+                    });
+                    
+                    // Determine period status using server time
+                    var periodStatus = '';
+                    if (!period.is_active) {
+                        periodStatus = '<span class="badge bg-secondary">Inactive</span>';
+                    } else if (currentTime >= startDate && currentTime <= endDate) {
+                        periodStatus = '<span class="badge bg-success">Currently Active</span>';
+                    } else if (currentTime < startDate) {
+                        periodStatus = '<span class="badge bg-warning">Upcoming</span>';
+                    } else {
+                        periodStatus = '<span class="badge bg-light text-dark">Ended</span>';
+                    }
+                    
+                    // Highlight the latest period (first in sorted list)
+                    var rowClass = index === 0 ? 'table-primary' : '';
+                    
+                    periodsHtml += '<tr class="' + rowClass + '">';
+                    periodsHtml += '<td>';
+                    if (index === 0) {
+                        periodsHtml += '<i class="ri-star-fill text-warning me-1" title="Latest Period"></i>';
+                    }
+                    periodsHtml += '<strong>' + (period.name || 'N/A') + '</strong>';
+                    if (period.description) {
+                        periodsHtml += '<br><small class="text-muted">' + period.description + '</small>';
+                    }
+                    periodsHtml += '</td>';
+                    periodsHtml += '<td>' + formattedStart + '</td>';
+                    periodsHtml += '<td>' + formattedEnd + '</td>';
+                    periodsHtml += '<td>' + periodStatus + '</td>';
+                    periodsHtml += '</tr>';
+                });
+
+                periodsHtml += '</tbody>';
+                periodsHtml += '</table>';
+                periodsHtml += '</div>';
+
+                $('#view_periods_content').html(periodsHtml);
+            } else {
+                $('#view_periods_section').hide();
+            }
+
+            // Handle current status - show more comprehensive status information
+            if (data.current_period || data.upcoming_period || (data.periods && data.periods.length > 0)) {
+                $('#view_current_status_section').show();
+                var statusHtml = '';
+                
+                if (data.current_period) {
+                    statusHtml += '<div class="alert alert-success">';
+                    statusHtml += '<i class="ri-time-line me-2"></i>';
+                    statusHtml += '<strong>Currently Active Period:</strong> ' + data.current_period.name;
+                    statusHtml += '<br><small>Ends on ' + new Date(data.current_period.end_date).toLocaleDateString('en-US', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric'
+                    }) + '</small>';
+                    statusHtml += '</div>';
+                } else if (data.upcoming_period) {
+                    statusHtml += '<div class="alert alert-warning">';
+                    statusHtml += '<i class="ri-calendar-line me-2"></i>';
+                    statusHtml += '<strong>Next Period:</strong> ' + data.upcoming_period.name;
+                    statusHtml += '<br><small>Starts on ' + new Date(data.upcoming_period.start_date).toLocaleDateString('en-US', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric'
+                    }) + '</small>';
+                    statusHtml += '</div>';
+                } else if (data.periods && data.periods.length > 0) {
+                    // If no current or upcoming periods, show info about the latest ended period
+                    var sortedPeriods = data.periods.slice().sort(function(a, b) {
+                        return new Date(b.end_date) - new Date(a.end_date);
+                    });
+                    var latestPeriod = sortedPeriods[0];
+                    
+                    statusHtml += '<div class="alert alert-secondary">';
+                    statusHtml += '<i class="ri-information-line me-2"></i>';
+                    statusHtml += '<strong>Latest Period:</strong> ' + latestPeriod.name + ' (Ended)';
+                    statusHtml += '<br><small>Ended on ' + new Date(latestPeriod.end_date).toLocaleDateString('en-US', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric'
+                    }) + '</small>';
+                    statusHtml += '<br><small class="text-muted">No active or upcoming periods configured.</small>';
+                    statusHtml += '</div>';
+                } else {
+                    statusHtml += '<div class="alert alert-info">';
+                    statusHtml += '<i class="ri-information-line me-2"></i>';
+                    statusHtml += 'No periods configured for this payment option.';
+                    statusHtml += '</div>';
+                }
+                
+                $('#view_current_status_content').html(statusHtml);
+            } else {
+                $('#view_current_status_section').hide();
+            }
+
+            // Set payment ID for buttons in view modal
+            $('.view-edit-btn').data('id', payment.id);
+            $('.view-manage-periods-btn').data('id', payment.id);
+        }
+
         function initializePaymentFunctions() {
             // Initialize DataTable
             var paymentTable = $('#program-payments-table').DataTable({
@@ -627,96 +873,19 @@
                     success: function(response) {
                         console.log("View Ajax response:", response);
                         if (response && response.success) {
-                            var payment = response.data;
+                            var data = response.data;
+                            var payment = data.payment || data; // Handle both new and old response format
 
-                            // Populate modal
-                            $('#view_name').text(payment.name || 'N/A');
-
-                            // Format category for display
-                            var categoryDisplay = payment.category || 'N/A';
-                            if (categoryDisplay === 'registration') {
-                                categoryDisplay = 'Registration Fee';
-                            } else if (categoryDisplay === 'program_fee_1') {
-                                categoryDisplay = 'Program Fee 1';
-                            } else if (categoryDisplay === 'program_fee_2') {
-                                categoryDisplay = 'Program Fee 2';
-                            }
-                            $('#view_category').text(categoryDisplay);
-
-                            // Format funding type for display
-                            var typeDisplay = payment.type || 'All';
-                            if (typeDisplay === 'self_funded') {
-                                typeDisplay = 'Self Funded';
-                            } else if (typeDisplay === 'fully_funded') {
-                                typeDisplay = 'Fully Funded';
-                            }
-                            $('#view_type').text(typeDisplay);
-
-                            // Format currency values
-                            var usdAmount = payment.usd_amount ?
-                                '$ ' + Number(payment.usd_amount).toFixed(2) : 'N/A';
-                            $('#view_usd_amount').text(usdAmount);
-                            $('#view_usd_amount').text(usdAmount);
-
-                            // Format dates - show time only if not midnight
-                            var startDate = 'N/A';
-                            var endDate = 'N/A';
-                            
-                            if (payment.start_date) {
-                                var startDateTime = new Date(payment.start_date);
-                                var isStartMidnight = startDateTime.getHours() === 0 && startDateTime.getMinutes() === 0;
-                                
-                                if (isStartMidnight) {
-                                    startDate = startDateTime.toLocaleDateString('en-US', {
-                                        day: 'numeric',
-                                        month: 'short',
-                                        year: 'numeric'
-                                    });
-                                } else {
-                                    startDate = startDateTime.toLocaleDateString('en-US', {
-                                        day: 'numeric',
-                                        month: 'short',
-                                        year: 'numeric',
-                                        hour: 'numeric',
-                                        minute: '2-digit'
-                                    });
-                                }
-                            }
-                            
-                            if (payment.end_date) {
-                                var endDateTime = new Date(payment.end_date);
-                                var isEndMidnight = endDateTime.getHours() === 0 && endDateTime.getMinutes() === 0;
-                                var isEndEndOfDay = endDateTime.getHours() === 23 && endDateTime.getMinutes() === 59;
-                                
-                                if (isEndMidnight || isEndEndOfDay) {
-                                    endDate = endDateTime.toLocaleDateString('en-US', {
-                                        day: 'numeric',
-                                        month: 'short',
-                                        year: 'numeric'
-                                    });
-                                } else {
-                                    endDate = endDateTime.toLocaleDateString('en-US', {
-                                        day: 'numeric',
-                                        month: 'short',
-                                        year: 'numeric',
-                                        hour: 'numeric',
-                                        minute: '2-digit'
-                                    });
-                                }
-                            }
-
-                            $('#view_start_date').text(startDate);
-                            $('#view_end_date').text(endDate);
-                            $('#view_description').text(payment.description || 'No description provided');
-
-                            // Format status with badge
-                            var statusBadge = payment.is_active == 1 ?
-                                '<span class="badge bg-success">Active</span>' :
-                                '<span class="badge bg-secondary">Inactive</span>';
-                            $('#view_status').html(statusBadge);
-
-                            // Set payment ID for the edit button in view modal
-                            $('.view-edit-btn').data('id', payment.id);
+                            // Get server time for accurate period status
+                            $.get('/master-data/program-payments/getCurrentServerTime')
+                                .done(function(timeResponse) {
+                                    var serverTime = timeResponse.success ? new Date(timeResponse.data.iso_format) : new Date();
+                                    populatePaymentModal(data, payment, serverTime);
+                                })
+                                .fail(function() {
+                                    console.warn('Failed to get server time, using client time');
+                                    populatePaymentModal(data, payment, new Date());
+                                });
                         } else {
                             console.error("Invalid response:", response);
                             alert('Failed to load payment option details');
@@ -753,10 +922,13 @@
                         console.log("Edit Ajax response:", response);
 
                         if (response && response.success) {
-                            var payment = response.data;
+                            var data = response.data;
+                            var payment = data.payment || data; // Handle both new and old response format
 
                             // Set form action
-                            $('#edit-payment-form').attr('action', '/master-data/program-payments/update/' + payment.id); // Populate form
+                            $('#edit-payment-form').attr('action', '/master-data/program-payments/update/' + payment.id);
+                            
+                            // Populate form
                             $('#edit_payment_id').val(payment.id);
                             $('#edit_name').val(payment.name);
                             $('#edit_category').val(payment.category);
@@ -808,6 +980,15 @@
                 setTimeout(function() {
                     $('.edit-payment[data-id="' + paymentId + '"]').trigger('click');
                 }, 500);
+            });
+
+            // Handle click on manage periods button in view modal
+            $(document).on('click', '.view-manage-periods-btn', function() {
+                var paymentId = $(this).data('id');
+                console.log("Manage periods button clicked from view modal for ID:", paymentId);
+
+                // Navigate to periods page
+                window.location.href = '/master-data/program-payments/' + paymentId + '/periods';
             });
 
             // Form validation for add payment form

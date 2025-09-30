@@ -119,6 +119,12 @@ class ProgramPaymentPeriods extends AdminBaseController
             // Invalidate relevant caches
             $this->invalidateProgramCache($programId);
             $this->invalidateLandingCache();
+            
+            // Clear any potential payment-related cache
+            cache()->deleteMatching('payment_*');
+            cache()->deleteMatching('program_' . $programId . '_*');
+            
+            log_message('info', "Period added for payment {$paymentId}, caches cleared");
         }
         
         return $this->response->setJSON($result);
@@ -192,6 +198,12 @@ class ProgramPaymentPeriods extends AdminBaseController
             // Invalidate relevant caches
             $this->invalidateProgramCache($programId);
             $this->invalidateLandingCache();
+            
+            // Clear any potential payment-related cache
+            cache()->deleteMatching('payment_*');
+            cache()->deleteMatching('program_' . $programId . '_*');
+            
+            log_message('info', "Period updated for period {$periodId}, caches cleared");
         }
         
         return $this->response->setJSON($result);
