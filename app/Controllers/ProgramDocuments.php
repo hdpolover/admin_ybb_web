@@ -115,13 +115,20 @@ class ProgramDocuments extends AdminBaseController
             // LOA is always system generated
             $isGenerated = 1;
             $finalDriveUrl = null; // No URL needed for generated documents
-        } else if ($type === 'agreement' || $type === 'complement') {
-            // Agreement and complement require drive URL
+        } else if ($type === 'agreement') {
+            // Agreement requires upload and drive URL
             $isUpload = 1;
             if (empty($driveUrl)) {
-                $docTypeName = ($type === 'agreement') ? 'Agreement letter' : 'Complementary document';
                 return redirect()->to('/documents/program-documents')
-                    ->with('error', $docTypeName . ' requires a document link');
+                    ->with('error', 'Agreement letter requires a document link');
+            }
+            $finalDriveUrl = $driveUrl;
+        } else if ($type === 'complement') {
+            // Complement is external link only, no upload required
+            $isUpload = 0;
+            if (empty($driveUrl)) {
+                return redirect()->to('/documents/program-documents')
+                    ->with('error', 'Complementary document requires a document link');
             }
             $finalDriveUrl = $driveUrl;
         }
@@ -234,13 +241,20 @@ class ProgramDocuments extends AdminBaseController
             // LOA is always system generated
             $isGenerated = 1;
             $finalDriveUrl = null; // No URL needed for generated documents
-        } else if ($type === 'agreement' || $type === 'complement') {
-            // Agreement and complement require drive URL
+        } else if ($type === 'agreement') {
+            // Agreement requires upload and drive URL
             $isUpload = 1;
             if (empty($driveUrl)) {
-                $docTypeName = ($type === 'agreement') ? 'Agreement letter' : 'Complementary document';
                 return redirect()->to('/documents/program-documents')
-                    ->with('error', $docTypeName . ' requires a document link');
+                    ->with('error', 'Agreement letter requires a document link');
+            }
+            $finalDriveUrl = $driveUrl;
+        } else if ($type === 'complement') {
+            // Complement is external link only, no upload required
+            $isUpload = 0;
+            if (empty($driveUrl)) {
+                return redirect()->to('/documents/program-documents')
+                    ->with('error', 'Complementary document requires a document link');
             }
             $finalDriveUrl = $driveUrl;
         }

@@ -526,7 +526,7 @@
                     $('#edit-drive-url-label').text('Document Link*');
                     $('#edit-drive-url-help').text('Enter Google Drive link to the complementary document');
                     $('#edit-drive-url').prop('required', true);
-                    $('#edit-is-upload').val('1');
+                    $('#edit-is-upload').val('0');
                     $('#edit-is-generated').val('0');
                 }
             });
@@ -654,7 +654,7 @@
                     $('#document-type-info').show();
                     $('#complement-info').show();
                     $('#drive-url-label').text('Document Link*');
-                    $('#is-upload').val('1');
+                    $('#is-upload').val('0');
                     $('#is-generated').val('0');
                 }
             });
@@ -686,7 +686,7 @@
                     $('#edit-document-type-info').show();
                     $('#edit-complement-info').show();
                     $('#edit-drive-url-label').text('Document Link*');
-                    $('#edit-is-upload').val('1');
+                    $('#edit-is-upload').val('0');
                     $('#edit-is-generated').val('0');
                 }
             });
