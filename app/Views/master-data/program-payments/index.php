@@ -123,8 +123,34 @@
                                                             </small>
                                                         </td>
                                                         <td>
-                                                            <?= isset($payment->start_date) ? date('d M Y', strtotime($payment->start_date)) : 'N/A' ?> -
-                                                            <?= isset($payment->end_date) ? date('d M Y', strtotime($payment->end_date)) : 'N/A' ?>
+                                                            <?php if (isset($payment->start_date) && isset($payment->end_date)): ?>
+                                                                <?php
+                                                                $startDateTime = new DateTime($payment->start_date);
+                                                                $endDateTime = new DateTime($payment->end_date);
+                                                                $isStartMidnight = $startDateTime->format('H:i:s') === '00:00:00';
+                                                                $isEndMidnight = $endDateTime->format('H:i:s') === '00:00:00';
+                                                                $isEndEndOfDay = $endDateTime->format('H:i:s') === '23:59:59';
+                                                                ?>
+                                                                <div class="fw-medium">
+                                                                    <?= $isStartMidnight ? date('d M Y', strtotime($payment->start_date)) : date('d M Y g:i A', strtotime($payment->start_date)) ?>
+                                                                    -
+                                                                    <?= ($isEndMidnight || $isEndEndOfDay) ? date('d M Y', strtotime($payment->end_date)) : date('d M Y g:i A', strtotime($payment->end_date)) ?>
+                                                                </div>
+                                                                <?php if (isset($payment->current_period_name)): ?>
+                                                                <small class="text-muted">
+                                                                    <i class="ri-time-line me-1"></i><?= $payment->current_period_name ?>
+                                                                    <?php if (isset($payment->has_active_period) && $payment->has_active_period): ?>
+                                                                        <span class="badge bg-success-subtle text-success ms-1">Active</span>
+                                                                    <?php elseif (isset($payment->upcoming_period) && $payment->upcoming_period): ?>
+                                                                        <span class="badge bg-warning-subtle text-warning ms-1">Upcoming</span>
+                                                                    <?php else: ?>
+                                                                        <span class="badge bg-secondary-subtle text-secondary ms-1">Ended</span>
+                                                                    <?php endif; ?>
+                                                                </small>
+                                                                <?php endif; ?>
+                                                            <?php else: ?>
+                                                                <span class="text-muted">N/A</span>
+                                                            <?php endif; ?>
                                                         </td>
                                                         <td>
                                                             <?php
@@ -144,6 +170,11 @@
                                                                     <button class="btn btn-sm btn-info view-payment" data-id="<?= $payment->id ?? 0 ?>" data-bs-toggle="tooltip" data-bs-placement="top" title="View Details">
                                                                         <i class="ri-eye-fill"></i>
                                                                     </button>
+                                                                </div>
+                                                                <div class="periods">
+                                                                    <a href="<?= base_url('master-data/program-payments/' . ($payment->id ?? 0) . '/periods') ?>" class="btn btn-sm btn-warning" data-bs-toggle="tooltip" data-bs-placement="top" title="Manage Periods">
+                                                                        <i class="ri-calendar-line"></i>
+                                                                    </a>
                                                                 </div>
                                                                 <div class="edit">
                                                                     <button class="btn btn-sm btn-success edit-payment" data-id="<?= $payment->id ?? 0 ?>" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit">
@@ -274,21 +305,9 @@
                             </div>
                         </div>
 
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="start_date" class="form-label">Start Date*</label>
-                                    <input type="date" class="form-control" id="start_date" name="start_date" required>
-                                    <div class="invalid-feedback">Please select a start date.</div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="end_date" class="form-label">End Date*</label>
-                                    <input type="date" class="form-control" id="end_date" name="end_date" required>
-                                    <div class="invalid-feedback">Please select an end date.</div>
-                                </div>
-                            </div>
+                        <div class="alert alert-info">
+                            <i class="ri-information-line me-2"></i>
+                            <strong>Note:</strong> After creating this payment option, you can manage its availability periods by clicking the <strong>Manage Periods</strong> button.
                         </div>
                         <div class="mb-3">
                             <label for="description" class="form-label">Description*</label>
@@ -374,19 +393,9 @@
                             </div>
                         </div>
 
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="edit_start_date" class="form-label">Start Date</label>
-                                    <input type="date" class="form-control" id="edit_start_date" name="start_date">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="edit_end_date" class="form-label">End Date</label>
-                                    <input type="date" class="form-control" id="edit_end_date" name="end_date">
-                                </div>
-                            </div>
+                        <div class="alert alert-info">
+                            <i class="ri-information-line me-2"></i>
+                            <strong>Note:</strong> Availability periods are managed separately. Use the <strong>Manage Periods</strong> button to set when this payment option is available.
                         </div>
 
                         <div class="mb-3">
@@ -649,19 +658,52 @@
                             $('#view_usd_amount').text(usdAmount);
                             $('#view_usd_amount').text(usdAmount);
 
-                            // Format dates
-                            var startDate = payment.start_date ?
-                                new Date(payment.start_date).toLocaleDateString('en-US', {
-                                    day: 'numeric',
-                                    month: 'short',
-                                    year: 'numeric'
-                                }) : 'N/A';
-                            var endDate = payment.end_date ?
-                                new Date(payment.end_date).toLocaleDateString('en-US', {
-                                    day: 'numeric',
-                                    month: 'short',
-                                    year: 'numeric'
-                                }) : 'N/A';
+                            // Format dates - show time only if not midnight
+                            var startDate = 'N/A';
+                            var endDate = 'N/A';
+                            
+                            if (payment.start_date) {
+                                var startDateTime = new Date(payment.start_date);
+                                var isStartMidnight = startDateTime.getHours() === 0 && startDateTime.getMinutes() === 0;
+                                
+                                if (isStartMidnight) {
+                                    startDate = startDateTime.toLocaleDateString('en-US', {
+                                        day: 'numeric',
+                                        month: 'short',
+                                        year: 'numeric'
+                                    });
+                                } else {
+                                    startDate = startDateTime.toLocaleDateString('en-US', {
+                                        day: 'numeric',
+                                        month: 'short',
+                                        year: 'numeric',
+                                        hour: 'numeric',
+                                        minute: '2-digit'
+                                    });
+                                }
+                            }
+                            
+                            if (payment.end_date) {
+                                var endDateTime = new Date(payment.end_date);
+                                var isEndMidnight = endDateTime.getHours() === 0 && endDateTime.getMinutes() === 0;
+                                var isEndEndOfDay = endDateTime.getHours() === 23 && endDateTime.getMinutes() === 59;
+                                
+                                if (isEndMidnight || isEndEndOfDay) {
+                                    endDate = endDateTime.toLocaleDateString('en-US', {
+                                        day: 'numeric',
+                                        month: 'short',
+                                        year: 'numeric'
+                                    });
+                                } else {
+                                    endDate = endDateTime.toLocaleDateString('en-US', {
+                                        day: 'numeric',
+                                        month: 'short',
+                                        year: 'numeric',
+                                        hour: 'numeric',
+                                        minute: '2-digit'
+                                    });
+                                }
+                            }
 
                             $('#view_start_date').text(startDate);
                             $('#view_end_date').text(endDate);
@@ -721,22 +763,7 @@
                             $('#edit_type').val(payment.type || 'all');
                             $('#edit_usd_amount').val(payment.usd_amount);
 
-                            // Format dates for date input (yyyy-mm-dd)
-                            if (payment.start_date) {
-                                var startDate = new Date(payment.start_date);
-                                var formattedStartDate = startDate.getFullYear() + '-' +
-                                    String(startDate.getMonth() + 1).padStart(2, '0') + '-' +
-                                    String(startDate.getDate()).padStart(2, '0');
-                                $('#edit_start_date').val(formattedStartDate);
-                            }
-
-                            if (payment.end_date) {
-                                var endDate = new Date(payment.end_date);
-                                var formattedEndDate = endDate.getFullYear() + '-' +
-                                    String(endDate.getMonth() + 1).padStart(2, '0') + '-' +
-                                    String(endDate.getDate()).padStart(2, '0');
-                                $('#edit_end_date').val(formattedEndDate);
-                            }
+                            // Note: Date management has been moved to periods functionality
 
                             $('#edit_description').val(payment.description);
                             $('#edit_is_active').val(payment.is_active);

@@ -180,6 +180,13 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->post('create', 'ProgramPayments::create');
             $routes->post('update/(:num)', 'ProgramPayments::update/$1');
             $routes->get('delete/(:num)', 'ProgramPayments::delete/$1');
+            
+            // Payment periods management routes
+            $routes->get('(:num)/periods', 'ProgramPaymentPeriods::index/$1');
+            $routes->post('(:num)/periods/create', 'ProgramPaymentPeriods::create/$1');
+            $routes->post('periods/(:num)/update', 'ProgramPaymentPeriods::update/$1');
+            $routes->post('periods/(:num)/delete', 'ProgramPaymentPeriods::delete/$1');
+            $routes->get('periods/(:num)/get', 'ProgramPaymentPeriods::getPeriod/$1');
         });
 
         // program schedule/timeline group

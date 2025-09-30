@@ -113,19 +113,11 @@ class ProgramPayments extends AdminBaseController
             'category' => $this->request->getPost('category') ?: 'registration',
             'type' => $this->request->getPost('type') ?: 'all',
             'is_active' => $this->request->getPost('is_active') ?: 1,
-            'is_deleted' => 0
+            'is_deleted' => 0,
+            // Set default dates - will be managed through periods
+            'start_date' => date('Y-m-d H:i:s'),
+            'end_date' => date('Y-m-d H:i:s', strtotime('+1 year'))
         ];
-        
-        // Add dates if provided
-        $startDate = $this->request->getPost('start_date');
-        if ($startDate) {
-            $data['start_date'] = $startDate;
-        }
-        
-        $endDate = $this->request->getPost('end_date');
-        if ($endDate) {
-            $data['end_date'] = $endDate;
-        }
         
         // Get the highest order number and add 1
         $highestOrder = $this->programPaymentModel->where('program_id', $programId)
@@ -135,13 +127,24 @@ class ProgramPayments extends AdminBaseController
         $data['order_number'] = ($highestOrder && $highestOrder->order_number) ? $highestOrder->order_number + 1 : 1;
         
         // Create the payment option
-        if ($this->programPaymentModel->insert($data)) {
+        $paymentId = $this->programPaymentModel->insert($data);
+        if ($paymentId) {
+            // Create a default period for this payment
+            $periodData = [
+                'name' => 'Main Period',
+                'description' => 'Default availability period - please update as needed',
+                'start_date' => date('Y-m-d H:i:s'),
+                'end_date' => date('Y-m-d H:i:s', strtotime('+6 months'))
+            ];
+            
+            $this->programPaymentModel->addPaymentPeriod($paymentId, $periodData);
+            
             // Invalidate program and landing cache after successful payment option creation
             $this->invalidateProgramCache($programId);
             $this->invalidateLandingCache();
             
             return redirect()->to('/master-data/program-payments')
-                ->with('success', 'Payment option created successfully');
+                ->with('success', 'Payment option created successfully! Please use "Manage Periods" to set availability dates.');
         } else {
             return redirect()->to('/master-data/program-payments')
                 ->with('error', 'Failed to create payment option');
@@ -175,15 +178,13 @@ class ProgramPayments extends AdminBaseController
         if ($paymentOption->program_id != $programId) {
             return redirect()->to('/master-data/program-payments')->with('error', 'You do not have access to this payment option');
         }
-          // Validate form data
+        // Validate form data
         $rules = [
             'name' => 'required|max_length[255]',
             'description' => 'permit_empty|max_length[255]',
             'usd_amount' => 'permit_empty|numeric',
             'category' => 'permit_empty|max_length[50]',
             'type' => 'permit_empty|max_length[50]',
-            'start_date' => 'permit_empty|valid_date[Y-m-d]',
-            'end_date' => 'permit_empty|valid_date[Y-m-d]',
             'is_active' => 'permit_empty|in_list[0,1]'
         ];
         
@@ -192,7 +193,7 @@ class ProgramPayments extends AdminBaseController
                 ->with('error', 'Failed to update payment option: ' . implode(', ', $this->validator->getErrors()));
         }
         
-        // Prepare data
+        // Prepare data (dates are now managed through periods)
         $data = [
             'name' => $this->request->getPost('name'),
             'description' => $this->request->getPost('description'),
@@ -201,17 +202,6 @@ class ProgramPayments extends AdminBaseController
             'type' => $this->request->getPost('type'),
             'is_active' => $this->request->getPost('is_active') ?: 0
         ];
-        
-        // Add dates if provided
-        $startDate = $this->request->getPost('start_date');
-        if ($startDate) {
-            $data['start_date'] = $startDate;
-        }
-        
-        $endDate = $this->request->getPost('end_date');
-        if ($endDate) {
-            $data['end_date'] = $endDate;
-        }
         
         // Update the payment option
         if ($this->programPaymentModel->update($id, $data)) {
