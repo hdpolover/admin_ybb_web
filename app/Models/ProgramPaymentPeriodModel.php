@@ -130,6 +130,45 @@ class ProgramPaymentPeriodModel extends Model
     }
 
     /**
+     * Get the most recent ended period for a payment
+     * Useful for showing what was the last available period
+     *
+     * @param int $paymentId The payment ID
+     * @return object|null The most recent ended period or null if none found
+     */
+    public function getLastEndedPeriod($paymentId)
+    {
+        // Get current date/time using CodeIgniter's timezone handling
+        helper('date');
+        $appTimezone = app_timezone();
+        
+        // Create DateTime in application timezone
+        $timezone = new \DateTimeZone($appTimezone);
+        $currentDateTime = new \DateTime('now', $timezone);
+        $currentDateTimeString = $currentDateTime->format('Y-m-d H:i:s');
+        
+        log_message('debug', "Checking for last ended period for payment {$paymentId} before {$currentDateTimeString}");
+        
+        $builder = $this->builder();
+        $result = $builder
+            ->where('payment_id', $paymentId)
+            ->where('is_active', 1)
+            ->where('is_deleted', 0)
+            ->where('end_date <', $currentDateTimeString)
+            ->orderBy('end_date', 'DESC')
+            ->get()
+            ->getFirstRow();
+            
+        if ($result) {
+            log_message('debug', "Last ended period found: {$result->name} (ended {$result->end_date})");
+        } else {
+            log_message('debug', "No ended period found for payment {$paymentId}");
+        }
+        
+        return $result;
+    }
+
+    /**
      * Check if a payment has any active period currently or in the future
      *
      * @param int $paymentId The payment ID

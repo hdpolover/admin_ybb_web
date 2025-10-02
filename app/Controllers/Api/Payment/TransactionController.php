@@ -127,11 +127,11 @@ class TransactionController extends BasePaymentController
                 return $this->respondError('Program not found', 404);
             }
             log_message('debug', 'TransactionController::createTransaction - Program found: ' . json_encode($program));
-            log_message('debug', 'TransactionController::createTransaction - Program ID: ' . $program->id . ', Program Category ID: ' . $program->program_category_id);// get web setting data using program category ID
+            log_message('debug', 'TransactionController::createTransaction - Program ID: ' . $program->id . ', Program Category ID: ' . $program->program_category_id);            // get web setting data using program category ID
             log_message('info', 'TransactionController::createTransaction - Getting web setting data for program category ID: ' . $program->program_category_id);
             log_message('debug', 'TransactionController::createTransaction - Program data: ID=' . $program->id . ', Name=' . ($program->name ?? 'N/A') . ', Category_ID=' . $program->program_category_id);
             
-            $webSetting = $this->webSettingModel->find($program->program_category_id);
+            $webSetting = $this->webSettingModel->getSettingByProgramCategoryId($program->program_category_id);
 
             if (!$webSetting) {
                 log_message('error', 'TransactionController::createTransaction - Web setting not found for program category ID: ' . $program->program_category_id);

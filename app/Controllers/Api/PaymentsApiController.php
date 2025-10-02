@@ -77,11 +77,7 @@ class PaymentsApiController extends ApiBaseController
             // Log access to payment details for security auditing
             log_message('info', "Payment detail accessed - ID: {$id}, Status: {$payment->status}");
 
-            return $this->respondSuccess([
-                'payment' => $payment,
-                'timestamp' => time(),
-                'cache_disabled' => true
-            ], self::HTTP_OK, 'Payment retrieved successfully');
+            return $this->respondSuccess($payment, self::HTTP_OK, 'Payment retrieved successfully');
         } catch (\Exception $e) {
             log_message('error', 'Error retrieving payment details: ' . $e->getMessage());
             return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
@@ -178,9 +174,7 @@ class PaymentsApiController extends ApiBaseController
 
             return $this->respondSuccess([
                 'payments' => $payments,
-                'participant_id' => $participantId,
-                'timestamp' => time(),
-                'cache_disabled' => true
+                'participant_id' => $participantId
             ], self::HTTP_OK, 'Payments retrieved successfully');
         } catch (\Exception $e) {
             log_message('error', 'Error retrieving participant payments: ' . $e->getMessage());
@@ -227,13 +221,14 @@ class PaymentsApiController extends ApiBaseController
                 return $this->respondNotFound('Program payment not found');
             }
 
+            // Enhance program payment with current period information for accurate date/status
+            $programPaymentModel->enhancePaymentWithCurrentPeriod($programPayment);
+
             $data = [
                 'program_payment' => $programPayment,
                 'payments' => $payments,
                 'participant_id' => $participantId,
-                'program_payment_id' => $programPaymentId,
-                'timestamp' => time(),
-                'cache_disabled' => true
+                'program_payment_id' => $programPaymentId
             ];
 
             log_message('info', "Program payment data accessed - Program Payment ID: {$programPaymentId}, Participant ID: {$participantId}");

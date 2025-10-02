@@ -27,40 +27,80 @@ class ProgramPaymentsApiController extends ApiBaseController
     /**
      * Get All Program Payments
      * GET /api/program-payments
-     * Medium Priority Cache: 30 minutes TTL
+     * 
+     * IMPORTANT: Program payment data is NOT cached to ensure real-time period information
+     * Payment periods can change availability and dates dynamically
+     * 
      * @return \CodeIgniter\HTTP\ResponseInterface
      */
     public function index()
     {
-        $programPayments = $this->cacheResponse(function() {
-            return $this->model->findAll();
-        }, [], null, 1800); // 30 minutes cache
+        // Set cache-prevention headers
+        $this->response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+        $this->response->setHeader('Pragma', 'no-cache');
+        $this->response->setHeader('Expires', 'Thu, 01 Jan 1970 00:00:00 GMT');
 
-        return $this->respondSuccess($programPayments, self::HTTP_OK, 'Program payments retrieved successfully');
+        try {
+            // Always fetch fresh data - NO CACHING for program payment data with periods
+            $programPayments = $this->model->findAll();
+            
+            // Enhance each payment with current period information
+            foreach ($programPayments as &$payment) {
+                $this->model->enhancePaymentWithCurrentPeriod($payment);
+            }
+
+            return $this->respondSuccess($programPayments, self::HTTP_OK, 'Program payments retrieved successfully');
+        } catch (\Exception $e) {
+            log_message('error', 'Error retrieving all program payments: ' . $e->getMessage());
+            return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
+        }
     }
 
     /**
      * Get Single Program Payment
      * GET /api/program-payments/{id}
-     * Medium Priority Cache: 30 minutes TTL
+     * 
+     * IMPORTANT: Program payment data is NOT cached to ensure real-time period information
+     * Payment periods can change availability and dates dynamically
      */
     public function show($id = null)
     {
-        $programPayment = $this->cacheResponse(function() use ($id) {
-            return $this->model->find($id);
-        }, ['program_payment_id' => $id], null, 1800); // 30 minutes cache
-
-        if (!$programPayment) {
-            return $this->respondNotFound('Program payment not found');
+        if ($id === null) {
+            return $this->respondValidationErrors('Program payment ID is required');
         }
 
-        return $this->respondSuccess($programPayment, self::HTTP_OK, 'Program payment retrieved successfully');
+        // Set cache-prevention headers
+        $this->response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+        $this->response->setHeader('Pragma', 'no-cache');
+        $this->response->setHeader('Expires', 'Thu, 01 Jan 1970 00:00:00 GMT');
+
+        try {
+            // Always fetch fresh data - NO CACHING for program payment details
+            $programPayment = $this->model->find($id);
+
+            if (!$programPayment) {
+                return $this->respondNotFound('Program payment not found');
+            }
+
+            // Enhance payment with current period information
+            $this->model->enhancePaymentWithCurrentPeriod($programPayment);
+
+            // Log access to program payment details
+            log_message('info', "Program payment detail accessed - ID: {$id}, Current period: " . ($programPayment->current_period_name ?? 'none'));
+
+            return $this->respondSuccess($programPayment, self::HTTP_OK, 'Program payment retrieved successfully');
+        } catch (\Exception $e) {
+            log_message('error', 'Error retrieving program payment details: ' . $e->getMessage());
+            return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
+        }
     }
 
     /**
      * Get program payments by program ID
      * GET /api/program-payments/program/{programId}
-     * Medium Priority Cache: 30 minutes TTL
+     * 
+     * IMPORTANT: Program payment data is NOT cached to ensure real-time period information
+     * Payment periods can change availability and dates dynamically
      */
     public function getByProgramId($programId = null)
     {
@@ -68,21 +108,34 @@ class ProgramPaymentsApiController extends ApiBaseController
             return $this->respondValidationErrors('Program ID is required');
         }
 
-        $programPayments = $this->cacheProgramData(function() use ($programId) {
+        // Set cache-prevention headers
+        $this->response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+        $this->response->setHeader('Pragma', 'no-cache');
+        $this->response->setHeader('Expires', 'Thu, 01 Jan 1970 00:00:00 GMT');
+
+        try {
+            // Always fetch fresh data - NO CACHING for program payment data with periods
             // Get all payments (active and inactive, but exclude deleted)
-            // Frontend will handle filtering, so we return all available payments
-            return $this->model->getByProgramId($programId, false, false);
-        }, $programId);
+            // The model's getByProgramId method already enhances payments with current period data
+            $programPayments = $this->model->getByProgramId($programId, false, false);
 
-        if (!$programPayments) {
-            return $this->respondNotFound('Program payments not found for this program ID');
+            if (!$programPayments) {
+                return $this->respondNotFound('Program payments not found for this program ID');
+            }
+
+            log_message('info', "Program payments accessed for program {$programId}, Count: " . count($programPayments));
+
+            return $this->respondSuccess($programPayments, self::HTTP_OK, 'Program payments retrieved successfully');
+        } catch (\Exception $e) {
+            log_message('error', 'Error retrieving program payments: ' . $e->getMessage());
+            return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
         }
-
-        return $this->respondSuccess($programPayments, self::HTTP_OK, 'Program payments retrieved successfully');
     }
     /**
-     * Get program schedule by ID
-     * GET /api/program-schedules/{id}
+     * Get program payment by ID (with current period data)
+     * GET /api/program-payments/id/{id}
+     * 
+     * IMPORTANT: Program payment data is NOT cached to ensure real-time period information
      */
     public function getById($id = null)
     {
@@ -90,13 +143,27 @@ class ProgramPaymentsApiController extends ApiBaseController
             return $this->respondValidationErrors('ID is required');
         }
 
-        $programSchedule = $this->model->getProgramScheduleById($id);
+        // Set cache-prevention headers
+        $this->response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+        $this->response->setHeader('Pragma', 'no-cache');
+        $this->response->setHeader('Expires', 'Thu, 01 Jan 1970 00:00:00 GMT');
 
-        if (!$programSchedule) {
-            return $this->respondNotFound('Program schedule not found');
+        try {
+            // Always fetch fresh data - NO CACHING for program payment details
+            $programPayment = $this->model->find($id);
+
+            if (!$programPayment) {
+                return $this->respondNotFound('Program payment not found');
+            }
+
+            // Enhance payment with current period information
+            $this->model->enhancePaymentWithCurrentPeriod($programPayment);
+
+            return $this->respondSuccess($programPayment, self::HTTP_OK, 'Program payment retrieved successfully');
+        } catch (\Exception $e) {
+            log_message('error', 'Error retrieving program payment by ID: ' . $e->getMessage());
+            return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
         }
-
-        return $this->respondSuccess($programSchedule, self::HTTP_OK, 'Program schedule retrieved successfully');
     }
 
 }

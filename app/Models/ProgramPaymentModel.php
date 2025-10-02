@@ -14,7 +14,8 @@ class ProgramPaymentModel extends Model {
         $this->periodModel = new ProgramPaymentPeriodModel();
     }
     protected $table = 'program_payments';
-    // `id`, `program_id`, `name`, `description`, `start_date`, `end_date`, `order_number`, `idr_amount`, `usd_amount`, `category`, `is_active`, `is_deleted`, `created_at`, `updated_at`    protected $table = 'program_payments';
+    // `id`, `program_id`, `name`, `description`, `order_number`, `idr_amount`, `usd_amount`, `category`, `type`, `is_active`, `is_deleted`, `created_at`, `updated_at`
+    // NOTE: start_date and end_date are now managed through program_payment_periods table
     protected $primaryKey = 'id';
     protected $returnType = 'object';
     // auto increment
@@ -24,8 +25,6 @@ class ProgramPaymentModel extends Model {
         'program_id',
         'name',
         'description',
-        'start_date',
-        'end_date',
         'order_number',
         'idr_amount',
         'usd_amount',
@@ -110,10 +109,10 @@ class ProgramPaymentModel extends Model {
                 $isAvailable = ($nextPeriod !== null);
             }
             
-            // Use current period dates if available, otherwise use next period or original dates
+            // Use current period dates if available, otherwise use next period dates
             $activePeriod = $currentPeriod ?: $this->periodModel->getNextUpcomingPeriod($payment->id);
-            $startDate = $activePeriod ? $activePeriod->start_date : $payment->start_date;
-            $endDate = $activePeriod ? $activePeriod->end_date : $payment->end_date;
+            $startDate = $activePeriod ? $activePeriod->start_date : null;
+            $endDate = $activePeriod ? $activePeriod->end_date : null;
 
             $paymentData = [
                 'id' => $payment->id,
@@ -188,20 +187,28 @@ class ProgramPaymentModel extends Model {
     public function enhancePaymentWithCurrentPeriod(&$payment)
     {
         try {
+            log_message('debug', "Enhancing payment {$payment->id} ({$payment->name}) with period data");
+            
             // Get current active period
             $currentPeriod = $this->periodModel->getCurrentActivePeriod($payment->id);
             
             if ($currentPeriod) {
+                log_message('debug', "Found active period for payment {$payment->id}: {$currentPeriod->name} ({$currentPeriod->start_date} to {$currentPeriod->end_date})");
+                
                 // Use current period dates
                 $payment->start_date = $currentPeriod->start_date;
                 $payment->end_date = $currentPeriod->end_date;
                 $payment->current_period_name = $currentPeriod->name;
                 $payment->has_active_period = true;
             } else {
+                log_message('debug', "No active period found for payment {$payment->id}, checking upcoming periods");
+                
                 // No current period, check for next upcoming period
                 $nextPeriod = $this->periodModel->getNextUpcomingPeriod($payment->id);
                 
                 if ($nextPeriod) {
+                    log_message('debug', "Found upcoming period for payment {$payment->id}: {$nextPeriod->name} ({$nextPeriod->start_date} to {$nextPeriod->end_date})");
+                    
                     // Use next period dates
                     $payment->start_date = $nextPeriod->start_date;
                     $payment->end_date = $nextPeriod->end_date;
@@ -209,11 +216,31 @@ class ProgramPaymentModel extends Model {
                     $payment->has_active_period = false;
                     $payment->upcoming_period = true;
                 } else {
-                    // No periods found, payment is not available
-                    $payment->has_active_period = false;
-                    $payment->upcoming_period = false;
-                    $payment->current_period_name = null;
-                    // Keep original dates if any exist
+                    log_message('debug', "No upcoming period found for payment {$payment->id}, checking for last ended period");
+                    
+                    // Check for the most recent ended period
+                    $lastEndedPeriod = $this->periodModel->getLastEndedPeriod($payment->id);
+                    
+                    if ($lastEndedPeriod) {
+                        log_message('debug', "Found last ended period for payment {$payment->id}: {$lastEndedPeriod->name} ({$lastEndedPeriod->start_date} to {$lastEndedPeriod->end_date})");
+                        
+                        // Use last ended period dates
+                        $payment->start_date = $lastEndedPeriod->start_date;
+                        $payment->end_date = $lastEndedPeriod->end_date;
+                        $payment->current_period_name = $lastEndedPeriod->name;
+                        $payment->has_active_period = false;
+                        $payment->upcoming_period = false;
+                        $payment->last_ended_period = true;
+                    } else {
+                        log_message('debug', "No periods found for payment {$payment->id}");
+                        
+                        // No periods found, payment is not available
+                        $payment->has_active_period = false;
+                        $payment->upcoming_period = false;
+                        $payment->last_ended_period = false;
+                        $payment->current_period_name = null;
+                        // Keep original dates if any exist
+                    }
                 }
             }
             
@@ -223,6 +250,7 @@ class ProgramPaymentModel extends Model {
             // Fallback: keep original payment dates and mark as no periods
             $payment->has_active_period = false;
             $payment->upcoming_period = false;
+            $payment->last_ended_period = false;
             $payment->current_period_name = null;
         }
     }

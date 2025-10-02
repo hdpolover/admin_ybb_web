@@ -40,7 +40,15 @@ class ProgramPayments extends AdminBaseController
         // Get program payments for the current program
         $programPayments = $this->programPaymentModel->getByProgramId($programId, false);
         
-        $webSettings = $this->webSettingModel->getSettingByProgramId($program->program_category_id);
+        // Debug logging to see if periods are enhanced
+        log_message('debug', "Retrieved " . count($programPayments) . " program payments for program {$programId}");
+        foreach ($programPayments as $payment) {
+            $hasStartDate = isset($payment->start_date) && !empty($payment->start_date);
+            $hasPeriodName = isset($payment->current_period_name) && !empty($payment->current_period_name);
+            log_message('debug', "Payment {$payment->id} ({$payment->name}): start_date=" . ($hasStartDate ? $payment->start_date : 'NULL') . ", period_name=" . ($hasPeriodName ? $payment->current_period_name : 'NULL'));
+        }
+        
+        $webSettings = $this->webSettingModel->getSettingByProgramCategoryId($program->program_category_id);
         
         $data = [
             'title' => 'Program Payments',

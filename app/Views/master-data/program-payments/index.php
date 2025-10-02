@@ -79,7 +79,8 @@
                                                 <th scope="col" style="width: 50px;">#</th>
                                                 <th scope="col">Payment Option</th>
                                                 <th scope="col">Amount <button type="button" class="btn btn-sm btn-link text-info p-0 ms-1" data-bs-toggle="modal" data-bs-target="#amount-info-modal"><i class="ri-information-line"></i></button></th>
-                                                <th scope="col">Valid Period</th>
+                                                <th scope="col">Current Active Period</th>
+                                                <th scope="col">Last Active Period</th>
                                                 <th scope="col">Status</th>
                                                 <th scope="col">Action</th>
                                             </tr>
@@ -122,34 +123,135 @@
                                                                 </span>
                                                             </small>
                                                         </td>
+                                                        <!-- Current Active Period Column -->
                                                         <td>
-                                                            <?php if (isset($payment->start_date) && isset($payment->end_date)): ?>
-                                                                <?php
+                                                            <?php
+                                                            // Get current active period info
+                                                            $currentTime = new DateTime();
+                                                            $hasCurrentPeriod = false;
+                                                            $currentPeriodData = null;
+                                                            
+                                                            if (isset($payment->start_date) && isset($payment->end_date)) {
                                                                 $startDateTime = new DateTime($payment->start_date);
                                                                 $endDateTime = new DateTime($payment->end_date);
-                                                                $isStartMidnight = $startDateTime->format('H:i:s') === '00:00:00';
-                                                                $isEndMidnight = $endDateTime->format('H:i:s') === '00:00:00';
-                                                                $isEndEndOfDay = $endDateTime->format('H:i:s') === '23:59:59';
-                                                                ?>
-                                                                <div class="fw-medium">
-                                                                    <?= $isStartMidnight ? date('d M Y', strtotime($payment->start_date)) : date('d M Y g:i A', strtotime($payment->start_date)) ?>
-                                                                    -
-                                                                    <?= ($isEndMidnight || $isEndEndOfDay) ? date('d M Y', strtotime($payment->end_date)) : date('d M Y g:i A', strtotime($payment->end_date)) ?>
+                                                                $isCurrentlyActive = $currentTime >= $startDateTime && $currentTime <= $endDateTime;
+                                                                
+                                                                if ($isCurrentlyActive) {
+                                                                    $hasCurrentPeriod = true;
+                                                                    $currentPeriodData = [
+                                                                        'name' => $payment->current_period_name ?? 'Unknown Period',
+                                                                        'start_date' => $payment->start_date,
+                                                                        'end_date' => $payment->end_date
+                                                                    ];
+                                                                }
+                                                            }
+                                                            ?>
+                                                            
+                                                            <?php if ($hasCurrentPeriod): ?>
+                                                                <div class="fw-medium mb-1 text-success">
+                                                                    <i class="ri-play-circle-line me-1"></i><?= htmlspecialchars($currentPeriodData['name']) ?>
                                                                 </div>
-                                                                <?php if (isset($payment->current_period_name)): ?>
-                                                                <small class="text-muted">
-                                                                    <i class="ri-time-line me-1"></i><?= $payment->current_period_name ?>
-                                                                    <?php if (isset($payment->has_active_period) && $payment->has_active_period): ?>
-                                                                        <span class="badge bg-success-subtle text-success ms-1">Active</span>
-                                                                    <?php elseif (isset($payment->upcoming_period) && $payment->upcoming_period): ?>
-                                                                        <span class="badge bg-warning-subtle text-warning ms-1">Upcoming</span>
-                                                                    <?php else: ?>
-                                                                        <span class="badge bg-secondary-subtle text-secondary ms-1">Ended</span>
-                                                                    <?php endif; ?>
+                                                                <small class="text-muted d-block">
+                                                                    <?php
+                                                                    $startDateTime = new DateTime($currentPeriodData['start_date']);
+                                                                    $endDateTime = new DateTime($currentPeriodData['end_date']);
+                                                                    $isStartMidnight = $startDateTime->format('H:i:s') === '00:00:00';
+                                                                    $isEndMidnight = $endDateTime->format('H:i:s') === '00:00:00';
+                                                                    $isEndEndOfDay = $endDateTime->format('H:i:s') === '23:59:59';
+                                                                    ?>
+                                                                    <?= $isStartMidnight ? date('d M Y', strtotime($currentPeriodData['start_date'])) : date('d M Y g:i A', strtotime($currentPeriodData['start_date'])) ?>
+                                                                    -
+                                                                    <?= ($isEndMidnight || $isEndEndOfDay) ? date('d M Y', strtotime($currentPeriodData['end_date'])) : date('d M Y g:i A', strtotime($currentPeriodData['end_date'])) ?>
                                                                 </small>
+                                                                <span class="badge bg-success-subtle text-success mt-1">
+                                                                    <i class="ri-time-line me-1"></i>Active Now
+                                                                </span>
+                                                            <?php else: ?>
+                                                                <div class="text-center text-muted">
+                                                                    <i class="ri-pause-circle-line fs-4 d-block mb-1"></i>
+                                                                    <small>No Active Period</small>
+                                                                </div>
+                                                            <?php endif; ?>
+                                                        </td>
+                                                        
+                                                        <!-- Last Active Period Column -->
+                                                        <td>
+                                                            <?php
+                                                            // For now, we'll show the most recent period info or upcoming period
+                                                            $hasLastPeriod = false;
+                                                            $lastPeriodData = null;
+                                                            $showUpcoming = false;
+                                                            
+                                                            if (isset($payment->start_date) && isset($payment->end_date)) {
+                                                                $startDateTime = new DateTime($payment->start_date);
+                                                                $endDateTime = new DateTime($payment->end_date);
+                                                                $isCurrentlyActive = $currentTime >= $startDateTime && $currentTime <= $endDateTime;
+                                                                $isUpcoming = $currentTime < $startDateTime;
+                                                                $isEnded = $currentTime > $endDateTime;
+                                                                
+                                                                if (!$isCurrentlyActive) {
+                                                                    $hasLastPeriod = true;
+                                                                    $lastPeriodData = [
+                                                                        'name' => $payment->current_period_name ?? 'Unknown Period',
+                                                                        'start_date' => $payment->start_date,
+                                                                        'end_date' => $payment->end_date,
+                                                                        'is_upcoming' => $isUpcoming,
+                                                                        'is_ended' => $isEnded
+                                                                    ];
+                                                                    if ($isUpcoming) {
+                                                                        $showUpcoming = true;
+                                                                    }
+                                                                }
+                                                            }
+                                                            ?>
+                                                            
+                                                            <?php if ($hasLastPeriod): ?>
+                                                                <div class="fw-medium mb-1 <?= $showUpcoming ? 'text-warning' : 'text-secondary' ?>">
+                                                                    <i class="<?= $showUpcoming ? 'ri-calendar-schedule-line' : 'ri-stop-circle-line' ?> me-1"></i><?= htmlspecialchars($lastPeriodData['name']) ?>
+                                                                </div>
+                                                                <small class="text-muted d-block">
+                                                                    <?php
+                                                                    $startDateTime = new DateTime($lastPeriodData['start_date']);
+                                                                    $endDateTime = new DateTime($lastPeriodData['end_date']);
+                                                                    $isStartMidnight = $startDateTime->format('H:i:s') === '00:00:00';
+                                                                    $isEndMidnight = $endDateTime->format('H:i:s') === '00:00:00';
+                                                                    $isEndEndOfDay = $endDateTime->format('H:i:s') === '23:59:59';
+                                                                    ?>
+                                                                    <?= $isStartMidnight ? date('d M Y', strtotime($lastPeriodData['start_date'])) : date('d M Y g:i A', strtotime($lastPeriodData['start_date'])) ?>
+                                                                    -
+                                                                    <?= ($isEndMidnight || $isEndEndOfDay) ? date('d M Y', strtotime($lastPeriodData['end_date'])) : date('d M Y g:i A', strtotime($lastPeriodData['end_date'])) ?>
+                                                                </small>
+                                                                
+                                                                <?php if ($showUpcoming): ?>
+                                                                    <span class="badge bg-warning-subtle text-warning mt-1">
+                                                                        <i class="ri-calendar-schedule-line me-1"></i>Upcoming
+                                                                    </span>
+                                                                    <?php 
+                                                                    $daysUntilStart = $currentTime->diff($startDateTime)->days;
+                                                                    if ($daysUntilStart <= 7): ?>
+                                                                        <small class="text-muted d-block mt-1">Starts in <?= $daysUntilStart ?> day<?= $daysUntilStart != 1 ? 's' : '' ?></small>
+                                                                    <?php endif; ?>
+                                                                <?php else: ?>
+                                                                    <span class="badge bg-secondary-subtle text-secondary mt-1">
+                                                                        <i class="ri-stop-circle-line me-1"></i>Ended
+                                                                    </span>
+                                                                    <?php 
+                                                                    $daysSinceEnd = $endDateTime->diff($currentTime)->days;
+                                                                    if ($daysSinceEnd <= 30): ?>
+                                                                        <small class="text-muted d-block mt-1">Ended <?= $daysSinceEnd ?> day<?= $daysSinceEnd != 1 ? 's' : '' ?> ago</small>
+                                                                    <?php endif; ?>
                                                                 <?php endif; ?>
                                                             <?php else: ?>
-                                                                <span class="text-muted">N/A</span>
+                                                                <div class="text-center">
+                                                                    <span class="text-muted">No Period Set</span>
+                                                                    <br>
+                                                                    <small class="text-info mt-1">
+                                                                        <i class="ri-calendar-line me-1"></i>
+                                                                        <a href="<?= base_url('master-data/program-payments/' . ($payment->id ?? 0) . '/periods') ?>" class="text-decoration-none">
+                                                                            Configure Periods
+                                                                        </a>
+                                                                    </small>
+                                                                </div>
                                                             <?php endif; ?>
                                                         </td>
                                                         <td>
@@ -192,7 +294,7 @@
                                                 <?php endforeach; ?>
                                             <?php else: ?>
                                                 <tr>
-                                                    <td colspan="8" class="text-center">No payments found</td>
+                                                    <td colspan="7" class="text-center">No payments found</td>
                                                 </tr>
                                             <?php endif; ?>
                                         </tbody>
