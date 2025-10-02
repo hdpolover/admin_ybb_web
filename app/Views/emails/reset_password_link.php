@@ -115,7 +115,7 @@
         
         <p>Hello,</p>
         
-        <p>We received a request to reset your password. Click the button below to reset your password:</p>
+        <p>We received a request to reset your password for your <?= $name ?? 'program' ?> account managed by <strong>YBB Foundation</strong>. Click the button below to reset your password:</p>
         
         <div class="reset-button">
             <a href="<?= $reset_link ?>" target="_blank">Reset Password</a>
@@ -127,9 +127,11 @@
         
         <p class="expiry-info">This password reset link will expire in 24 hours.</p>
         
+        <p><strong>Security Note:</strong> This reset link will take you to the official YBB Foundation password management system. This is the secure platform that manages accounts for all YBB Foundation programs.</p>
+        
         <p>If you did not request a password reset, please ignore this email or contact support if you have concerns.</p>
         
-        <p>Thank you,<br><?= $name ?? 'The Support' ?> Team</p>
+        <p>Thank you,<br>YBB Foundation<br><?= $name ?? 'Program' ?> Team</p>
         
         <?php if (!empty($contact) || !empty($location) || !empty($email_contact)): ?>
         <div class="contact-info">

@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use Google\Client as Google_Client;
+use Google\Client;
 use Google\Service\Gmail;
 use Google\Service\Gmail\Message;
 use Google\Service\Oauth2;
@@ -24,7 +24,7 @@ class GoogleOAuthService
      */
     private function initializeClient()
     {
-        $this->client = new Google_Client();
+        $this->client = new Client();
         $this->client->setClientId($this->config->getClientId());
         $this->client->setClientSecret($this->config->getClientSecret());
         $this->client->setRedirectUri($this->config->getRedirectUri());

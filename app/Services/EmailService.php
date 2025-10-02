@@ -198,9 +198,8 @@ class EmailService
             return false;
         }
 
-        // Create reset URL - Using frontend URL with token
-        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://';
-        $resetUrl = $protocol . $web_url . '/reset-password?token=' . $token;
+        // Create reset URL - Using admin system URL with token (not program website)
+        $resetUrl = base_url('reset-password') . '?token=' . $token;
 
         $data = [
             'reset_link' => $resetUrl,

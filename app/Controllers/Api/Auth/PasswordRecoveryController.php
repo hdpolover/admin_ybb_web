@@ -21,8 +21,11 @@ class PasswordRecoveryController extends BaseAuthController
      */
     public function forgotPassword()
     {
-        $email = $this->request->getPost('email');
-        $web_url = $this->request->getPost('web_url');
+        // Accept both POST form data and JSON
+        $input = $this->request->getJSON(true) ?: $this->request->getPost();
+        
+        $email = $input['email'] ?? null;
+        $web_url = $input['web_url'] ?? null;
 
         if (empty($email) || empty($web_url)) {
             return $this->respondValidationErrors('Email and web_url are required.');

@@ -28,6 +28,10 @@ $routes->setAutoRoute(false);
  * --------------------------------------------------------------------
  */
 
+// Password reset frontend routes - must be before other route groups
+$routes->get('reset-password', 'PasswordResetController::index');
+$routes->post('reset-password', 'PasswordResetController::resetPassword');
+
 // Basic routes
 $routes->group('', ['namespace' => 'App\Controllers'], function ($routes) {
     // Root route - should redirect to login if not authenticated
@@ -58,6 +62,16 @@ $routes->group('', ['namespace' => 'App\Controllers'], function ($routes) {
     $routes->group('config-test', function ($routes) {
         $routes->get('email', 'ConfigTestController::email');
         $routes->post('email/send', 'ConfigTestController::testEmail');
+    });
+    
+    // Email testing routes
+    $routes->group('test-email', function ($routes) {
+        $routes->get('forgot-password', 'EmailTestingController::testForgotPassword');
+        $routes->post('forgot-password', 'EmailTestingController::testForgotPassword');
+        $routes->get('oauth-direct', 'EmailTestingController::testDirectOAuth');
+        $routes->post('oauth-direct', 'EmailTestingController::testDirectOAuth');
+        $routes->get('verification', 'EmailTestingController::testVerificationEmail');
+        $routes->post('verification', 'EmailTestingController::testVerificationEmail');
     });
     
     // Debug authentication routes (only for development)
@@ -134,9 +148,9 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
         $routes->post('participant/sign-up', 'Auth\ParticipantAuthController::signUp');
 
         // Password Recovery
-        $routes->post('forgot-password', 'Auth\JwtAuthController::forgotPassword');
-        $routes->get('verify-token', 'Auth\JwtAuthController::verifyToken');
-        $routes->post('reset-password', 'Auth\JwtAuthController::resetPassword');
+        $routes->post('forgot-password', 'Auth\PasswordRecoveryController::forgotPassword');
+        $routes->get('verify-token', 'Auth\PasswordRecoveryController::verifyToken');
+        $routes->post('reset-password', 'Auth\PasswordRecoveryController::resetPassword');
 
         // Email Verification
         $routes->get('verify-email', 'Auth\JwtAuthController::verifyEmail');
