@@ -4,18 +4,24 @@ namespace App\Services;
 
 use Config\Email;
 use App\Models\ProgramCategoryModel;
+use App\Services\GoogleOAuthService;
+use CodeIgniter\Config\Services;
 
 class EmailService
 {
     protected $email;
+    protected $googleService;
+    protected $db;
 
     public function __construct()
     {
         $this->email = \Config\Services::email();
+        $this->googleService = new GoogleOAuthService();
+        $this->db = \Config\Database::connect();
     }
 
     /**
-     * Send an email
+     * Send email with OAuth/SMTP fallback using template
      *
      * @param string $to Recipient email
      * @param string $subject Email subject
@@ -29,23 +35,145 @@ class EmailService
         try {
             // Load view with data
             $message = view('emails/' . $template, $data);
-
-            $this->email->setTo($to);
-            $this->email->setSubject($subject);
-            $this->email->setMessage($message);
-
-            if ($this->email->send() === false) {
-                $error = $this->email->printDebugger(['headers']);
-                log_message('error', 'Email sending error to {email}: {error}', ['email' => $to, 'error' => $error]);
-                throw new \Exception('Failed to send email: ' . $error);
-            }
-
-            log_message('info', 'Email sent successfully to {email}', ['email' => $to]);
-            return true;
+            return $this->sendEmailWithOAuth($to, $subject, $message);
         } catch (\Exception $e) {
             log_message('error', 'Email service error: {error}', ['error' => $e->getMessage()]);
             throw $e;
         }
+    }
+
+    /**
+     * Send email with automatic OAuth/SMTP fallback
+     *
+     * @param string $to Recipient email
+     * @param string $subject Email subject
+     * @param string $body HTML body content
+     * @param string $from Sender email (optional)
+     * @return bool True if email was sent, false otherwise
+     */
+    public function sendEmailWithOAuth(string $to, string $subject, string $body, string $from = null): bool
+    {
+        $from = $from ?: 'noreply@ybbfoundation.com';
+        
+        // First try OAuth if token exists
+        $oauthResult = $this->tryOAuthEmail($from, $to, $subject, $body);
+        if ($oauthResult['success']) {
+            log_message('info', 'Email sent successfully via OAuth to {email}', ['email' => $to]);
+            return true;
+        }
+        
+        // Fallback to SMTP
+        log_message('info', 'OAuth failed ({reason}), falling back to SMTP for {email}', [
+            'reason' => $oauthResult['reason'],
+            'email' => $to
+        ]);
+        
+        return $this->sendSMTPEmail($to, $subject, $body, $from);
+    }
+
+    /**
+     * Try sending via OAuth Gmail API
+     */
+    private function tryOAuthEmail(string $from, string $to, string $subject, string $body): array
+    {
+        try {
+            // Check if OAuth token exists
+            $builder = $this->db->table('oauth_tokens');
+            $tokenData = $builder->where('email', $from)->get()->getRow();
+            
+            if (!$tokenData) {
+                return [
+                    'success' => false,
+                    'reason' => 'No OAuth token found for ' . $from
+                ];
+            }
+            
+            // Check if token is expired
+            if (strtotime($tokenData->expires_at) < time()) {
+                return [
+                    'success' => false,
+                    'reason' => 'OAuth token expired for ' . $from
+                ];
+            }
+            
+            // Set access token
+            $token = [
+                'access_token' => $tokenData->access_token,
+                'refresh_token' => $tokenData->refresh_token,
+                'expires_in' => strtotime($tokenData->expires_at) - time(),
+                'token_type' => $tokenData->token_type,
+                'scope' => $tokenData->scope
+            ];
+            
+            $this->googleService->setAccessToken($token);
+            
+            // Send email
+            $success = $this->googleService->sendEmail($to, $subject, $body);
+            
+            return [
+                'success' => $success,
+                'reason' => $success ? 'OAuth email sent' : 'Gmail API send failed'
+            ];
+            
+        } catch (\Exception $e) {
+            log_message('error', 'OAuth email error: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'reason' => 'OAuth error: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Send email via SMTP
+     */
+    private function sendSMTPEmail(string $to, string $subject, string $body, string $from): bool
+    {
+        try {
+            $this->email->setFrom($from, 'YBB Foundation');
+            $this->email->setTo($to);
+            $this->email->setSubject($subject);
+            $this->email->setMessage($body);
+            $this->email->setMailType('html');
+
+            if ($this->email->send() === false) {
+                $error = $this->email->printDebugger(['headers']);
+                log_message('error', 'SMTP email sending error to {email}: {error}', ['email' => $to, 'error' => $error]);
+                throw new \Exception('Failed to send email via SMTP: ' . $error);
+            }
+
+            log_message('info', 'Email sent successfully via SMTP to {email}', ['email' => $to]);
+            return true;
+        } catch (\Exception $e) {
+            log_message('error', 'SMTP email service error: {error}', ['error' => $e->getMessage()]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Check OAuth status for an email
+     */
+    public function checkOAuthStatus(string $email): array
+    {
+        $builder = $this->db->table('oauth_tokens');
+        $tokenData = $builder->where('email', $email)->get()->getRow();
+        
+        if (!$tokenData) {
+            return [
+                'has_token' => false,
+                'message' => 'No OAuth token found'
+            ];
+        }
+        
+        $isExpired = strtotime($tokenData->expires_at) < time();
+        
+        return [
+            'has_token' => true,
+            'is_expired' => $isExpired,
+            'expires_at' => $tokenData->expires_at,
+            'scope' => $tokenData->scope,
+            'status' => $isExpired ? 'expired' : 'valid'
+        ];
     }
 
     /**
@@ -125,22 +253,24 @@ class EmailService
         return $this->sendEmail($to, $subject, 'verify_email', $data);
     }
 
-    public function testEmail()
+    public function testEmail($testEmailAddress = null)
     {
         try {
-            $emailService = new EmailService();
             $testToken = bin2hex(random_bytes(16));
-            $emailSent = $emailService->sendVerificationEmail(
-                'test@example.com', // Replace with a test email 
+            $emailSent = $this->sendVerificationEmail(
+                $testEmailAddress ?: 'test@example.com',
                 $testToken,
-                'test.ybbfoundation.com' // Replace with your test domain 
+                1 // Default program category ID
             );
-            if (!$emailSent) {
-                return $this->respondError('Failed to send test email.');
-            }
-            return $this->respondSuccess(null, self::HTTP_OK, 'Test email sent successfully.');
+            return [
+                'success' => $emailSent,
+                'message' => $emailSent ? 'Test email sent successfully.' : 'Failed to send test email.'
+            ];
         } catch (\Exception $e) {
-            return $this->respondError('Email test failed: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Email test failed: ' . $e->getMessage()
+            ];
         }
     }
 

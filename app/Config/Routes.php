@@ -39,6 +39,25 @@ $routes->group('', ['namespace' => 'App\Controllers'], function ($routes) {
     // Auth routes
     $routes->group('auth', function ($routes) {
         $routes->get('signOut', 'Auth::signOut');
+        
+        // Google OAuth routes
+        $routes->get('google/login', 'GoogleAuthController::login');
+        $routes->get('google/callback', 'GoogleAuthController::callback');
+        $routes->post('google/revoke', 'GoogleAuthController::revoke');
+        $routes->post('google/test-email', 'GoogleAuthController::testEmail');
+    });
+    
+    // Email test routes
+    $routes->group('email-test', function ($routes) {
+        $routes->get('/', 'EmailTestController::index');
+        $routes->post('check-oauth', 'EmailTestController::checkOAuth');
+        $routes->post('test-email', 'EmailTestController::testEmail');
+    });
+    
+    // Configuration test routes
+    $routes->group('config-test', function ($routes) {
+        $routes->get('email', 'ConfigTestController::email');
+        $routes->post('email/send', 'ConfigTestController::testEmail');
     });
     
     // Debug authentication routes (only for development)
