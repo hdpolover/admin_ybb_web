@@ -5,3 +5,72 @@ Website: https://themesbrand.com/
 Contact: support@themesbrand.com
 File: Custom Css File
 */
+
+/* Mobile Carousel Optimization for project-swiper */
+/* Optimized for better mobile viewing experience */
+
+/* Mobile devices (max-width: 767px) */
+@media (max-width: 767px) {
+    .project-swiper .swiper-slide {
+        /* Ensure full card visibility on mobile */
+        height: auto;
+        padding: 4px 0;
+    }
+    
+    /* Hide navigation buttons on very small screens to save space */
+    .project-swiper .slider-button-prev,
+    .project-swiper .slider-button-next {
+        display: none;
+    }
+    
+    /* Add visual swipe indicator for better UX */
+    .project-swiper {
+        position: relative;
+        padding-bottom: 20px;
+    }
+    
+    .project-swiper::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 40px;
+        height: 4px;
+        background-color: rgba(64, 81, 137, 0.3);
+        border-radius: 2px;
+        z-index: 10;
+    }
+    
+    /* Optimize card padding for mobile */
+    .project-swiper .card {
+        margin: 0 4px;
+    }
+}
+
+/* Tablet optimization (768px - 1199px) */
+@media (min-width: 768px) and (max-width: 1199px) {
+    .project-swiper .slider-button-prev,
+    .project-swiper .slider-button-next {
+        height: 28px;
+        width: 28px;
+    }
+    
+    .project-swiper .slider-button-prev::after,
+    .project-swiper .slider-button-next::after {
+        font-size: 24px;
+    }
+}
+
+/* Improve touch targets on mobile for better UX */
+@media (max-width: 767px) {
+    .project-swiper .swiper-wrapper {
+        /* Smooth scrolling on touch devices */
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Ensure cards don't get cut off */
+    .project-swiper .profile-project-card {
+        min-height: 140px;
+    }
+}

@@ -40,6 +40,7 @@
                                                     </div>
                                                     <div class="col-md">
                                                         <div>
+                                                            <!-- NOTE: Template Demo Data - Replace with dynamic project data -->
                                                             <h4 class="fw-bold">Velzon - Admin & Dashboard</h4>
                                                             <div class="hstack gap-3 flex-wrap">
                                                                 <div><i class="ri-building-line align-bottom me-1"></i> Themesbrand</div>
@@ -332,6 +333,7 @@
                                             <div class="card">
                                                 <div class="card-body">
                                                     <h5 class="card-title mb-4">Skills</h5>
+                                                    <!-- NOTE: Template Demo Data - Replace with dynamic content from database -->
                                                     <div class="d-flex flex-wrap gap-2 fs-16">
                                                         <div class="badge fw-medium bg-secondary-subtle text-secondary">UI/UX</div>
                                                         <div class="badge fw-medium bg-secondary-subtle text-secondary">Figma</div>

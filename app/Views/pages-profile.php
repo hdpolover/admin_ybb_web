@@ -192,6 +192,7 @@
                                                 <div class="card">
                                                     <div class="card-body">
                                                         <h5 class="card-title mb-4">Skills</h5>
+                                                        <!-- NOTE: Template Demo Data - Replace with dynamic user skills from database -->
                                                         <div class="d-flex flex-wrap gap-2 fs-15">
                                                             <a href="javascript:void(0);" class="badge bg-primary-subtle text-primary">Photoshop</a>
                                                             <a href="javascript:void(0);" class="badge bg-primary-subtle text-primary">illustrator</a>
