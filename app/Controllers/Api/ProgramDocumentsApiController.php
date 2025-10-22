@@ -85,66 +85,155 @@ class ProgramDocumentsApiController extends ApiBaseController
     
     public function addDocument()
     {
-        date_default_timezone_set("Asia/Jakarta");
-        $participantId = $this->request->getPost('participant_id');
-        $programDocumentId = $this->request->getPost('program_document_id');
-        $file_url = $this->request->getPost('file_url');
-        
-        if (empty($participantId) || empty($programDocumentId)) {
-            return $this->failValidationErrors("participant_id dan program_document_id wajib diisi.");
-        }
+        try {
+            date_default_timezone_set("Asia/Jakarta");
+            
+            // Get POST parameters
+            $participantId = $this->request->getPost('participant_id');
+            $programDocumentId = $this->request->getPost('program_document_id');
+            
+            // Validate required fields
+            if (empty($participantId) || empty($programDocumentId)) {
+                return $this->failValidationErrors("participant_id and program_document_id are required.");
+            }
 
-        $data = [
-            'participant_id'        => $participantId,
-            'program_document_id'   => $programDocumentId,
-            'file_url'              => $file_url,
-            'status'                => 'under_review',
-            'notes'                 => '',
-            'created_at'            => date('Y-m-d H:i:s')
-        ];
+            log_message('info', "[Document Upload] Starting upload for participant: {$participantId}, document: {$programDocumentId}");
 
-        // Simpan ke database (contoh dengan model)
-        $model = new \App\Models\ParticipantProgramDocumentModel();
-        $existing = $model->where('participant_id', $participantId)
-                            ->where('program_document_id', $programDocumentId)
-                            ->first();
+            // Get the program document to find program_id
+            $programDocumentModel = new \App\Models\ProgramDocumentModel();
+            $programDocument = $programDocumentModel->find($programDocumentId);
+            
+            if (!$programDocument) {
+                log_message('error', "[Document Upload] Program document not found: {$programDocumentId}");
+                return $this->failNotFound('Program document not found');
+            }
 
-            if ($existing) {
-                $existing = (array) $existing;
-                // Update jika sudah ada
-                $updateData = $data;
-                unset($updateData['created_at']); // Jangan overwrite created_at saat update
-                // $updateData['status'] = 'under_review';
-                $updateData['updated_at'] = date('Y-m-d H:i:s');
+            $programId = $programDocument->program_id;
+            log_message('info', "[Document Upload] Program ID: {$programId}");
 
-                $model->update($existing['id'], $updateData);
+            // Initialize file URL variable
+            $fileUrl = null;
 
-                return $this->respondSuccess(
-                    $updateData,
-                    self::HTTP_OK,
-                    'Data berhasil diperbarui.'
-                );
-            } else {
-                // Insert jika belum ada
-                if (!$model->insert($data)) {
-                    return $this->failServerError("Gagal menyimpan data.");
+            // Check if file is uploaded
+            $file = $this->request->getFile('document_file');
+            
+            if ($file && $file->isValid() && !$file->hasMoved()) {
+                log_message('info', "[Document Upload] File received: " . $file->getName() . ", size: " . $file->getSize());
+
+                // Validate file size (10MB max for documents)
+                if ($file->getSize() > 10485760) { // 10MB
+                    log_message('error', "[Document Upload] File too large: " . $file->getSize());
+                    return $this->fail('File size exceeds the 10MB limit', 400);
                 }
 
+                // Allowed file types for agreement documents
+                $allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+                if (!in_array($file->getMimeType(), $allowedTypes)) {
+                    log_message('error', "[Document Upload] Invalid file type: " . $file->getMimeType());
+                    return $this->fail('Only PDF and image files (JPEG, PNG) are allowed', 400);
+                }
+
+                // Load storage helper
+                helper('storage');
+
+                // Prepare file data for upload
+                $fileData = [
+                    'name' => $file->getName(),
+                    'type' => $file->getMimeType(),
+                    'tmp_name' => $file->getTempName(),
+                    'error' => $file->getError(),
+                    'size' => $file->getSize()
+                ];
+
+                // Generate filename with timestamp
+                $extension = $file->getExtension();
+                $filename = "participant_{$participantId}_doc_{$programDocumentId}_" . time() . ".{$extension}";
+
+                // Upload to storage
+                log_message('info', "[Document Upload] Uploading to storage: documents/{$programId}/participants/{$participantId}");
+                $uploadResult = upload_file_to_storage(
+                    $fileData,
+                    "documents/{$programId}/participants/{$participantId}",
+                    $filename,
+                    $allowedTypes
+                );
+
+                if (!$uploadResult['status']) {
+                    log_message('error', "[Document Upload] Upload failed: " . $uploadResult['message']);
+                    return $this->fail('Failed to upload file: ' . $uploadResult['message'], 500);
+                }
+
+                $fileUrl = $uploadResult['url'];
+                log_message('info', "[Document Upload] File uploaded successfully: {$fileUrl}");
+            } else {
+                // Check if file_url was provided instead (backward compatibility)
+                $fileUrl = $this->request->getPost('file_url');
+                
+                if (empty($fileUrl)) {
+                    log_message('error', "[Document Upload] No file uploaded and no file_url provided");
+                    return $this->fail('Either upload a file or provide file_url', 400);
+                }
+                
+                log_message('info', "[Document Upload] Using provided file_url: {$fileUrl}");
+            }
+
+            // Prepare data for database
+            $data = [
+                'participant_id'        => $participantId,
+                'program_document_id'   => $programDocumentId,
+                'file_url'              => $fileUrl,
+                'status'                => 'under_review',
+                'notes'                 => '',
+                'created_at'            => date('Y-m-d H:i:s')
+            ];
+
+            // Check if document already exists for this participant
+            $model = new \App\Models\ParticipantProgramDocumentModel();
+            $existing = $model->where('participant_id', $participantId)
+                              ->where('program_document_id', $programDocumentId)
+                              ->first();
+
+            if ($existing) {
+                log_message('info', "[Document Upload] Updating existing document record ID: {$existing->id}");
+                
+                // Update existing record
+                $updateData = [
+                    'file_url'   => $fileUrl,
+                    'status'     => 'under_review',
+                    'updated_at' => date('Y-m-d H:i:s')
+                ];
+
+                $model->update($existing->id, $updateData);
+
                 return $this->respondSuccess(
-                    $data,
+                    array_merge(['id' => $existing->id], $updateData),
+                    self::HTTP_OK,
+                    'Document updated successfully.'
+                );
+            } else {
+                log_message('info', "[Document Upload] Creating new document record");
+                
+                // Insert new record
+                $newId = $model->insert($data);
+                
+                if (!$newId) {
+                    log_message('error', "[Document Upload] Failed to save to database");
+                    return $this->failServerError("Failed to save document data.");
+                }
+
+                log_message('info', "[Document Upload] Document saved successfully with ID: {$newId}");
+
+                return $this->respondSuccess(
+                    array_merge(['id' => $newId], $data),
                     self::HTTP_CREATED,
-                    'Data berhasil disimpan.'
+                    'Document uploaded successfully.'
                 );
             }
-        // if (!$model->insert($data)) {
-        //     return $this->failServerError("Gagal menyimpan data.");
-        // }
-
-        // return $this->respond([
-        //     'status' => true,
-        //     'message' => 'Metadata berhasil disimpan.',
-        //     'data' => $data
-        // ]);
+        } catch (\Exception $e) {
+            log_message('error', "[Document Upload] Exception: " . $e->getMessage());
+            log_message('error', "[Document Upload] Stack trace: " . $e->getTraceAsString());
+            return $this->fail('An error occurred while processing your request: ' . $e->getMessage(), 500);
+        }
     }
 
     /**

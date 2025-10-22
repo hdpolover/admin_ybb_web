@@ -192,24 +192,30 @@ class EmailService
         $programCategoryModel = new ProgramCategoryModel();
         $programData = $programCategoryModel->getProgramCategoryByParams(['web_url' => $web_url]);
 
-        // Check if program data is found
-        if (!$programData) {
-            log_message('error', 'Program not found for web_url: {web_url}', ['web_url' => $web_url]);
-            return false;
-        }
-
         // Create reset URL - Using admin system URL with token (not program website)
         $resetUrl = base_url('reset-password') . '?token=' . $token;
 
+        // If no program data found, log a warning but continue with a generic email
+        if (!$programData) {
+            log_message('warning', 'EmailService: Program not found for web_url: {web_url}. Sending generic reset email.', ['web_url' => $web_url]);
+            $data = [
+                'reset_link' => $resetUrl,
+                'email_contact' => null,
+                'program_name' => null,
+                'web_url' => $web_url
+            ];
+
+            return $this->sendEmail($to, $subject, 'reset_password_link', $data);
+        }
+
+        // Program data exists - include additional context
         $data = [
             'reset_link' => $resetUrl,
             // If program contact email is different from the sender email
             'email_contact' => $programData->contact_email ?? null,
         ];
 
-        if ($programData) {
-            $data = array_merge($data, (array)$programData);
-        }
+        $data = array_merge($data, (array)$programData);
 
         return $this->sendEmail($to, $subject, 'reset_password_link', $data);
     }

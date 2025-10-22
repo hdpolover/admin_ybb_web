@@ -423,7 +423,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="exportForm" action="<?= site_url('exports/payments') ?>" method="post">
+                    <form id="exportForm" action="<?= site_url('payments/export') ?>" method="post">
                         <?= csrf_field() ?>
                         <input type="hidden" name="program_id" value="<?= session('current_program') ?>">
                         
@@ -431,11 +431,10 @@
                             <div class="col-md-6">
                                 <label for="export-template" class="form-label">Export Template</label>
                                 <select id="export-template" name="template" class="form-select">
-                                    <option value="standard">Standard Export</option>
-                                    <option value="detailed">Detailed Export</option>
-                                    <option value="summary">Summary Export</option>
+                                    <option value="standard">Standard (20 columns)</option>
+                                    <option value="detailed">Detailed (24 columns)</option>
                                 </select>
-                                <div class="form-text text-muted">Choose the level of detail for the export</div>
+                                <div class="form-text text-muted">Standard: Basic payment info | Detailed: Includes payment_url, proof_url, notes, rejection_reason</div>
                             </div>
                             <div class="col-md-6">
                                 <label for="export-format" class="form-label">Export Format</label>
@@ -449,9 +448,36 @@
 
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label for="dateRange" class="form-label">Date Range</label>
-                                <input type="text" class="form-control" name="date_range" id="dateRange" placeholder="Select date range">
-                                <div class="form-text text-muted">Filter by payment date range</div>
+                                <label for="export-limit" class="form-label">Limit Export Records</label>
+                                <select id="export-limit" name="limit" class="form-select">
+                                    <option value="">All Records</option>
+                                    <option value="100">100 Records</option>
+                                    <option value="500">500 Records</option>
+                                    <option value="1000">1000 Records</option>
+                                    <option value="5000">5000 Records</option>
+                                </select>
+                                <div class="form-text text-muted">Maximum number of payments to export</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="sort-by" class="form-label">Sort By</label>
+                                <select id="sort-by" name="sort_by" class="form-select">
+                                    <option value="payment_date">Payment Date</option>
+                                    <option value="amount">Amount</option>
+                                    <option value="status">Status</option>
+                                    <option value="participant_name">Participant Name</option>
+                                </select>
+                                <div class="form-text text-muted">Sort payments by</div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="sort-order" class="form-label">Sort Order</label>
+                                <select id="sort-order" name="sort_order" class="form-select">
+                                    <option value="desc">Descending (Newest First)</option>
+                                    <option value="asc">Ascending (Oldest First)</option>
+                                </select>
+                                <div class="form-text text-muted">Sort direction</div>
                             </div>
                             <div class="col-md-6">
                                 <label for="statusFilter" class="form-label">Payment Status</label>
@@ -468,6 +494,11 @@
 
                         <div class="row mb-3">
                             <div class="col-md-6">
+                                <label for="dateRange" class="form-label">Date Range</label>
+                                <input type="text" class="form-control" name="date_range" id="dateRange" placeholder="Select date range">
+                                <div class="form-text text-muted">Filter by payment date range</div>
+                            </div>
+                            <div class="col-md-6">
                                 <label for="programPaymentFilter" class="form-label">Program Payment</label>
                                 <select class="form-select" name="program_payment_id" id="programPaymentFilter">
                                     <option value="">All Program Payments</option>
@@ -477,6 +508,9 @@
                                 </select>
                                 <div class="form-text text-muted">Filter by specific program payment type</div>
                             </div>
+                        </div>
+
+                        <div class="row mb-3">
                             <div class="col-md-6">
                                 <label for="paymentMethodFilter" class="form-label">Payment Method</label>
                                 <select class="form-select" name="payment_method_id" id="paymentMethodFilter">
@@ -486,6 +520,21 @@
                                     <?php endforeach; ?>
                                 </select>
                                 <div class="form-text text-muted">Filter by payment method</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="amount-min" class="form-label">Minimum Amount</label>
+                                <input type="number" class="form-control" name="amount_min" id="amount-min" 
+                                       placeholder="e.g. 1000" step="0.01" min="0">
+                                <div class="form-text text-muted">Filter payments above this amount</div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="amount-max" class="form-label">Maximum Amount</label>
+                                <input type="number" class="form-control" name="amount_max" id="amount-max" 
+                                       placeholder="e.g. 5000000" step="0.01" min="0">
+                                <div class="form-text text-muted">Filter payments below this amount</div>
                             </div>
                         </div>
 
@@ -749,33 +798,54 @@
             function initializeEnhancedExport() {
                 if (typeof EnhancedExportManager !== 'undefined') {
                     console.log('Enhanced Export Manager class available, initializing...');
+                    
+                    // Initialize the export manager
                     window.enhancedExportManager = new EnhancedExportManager();
+                    window.exportManager = window.enhancedExportManager; // Add alias for compatibility
                     console.log('Enhanced Export Manager initialized:', window.enhancedExportManager);
                     
-                    // Convert the existing export button to work with EnhancedExportManager
-                    const exportBtn = document.getElementById('exportButton');
-                    if (exportBtn) {
-                        // Add the required classes and data attributes
-                        exportBtn.classList.add('export-btn');
-                        exportBtn.setAttribute('data-export-type', 'payments');
-                        exportBtn.setAttribute('data-url', '/exports/payments');
-                        
-                        // IMPORTANT: Add data attribute to specify which form to use for CSRF token
-                        exportBtn.setAttribute('data-form-selector', '#exportForm');
-                        
-                        console.log('Payments export button configured for EnhancedExportManager');
-                        console.log('Button classes:', exportBtn.className);
-                        console.log('Button data attributes:', {
-                            exportType: exportBtn.dataset.exportType,
-                            url: exportBtn.dataset.url,
-                            formSelector: exportBtn.dataset.formSelector
-                        });
-                    } else {
-                        console.error('Export button #exportButton not found!');
-                    }
+                    // Setup export button with retry logic
+                    setTimeout(() => {
+                        setupExportButton();
+                    }, 100); // Give DOM time to settle
+                    
                 } else {
                     console.log('Enhanced Export Manager not yet available, retrying in 100ms...');
                     setTimeout(initializeEnhancedExport, 100);
+                }
+            }
+            
+            function setupExportButton() {
+                console.log('🔧 Setting up payments export button...');
+                const exportBtn = document.getElementById('exportButton');
+                
+                if (exportBtn) {
+                    console.log('✅ Found export button:', exportBtn);
+                    
+                    // Clear any existing classes and re-add them
+                    exportBtn.classList.remove('export-btn');
+                    exportBtn.classList.add('export-btn');
+                    exportBtn.setAttribute('data-export-type', 'payments');
+                    exportBtn.setAttribute('data-url', '<?= site_url('payments/export') ?>');
+                    exportBtn.setAttribute('data-form-selector', '#exportForm');
+                    
+                    console.log('🔧 Button classes after setup:', exportBtn.className);
+                    console.log('🔧 Button data attributes:', {
+                        exportType: exportBtn.dataset.exportType,
+                        url: exportBtn.dataset.url,
+                        formSelector: exportBtn.dataset.formSelector
+                    });
+                    
+                    // Force re-attach handlers in the export manager
+                    if (window.enhancedExportManager && typeof window.enhancedExportManager.attachExportHandlers === 'function') {
+                        console.log('🔗 Re-attaching export handlers...');
+                        window.enhancedExportManager.attachExportHandlers();
+                    }
+                    
+                    console.log('✅ Payments export button setup complete');
+                } else {
+                    console.error('❌ Export button #exportButton not found! Retrying...');
+                    setTimeout(setupExportButton, 100);
                 }
             }
             
@@ -965,12 +1035,15 @@
             }
 
             // Setup filter change handlers to update the summary
-            $('#dateRange, #statusFilter, #programPaymentFilter, #paymentMethodFilter, #export-template, #export-format').on('change', function() {
+            $('#dateRange, #statusFilter, #programPaymentFilter, #paymentMethodFilter, #export-template, #export-format, #export-limit, #sort-by, #sort-order, #amount-min, #amount-max').on('change keyup', function() {
                 updateExportSummary();
             });
 
             function updateExportSummary() {
-                let summaryText = "All payments will be exported using YBB Export API";
+                // Check for limit filter first
+                const limit = $('#export-limit').val();
+                let summaryText = limit ? `Up to ${limit} payments will be exported` : "All payments will be exported";
+                summaryText += " using YBB Export API";
 
                 // Check for date range filter
                 const dateRange = $('#dateRange').val();
@@ -1007,10 +1080,39 @@
                     summaryText += `, via ${paymentMethodText}`;
                 }
 
+                // Check for amount filters
+                const amountMin = $('#amount-min').val();
+                const amountMax = $('#amount-max').val();
+                if (amountMin && amountMax) {
+                    summaryText += `, amount between ${amountMin} and ${amountMax}`;
+                } else if (amountMin) {
+                    summaryText += `, amount ≥ ${amountMin}`;
+                } else if (amountMax) {
+                    summaryText += `, amount ≤ ${amountMax}`;
+                }
+
+                // Add sorting info
+                const sortBy = $('#sort-by').val();
+                const sortOrder = $('#sort-order').val();
+                if (sortBy) {
+                    const sortNames = {
+                        'payment_date': 'Payment Date',
+                        'amount': 'Amount',
+                        'status': 'Status',
+                        'participant_name': 'Participant Name'
+                    };
+                    const orderText = sortOrder === 'asc' ? 'ascending' : 'descending';
+                    summaryText += `, sorted by ${sortNames[sortBy]} (${orderText})`;
+                }
+
                 // Add template and format info
                 const template = $('#export-template').val();
                 const format = $('#export-format').val();
-                summaryText += ` using ${template} template in ${format.toUpperCase()} format`;
+                const templateNames = {
+                    'standard': 'Standard (20 columns)',
+                    'detailed': 'Detailed (24 columns)'
+                };
+                summaryText += ` using ${templateNames[template] || template} template in ${format.toUpperCase()} format`;
 
                 // Update summary text
                 $('#exportCount').text(summaryText);

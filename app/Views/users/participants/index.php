@@ -192,28 +192,6 @@
                 <div class="container-fluid">
                     <?php echo view('partials/page-title', array('pagetitle' => 'Users', 'title' => 'Participants')); ?>
 
-                    <!-- Current Program Info -->
-                    <div class="row mb-3">
-                        <div class="col-12">
-                            <div class="alert alert-info d-flex align-items-center" role="alert">
-                                <i class="ri-information-line me-2 fs-20"></i>
-                                <div>
-                                    <strong>Current Program:</strong> 
-                                    <?php 
-                                    $currentProgram = session('current_program');
-                                    if ($currentProgram && isset($program)) {
-                                        echo esc($program->name) . " (ID: {$currentProgram})";
-                                    } else {
-                                        echo "No program selected";
-                                    }
-                                    ?>
-                                    <br>
-                                    <small class="text-muted">Showing participants data for the selected program only</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Participant Stats -->
                     <div class="row">
                         <div class="col-xl-3 col-md-6">
@@ -798,12 +776,12 @@
                             <div class="col-md-6">
                                 <label for="export-template" class="form-label">Export Template</label>
                                 <select id="export-template" name="template" class="form-select">
-                                    <option value="standard">Standard Export</option>
-                                    <option value="detailed">Detailed Export</option>
-                                    <option value="summary">Summary Export</option>
-                                    <option value="complete">Complete Export</option>
+                                    <option value="standard">Standard (10 columns)</option>
+                                    <option value="detailed">Detailed (20 columns)</option>
+                                    <option value="summary">Summary (5 columns)</option>
+                                    <option value="complete">Complete (39 columns)</option>
                                 </select>
-                                <div class="form-text text-muted">Choose the level of detail for the export</div>
+                                <div class="form-text text-muted">Summary: Basic info | Standard: Core data | Detailed: Extended profile | Complete: All fields</div>
                             </div>
                             <div class="col-md-6">
                                 <label for="export-format" class="form-label">Export Format</label>
@@ -846,6 +824,28 @@
                                     <option value="1">On Progress</option>
                                     <option value="2">Submitted</option>
                                 </select>
+                                <div class="form-text text-muted">Filter by registration form completion status</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="export-has-submitted-form" class="form-label">Registration Completed</label>
+                                <select id="export-has-submitted-form" name="has_submitted_form" class="form-select">
+                                    <option value="">All Participants</option>
+                                    <option value="yes">Only Completed Registration</option>
+                                    <option value="no">Not Completed</option>
+                                </select>
+                                <div class="form-text text-muted">Filter by registration form submission</div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="export-has-paid" class="form-label">Payment Status</label>
+                                <select id="export-has-paid" name="has_paid" class="form-select">
+                                    <option value="">All Participants</option>
+                                    <option value="yes">Only Paid Participants</option>
+                                    <option value="no">Unpaid Participants</option>
+                                </select>
+                                <div class="form-text text-muted">Filter by successful payment completion</div>
                             </div>
                             <div class="col-md-6">
                                 <label for="export-date-range" class="form-label">Registration Date Range</label>
@@ -856,12 +856,25 @@
 
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label for="export-payment-status" class="form-label">Payment Status</label>
+                                <label for="export-search" class="form-label">Search</label>
+                                <input type="text" id="export-search" name="search" class="form-control" placeholder="Search by name or email">
+                                <div class="form-text text-muted">Filter by participant name or email</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="export-country" class="form-label">Country</label>
+                                <input type="text" id="export-country" name="country" class="form-control" placeholder="e.g., USA, Indonesia">
+                                <div class="form-text text-muted">Filter by country</div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="export-payment-status" class="form-label">Legacy Payment Filter</label>
                                 <select id="export-payment-status" name="payment_status" class="form-select">
                                     <option value="">All Participants</option>
                                     <option value="success">Only Paid Participants</option>
                                 </select>
-                                <div class="form-text text-muted">Filter by payment status</div>
+                                <div class="form-text text-muted">Legacy payment status filter (use "Payment Status" above instead)</div>
                             </div>
                             <div class="col-md-6">
                                 <label for="export-program-payment" class="form-label">Program Payment</label>
@@ -885,34 +898,35 @@
                         </div>
 
                         <div id="exportSummary" class="alert alert-info mt-3">
-                            <h6 class="alert-heading">Export Summary</h6>
-                            <p id="exportCount" class="mb-0">All participants will be exported using YBB Export API. Use filters above to limit the export.</p>
+                            <h6 class="alert-heading"><i class="ri-information-line me-1"></i> Export Information</h6>
+                            <p id="exportCount" class="mb-2">Using YBB DB Export API (database-direct mode) for optimal performance.</p>
+                            <p class="mb-0 small"><strong>Enhanced Filters Available:</strong> Registration status, payment status, date ranges, search, country, and more. Use filters above to customize your export.</p>
                         </div>
 
-                        <div class="card border border-info shadow-sm mt-4">
-                            <div class="card-header bg-info bg-opacity-10">
+                        <div class="card border border-success shadow-sm mt-4">
+                            <div class="card-header bg-success bg-opacity-10">
                                 <h5 class="card-title mb-0">
-                                    <i class="ri-cloud-line me-1 fs-18 align-middle text-info"></i>
-                                    <span class="align-middle text-dark fw-semibold">YBB Export API Integration</span>
+                                    <i class="ri-database-2-line me-1 fs-18 align-middle text-success"></i>
+                                    <span class="align-middle text-dark fw-semibold">Database-Direct Export (Recommended)</span>
                                 </h5>
                             </div>
                             <div class="card-body">
                                 <div class="d-flex">
                                     <div class="flex-shrink-0">
-                                        <i class="ri-server-line fs-24 text-info me-3"></i>
+                                        <i class="ri-flashlight-line fs-24 text-success me-3"></i>
                                     </div>
                                     <div class="flex-grow-1">
-                                        <h6 class="mb-2">Advanced Export Features:</h6>
+                                        <h6 class="mb-2">Enhanced Export Features:</h6>
                                         <ul class="ps-3 mb-2">
-                                            <li>Professional Excel formatting with auto-sized columns</li>
-                                            <li>Automatic chunking for large datasets (5,000+ records)</li>
-                                            <li>ZIP compression for multi-file exports</li>
-                                            <li>Real-time status updates and progress tracking</li>
-                                            <li>Optimized memory usage and processing</li>
+                                            <li><strong>Reduced Payload:</strong> Sends filters instead of full data arrays</li>
+                                            <li><strong>Better Performance:</strong> Optimized database queries on server-side</li>
+                                            <li><strong>Enhanced Security:</strong> Data never leaves the database server</li>
+                                            <li><strong>Advanced Filtering:</strong> Registration form status, payment status, search, date ranges</li>
+                                            <li><strong>Real-time Progress:</strong> Status updates and download links provided automatically</li>
                                         </ul>
-                                        <div class="alert alert-success py-2">
+                                        <div class="alert alert-success py-2 mb-0">
                                             <i class="ri-check-line me-1"></i>
-                                            <strong>Ready:</strong> The system will automatically handle the export process and provide download options when complete.
+                                            <strong>Ready:</strong> The system handles all processing server-side and provides download options when complete.
                                         </div>
                                     </div>
                                 </div>

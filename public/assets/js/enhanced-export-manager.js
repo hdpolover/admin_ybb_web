@@ -973,40 +973,51 @@ class EnhancedExportManager {
     }
 
     prepareYbbApiData(formData) {
-        // Convert form data to YBB API expected format
-        // The API expects 'data' to be an array/list, not an object
-        const exportConfig = {
+        // Convert form data to YBB DB API expected format (database-direct mode)
+        // The DB API expects filters and options at root level
+        const filters = {
+            program_id: formData.program_id ? parseInt(formData.program_id) : null
+        };
+        
+        const options = {
             template: formData.template || 'standard',
             format: formData.format || 'excel',
-            filters: {},
             filename: formData.filename || null,
-            sheet_name: formData.sheet_name || 'Data'
+            sheet_name: formData.sheet_name || 'Data',
+            include_related: true
         };
 
-        // Add program_id as filter if present
-        if (formData.program_id) {
-            exportConfig.filters.program_id = formData.program_id;
-        }
-
-        // Add limit as filter if present
-        if (formData.limit) {
-            exportConfig.filters.limit = parseInt(formData.limit);
-        }
-
-        // Add other form fields as filters
-        Object.keys(formData).forEach(key => {
-            if (!['template', 'format', 'filename', 'sheet_name', 'program_id', 'limit'].includes(key) && 
-                !key.startsWith('csrf_')) {
-                exportConfig.filters[key] = formData[key];
+        // Map all filter fields
+        const filterFields = [
+            'limit', 'category', 'form_status', 'payment_status', 
+            'date_range', 'program_payment_id', 'has_submitted_form', 
+            'has_paid', 'search', 'country', 'registration_form_status'
+        ];
+        
+        filterFields.forEach(field => {
+            if (formData[field] && formData[field] !== '') {
+                // Convert numeric fields
+                if (['limit', 'program_payment_id', 'form_status'].includes(field)) {
+                    filters[field] = parseInt(formData[field]);
+                } else {
+                    filters[field] = formData[field];
+                }
             }
         });
 
-        // Wrap the export configuration in an array as expected by the API
+        // Remove null values from options
+        Object.keys(options).forEach(key => {
+            if (options[key] === null || options[key] === '') {
+                delete options[key];
+            }
+        });
+
         const ybbData = {
-            data: [exportConfig]  // API expects an array/list
+            filters: filters,
+            options: options
         };
 
-        console.log('Prepared YBB API data:', ybbData);
+        console.log('Prepared YBB DB API data:', ybbData);
         return ybbData;
     }
 

@@ -105,6 +105,15 @@ $routes->get('api/payment/finish/midtrans', 'Api\Payment\NotificationController:
 $routes->get('api/payment/unfinish/midtrans', 'Api\Payment\NotificationController::handleMidtransUnfinish');
 $routes->get('api/payment/error/midtrans', 'Api\Payment\NotificationController::handleMidtransError');
 
+// YBB DB Export API - Local Implementation (matches Python API endpoints)
+$routes->group('api/ybb/db', ['namespace' => 'App\Controllers'], function ($routes) {
+    $routes->get('test-connection', 'YbbDbExportController::testConnection');
+    $routes->get('health', 'YbbDbExportController::health');
+    $routes->post('export/participants', 'YbbDbExportController::exportParticipants');
+    $routes->post('export/payments', 'YbbDbExportController::exportPayments');
+    $routes->post('export/statistics', 'YbbDbExportController::getStatistics');
+});
+
 // api routes
 $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes) {
     // Auth routes - organized by functionality
@@ -469,6 +478,19 @@ $routes->group('test', ['namespace' => 'App\Controllers'], function ($routes) {
         $routes->get('connection', 'CertificateTestController::testConnection');
         $routes->get('placeholders', 'CertificateTestController::testPlaceholders');
         $routes->get('generation-data', 'CertificateTestController::testGeneration');
+    });
+    
+    // Password reset testing routes
+    $routes->group('password-reset', function ($routes) {
+        $routes->get('/', 'TestPasswordResetController::index');
+        $routes->post('forgot-with-weburl', 'TestPasswordResetController::testForgotWithWebUrl');
+        $routes->post('forgot-without-weburl', 'TestPasswordResetController::testForgotWithoutWebUrl');
+        $routes->get('verify-token', 'TestPasswordResetController::testVerifyToken');
+        $routes->post('reset', 'TestPasswordResetController::testResetPassword');
+        $routes->post('test-email', 'TestPasswordResetController::testEmailDelivery');
+        $routes->get('check-user', 'TestPasswordResetController::checkUserData');
+        $routes->post('run-all', 'TestPasswordResetController::runAllTests');
+        $routes->get('check-logs', 'TestPasswordResetController::checkLogs');
     });
 });
 

@@ -27,16 +27,46 @@ class PasswordRecoveryController extends BaseAuthController
         $email = $input['email'] ?? null;
         $web_url = $input['web_url'] ?? null;
 
-        if (empty($email) || empty($web_url)) {
-            return $this->respondValidationErrors('Email and web_url are required.');
+        if (empty($email)) {
+            return $this->respondValidationErrors('Email is required.');
         }
 
-        // Normalize the web URL
-        $web_url = normalize_web_url($web_url);
+        // If web_url is missing, try to infer it from the user record or the request host
+        $userModel = new \App\Models\UserModel();
+        $programCategoryModel = new \App\Models\ProgramCategoryModel();
 
-        // Check if user exists
-        $userModel = new UserModel();
-        $user = $userModel->getUserByEmailAndWebUrl($email, $web_url);
+        if (empty($web_url)) {
+            // First try to find a user by email and use their program_category
+            $userByEmail = $userModel->getUserByEmail($email);
+            if ($userByEmail && !empty($userByEmail->program_category_id)) {
+                $program = $programCategoryModel->find($userByEmail->program_category_id);
+                if ($program && !empty($program->web_url)) {
+                    $web_url = $program->web_url;
+                    log_message('warning', "PasswordRecovery: web_url was missing; inferred from user program_category_id for {$email} -> {$web_url}");
+                }
+            }
+
+            // If still missing, try to use the Host header (normalize later)
+            if (empty($web_url)) {
+                $host = $this->request->getServer('HTTP_HOST') ?: $this->request->getHeaderLine('Host');
+                if (!empty($host)) {
+                    $web_url = $host;
+                    log_message('warning', "PasswordRecovery: web_url missing; using request host for {$email} -> {$web_url}");
+                }
+            }
+        }
+
+        // Normalize the web URL if present
+        if (!empty($web_url)) {
+            $web_url = normalize_web_url($web_url);
+        }
+
+        // Try to find user by (email + web_url) when web_url is available, otherwise fall back to email-only
+        if (!empty($web_url)) {
+            $user = $userModel->getUserByEmailAndWebUrl($email, $web_url);
+        } else {
+            $user = $userModel->getUserByEmail($email);
+        }
 
         if (!$user) {
             return $this->respondNotFound('User not found.');
@@ -49,6 +79,14 @@ class PasswordRecoveryController extends BaseAuthController
             // Save into database
             $passwordResetModel = new PasswordResetModel();
             $passwordResetModel->createToken($email, $user->id, $token);
+
+            // Ensure we have a web_url for the Program (required by EmailService to include program info)
+            if (empty($web_url) && !empty($user->program_category_id)) {
+                $program = $programCategoryModel->find($user->program_category_id);
+                if ($program && !empty($program->web_url)) {
+                    $web_url = $program->web_url;
+                }
+            }
 
             // Send email with reset link
             $emailService = new EmailService();

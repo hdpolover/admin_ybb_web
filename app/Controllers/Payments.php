@@ -300,16 +300,239 @@ class Payments extends AdminBaseController
     /**
      * Export payments data using enhanced YBB Export system with performance tracking
      */
+    /**
+     * Export payments data using YBB DB Export API (Database-Direct Mode)
+     * This is the recommended approach per YBB_DB_EXPORT_API_INTEGRATION_GUIDE.md
+     */
     public function export()
     {
         try {
-            $startTime = microtime(true);
-            
-            $programId = $this->request->getPost('program_id');
+            // Always use DB-direct mode for payments export
+            log_message('debug', 'Using DB-direct payment export mode (recommended)');
+            return $this->exportUsingDbFilters();
+
+        } catch (\Exception $e) {
+            log_message('error', 'Failed to export payments: ' . $e->getMessage());
+
+            if ($this->request->isAJAX()) {
+                return $this->response->setStatusCode(500)
+                    ->setJSON(['success' => false, 'message' => 'Failed to export payments: ' . $e->getMessage()]);
+            }
+            return redirect()->to('/payments')->with('error', 'Failed to export payments: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get export filters from request for payments
+     * Only includes filters documented in YBB_DB_EXPORT_API_INTEGRATION_GUIDE.md
+     * Handles both JSON body (from frontend) and direct POST/GET parameters
+     */
+    private function getPaymentExportFilters()
+    {
+        // Try to get JSON body first (from AJAX requests)
+        $jsonBody = $this->request->getJSON(true); // true = return as array
+        $filters = $jsonBody['filters'] ?? [];
+        
+        // If no JSON body, fall back to traditional POST/GET parameters
+        if (empty($filters)) {
+            $filters = [
+                'status' => $this->request->getGet('status') ?: $this->request->getPost('status'),
+                'payment_method_id' => $this->request->getGet('payment_method_id') ?: $this->request->getPost('payment_method_id'),
+                'program_payment_id' => $this->request->getGet('program_payment_id') ?: $this->request->getPost('program_payment_id'),
+                'date_range' => $this->request->getGet('date_range') ?: $this->request->getPost('date_range'),
+                'amount_min' => $this->request->getGet('amount_min') ?: $this->request->getPost('amount_min'),
+                'amount_max' => $this->request->getGet('amount_max') ?: $this->request->getPost('amount_max'),
+                'limit' => $this->request->getGet('limit') ?: $this->request->getPost('limit'),
+                'sort_by' => $this->request->getGet('sort_by') ?: $this->request->getPost('sort_by'),
+                'sort_order' => $this->request->getGet('sort_order') ?: $this->request->getPost('sort_order')
+            ];
+        }
+        
+        return $filters;
+    }
+
+    /**
+     * Export payments using DB-direct filters (recommended approach)
+     * This method sends filters to the YBB DB Export API instead of fetching data first
+     * Following YBB_DB_EXPORT_API_INTEGRATION_GUIDE.md documentation
+     * 
+     * @param array $additionalFilters Optional additional filters to merge with request filters
+     */
+    private function exportUsingDbFilters(array $additionalFilters = [])
+    {
+        try {
+            $programId = session('current_program');
             if (!$programId) {
-                $programId = session('current_program');
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'No program selected'
+                    ]);
+                }
+                return redirect()->to('/payments')->with('error', 'No program selected');
             }
 
+            log_message('info', 'Starting DB-direct payment export for program: ' . $programId);
+
+            // Get export template and format from request
+            // Try JSON body first (from AJAX requests with nested structure)
+            $jsonBody = $this->request->getJSON(true);
+            $options = $jsonBody['options'] ?? [];
+            
+            $template = $options['template'] ?? ($this->request->getPost('template') ?: $this->request->getGet('template') ?: 'standard');
+            $format = $options['format'] ?? ($this->request->getPost('format') ?: $this->request->getGet('format') ?: 'excel');
+
+            // Build filters for DB-direct export according to YBB DB API documentation
+            $filters = [
+                'program_id' => (int)$programId,
+            ];
+
+            // Get filters from request
+            $requestFilters = $this->getPaymentExportFilters();
+            
+            // Merge with any additional filters passed directly
+            $requestFilters = array_merge($requestFilters, $additionalFilters);
+            
+            // Map all documented filters from YBB_DB_EXPORT_API_INTEGRATION_GUIDE.md
+            
+            // Status filter (0=pending, 1=processing, 2=success, 3=failed, 4=cancelled)
+            if (isset($requestFilters['status']) && $requestFilters['status'] !== '' && $requestFilters['status'] !== null) {
+                $filters['status'] = $requestFilters['status'];
+            }
+            
+            // Payment method filter
+            if (!empty($requestFilters['payment_method_id'])) {
+                $filters['payment_method_id'] = (int)$requestFilters['payment_method_id'];
+            }
+            
+            // Program payment filter  
+            if (!empty($requestFilters['program_payment_id'])) {
+                $filters['program_payment_id'] = (int)$requestFilters['program_payment_id'];
+            }
+            
+            // Date range filter - converts to date_from and date_to
+            if (!empty($requestFilters['date_range'])) {
+                $dates = explode(' - ', $requestFilters['date_range']);
+                if (count($dates) == 2) {
+                    $filters['date_from'] = date('Y-m-d', strtotime($dates[0]));
+                    $filters['date_to'] = date('Y-m-d', strtotime($dates[1]));
+                }
+            }
+            
+            // Amount range filters
+            if (!empty($requestFilters['amount_min']) && is_numeric($requestFilters['amount_min'])) {
+                $filters['amount_min'] = (float)$requestFilters['amount_min'];
+            }
+            
+            if (!empty($requestFilters['amount_max']) && is_numeric($requestFilters['amount_max'])) {
+                $filters['amount_max'] = (float)$requestFilters['amount_max'];
+            }
+            
+            // Limit filter (maximum records to export)
+            if (!empty($requestFilters['limit']) && is_numeric($requestFilters['limit'])) {
+                $filters['limit'] = (int)$requestFilters['limit'];
+            }
+            
+            // Sort options (defaults to payment_date desc if not provided)
+            $filters['sort_by'] = !empty($requestFilters['sort_by']) ? $requestFilters['sort_by'] : 'payment_date';
+            $filters['sort_order'] = !empty($requestFilters['sort_order']) ? $requestFilters['sort_order'] : 'desc';
+
+            log_message('debug', 'Payment DB Export filters: ' . json_encode($filters));
+
+            // Prepare export options according to YBB DB API documentation
+            $exportOptions = [
+                'template' => $template, // Valid options: standard, detailed
+                'format' => $format,
+                'filename' => $this->generateExportFilename('payments', $programId),
+                'sheet_name' => 'YBB_Payments_' . date('Y'),
+                'include_related' => true // Include related data (participant info, payment method info, etc.)
+            ];
+
+            log_message('debug', 'Payment DB Export options: ' . json_encode($exportOptions));
+
+            // Use DB-direct export method from YbbExport library
+            $ybbExport = new \App\Libraries\YbbExport();
+            $result = $ybbExport->exportPaymentsFromDB($filters, $exportOptions);
+
+            if ($result['success']) {
+                log_message('info', 'Payment DB Export initiated successfully');
+                
+                $exportData = $result['data'];
+                $metadata = $result['metadata'] ?? [];
+                
+                log_message('info', 'Payment Export data keys: ' . json_encode(array_keys($exportData)));
+                log_message('info', 'Payment Export data values: ' . json_encode($exportData));
+                
+                // Build full download URL if relative path provided
+                $downloadUrl = $exportData['download_url'] ?? null;
+                if ($downloadUrl && !str_starts_with($downloadUrl, 'http')) {
+                    // Get API base URL from environment
+                    $apiBaseUrl = getenv('YBB_EXPORT_API_URL') ?: 'http://127.0.0.1:5000';
+                    $downloadUrl = rtrim($apiBaseUrl, '/') . $downloadUrl;
+                }
+                
+                $response = [
+                    'success' => true,
+                    'exportId' => $exportData['export_id'],
+                    'export_id' => $exportData['export_id'],
+                    'message' => 'Payment export initiated successfully',
+                    'recordCount' => $exportData['record_count'] ?? 0,
+                    'record_count' => $exportData['record_count'] ?? 0,
+                    
+                    // File information from API response
+                    'fileName' => $exportData['file_name'] ?? null,
+                    'file_name' => $exportData['file_name'] ?? null,
+                    'fileSize' => $exportData['file_size'] ?? null,
+                    'file_size' => $exportData['file_size'] ?? null,
+                    'fileSizeMB' => $exportData['file_size_mb'] ?? null,
+                    'file_size_mb' => $exportData['file_size_mb'] ?? null,
+                    'downloadUrl' => $downloadUrl,
+                    'download_url' => $downloadUrl,
+                    'expiresAt' => $exportData['expires_at'] ?? null,
+                    'expires_at' => $exportData['expires_at'] ?? null,
+                    
+                    // Metadata
+                    'metadata' => $metadata,
+                    'data' => $exportData,
+                    
+                    // Additional info for frontend
+                    'exportType' => 'payments',
+                    'exportMode' => 'db_direct',
+                    'filtersApplied' => $filters
+                ];
+                
+                log_message('info', 'Payment export response prepared: ' . json_encode($response));
+                
+                return $this->response->setJSON($response);
+            } else {
+                log_message('error', 'Payment DB Export failed: ' . ($result['message'] ?? 'Unknown error'));
+                
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => $result['message'] ?? 'Export failed',
+                    'error_code' => $result['error_code'] ?? 'EXPORT_FAILED'
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            log_message('error', 'Exception in payment export: ' . $e->getMessage());
+            
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to export payments: ' . $e->getMessage(),
+                'error_code' => 'EXCEPTION'
+            ]);
+        }
+    }
+    
+    /**
+     * Get payment export statistics (preview before export)
+     * Following YBB_DB_EXPORT_API_INTEGRATION_GUIDE.md documentation
+     */
+    public function export_statistics()
+    {
+        try {
+            $programId = session('current_program');
             if (!$programId) {
                 return $this->response->setJSON([
                     'success' => false,
@@ -317,201 +540,130 @@ class Payments extends AdminBaseController
                 ]);
             }
 
-            // Get export parameters and filters
-            $dateRange = $this->request->getPost('date_range');
-            $status = $this->request->getPost('status');
-            $trackPerformance = $this->request->getPost('track_performance') === 'true';
-
-            // Build optimized query using database builder
-            $dataStartTime = microtime(true);
-            $db = \Config\Database::connect();
-            $builder = $db->table('payments')
-                ->select('
-                    payments.id,
-                    payments.amount,
-                    payments.currency,
-                    payments.payment_method_id,
-                    payments.program_payment_id,
-                    payments.created_at,
-                    payments.updated_at,
-                    payments.status,
-                    payments.transaction_code,
-                    payments.order_id,
-                    payments.transaction_id,
-                    payments.notes,
-                    participants.full_name as participant_name,
-                    users.email as participant_email,
-                    participants.nationality as participant_nationality,
-                    program_payments.name as payment_type_name
-                ')
-                ->join('participants', 'participants.id = payments.participant_id')
-                ->join('users', 'users.id = participants.user_id')
-                ->join('program_payments', 'program_payments.id = payments.program_payment_id', 'left')
-                ->where('participants.program_id', $programId)
-                ->where('payments.is_deleted', 0);
-
-            // Apply filters if provided
-            if ($dateRange) {
-                $dates = explode(' - ', $dateRange);
+            // Build filters same as export
+            $filters = ['program_id' => (int)$programId];
+            $requestFilters = $this->getPaymentExportFilters();
+            
+            // Apply same filter mapping as export
+            if (isset($requestFilters['status']) && $requestFilters['status'] !== '' && $requestFilters['status'] !== null) {
+                $filters['status'] = $requestFilters['status'];
+            }
+            if (!empty($requestFilters['payment_method_id'])) {
+                $filters['payment_method_id'] = (int)$requestFilters['payment_method_id'];
+            }
+            if (!empty($requestFilters['program_payment_id'])) {
+                $filters['program_payment_id'] = (int)$requestFilters['program_payment_id'];
+            }
+            if (!empty($requestFilters['date_range'])) {
+                $dates = explode(' - ', $requestFilters['date_range']);
                 if (count($dates) == 2) {
-                    $startDate = date('Y-m-d', strtotime($dates[0]));
-                    $endDate = date('Y-m-d', strtotime($dates[1]));
-                    $builder->where('DATE(payments.created_at) >=', $startDate)
-                        ->where('DATE(payments.created_at) <=', $endDate);
+                    $filters['date_from'] = date('Y-m-d', strtotime($dates[0]));
+                    $filters['date_to'] = date('Y-m-d', strtotime($dates[1]));
                 }
             }
-
-            if ($status !== '' && $status !== null) {
-                $builder->where('payments.status', $status);
+            if (!empty($requestFilters['amount_min']) && is_numeric($requestFilters['amount_min'])) {
+                $filters['amount_min'] = (float)$requestFilters['amount_min'];
+            }
+            if (!empty($requestFilters['amount_max']) && is_numeric($requestFilters['amount_max'])) {
+                $filters['amount_max'] = (float)$requestFilters['amount_max'];
+            }
+            if (!empty($requestFilters['limit']) && is_numeric($requestFilters['limit'])) {
+                $filters['limit'] = (int)$requestFilters['limit'];
             }
 
-            // Get data with performance monitoring
-            $payments = $builder->orderBy('payments.created_at', 'DESC')->get()->getResultArray();
-            $dataFetchTime = microtime(true) - $dataStartTime;
-
-            if (empty($payments)) {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'No payments found for export'
-                ]);
-            }
-
-            $recordCount = count($payments);
-            
-            // Determine optimal export strategy for payments (8K threshold)
-            $exportStrategy = $recordCount > 8000 ? 'chunked' : 'single_file';
-            
-            log_message('info', "Payments export initiated: {$recordCount} records, strategy: {$exportStrategy}, performance tracking: " . ($trackPerformance ? 'enabled' : 'disabled'));
-
-            // Enhanced export options with performance tracking
-            $options = [
-                'template' => 'payments',
-                'format' => 'excel',
-                'program_id' => $programId,
-                'export_strategy' => $exportStrategy,
-                'chunk_size' => $exportStrategy === 'chunked' ? 8000 : null,
-                'track_performance' => $trackPerformance,
-                'filters' => [
-                    'date_range' => $dateRange,
-                    'status' => $status
-                ],
-                'filename' => 'payments_export_prog' . $programId . '_' . date('Y-m-d_H-i-s')
-            ];
-
-            // Add performance context
-            if ($trackPerformance) {
-                $options['performance_context'] = [
-                    'data_fetch_time' => $dataFetchTime,
-                    'record_count' => $recordCount,
-                    'memory_before_export' => memory_get_usage(true),
-                    'export_start_time' => microtime(true)
-                ];
-            }
-
-            // Create export using enhanced YBB Export API
-            $exportStartTime = microtime(true);
+            // Call YBB Export API statistics endpoint
             $ybbExport = new \App\Libraries\YbbExport();
-            $result = $ybbExport->exportPayments($payments, $options);
-            $exportTime = microtime(true) - $exportStartTime;
+            $result = $ybbExport->getExportStatistics('payments', $filters);
 
             if ($result['success']) {
-                $totalTime = microtime(true) - $startTime;
-                
-                // Enhanced logging with performance data
-                $logData = [
-                    'export_initiated' => true,
-                    'record_count' => $recordCount,
-                    'export_strategy' => $exportStrategy,
-                    'processing_time' => $totalTime,
-                    'data_fetch_time' => $dataFetchTime,
-                    'export_time' => $exportTime
-                ];
-                
-                if ($trackPerformance && isset($result['performanceStats'])) {
-                    $logData['performance_stats'] = $result['performanceStats'];
-                }
-                
-                log_message('info', 'Payments export completed: ' . json_encode($logData));
-                
-                // Build comprehensive response
-                $response = [
+                return $this->response->setJSON([
                     'success' => true,
-                    'exportId' => $result['exportId'],
-                    'message' => $this->_buildPaymentExportMessage($result, $recordCount),
-                    'recordCount' => $recordCount,
-                    'exportStrategy' => $exportStrategy,
-                    'fileType' => $result['fileType'] ?? 'single',
-                    'totalFiles' => $result['totalFiles'] ?? 1,
-                    'processingTime' => number_format($totalTime, 2) . 's',
-                    'status' => 'completed'
-                ];
-                
-                // Add performance stats if available
-                if (isset($result['performanceStats'])) {
-                    $response['performanceStats'] = $result['performanceStats'];
-                }
-                
-                // Add chunking info if applicable
-                if ($exportStrategy === 'chunked') {
-                    $response['chunkCount'] = $result['chunkCount'] ?? null;
-                    $response['compressedSize'] = $result['compressedSize'] ?? null;
-                    $response['compressionRatio'] = $result['compressionRatio'] ?? null;
-                }
-                
-                return $this->response->setJSON($response);
-                
+                    'data' => $result['data'],
+                    'total_count' => $result['total_count'] ?? 0,
+                    'status_breakdown' => $result['status_breakdown'] ?? []
+                ]);
             } else {
-                log_message('error', "Payments export failed: {$result['message']} (Records: {$recordCount}, Strategy: {$exportStrategy})");
-                
                 return $this->response->setJSON([
                     'success' => false,
-                    'message' => $result['message'],
-                    'recordCount' => $recordCount,
-                    'exportStrategy' => $exportStrategy
+                    'message' => $result['message'] ?? 'Failed to get export statistics'
                 ]);
             }
 
         } catch (\Exception $e) {
-            $processingTime = microtime(true) - ($startTime ?? microtime(true));
-            
-            log_message('error', "Exception in payments export: {$e->getMessage()} (Processing time: {$processingTime}s)");
+            log_message('error', 'Exception in payment export statistics: ' . $e->getMessage());
             
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Failed to export payments: ' . $e->getMessage(),
-                'processingTime' => number_format($processingTime, 2) . 's'
+                'message' => 'Failed to get statistics: ' . $e->getMessage()
             ]);
         }
     }
     
     /**
+     * Check payment export status
+     * Following YBB_DB_EXPORT_API_INTEGRATION_GUIDE.md documentation
+     */
+    public function export_status($exportId = null)
+    {
+        try {
+            if (!$exportId) {
+                $exportId = $this->request->getGet('export_id') ?: $this->request->getPost('export_id');
+            }
+
+            if (!$exportId) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Export ID is required'
+                ]);
+            }
+
+            // Call YBB Export API status endpoint
+            $ybbExport = new \App\Libraries\YbbExport();
+            $result = $ybbExport->getExportStatus($exportId);
+
+            if ($result['success']) {
+                // Build full download URL if relative path provided
+                $downloadUrl = $result['download_url'] ?? null;
+                if ($downloadUrl && !str_starts_with($downloadUrl, 'http')) {
+                    $apiBaseUrl = getenv('YBB_EXPORT_API_URL') ?: 'http://127.0.0.1:5000';
+                    $downloadUrl = rtrim($apiBaseUrl, '/') . "/api/ybb/export/{$exportId}/download";
+                    $result['download_url'] = $downloadUrl;
+                }
+                
+                return $this->response->setJSON($result);
+            } else {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => $result['message'] ?? 'Export not found'
+                ])->setStatusCode(404);
+            }
+
+        } catch (\Exception $e) {
+            log_message('error', 'Exception in payment export status check: ' . $e->getMessage());
+            
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to check export status: ' . $e->getMessage()
+            ]);
+        }
+    }
+    
+    /**
+     * Generate export filename for payments
+     */
+    private function generateExportFilename($type, $programId)
+    {
+        return sprintf(
+            '%s_program_%d_%s.xlsx',
+            $type,
+            $programId,
+            date('Y-m-d_His')
+        );
+    }
+    
+    /**
      * Build user-friendly export message for payments
      */
-    private function _buildPaymentExportMessage(array $result, int $recordCount): string
-    {
-        $isChunked = isset($result['fileType']) && $result['fileType'] === 'chunked';
-        
-        if ($isChunked) {
-            $fileCount = $result['totalFiles'] ?? 1;
-            $message = "Payment export completed: " . number_format($recordCount) . " records exported in $fileCount optimized files";
-            
-            if (isset($result['compressionRatio'])) {
-                $message .= " (Compressed to {$result['compressionRatio']})";
-            }
-        } else {
-            $message = "Payment export completed successfully with " . number_format($recordCount) . " payment records";
-            
-            if (isset($result['performanceStats']['processingTime'])) {
-                $time = $result['performanceStats']['processingTime']['formatted'] ?? '';
-                if ($time) {
-                    $message .= " in $time";
-                }
-            }
-        }
-        
-        return $message;
-    }
-
     /**
      * Show the payment form
      */

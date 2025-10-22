@@ -470,7 +470,6 @@
 
                 } else if (selectedType === 'agreement') {
                     console.log('Showing Agreement configuration');
-                    s
                     $('#drive-url-section').show();
                     $('#document-type-info').show();
                     $('#agreement-info').show();

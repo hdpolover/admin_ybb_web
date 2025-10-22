@@ -419,271 +419,22 @@ class Participants extends AdminBaseController
      * Get HTML badge for form status only
      */
     /**
-     * Export participants data using YBB Export API
+     * Export participants data using YBB DB Export API (Database-Direct Mode)
+     * This is the recommended approach per YBB_DB_EXPORT_API_INTEGRATION_GUIDE.md
      */
     public function export($id = null)
     {
         try {
-            // Increase execution time limit for large exports
-            set_time_limit(300); // 5 minutes
-            ini_set('memory_limit', '512M'); // Increase memory limit
-            
-            log_message('debug', 'Starting participant export process with YBB Export API');
-
-            $programId = session('current_program');
-            if (!$programId) {
-                if ($this->request->isAJAX()) {
-                    return $this->response->setJSON([
-                        'success' => false,
-                        'message' => 'No program selected'
-                    ]);
-                }
-                return redirect()->to('/users/participants')->with('error', 'No program selected');
-            }
-
-            $participants = [];
-
-            // If ID is provided, export just that participant
+            // For single participant exports, use DB-direct with specific filter
             if ($id) {
                 log_message('debug', 'Exporting single participant with ID: ' . $id);
-                $participant = $this->participantModel->find($id);
-
-                if (!$participant) {
-                    log_message('error', 'Participant not found for export, ID: ' . $id);
-                    if ($this->request->isAJAX()) {
-                        return $this->response->setJSON([
-                            'success' => false,
-                            'message' => 'Participant not found'
-                        ]);
-                    }
-                    return redirect()->to('/users/participants')->with('error', 'Participant not found');
-                }
-
-                // Get related data
-                $userId = $participant->user_id;
-                $user = $this->userModel->find($userId);
-                $participant->user = $user;
-                $participant->email = $user->email ?? '';
-
-                // Get participant essays
-                $essays = $this->participantEssayModel->getParticipantEssayByParticipantId($id);
-                $participant->essays = $essays;
-
-                $participants[] = (array)$participant;
-            } else {
-                log_message('debug', 'Starting bulk participant export for program ID: ' . $programId);
-                
-                // Check if this is a batch size check request
-                $checkBatchSize = $this->request->getGet('check_batch_size') !== null;
-                
-                if ($checkBatchSize) {
-                    // Just count the records and return batch information
-                    $totalCount = $this->getParticipantCount($programId);
-                    
-                    return $this->response->setJSON([
-                        'success' => true,
-                        'total_records' => $totalCount,
-                        'message' => "Found {$totalCount} records ready for export."
-                    ]);
-                }
-
-                // Get participants data
-                $participantObjects = $this->getParticipantsForExport($programId);
-
-                if (empty($participantObjects)) {
-                    if ($this->request->isAJAX()) {
-                        return $this->response->setStatusCode(404)
-                            ->setJSON(['success' => false, 'message' => 'No participants found to export']);
-                    }
-                    return redirect()->to('/users/participants')->with('error', 'No participants found to export');
-                }
-
-                // Memory management for large datasets
-                $memoryUsage = memory_get_usage(true);
-                $memoryLimit = $this->_getMemoryLimitBytes();
-                $memoryUsageMB = round($memoryUsage / 1024 / 1024, 2);
-                $memoryLimitMB = round($memoryLimit / 1024 / 1024, 2);
-                
-                log_message('debug', "Memory usage after data retrieval: {$memoryUsageMB}MB / {$memoryLimitMB}MB (" . round(($memoryUsage / $memoryLimit) * 100, 1) . "%)");
-                
-                // If memory usage is over 60%, force aggressive chunking
-                if (($memoryUsage / $memoryLimit) > 0.6) {
-                    log_message('warning', "High memory usage detected. Forcing small chunk processing to prevent exhaustion.");
-                    $maxChunkSize = 1000; // Very small chunks for high memory pressure
-                } else {
-                    $maxChunkSize = 2500; // Normal chunk size
-                }
-
-                // Convert objects to arrays for API
-                foreach ($participantObjects as $participant) {
-                    $participants[] = (array)$participant;
-                }
+                return $this->exportUsingDbFilters(['participant_id' => $id]);
             }
-
-            log_message('debug', 'Preparing to export ' . count($participants) . ' participants via YBB Export API');
-
-            // Prepare export options according to YBB API documentation
-            $options = [
-                'template' => 'standard', // Valid options: standard, detailed, summary, complete
-                'format' => 'excel',
-                'filename' => $this->generateExportFilename('participants', $programId),
-                'sheet_name' => 'YBB_Participants_' . date('Y')
-            ];
-
-            // Add filter info to options
-            $filters = $this->getExportFilters();
-            if (!empty($filters)) {
-                $options['filters'] = $filters;
-            }
-
-            // Handle large datasets with memory-efficient chunking
-            $participantCount = count($participants);
             
-            // More aggressive chunking for production datasets
-            if ($participantCount > $maxChunkSize) {
-                log_message('debug', "Large dataset detected ({$participantCount} participants). Processing in chunks of {$maxChunkSize}");
-                
-                // For very large datasets, process even smaller chunks to be absolutely safe
-                $safeChunkSize = min($maxChunkSize, 1500); // Even more conservative for production
-                $chunks = array_chunk($participants, $safeChunkSize);
-                $totalChunks = count($chunks);
-                
-                log_message('debug', "Split dataset into {$totalChunks} chunks of {$safeChunkSize} participants each for memory-safe processing");
-                
-                // Process only the first chunk - let the API service handle the rest
-                $ybbExport = new YbbExport();
-                $options['force_chunking'] = true;
-                $options['chunk_size'] = $safeChunkSize;
-                $options['total_chunks'] = $totalChunks;
-                $options['total_records'] = $participantCount;
-                $options['is_multi_chunk_export'] = true;
-                
-                log_message('info', "Processing first chunk of {$safeChunkSize} participants out of {$participantCount} total");
-                
-                $result = $ybbExport->exportParticipants($chunks[0], $options);
-                
-                if ($result['success']) {
-                    // Store information about the chunked export
-                    $exportId = $result['data']['export_id'] ?? null;
-                    
-                    if ($totalChunks > 1 && $exportId) {
-                        log_message('info', "Multi-chunk export initiated with export ID: {$exportId}. Processing {$totalChunks} chunks of {$safeChunkSize} participants each.");
-                        
-                        // Modify the response to indicate this is a chunked export
-                        if (isset($result['data'])) {
-                            $result['data']['is_chunked_export'] = true;
-                            $result['data']['total_chunks'] = $totalChunks;
-                            $result['data']['chunk_size'] = $safeChunkSize;
-                            $result['data']['total_records'] = $participantCount;
-                        }
-                    }
-                }
-            } else {
-                // For smaller datasets, use standard processing with minimal chunking
-                if ($participantCount > 500) {
-                    $options['force_chunking'] = true;
-                    $options['chunk_size'] = min(1000, floor($participantCount / 2));
-                    log_message('debug', "Medium dataset detected ({$participantCount} participants). Enabling chunking with chunk size: {$options['chunk_size']}");
-                }
+            // For bulk exports, always use DB-direct mode
+            log_message('debug', 'Using DB-direct export mode (recommended)');
+            return $this->exportUsingDbFilters();
 
-                // Create export using YBB Export API
-                $ybbExport = new YbbExport();
-                $result = $ybbExport->exportParticipants($participants, $options);
-            }
-
-            if ($result['success']) {
-                log_message('info', 'Participants export initiated successfully: ' . json_encode($result));
-                
-                // Extract data according to YBB API documentation structure
-                $exportData = $result['data'] ?? [];
-                $metadata = $result['metadata'] ?? [];
-                
-                // Build response matching the frontend expectations
-                $response = [
-                    'success' => true,
-                    'exportId' => $exportData['export_id'], // Frontend looks for this at root level
-                    'export_id' => $exportData['export_id'], // Backup field name
-                    'message' => 'Export initiated successfully',
-                    'recordCount' => $exportData['record_count'] ?? count($participants),
-                    'record_count' => $exportData['record_count'] ?? count($participants), // Backup field name
-                    
-                    // File information from API response
-                    'fileName' => $exportData['file_name'] ?? null,
-                    'file_name' => $exportData['file_name'] ?? null, // Backup field name
-                    'fileSize' => $exportData['file_size'] ?? null,
-                    'file_size' => $exportData['file_size'] ?? null, // Backup field name
-                    'fileSizeMB' => $exportData['file_size_mb'] ?? null,
-                    'file_size_mb' => $exportData['file_size_mb'] ?? null, // Backup field name
-                    'downloadUrl' => $exportData['download_url'] ?? null,
-                    'download_url' => $exportData['download_url'] ?? null, // Backup field name
-                    'exportStrategy' => $exportData['export_strategy'] ?? 'single_file',
-                    'export_strategy' => $exportData['export_strategy'] ?? 'single_file', // Backup field name
-                    
-                    // Performance metrics if available
-                    'performanceMetrics' => $exportData['performance_metrics'] ?? null,
-                    'performance_metrics' => $exportData['performance_metrics'] ?? null, // Backup field name
-                    
-                    // Multi-file export information
-                    'fileCount' => $exportData['file_count'] ?? 1,
-                    'file_count' => $exportData['file_count'] ?? 1, // Backup field name
-                    'batchFiles' => $exportData['batch_files'] ?? null,
-                    'batch_files' => $exportData['batch_files'] ?? null, // Backup field name
-                    'zipDownloadUrl' => $exportData['zip_download_url'] ?? null,
-                    'zip_download_url' => $exportData['zip_download_url'] ?? null, // Backup field name
-                    
-                    // Pass through all metadata for enhanced metrics display
-                    'metadata' => $metadata,
-                    
-                    // Add data object for frontend compatibility - this preserves the original structure
-                    'data' => $exportData
-                ];
-                
-                // Extract and enhance performance metrics from both data and metadata
-                $performanceMetrics = $exportData['performance_metrics'] ?? [];
-                
-                // Add comprehensive metrics to root level for frontend access
-                if (!empty($performanceMetrics)) {
-                    $response['processingTimeMs'] = $performanceMetrics['processing_time_ms'] ?? null;
-                    $response['processingTimeSeconds'] = $performanceMetrics['total_processing_time_seconds'] ?? null;
-                    $response['recordsPerSecond'] = $performanceMetrics['records_per_second'] ?? null;
-                    $response['memoryUsedMb'] = $performanceMetrics['memory_used_mb'] ?? null;
-                    $response['peakMemoryMb'] = $performanceMetrics['peak_memory_mb'] ?? null;
-                    
-                    // Efficiency metrics
-                    if (isset($performanceMetrics['efficiency_metrics'])) {
-                        $efficiency = $performanceMetrics['efficiency_metrics'];
-                        $response['kbPerRecord'] = $efficiency['kb_per_record'] ?? null;
-                        $response['memoryEfficiencyKbPerRecord'] = $efficiency['memory_efficiency_kb_per_record'] ?? null;
-                        $response['processingMsPerRecord'] = $efficiency['processing_ms_per_record'] ?? null;
-                    }
-                }
-                
-                // Add metadata-level metrics as fallback
-                if (!empty($metadata)) {
-                    $response['processingTimeMs'] = $response['processingTimeMs'] ?? $metadata['processing_time_ms'] ?? null;
-                    $response['recordsPerSecond'] = $response['recordsPerSecond'] ?? $metadata['records_per_second'] ?? null;
-                    $response['memoryUsedMb'] = $response['memoryUsedMb'] ?? $metadata['memory_used_mb'] ?? null;
-                    $response['peakMemoryMb'] = $response['peakMemoryMb'] ?? $metadata['peak_memory_mb'] ?? null;
-                    $response['memoryEfficiency'] = $response['memoryEfficiencyKbPerRecord'] ?? $metadata['memory_efficiency_kb_per_record'] ?? null;
-                    
-                    // Additional metadata information
-                    $response['compressionUsed'] = $metadata['compression_used'] ?? 'none';
-                    $response['generatedAt'] = $metadata['generated_at'] ?? null;
-                    $response['tempFilesCleanup'] = $metadata['temp_files_cleanup_scheduled'] ?? false;
-                }
-                
-                return $this->response->setJSON($response);
-            } else {
-                log_message('error', 'Participants export failed: ' . $result['message']);
-                
-                if ($this->request->isAJAX()) {
-                    return $this->response->setJSON([
-                        'success' => false,
-                        'message' => $result['message']
-                    ]);
-                }
-                return redirect()->to('/users/participants')->with('error', 'Export failed: ' . $result['message']);
-            }
 
         } catch (\Exception $e) {
             log_message('error', 'Failed to export participants: ' . $e->getMessage());
@@ -696,250 +447,328 @@ class Participants extends AdminBaseController
         }
     }
     
-    /**
-     * Format file size for display
-     */
-    private function formatFileSize($bytes)
-    {
-        if ($bytes >= 1073741824) {
-            return number_format($bytes / 1073741824, 2) . ' GB';
-        } elseif ($bytes >= 1048576) {
-            return number_format($bytes / 1048576, 2) . ' MB';
-        } elseif ($bytes >= 1024) {
-            return number_format($bytes / 1024, 2) . ' KB';
-        } else {
-            return $bytes . ' bytes';
-        }
-    }
 
-    /**
-     * Export participants in batches (now handled by YBB Export API)
-     */
-    public function export_batch()
-    {
-        // Redirect to main export function since YBB Export API handles batching automatically
-        return $this->export();
-    }
 
-    /**
-     * Get participants count for export with filters
-     */
-    private function getParticipantCount($programId)
-    {
-        $query = $this->participantModel->select('participants.id')
-            ->join('users', 'users.id = participants.user_id', 'left')
-            ->join('participant_statuses', 'participant_statuses.participant_id = participants.id', 'left')
-            ->where('participants.program_id', $programId)
-            ->where('participants.is_deleted', 0);
 
-        // Apply filters
-        $filters = $this->getExportFilters();
-        $this->applyExportFilters($query, $filters);
-
-        return $query->countAllResults();
-    }
-
-    /**
-     * Get participants data for export with filters
-     */
-    private function getParticipantsForExport($programId, $limit = null, $offset = null)
-    {
-        log_message('debug', 'Starting optimized participant data retrieval for program: ' . $programId);
-        
-        // Build optimized query with JOINs to prevent N+1 queries
-        // Note: Use participants.full_name instead of users table name fields
-        // Users table only has basic info, participants table has the detailed info
-        $query = $this->participantModel->select('
-                participants.*, 
-                users.email as user_email,
-                users.created_at as user_created_at,
-                users.updated_at as user_updated_at
-            ')
-            ->join('users', 'users.id = participants.user_id', 'left')
-            ->join('participant_statuses', 'participant_statuses.participant_id = participants.id', 'left')
-            ->where('participants.program_id', $programId)
-            ->where('participants.is_deleted', 0);
-
-        // Apply filters
-        $filters = $this->getExportFilters();
-        $this->applyExportFilters($query, $filters);
-
-        // Apply limit and offset if provided
-        if ($limit !== null) {
-            $query->limit($limit, $offset ?: 0);
-        }
-
-        log_message('debug', 'Executing main participant query...');
-        $participantsList = $query->get()->getResult();
-        log_message('debug', 'Retrieved ' . count($participantsList) . ' participants from database');
-        
-        if (empty($participantsList)) {
-            return [];
-        }
-
-        // Get all participant IDs for batch essay retrieval
-        $participantIds = array_column($participantsList, 'id');
-        
-        // Batch retrieve essays for all participants to avoid N+1 queries
-        log_message('debug', 'Batch retrieving essays for ' . count($participantIds) . ' participants...');
-        $essaysQuery = $this->participantEssayModel
-            ->whereIn('participant_id', $participantIds)
-            ->get()->getResult();
-        
-        // Group essays by participant ID
-        $essaysByParticipant = [];
-        foreach ($essaysQuery as $essay) {
-            $essaysByParticipant[$essay->participant_id][] = $essay;
-        }
-        
-        log_message('debug', 'Processing participant data with essays...');
-        $participants = [];
-        
-        // Process each participant with pre-loaded data
-        foreach ($participantsList as $participant) {
-            // Create user object from joined data
-            // Use participants.full_name since that's where the name is stored
-            $participant->user = (object) [
-                'id' => $participant->user_id,
-                'email' => $participant->user_email,
-                'full_name' => $participant->full_name, // Use participants.full_name
-                'created_at' => $participant->user_created_at,
-                'updated_at' => $participant->user_updated_at
-            ];
-            
-            // Set email for backward compatibility
-            $participant->email = $participant->user_email;
-            
-            // Add essays if available
-            $participant->essays = $essaysByParticipant[$participant->id] ?? [];
-            
-            // Clean up the joined user fields to avoid duplication
-            unset($participant->user_email, $participant->user_created_at, $participant->user_updated_at);
-            
-            $participants[] = $participant;
-        }
-        
-        log_message('debug', 'Completed processing ' . count($participants) . ' participants with related data');
-        return $participants;
-    }
 
     /**
      * Get export filters from request
+     * Only includes filters documented in YBB_DB_EXPORT_API_INTEGRATION_GUIDE.md
+     * Handles both JSON body (from frontend) and direct POST/GET parameters
      */
     private function getExportFilters()
     {
-        return [
-            'category' => $this->request->getGet('category') ?: $this->request->getPost('category'),
-            'form_status' => $this->request->getGet('form_status') !== null ? $this->request->getGet('form_status') : $this->request->getPost('form_status'),
-            'payment_status' => $this->request->getGet('payment_status') ?: $this->request->getPost('payment_status'),
-            'date_range' => $this->request->getGet('date_range') ?: $this->request->getPost('date_range'),
-            'program_payment_id' => $this->request->getGet('program_payment_id') ?: $this->request->getPost('program_payment_id'),
-            'limit' => $this->request->getGet('limit') ?: $this->request->getPost('limit')
-        ];
+        // Try to get JSON body first (from AJAX requests)
+        $jsonBody = $this->request->getJSON(true); // true = return as array
+        $filters = $jsonBody['filters'] ?? [];
+        
+        // If no JSON body, fall back to traditional POST/GET parameters
+        if (empty($filters)) {
+            $filters = [
+                'status' => $this->request->getGet('status') ?: $this->request->getPost('status'),
+                'category' => $this->request->getGet('category') ?: $this->request->getPost('category'),
+                'form_status' => $this->request->getGet('form_status') !== null ? $this->request->getGet('form_status') : $this->request->getPost('form_status'),
+                'has_submitted_form' => $this->request->getGet('has_submitted_form') ?: $this->request->getPost('has_submitted_form'),
+                'has_paid' => $this->request->getGet('has_paid') ?: $this->request->getPost('has_paid'),
+                'payment_status' => $this->request->getGet('payment_status') ?: $this->request->getPost('payment_status'),
+                'country' => $this->request->getGet('country') ?: $this->request->getPost('country'),
+                'search' => $this->request->getGet('search') ?: $this->request->getPost('search'),
+                'date_range' => $this->request->getGet('date_range') ?: $this->request->getPost('date_range'),
+                'limit' => $this->request->getGet('limit') ?: $this->request->getPost('limit'),
+                'sort_by' => $this->request->getGet('sort_by') ?: $this->request->getPost('sort_by'),
+                'sort_order' => $this->request->getGet('sort_order') ?: $this->request->getPost('sort_order')
+            ];
+        }
+        
+        return $filters;
     }
 
+
+
     /**
-     * Apply export filters to query
+     * Export participants using DB-direct filters (recommended approach)
+     * This method sends filters to the YBB DB Export API instead of fetching data first
+     * Following YBB_DB_EXPORT_API_INTEGRATION_GUIDE.md documentation
+     * 
+     * @param array $additionalFilters Optional additional filters to merge with request filters
      */
-    private function applyExportFilters($query, $filters)
+    private function exportUsingDbFilters(array $additionalFilters = [])
     {
-        log_message('debug', '=== APPLYING EXPORT FILTERS ===');
-        log_message('debug', 'Filters to apply: ' . json_encode($filters));
-        
-        // Category filter
-        if (!empty($filters['category'])) {
-            log_message('debug', 'Applying category filter: ' . $filters['category']);
-            $query->where('participants.category', $filters['category']);
-        } else {
-            log_message('debug', 'Category filter: EMPTY or NULL, skipping');
-        }
-
-        // Form status filter
-        if ($filters['form_status'] !== '' && $filters['form_status'] !== null) {
-            log_message('debug', 'Applying form_status filter: ' . $filters['form_status']);
-            $query->where('participant_statuses.form_status', $filters['form_status']);
-        } else {
-            log_message('debug', 'Form status filter: EMPTY or NULL, skipping. Value: ' . var_export($filters['form_status'], true));
-        }
-
-        // Date range filter
-        if (!empty($filters['date_range'])) {
-            log_message('debug', 'Applying date_range filter: ' . $filters['date_range']);
-            $dates = explode(' - ', $filters['date_range']);
-            if (count($dates) == 2) {
-                $startDate = date('Y-m-d', strtotime($dates[0]));
-                $endDate = date('Y-m-d', strtotime($dates[1]));
-                log_message('debug', 'Parsed dates - Start: ' . $startDate . ', End: ' . $endDate);
-                $query->where('DATE(participants.created_at) >=', $startDate)
-                    ->where('DATE(participants.created_at) <=', $endDate);
-            } else {
-                log_message('error', 'Invalid date range format: ' . $filters['date_range']);
+        try {
+            $programId = session('current_program');
+            if (!$programId) {
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'No program selected'
+                    ]);
+                }
+                return redirect()->to('/users/participants')->with('error', 'No program selected');
             }
-        } else {
-            log_message('debug', 'Date range filter: EMPTY, skipping');
-        }
 
-        // Payment status filter
-        if (!empty($filters['payment_status']) && $filters['payment_status'] == 'success') {
-            log_message('debug', 'Applying payment_status filter: success');
-            $db = \Config\Database::connect();
-            $subQuery = $db->table('payments')
-                ->select('participant_id')
-                ->where('status', 2)
-                ->where('is_deleted', 0);
-            $query->whereIn('participants.id', $subQuery);
-        } else {
-            log_message('debug', 'Payment status filter: NOT success or EMPTY, skipping. Value: ' . var_export($filters['payment_status'], true));
-        }
+            log_message('info', 'Starting DB-direct export for program: ' . $programId);
 
-        // Specific program payment filter
-        if (!empty($filters['program_payment_id']) && is_numeric($filters['program_payment_id'])) {
-            log_message('debug', 'Applying program_payment_id filter: ' . $filters['program_payment_id']);
-            $db = \Config\Database::connect();
-            $subQuery = $db->table('payments')
-                ->select('participant_id')
-                ->where('program_payment_id', $filters['program_payment_id'])
-                ->where('status', 2)
-                ->where('is_deleted', 0);
-            $query->whereIn('participants.id', $subQuery);
-        } else {
-            log_message('debug', 'Program payment ID filter: NOT numeric or EMPTY, skipping. Value: ' . var_export($filters['program_payment_id'], true));
-        }
+            // Get export template and format from request
+            // Try JSON body first (from AJAX requests with nested structure)
+            $jsonBody = $this->request->getJSON(true);
+            $options = $jsonBody['options'] ?? [];
+            
+            $template = $options['template'] ?? ($this->request->getPost('template') ?: $this->request->getGet('template') ?: 'standard');
+            $format = $options['format'] ?? ($this->request->getPost('format') ?: $this->request->getGet('format') ?: 'excel');
 
-        // Limit filter
-        if (!empty($filters['limit']) && is_numeric($filters['limit'])) {
-            log_message('debug', 'Applying limit filter: ' . $filters['limit']);
-            $query->limit((int)$filters['limit']);
-        } else {
-            log_message('debug', 'Limit filter: NOT numeric or EMPTY, skipping. Value: ' . var_export($filters['limit'], true));
+            // Build filters for DB-direct export according to YBB DB API documentation
+            $filters = [
+                'program_id' => (int)$programId,
+            ];
+
+            // Get filters from request for bulk export
+            $requestFilters = $this->getExportFilters();
+            
+            // Merge with any additional filters passed directly (e.g., for single participant)
+            $requestFilters = array_merge($requestFilters, $additionalFilters);
+            
+            // Map all documented filters from YBB_DB_EXPORT_API_INTEGRATION_GUIDE.md
+            
+            // Status filter (registration status: approved, pending, rejected, all)
+            if (!empty($requestFilters['status'])) {
+                $filters['status'] = $requestFilters['status'];
+            }
+            
+            // Category filter (fully_funded, self_funded)
+            if (!empty($requestFilters['category'])) {
+                $filters['category'] = $requestFilters['category'];
+            }
+            
+            // Country filter
+            if (!empty($requestFilters['country'])) {
+                $filters['country'] = $requestFilters['country'];
+            }
+            
+            // Date range filter - converts to date_from and date_to
+            if (!empty($requestFilters['date_range'])) {
+                $dates = explode(' - ', $requestFilters['date_range']);
+                if (count($dates) == 2) {
+                    $filters['date_from'] = date('Y-m-d', strtotime($dates[0]));
+                    $filters['date_to'] = date('Y-m-d', strtotime($dates[1]));
+                }
+            }
+            
+            // Search filter (searches name or email)
+            if (!empty($requestFilters['search'])) {
+                $filters['search'] = $requestFilters['search'];
+            }
+            
+            // has_submitted_form filter (convenience filter for form_status = 2)
+            if (isset($requestFilters['has_submitted_form']) && $requestFilters['has_submitted_form'] !== '') {
+                $filters['has_submitted_form'] = $requestFilters['has_submitted_form'] === 'yes' || $requestFilters['has_submitted_form'] === true ? 'yes' : 'no';
+            }
+            
+            // has_paid filter (checks for successful payments - status = 2)
+            if (isset($requestFilters['has_paid']) && $requestFilters['has_paid'] !== '') {
+                $filters['has_paid'] = $requestFilters['has_paid'] === 'yes' || $requestFilters['has_paid'] === true ? 'yes' : 'no';
+            }
+            
+            // registration_form_status filter (not_started=0, in_progress=1, submitted=2)
+            if (isset($requestFilters['form_status']) && $requestFilters['form_status'] !== '' && $requestFilters['form_status'] !== null) {
+                $formStatus = (int)$requestFilters['form_status'];
+                $statusMap = [0 => 'not_started', 1 => 'in_progress', 2 => 'submitted'];
+                $filters['registration_form_status'] = $statusMap[$formStatus] ?? $formStatus;
+            }
+            
+            // Legacy payment_status filter - maps to has_paid
+            if (!empty($requestFilters['payment_status'])) {
+                if ($requestFilters['payment_status'] === 'success' || $requestFilters['payment_status'] === '2') {
+                    $filters['has_paid'] = 'yes';
+                } else if ($requestFilters['payment_status'] === 'pending' || $requestFilters['payment_status'] === 'failed') {
+                    $filters['has_paid'] = 'no';
+                }
+            }
+            
+            // Limit filter (maximum records to export)
+            if (!empty($requestFilters['limit']) && is_numeric($requestFilters['limit'])) {
+                $filters['limit'] = (int)$requestFilters['limit'];
+            }
+            
+            // Sort options (defaults to created_at desc if not provided)
+            $filters['sort_by'] = !empty($requestFilters['sort_by']) ? $requestFilters['sort_by'] : 'created_at';
+            $filters['sort_order'] = !empty($requestFilters['sort_order']) ? $requestFilters['sort_order'] : 'desc';
+
+            log_message('debug', 'DB Export filters: ' . json_encode($filters));
+
+            // Prepare export options according to YBB DB API documentation
+            $options = [
+                'template' => $template, // Valid options: standard, detailed, summary, complete
+                'format' => $format,
+                'filename' => $this->generateExportFilename('participants', $programId),
+                'sheet_name' => 'YBB_Participants_' . date('Y'),
+                'include_related' => true // Include related data (essays, payments, etc.)
+            ];
+
+            log_message('debug', 'DB Export options: ' . json_encode($options));
+
+            // Use DB-direct export method from YbbExport library
+            $ybbExport = new YbbExport();
+            $result = $ybbExport->exportParticipantsFromDB($filters, $options);
+
+            if ($result['success']) {
+                log_message('info', 'DB Export initiated successfully');
+                
+                $exportData = $result['data'];
+                $metadata = $result['metadata'] ?? [];
+                
+                log_message('info', 'Export data keys: ' . json_encode(array_keys($exportData)));
+                log_message('info', 'Export data values: ' . json_encode($exportData));
+                
+                // Build full download URL if relative path provided
+                $downloadUrl = $exportData['download_url'] ?? null;
+                if ($downloadUrl && !str_starts_with($downloadUrl, 'http')) {
+                    // Get API base URL from environment
+                    $apiBaseUrl = getenv('YBB_EXPORT_API_URL') ?: 'http://127.0.0.1:5000';
+                    $downloadUrl = rtrim($apiBaseUrl, '/') . $downloadUrl;
+                }
+                
+                $response = [
+                    'success' => true,
+                    'exportId' => $exportData['export_id'],
+                    'export_id' => $exportData['export_id'],
+                    'message' => 'Export initiated successfully',
+                    'recordCount' => $exportData['record_count'] ?? 0,
+                    'record_count' => $exportData['record_count'] ?? 0,
+                    
+                    // File information from API response
+                    'fileName' => $exportData['file_name'] ?? null,
+                    'file_name' => $exportData['file_name'] ?? null,
+                    'fileSize' => $exportData['file_size'] ?? null,
+                    'file_size' => $exportData['file_size'] ?? null,
+                    'fileSizeMB' => $exportData['file_size_mb'] ?? null,
+                    'file_size_mb' => $exportData['file_size_mb'] ?? null,
+                    'downloadUrl' => $downloadUrl,
+                    'download_url' => $downloadUrl,
+                    'expiresAt' => $exportData['expires_at'] ?? null,
+                    'expires_at' => $exportData['expires_at'] ?? null,
+                    
+                    // Metadata
+                    'metadata' => $metadata,
+                    'data' => $exportData,
+                    
+                    // Additional info for frontend
+                    'exportType' => 'db_direct',
+                    'filters' => $filters
+                ];
+                
+                log_message('info', 'Export response prepared: Export ID = ' . $exportData['export_id']);
+
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON($response);
+                }
+                
+                return redirect()->to('/users/participants')->with('success', 'Export completed successfully');
+            } else {
+                log_message('error', 'DB Export failed: ' . ($result['message'] ?? 'Unknown error'));
+                
+                if ($this->request->isAJAX()) {
+                    return $this->response->setStatusCode(500)
+                        ->setJSON([
+                            'success' => false,
+                            'message' => $result['message'] ?? 'Export failed',
+                            'error_code' => $result['error_code'] ?? 'EXPORT_FAILED',
+                            'details' => $result['details'] ?? []
+                        ]);
+                }
+                return redirect()->to('/users/participants')->with('error', 'Export failed: ' . $result['message']);
+            }
+
+        } catch (\Exception $e) {
+            log_message('error', 'Failed to export using DB filters: ' . $e->getMessage());
+
+            if ($this->request->isAJAX()) {
+                return $this->response->setStatusCode(500)
+                    ->setJSON(['success' => false, 'message' => 'Failed to export: ' . $e->getMessage()]);
+            }
+            return redirect()->to('/users/participants')->with('error', 'Failed to export: ' . $e->getMessage());
         }
-        
-        log_message('debug', '=== END APPLYING EXPORT FILTERS ===');
     }
 
     /**
-     * Get memory limit in bytes
+     * Get export statistics preview (as per YBB DB Export API documentation)
      */
-    private function _getMemoryLimitBytes(): int
+    public function export_statistics()
     {
-        $memoryLimit = ini_get('memory_limit');
-        
-        if ($memoryLimit === '-1') {
-            return PHP_INT_MAX; // No limit
-        }
-        
-        $unit = strtolower(substr($memoryLimit, -1));
-        $value = (int) substr($memoryLimit, 0, -1);
-        
-        switch ($unit) {
-            case 'g':
-                return $value * 1024 * 1024 * 1024;
-            case 'm':
-                return $value * 1024 * 1024;
-            case 'k':
-                return $value * 1024;
-            default:
-                return (int) $memoryLimit;
+        try {
+            $exportType = $this->request->getPost('export_type') ?? 'participants';
+            
+            // Get program ID
+            $programId = $this->request->getPost('program_id') ?? session('current_program');
+            
+            if (!$programId) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Program ID is required'
+                ])->setStatusCode(400);
+            }
+            
+            // Build filters same way as export - use all documented filters
+            $filters = ['program_id' => (int)$programId];
+            $requestFilters = $this->getExportFilters();
+            
+            // Apply all documented filters
+            if (!empty($requestFilters['status'])) {
+                $filters['status'] = $requestFilters['status'];
+            }
+            if (!empty($requestFilters['category'])) {
+                $filters['category'] = $requestFilters['category'];
+            }
+            if (!empty($requestFilters['country'])) {
+                $filters['country'] = $requestFilters['country'];
+            }
+            if (!empty($requestFilters['search'])) {
+                $filters['search'] = $requestFilters['search'];
+            }
+            if (isset($requestFilters['has_submitted_form']) && $requestFilters['has_submitted_form'] !== '') {
+                $filters['has_submitted_form'] = $requestFilters['has_submitted_form'];
+            }
+            if (isset($requestFilters['has_paid']) && $requestFilters['has_paid'] !== '') {
+                $filters['has_paid'] = $requestFilters['has_paid'];
+            }
+            if (isset($requestFilters['form_status']) && $requestFilters['form_status'] !== '') {
+                $statusMap = [0 => 'not_started', 1 => 'in_progress', 2 => 'submitted'];
+                $filters['registration_form_status'] = $statusMap[(int)$requestFilters['form_status']] ?? $requestFilters['form_status'];
+            }
+            if (!empty($requestFilters['date_range'])) {
+                $dates = explode(' - ', $requestFilters['date_range']);
+                if (count($dates) == 2) {
+                    $filters['date_from'] = date('Y-m-d', strtotime($dates[0]));
+                    $filters['date_to'] = date('Y-m-d', strtotime($dates[1]));
+                }
+            }
+            if (!empty($requestFilters['limit']) && is_numeric($requestFilters['limit'])) {
+                $filters['limit'] = (int)$requestFilters['limit'];
+            }
+            
+            // Initialize YBB Export library
+            $ybbExport = new YbbExport();
+            $result = $ybbExport->getExportStatistics($exportType, $filters);
+            
+            if ($result['success']) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'data' => $result['data'],
+                    'total_count' => $result['total_count'],
+                    'status_breakdown' => $result['status_breakdown'] ?? []
+                ]);
+            } else {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => $result['message'] ?? 'Failed to get statistics'
+                ])->setStatusCode(500);
+            }
+            
+        } catch (\Exception $e) {
+            log_message('error', 'Failed to get export statistics: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to get statistics: ' . $e->getMessage()
+            ])->setStatusCode(500);
         }
     }
 
@@ -1008,12 +837,23 @@ class Participants extends AdminBaseController
                     ]
                 ];
                 
-                // If export is completed and has a file, generate download URL
+                // If export is completed and has a file, construct download URL
                 if (in_array(strtolower($statusData['status'] ?? ''), ['completed', 'ready']) && 
                     !empty($statusData['file_name'])) {
                     
-                    // Generate local download URL that proxies through our controller
-                    $response['data']['download_url'] = base_url("participants/download/{$exportId}");
+                    // Build download URL using API base URL
+                    $downloadUrl = $statusData['download_url'] ?? null;
+                    if (!$downloadUrl) {
+                        // Construct download URL according to documentation: /api/ybb/export/{id}/download
+                        $apiBaseUrl = getenv('YBB_EXPORT_API_URL') ?: 'http://127.0.0.1:5000';
+                        $downloadUrl = rtrim($apiBaseUrl, '/') . "/api/ybb/export/{$exportId}/download";
+                    } else if (!str_starts_with($downloadUrl, 'http')) {
+                        // Relative URL, make it absolute
+                        $apiBaseUrl = getenv('YBB_EXPORT_API_URL') ?: 'http://127.0.0.1:5000';
+                        $downloadUrl = rtrim($apiBaseUrl, '/') . $downloadUrl;
+                    }
+                    
+                    $response['data']['download_url'] = $downloadUrl;
                     $response['data']['records_exported'] = $statusData['records_processed'] ?? $statusData['total_records'] ?? 0;
                 }
                 

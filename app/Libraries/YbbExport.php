@@ -50,79 +50,45 @@ class YbbExport
     }
     
     /**
-     * Export participants data
+     * Export participants directly from database using filters (DB-Direct Mode)
+     * This is the ONLY recommended approach as per YBB_DB_EXPORT_API_INTEGRATION_GUIDE.md
+     * 
+     * @param array $filters Database filters (program_id, status, country, has_paid, has_submitted_form, etc.)
+     * @param array $options Export options (template, format, filename, sheet_name, include_related)
+     * @return array API response with export_id and download information
      */
-    public function exportParticipants(array $data, array $options = []): array
+    public function exportParticipantsFromDB(array $filters, array $options = []): array
     {
-        return $this->_createParticipantsExport($data, $options);
-    }
-    
-    /**
-     * Export payments data
-     */
-    public function exportPayments(array $data, array $options = []): array
-    {
-        return $this->_createExport('payments', $data, $options);
-    }
-
-    /**
-     * Create participants export using correct API structure
-     */
-    private function _createParticipantsExport(array $data, array $options = []): array
-    {
-        if (empty($data)) {
+        if (empty($filters['program_id'])) {
             return [
                 'success' => false,
-                'message' => 'No data provided for export'
+                'message' => 'program_id is required for database export'
             ];
         }
 
-        if (count($data) > $this->config->maxRecords) {
-            return [
-                'success' => false,
-                'message' => "Data exceeds maximum limit of {$this->config->maxRecords} records"
-            ];
-        }
-
-        // Prepare payload according to YBB API documentation
+        // Prepare payload according to YBB DB Export API documentation
         $payload = [
-            'data' => $data,
-            'template' => $options['template'] ?? 'standard',
-            'format' => $options['format'] ?? 'excel'
+            'filters' => $filters,
+            'options' => [
+                'template' => $options['template'] ?? 'standard',
+                'format' => $options['format'] ?? 'excel',
+                'filename' => $options['filename'] ?? null,
+                'sheet_name' => $options['sheet_name'] ?? null,
+                'include_related' => $options['include_related'] ?? true
+            ]
         ];
 
-        // Add optional parameters
-        if (isset($options['filename'])) {
-            $payload['filename'] = $options['filename'];
-        }
+        // Remove null values from options
+        $payload['options'] = array_filter($payload['options'], function($value) {
+            return $value !== null;
+        });
 
-        if (isset($options['sheet_name'])) {
-            $payload['sheet_name'] = $options['sheet_name'];
-        }
-
-        if (isset($options['filters'])) {
-            $payload['filters'] = $options['filters'];
-        }
-
-        // Add chunking parameters for large datasets
-        if (isset($options['force_chunking']) && $options['force_chunking']) {
-            // For large datasets, the API handles chunking automatically
-            // We just need to indicate this is a large dataset
-            if (isset($options['chunk_size'])) {
-                $payload['chunk_size'] = $options['chunk_size'];
-            }
-            if (isset($options['total_chunks'])) {
-                $payload['total_chunks'] = $options['total_chunks'];
-            }
-            if (isset($options['total_records'])) {
-                $payload['total_records'] = $options['total_records'];
-            }
-        }
-
-        $url = $this->apiUrl . "/api/ybb/export/participants";
+        // According to documentation: base URL should be without /api/ybb/db
+        // The library appends the full path
+        $url = $this->apiUrl . "/api/ybb/db/export/participants";
 
         if ($this->config->enableDebugLogging) {
-            log_message('info', "YBB Export: Creating participants export with " . count($data) . " records");
+            log_message('info', "YBB DB Export: Creating participants export with filters: " . json_encode($filters));
         }
 
         $result = $this->_makeRequest('POST', $url, $payload);
@@ -131,49 +97,42 @@ class YbbExport
         if ($result['success']) {
             $apiData = $result['data'];
             
-            // Handle YBB API response format from documentation
+            // Handle YBB DB API response format from documentation
             if (isset($apiData['status']) && $apiData['status'] === 'success') {
+                // Build download URL according to documentation: /api/ybb/export/{id}/download (no /db/)
+                $exportId = $apiData['data']['export_id'];
+                $downloadUrl = $apiData['data']['download_url'] ?? "/api/ybb/export/{$exportId}/download";
+                
                 $responseData = [
-                    'export_id' => $apiData['data']['export_id'],
-                    'download_url' => $apiData['data']['download_url'] ?? null,
-                    'record_count' => $apiData['data']['record_count'] ?? count($data),
+                    'export_id' => $exportId,
+                    'download_url' => $downloadUrl,
+                    'record_count' => $apiData['data']['record_count'] ?? 0,
                     'created_at' => $apiData['data']['generated_at'] ?? null,
+                    'expires_at' => $apiData['data']['expires_at'] ?? null,
                     'file_name' => $apiData['data']['file_name'] ?? null,
                     'file_size' => $apiData['data']['file_size'] ?? null,
                     'file_size_mb' => $apiData['data']['file_size_mb'] ?? null
                 ];
 
-                // Handle single file vs multi-file exports
-                if (isset($apiData['export_strategy'])) {
-                    $responseData['export_strategy'] = $apiData['export_strategy'];
-                    
-                    if ($apiData['export_strategy'] === 'multi_file') {
-                        $responseData['file_count'] = $apiData['data']['file_count'] ?? null;
-                        $responseData['batch_files'] = $apiData['data']['batch_files'] ?? [];
-                        $responseData['zip_download_url'] = $apiData['data']['zip_download_url'] ?? null;
-                    }
-                }
-
-                // Add performance metrics if available
-                if (isset($apiData['performance_metrics'])) {
-                    $responseData['performance_metrics'] = $apiData['performance_metrics'];
+                // Add metadata for tracking
+                if (isset($apiData['metadata'])) {
+                    $responseData['metadata'] = $apiData['metadata'];
                 }
 
                 if ($this->config->enableDebugLogging) {
-                    log_message('info', "YBB Export: Participants export completed with strategy: " . ($apiData['export_strategy'] ?? 'single_file'));
+                    log_message('info', "YBB DB Export: Export completed successfully. Export ID: " . $responseData['export_id']);
                 }
 
                 return [
                     'success' => true,
                     'data' => $responseData,
-                    'metadata' => $apiData['system_info'] ?? []
+                    'metadata' => $apiData['metadata'] ?? []
                 ];
             }
         }
 
         // Handle error cases according to API documentation
         if (!$result['success']) {
-            // Transform API error to match expected format
             return [
                 'success' => false,
                 'message' => $result['message'] ?? 'Export request failed',
@@ -183,7 +142,6 @@ class YbbExport
             ];
         }
 
-        // If we get here, there was an unexpected response format
         return [
             'success' => false,
             'message' => 'Unexpected API response format',
@@ -192,13 +150,183 @@ class YbbExport
     }
     
     /**
-     * Export ambassadors data
+     * Export payments directly from database using filters (DB-Direct Mode)
+     * This is the recommended approach as per YBB_DB_EXPORT_API_INTEGRATION_GUIDE.md
+     * 
+     * @param array $filters Database filters (program_id, status, payment_method_id, etc.)
+     * @param array $options Export options (template, format, filename, sheet_name, include_related)
+     * @return array API response with export_id and download information
      */
-    public function exportAmbassadors(array $data, array $options = []): array
+    public function exportPaymentsFromDB(array $filters, array $options = []): array
     {
-        return $this->_createExport('ambassadors', $data, $options);
+        if (empty($filters['program_id'])) {
+            return [
+                'success' => false,
+                'message' => 'program_id is required for database export'
+            ];
+        }
+
+        // Prepare payload according to YBB DB Export API documentation
+        $payload = [
+            'filters' => $filters,
+            'options' => [
+                'template' => $options['template'] ?? 'standard',
+                'format' => $options['format'] ?? 'excel',
+                'filename' => $options['filename'] ?? null,
+                'sheet_name' => $options['sheet_name'] ?? null,
+                'include_related' => $options['include_related'] ?? true
+            ]
+        ];
+
+        // Remove null values from options
+        $payload['options'] = array_filter($payload['options'], function($value) {
+            return $value !== null;
+        });
+
+        // According to documentation: base URL should be without /api/ybb/db
+        // The library appends the full path
+        $url = $this->apiUrl . "/api/ybb/db/export/payments";
+
+        if ($this->config->enableDebugLogging) {
+            log_message('info', "YBB DB Export: Creating payments export with filters: " . json_encode($filters));
+        }
+
+        $result = $this->_makeRequest('POST', $url, $payload);
+
+        // Transform API response to match expected format
+        if ($result['success']) {
+            // The API returns data directly in result['data']
+            $apiData = $result['data'] ?? $result;
+            
+            // Handle YBB DB API response format from documentation
+            // Response format: {status: "success", data: {export_id, file_name, ...}, ...}
+            if (isset($apiData['status']) && $apiData['status'] === 'success' && isset($apiData['data'])) {
+                // Nested format: {status: "success", data: {export_id, ...}}
+                $exportData = $apiData['data'];
+                $exportId = $exportData['export_id'];
+                $downloadUrl = $exportData['download_url'] ?? "/api/ybb/export/{$exportId}/download";
+                
+                $responseData = [
+                    'export_id' => $exportId,
+                    'download_url' => $downloadUrl,
+                    'record_count' => $exportData['record_count'] ?? 0,
+                    'created_at' => $exportData['generated_at'] ?? ($apiData['system_info']['generated_at'] ?? null),
+                    'expires_at' => $exportData['expires_at'] ?? null,
+                    'file_name' => $exportData['file_name'] ?? null,
+                    'file_size' => $exportData['file_size'] ?? null,
+                    'file_size_mb' => $exportData['file_size_mb'] ?? null
+                ];
+
+                // Add metadata for tracking
+                $responseData['metadata'] = [
+                    'export_strategy' => $apiData['export_strategy'] ?? 'single_file',
+                    'performance_metrics' => $apiData['performance_metrics'] ?? [],
+                    'system_info' => $apiData['system_info'] ?? []
+                ];
+
+                if ($this->config->enableDebugLogging) {
+                    log_message('info', "YBB DB Export: Payments export completed successfully. Export ID: " . $responseData['export_id']);
+                }
+
+                return [
+                    'success' => true,
+                    'data' => $responseData,
+                    'metadata' => $responseData['metadata']
+                ];
+            } elseif (isset($apiData['export_id'])) {
+                // Direct format: {export_id, file_name, record_count, ...} at top level
+                $exportId = $apiData['export_id'];
+                $downloadUrl = $apiData['download_url'] ?? "/api/ybb/export/{$exportId}/download";
+                
+                $responseData = [
+                    'export_id' => $exportId,
+                    'download_url' => $downloadUrl,
+                    'record_count' => $apiData['record_count'] ?? 0,
+                    'created_at' => $apiData['generated_at'] ?? null,
+                    'expires_at' => $apiData['expires_at'] ?? null,
+                    'file_name' => $apiData['file_name'] ?? null,
+                    'file_size' => $apiData['file_size'] ?? null,
+                    'file_size_mb' => $apiData['file_size_mb'] ?? null
+                ];
+
+                // Add metadata for tracking
+                $responseData['metadata'] = [
+                    'export_strategy' => $apiData['export_strategy'] ?? 'single_file',
+                    'performance_metrics' => $apiData['performance_metrics'] ?? [],
+                    'system_info' => $apiData['system_info'] ?? []
+                ];
+
+                if ($this->config->enableDebugLogging) {
+                    log_message('info', "YBB DB Export: Payments export completed successfully. Export ID: " . $responseData['export_id']);
+                }
+
+                return [
+                    'success' => true,
+                    'data' => $responseData,
+                    'metadata' => $responseData['metadata']
+                ];
+            }
+        }
+
+        // Handle error cases according to API documentation
+        if (!$result['success']) {
+            log_message('error', "YBB DB Export: Payments export failed. Response: " . json_encode($result));
+            return [
+                'success' => false,
+                'message' => $result['message'] ?? 'Export request failed',
+                'error_code' => $result['error_code'] ?? 'UNKNOWN_ERROR',
+                'details' => $result['details'] ?? [],
+                'request_id' => $result['request_id'] ?? null
+            ];
+        }
+
+        // Log unexpected response format for debugging
+        log_message('error', "YBB DB Export: Unexpected API response format for payments export. Response: " . json_encode($result));
+        return [
+            'success' => false,
+            'message' => 'Unexpected API response format. Check logs for details.',
+            'error_code' => 'RESPONSE_FORMAT_ERROR',
+            'debug_data' => $result
+        ];
     }
     
+    /**
+     * Get export statistics before creating export (as per documentation)
+     * 
+     * @param string $exportType Type of export ('participants' or 'payments')
+     * @param array $filters Database filters to preview
+     * @return array API response with statistics
+     */
+    public function getExportStatistics(string $exportType, array $filters): array
+    {
+        $payload = [
+            'export_type' => $exportType,
+            'filters' => $filters
+        ];
+
+        $url = $this->apiUrl . "/api/ybb/db/export/statistics";
+
+        if ($this->config->enableDebugLogging) {
+            log_message('info', "YBB DB Export: Getting statistics for {$exportType} with filters: " . json_encode($filters));
+        }
+
+        $result = $this->_makeRequest('POST', $url, $payload);
+
+        if ($result['success'] && isset($result['data']['status']) && $result['data']['status'] === 'success') {
+            return [
+                'success' => true,
+                'data' => $result['data']['data'] ?? [],
+                'total_count' => $result['data']['data']['total_count'] ?? 0,
+                'status_breakdown' => $result['data']['data']['status_breakdown'] ?? []
+            ];
+        }
+
+        return [
+            'success' => false,
+            'message' => $result['message'] ?? 'Failed to retrieve statistics'
+        ];
+    }
+
     /**
      * Get export status with improved error handling
      */
@@ -313,174 +441,7 @@ class YbbExport
     }
     
     /**
-     * Estimate export size and processing time
-     */
-    public function estimateExport(array $data, array $options = []): array
-    {
-        $payload = array_merge([
-            'data_count' => count($data),
-            'template' => 'standard',
-            'format' => 'excel'
-        ], $options);
-        
-        $url = $this->apiUrl . "/api/ybb/export/estimate";
-        
-        return $this->_makeRequest('POST', $url, $payload);
-    }
-    
-    /**
-     * Create export request according to YBB API specification
-     */
-    private function _createExport(string $exportType, array $data, array $options = []): array
-    {
-        if (empty($data)) {
-            return [
-                'success' => false,
-                'message' => 'No data provided for export'
-            ];
-        }
-        
-        if (count($data) > $this->config->maxRecords) {
-            return [
-                'success' => false,
-                'message' => "Data exceeds maximum limit of {$this->config->maxRecords} records"
-            ];
-        }
-        
-        // Prepare payload according to Python service API specification
-        $payload = [
-            'data' => $data,
-            'template' => $options['template'] ?? 'standard',
-            'format' => $options['format'] ?? 'excel'
-        ];
-        
-        // Add optional parameters
-        if (isset($options['filename'])) {
-            $payload['filename'] = $options['filename'];
-        }
-        
-        if (isset($options['sheet_name'])) {
-            $payload['sheet_name'] = $options['sheet_name'];
-        }
-        
-        // Add chunking parameters if specified (for large datasets)
-        if (isset($options['force_chunking']) && $options['force_chunking']) {
-            $payload['force_chunking'] = true;
-            
-            if (isset($options['chunk_size'])) {
-                $payload['chunk_size'] = $options['chunk_size'];
-            }
-        }
-        
-        $url = $this->apiUrl . "/api/ybb/export/{$exportType}";
-        
-        if ($this->config->enableDebugLogging) {
-            log_message('info', "YBB Export: Creating {$exportType} export with " . count($data) . " records");
-        }
-        
-        $result = $this->_makeRequest('POST', $url, $payload);
-        
-        // Transform API response to match expected format based on Python service guide
-        if ($result['success']) {
-            $apiData = $result['data'];
-            
-            // Handle Python service response format
-            if (isset($apiData['status']) && $apiData['status'] === 'success') {
-                $responseData = [
-                    'export_id' => $apiData['data']['export_id'],
-                    'download_url' => $apiData['download_url'] ?? null,
-                    'record_count' => $apiData['data']['record_count'] ?? count($data),
-                    'created_at' => $apiData['data']['generated_at'] ?? null
-                ];
-                
-                // Handle single file export response
-                if (isset($apiData['export_strategy']) && $apiData['export_strategy'] === 'single_file') {
-                    $responseData['file_name'] = $apiData['data']['file_name'] ?? null;
-                    $responseData['file_size'] = $apiData['data']['file_size'] ?? null;
-                    $responseData['file_size_mb'] = $apiData['data']['file_size_mb'] ?? null;
-                    $responseData['export_strategy'] = 'single_file';
-                    $responseData['total_files'] = 1;
-                    
-                    // Add performance metrics
-                    if (isset($apiData['performance_metrics'])) {
-                        $responseData['performance_metrics'] = $apiData['performance_metrics'];
-                    }
-                    
-                    if ($this->config->enableDebugLogging) {
-                        log_message('info', "YBB Export: Single file export completed");
-                    }
-                }
-                // Handle chunked/multi-file export response  
-                elseif (isset($apiData['export_strategy']) && $apiData['export_strategy'] === 'multi_file') {
-                    $responseData['file_name'] = $apiData['data']['archive_info']['filename'] ?? null;
-                    $responseData['export_strategy'] = 'chunked';
-                    $responseData['total_files'] = $apiData['data']['total_files'] ?? 1;
-                    $responseData['individual_files'] = $apiData['data']['individual_files'] ?? null;
-                    $responseData['chunk_count'] = $apiData['data']['total_files'] ?? 1;
-                    
-                    // Add archive information
-                    if (isset($apiData['data']['archive_info'])) {
-                        $responseData['archive'] = [
-                            'filename' => $apiData['data']['archive_info']['filename'],
-                            'compressed_size' => $apiData['data']['archive_info']['compressed_size'],
-                            'uncompressed_size' => $apiData['data']['archive_info']['uncompressed_size'],
-                            'compression_ratio' => $apiData['data']['archive_info']['compression_ratio'],
-                            'compression_time_seconds' => $apiData['data']['archive_info']['compression_time_seconds']
-                        ];
-                    }
-                    
-                    // Add performance metrics
-                    if (isset($apiData['data']['performance_metrics'])) {
-                        $responseData['performance_metrics'] = $apiData['data']['performance_metrics'];
-                    }
-                    
-                    // Add system info
-                    if (isset($apiData['data']['system_info'])) {
-                        $responseData['system_info'] = $apiData['data']['system_info'];
-                    }
-                    
-                    if ($this->config->enableDebugLogging) {
-                        log_message('info', "YBB Export: Chunked export completed with {$apiData['data']['total_files']} files");
-                    }
-                }
-                
-                return [
-                    'success' => true,
-                    'data' => $responseData,
-                    'metadata' => [
-                        'processing_time' => $apiData['performance_metrics']['total_processing_time_seconds'] ?? null,
-                        'export_strategy' => $apiData['export_strategy'] ?? 'single_file'
-                    ]
-                ];
-            }
-            
-            // Fallback for direct response format
-            if (isset($apiData['export_id'])) {
-                return [
-                    'success' => true,
-                    'data' => [
-                        'export_id' => $apiData['export_id'],
-                        'file_name' => $apiData['filename'] ?? $apiData['file_name'] ?? null,
-                        'file_size' => $apiData['file_size'] ?? null,
-                        'record_count' => $apiData['record_count'] ?? count($data),
-                        'download_url' => $apiData['download_url'] ?? null,
-                        'expires_at' => $apiData['expires_at'] ?? null,
-                        'export_strategy' => 'single_file',
-                        'estimated_time' => null,
-                        'total_files' => 1,
-                        'individual_files' => null,
-                        'archive' => null
-                    ],
-                    'metadata' => []
-                ];
-            }
-        }
-        
-        return $result;
-    }
-    
-    /**
-     * Create chunked export for large datasets
+     * Test API connectivity and health
      */
     /**
      * Make HTTP request to API with retry logic

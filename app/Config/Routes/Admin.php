@@ -46,8 +46,9 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->get('participants/edit/(:num)', 'Participants::edit/$1');
         $routes->get('participants/getData', 'Participants::getData');
         $routes->post('participants/export', 'Participants::export');
+        $routes->post('participants/export_statistics', 'Participants::export_statistics');
+        $routes->get('participants/export_status', 'Participants::export_status');
         $routes->get('participants/export/(:num)', 'Participants::export/$1');
-        $routes->get('participants/export_batch', 'Participants::export_batch');
 
         // ambassadors
         $routes->get('ambassadors', 'Ambassadors::index');
@@ -95,6 +96,9 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->get('view/(:num)', 'Payments::view/$1');
         $routes->post('update-status/(:num)', 'Payments::updateStatus/$1');
         $routes->post('export', 'Payments::export');
+        $routes->post('export_statistics', 'Payments::export_statistics');
+        $routes->get('export_status', 'Payments::export_status');
+        $routes->get('export/(:any)', 'Payments::export_status/$1');
         $routes->get('make', 'Payments::makePayment');
     });        // submissions group
     $routes->group('submissions', ['filter' => 'program_selection'], function ($routes) {
