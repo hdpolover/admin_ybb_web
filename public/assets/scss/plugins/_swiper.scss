@@ -116,3 +116,48 @@
         background-color: rgba($dark, 0.35); 
     }
 }
+
+// Mobile optimization for project carousel
+.project-swiper {
+    // Better touch handling on mobile
+    @media (max-width: 767px) {
+        .swiper-slide {
+            // Ensure full card visibility on mobile
+            height: auto;
+            padding: 4px 0;
+        }
+        
+        // Adjust navigation buttons for mobile
+        .slider-button-prev,
+        .slider-button-next {
+            display: none; // Hide on very small screens to save space
+        }
+        
+        // Show touch indicators
+        &::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 4px;
+            background-color: rgba($primary, 0.3);
+            border-radius: 2px;
+            z-index: 10;
+        }
+    }
+    
+    // Tablet optimization
+    @media (min-width: 768px) and (max-width: 1199px) {
+        .slider-button-prev,
+        .slider-button-next {
+            height: 28px;
+            width: 28px;
+            
+            &::after {
+                font-size: 24px;
+            }
+        }
+    }
+}

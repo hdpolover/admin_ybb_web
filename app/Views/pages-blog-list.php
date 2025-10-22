@@ -194,6 +194,8 @@
                                 </div>
                             </div>
                             <!--end row-->
+                            <!-- NOTE: Template Demo Data - All blog entries below are hardcoded placeholders -->
+                            <!-- Replace with dynamic blog data from database when implementing real blog functionality -->
                             <div class="row gx-4">
                                 <div class="col-xxl-12">
                                     <div class="card">
