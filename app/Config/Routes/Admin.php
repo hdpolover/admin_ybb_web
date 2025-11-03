@@ -427,6 +427,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->get('edit/(:num)', 'AdminManagement::edit/$1');
             $routes->post('update/(:num)', 'AdminManagement::update/$1');
             $routes->get('delete/(:num)', 'AdminManagement::delete/$1');
+            $routes->post('reset-password/(:num)', 'AdminManagement::resetPassword/$1');
         });
 
         // Menu Management routes

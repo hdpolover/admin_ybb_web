@@ -70,6 +70,7 @@
                             <tr>
                                 <th scope="col" style="width: 50px;">#</th>
                                 <th scope="col">Period Name</th>
+                                <th scope="col">Type</th>
                                 <th scope="col">Description</th>
                                 <th scope="col">Start Date</th>
                                 <th scope="col">End Date</th>
@@ -79,16 +80,20 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <?php if (empty($periods)): ?>
+                            <?php if (empty($periodHierarchy)): ?>
                             <tr>
-                                <td colspan="8" class="text-center">No periods found for this payment</td>
+                                <td colspan="9" class="text-center">No periods found for this payment</td>
                             </tr>
                             <?php else: ?>
-                            <?php foreach ($periods as $index => $period): ?>
-                            <tr>
-                                <td><?= $index + 1 ?></td>
+                            <?php 
+                            $counter = 1;
+                            foreach ($periodHierarchy as $hierarchy): 
+                                $period = $hierarchy['base'];
+                            ?>
+                            <tr class="table-primary">
+                                <td><?= $counter++ ?></td>
                                 <td>
-                                    <strong><?= $period->name ?></strong>
+                                    <strong><i class="ri-folder-line"></i> <?= $period->name ?></strong>
                                     <?php 
                                     $now = new DateTime();
                                     $start = new DateTime($period->start_date);
@@ -101,6 +106,7 @@
                                     <br><small class="text-muted"><i class="ri-time-line"></i> Ended</small>
                                     <?php endif; ?>
                                 </td>
+                                <td><span class="badge bg-primary">Base Period</span></td>
                                 <td><?= $period->description ?: '<em class="text-muted">No description</em>' ?></td>
                                 <td>
                                     <?php
@@ -136,7 +142,80 @@
                                     </div>
                                 </td>
                             </tr>
-                            <?php endforeach; ?>
+                            <?php 
+                            // Show extensions
+                            if ($hierarchy['has_extensions']):
+                                foreach ($hierarchy['extensions'] as $extension): 
+                            ?>
+                            <tr class="table-light">
+                                <td></td>
+                                <td class="ps-4">
+                                    <i class="ri-corner-down-right-line text-muted"></i> <strong><?= $extension->name ?></strong>
+                                    <?php 
+                                    $now = new DateTime();
+                                    $extStart = new DateTime($extension->start_date);
+                                    $extEnd = new DateTime($extension->end_date);
+                                    if ($now >= $extStart && $now <= $extEnd): ?>
+                                    <br><small class="text-success ps-4"><i class="ri-time-line"></i> Currently Active</small>
+                                    <?php elseif ($now < $extStart): ?>
+                                    <br><small class="text-warning ps-4"><i class="ri-time-line"></i> Upcoming</small>
+                                    <?php else: ?>
+                                    <br><small class="text-muted ps-4"><i class="ri-time-line"></i> Ended</small>
+                                    <?php endif; ?>
+                                </td>
+                                <td><span class="badge bg-<?= $extension->extension_type == 'continuation' ? 'info' : 'warning' ?>"><?= ucfirst($extension->extension_type) ?></span></td>
+                                <td><?= $extension->description ?: '<em class="text-muted">No description</em>' ?></td>
+                                <td>
+                                    <?php
+                                    // For continuation extensions, show parent's start date with indicator
+                                    if ($extension->extension_type == 'continuation'):
+                                        $parentPeriod = $period; // Parent is the base period
+                                        $parentStartDateTime = new DateTime($parentPeriod->start_date);
+                                        $isParentStartMidnight = $parentStartDateTime->format('H:i:s') === '00:00:00';
+                                    ?>
+                                        <strong class="text-primary"><?= $isParentStartMidnight ? date('M j, Y', strtotime($parentPeriod->start_date)) : date('M j, Y g:i A', strtotime($parentPeriod->start_date)) ?></strong>
+                                        <br><small class="text-primary"><i class="ri-link"></i> From parent period</small>
+                                        <br><small class="text-muted">Extension starts: <?= date('M j, Y', strtotime($extension->start_date)) ?></small>
+                                    <?php else:
+                                        // For parallel extensions, show their own start date
+                                        $extStartDateTime = new DateTime($extension->start_date);
+                                        $isExtStartMidnight = $extStartDateTime->format('H:i:s') === '00:00:00';
+                                    ?>
+                                        <?= $isExtStartMidnight ? date('M j, Y', strtotime($extension->start_date)) : date('M j, Y g:i A', strtotime($extension->start_date)) ?>
+                                        <br><small class="text-muted"><?= date('Y-m-d', strtotime($extension->start_date)) ?><?= $isExtStartMidnight ? '' : ' ' . date('H:i', strtotime($extension->start_date)) ?></small>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?php
+                                    $extEndDateTime = new DateTime($extension->end_date);
+                                    $isExtEndMidnight = $extEndDateTime->format('H:i:s') === '00:00:00';
+                                    $isExtEndEndOfDay = $extEndDateTime->format('H:i:s') === '23:59:59';
+                                    ?>
+                                    <?= ($isExtEndMidnight || $isExtEndEndOfDay) ? date('M j, Y', strtotime($extension->end_date)) : date('M j, Y g:i A', strtotime($extension->end_date)) ?>
+                                    <br><small class="text-muted"><?= date('Y-m-d', strtotime($extension->end_date)) ?><?= ($isExtEndMidnight || $isExtEndEndOfDay) ? '' : ' ' . date('H:i', strtotime($extension->end_date)) ?></small>
+                                </td>
+                                <td><span class="badge bg-light text-dark"><?= $extension->order_number ?></span></td>
+                                <td>
+                                    <span class="badge bg-<?= $extension->is_active ? 'success' : 'danger' ?>">
+                                        <?= $extension->is_active ? 'Active' : 'Inactive' ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-sm btn-warning" onclick="editPeriod(<?= $extension->id ?>)" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit Extension">
+                                            <i class="ri-pencil-fill"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-danger" onclick="deletePeriod(<?= $extension->id ?>, '<?= addslashes($extension->name) ?>')" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete Extension">
+                                            <i class="ri-delete-bin-fill"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <?php 
+                                endforeach;
+                            endif;
+                            endforeach; 
+                            ?>
                             <?php endif; ?>
                         </tbody>
                     </table>
@@ -175,6 +254,38 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
+                                <label for="add_parent_period_id" class="form-label">
+                                    Extends From Period <i class="ri-information-line text-info" data-bs-toggle="tooltip" title="Select a base period to create an extension"></i>
+                                </label>
+                                <select class="form-select" id="add_parent_period_id" name="parent_period_id">
+                                    <option value="">None (Create Base Period)</option>
+                                    <?php if (!empty($basePeriods)): ?>
+                                        <?php foreach ($basePeriods as $basePeriod): ?>
+                                            <option value="<?= $basePeriod->id ?>">
+                                                <?= $basePeriod->name ?> (<?= date('M j, Y', strtotime($basePeriod->start_date)) ?> - <?= date('M j, Y', strtotime($basePeriod->end_date)) ?>)
+                                            </option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </select>
+                                <div class="form-text">Leave as "None" to create a standalone base period</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3" id="add_extension_type_container" style="display: none;">
+                                <label for="add_extension_type" class="form-label">
+                                    Extension Type <i class="ri-information-line text-info" data-bs-toggle="tooltip" title="Continuation starts after parent ends; Parallel overlaps with parent"></i>
+                                </label>
+                                <select class="form-select" id="add_extension_type" name="extension_type">
+                                    <option value="continuation">Continuation (After parent period)</option>
+                                    <option value="parallel">Parallel (Overlaps with parent)</option>
+                                </select>
+                                <div class="form-text" id="add_extension_type_help">Select how this extension relates to parent period</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
                                 <label for="add_start_date" class="form-label">Start Date & Time <span class="text-danger">*</span></label>
                                 <input type="datetime-local" class="form-control" id="add_start_date" name="start_date" required>
                                 <div class="invalid-feedback">Please provide a start date and time.</div>
@@ -188,9 +299,17 @@
                             </div>
                         </div>
                     </div>
-                    <div class="alert alert-info">
+                    <div class="alert alert-info" id="add_base_period_note">
                         <i class="mdi mdi-information"></i>
-                        <strong>Note:</strong> Periods cannot overlap with existing periods. There can be gaps between periods, but no overlapping dates are allowed.
+                        <strong>Note:</strong> Base periods cannot overlap with other base periods. Extension periods can overlap with their parent.
+                    </div>
+                    <div class="alert alert-warning" id="add_continuation_note" style="display: none;">
+                        <i class="mdi mdi-alert"></i>
+                        <strong>Continuation Extension:</strong> Must start on or after the parent period's end date.
+                    </div>
+                    <div class="alert alert-warning" id="add_parallel_note" style="display: none;">
+                        <i class="mdi mdi-alert"></i>
+                        <strong>Parallel Extension:</strong> Must overlap with the parent period in some way.
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -228,6 +347,34 @@
                             <div class="mb-3">
                                 <label for="edit_period_description" class="form-label">Description</label>
                                 <input type="text" class="form-control" id="edit_period_description" name="description">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_parent_period_id" class="form-label">
+                                    Extends From Period <i class="ri-information-line text-info" data-bs-toggle="tooltip" title="Select a base period to create an extension"></i>
+                                </label>
+                                <select class="form-select" id="edit_parent_period_id" name="parent_period_id">
+                                    <option value="">None (Base Period)</option>
+                                    <?php if (!empty($basePeriods)): ?>
+                                        <?php foreach ($basePeriods as $basePeriod): ?>
+                                            <option value="<?= $basePeriod->id ?>">
+                                                <?= $basePeriod->name ?> (<?= date('M j, Y', strtotime($basePeriod->start_date)) ?> - <?= date('M j, Y', strtotime($basePeriod->end_date)) ?>)
+                                            </option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3" id="edit_extension_type_container" style="display: none;">
+                                <label for="edit_extension_type" class="form-label">Extension Type</label>
+                                <select class="form-select" id="edit_extension_type" name="extension_type">
+                                    <option value="continuation">Continuation (After parent)</option>
+                                    <option value="parallel">Parallel (Overlaps parent)</option>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -274,6 +421,20 @@
 <script>
 const baseUrl = '<?= base_url() ?>';
 const paymentId = <?= $payment->id ?>;
+
+// Store base period data for auto-filling dates
+const basePeriods = {
+    <?php if (!empty($basePeriods)): ?>
+        <?php foreach ($basePeriods as $basePeriod): ?>
+        <?= $basePeriod->id ?>: {
+            id: <?= $basePeriod->id ?>,
+            name: '<?= addslashes($basePeriod->name) ?>',
+            start_date: '<?= $basePeriod->start_date ?>',
+            end_date: '<?= $basePeriod->end_date ?>'
+        },
+        <?php endforeach; ?>
+    <?php endif; ?>
+};
 
 console.log('=== PAGE INITIALIZATION ===');
 console.log('Base URL:', baseUrl);
@@ -349,6 +510,83 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Initialize form validation
 function initFormValidation() {
+    // Handle parent period selection for add form
+    $('#add_parent_period_id').on('change', function() {
+        const parentPeriodId = $(this).val();
+        const extensionTypeContainer = $('#add_extension_type_container');
+        const baseNote = $('#add_base_period_note');
+        const continuationNote = $('#add_continuation_note');
+        const parallelNote = $('#add_parallel_note');
+        
+        if (parentPeriodId) {
+            // Show extension type selection
+            extensionTypeContainer.show();
+            baseNote.hide();
+            
+            // Show appropriate note based on extension type
+            updateExtensionNotes('add');
+            
+            // Auto-fill start date for continuation extension
+            const extensionType = $('#add_extension_type').val();
+            if (extensionType === 'continuation') {
+                autoFillContinuationDate('add', parentPeriodId);
+            }
+        } else {
+            // Hide extension type selection
+            extensionTypeContainer.hide();
+            baseNote.show();
+            continuationNote.hide();
+            parallelNote.hide();
+            
+            // Clear start date
+            $('#add_start_date').val('');
+        }
+    });
+    
+    // Handle extension type selection for add form
+    $('#add_extension_type').on('change', function() {
+        updateExtensionNotes('add');
+        
+        // Auto-fill date when switching to continuation
+        const extensionType = $(this).val();
+        const parentPeriodId = $('#add_parent_period_id').val();
+        
+        if (extensionType === 'continuation' && parentPeriodId) {
+            autoFillContinuationDate('add', parentPeriodId);
+        } else if (extensionType === 'parallel') {
+            // Clear auto-filled date for parallel
+            $('#add_start_date').val('');
+        }
+    });
+    
+    // Handle parent period selection for edit form
+    $('#edit_parent_period_id').on('change', function() {
+        const parentPeriodId = $(this).val();
+        const extensionTypeContainer = $('#edit_extension_type_container');
+        
+        if (parentPeriodId) {
+            extensionTypeContainer.show();
+            
+            // Auto-fill for continuation
+            const extensionType = $('#edit_extension_type').val();
+            if (extensionType === 'continuation') {
+                autoFillContinuationDate('edit', parentPeriodId);
+            }
+        } else {
+            extensionTypeContainer.hide();
+        }
+    });
+    
+    // Handle extension type change for edit form
+    $('#edit_extension_type').on('change', function() {
+        const extensionType = $(this).val();
+        const parentPeriodId = $('#edit_parent_period_id').val();
+        
+        if (extensionType === 'continuation' && parentPeriodId) {
+            autoFillContinuationDate('edit', parentPeriodId);
+        }
+    });
+    
     // Add custom validation for date range
     $('#add_end_date, #edit_end_date').on('change', function() {
         const startDateInput = $(this).closest('form').find('[name="start_date"]');
@@ -385,6 +623,37 @@ function initFormValidation() {
             }
         }
     });
+}
+
+// Auto-fill start date for continuation extension
+function autoFillContinuationDate(prefix, parentPeriodId) {
+    if (!parentPeriodId || !basePeriods[parentPeriodId]) {
+        return;
+    }
+    
+    const parentPeriod = basePeriods[parentPeriodId];
+    const parentEndDate = new Date(parentPeriod.end_date);
+    
+    // Set start date to parent's end date (continuation starts where parent ends)
+    const formattedDate = formatDateTimeLocal(parentEndDate);
+    $(`#${prefix}_start_date`).val(formattedDate);
+    
+    console.log(`Auto-filled ${prefix} start date to parent end date:`, formattedDate);
+}
+
+// Update extension notes based on type
+function updateExtensionNotes(prefix) {
+    const extensionType = $(`#${prefix}_extension_type`).val();
+    const continuationNote = $(`#${prefix}_continuation_note`);
+    const parallelNote = $(`#${prefix}_parallel_note`);
+    
+    if (extensionType === 'continuation') {
+        continuationNote.show();
+        parallelNote.hide();
+    } else if (extensionType === 'parallel') {
+        continuationNote.hide();
+        parallelNote.show();
+    }
 }
 
 // Show loading state on button
@@ -505,6 +774,17 @@ function editPeriod(periodId) {
                 $('#edit_start_date').val(formatDateTimeLocal(startDate));
                 $('#edit_end_date').val(formatDateTimeLocal(endDate));
                 $('#edit_is_active').val(period.is_active);
+                
+                // Set parent period and extension type
+                $('#edit_parent_period_id').val(period.parent_period_id || '');
+                $('#edit_extension_type').val(period.extension_type || 'continuation');
+                
+                // Show/hide extension type based on parent period
+                if (period.parent_period_id) {
+                    $('#edit_extension_type_container').show();
+                } else {
+                    $('#edit_extension_type_container').hide();
+                }
                 
                 // Show modal
                 const modal = new bootstrap.Modal(document.getElementById('editPeriodModal'));

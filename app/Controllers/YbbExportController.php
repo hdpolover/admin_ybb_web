@@ -47,61 +47,19 @@ class YbbExportController extends AdminBaseController
             // Get filters from request
             $filters = $this->_getFiltersFromRequest();
             
-            // Get participants data
-            $participants = $this->_getParticipantsData($filters);
-            
-            if (empty($participants)) {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'No participants found for export'
-                ]);
-            }
-
             // Get export options with descriptive filename
             $options = $this->_getExportOptions('participants', $filters);
             
             // Log export request for tracking
             $exportRequestId = $this->_logExportRequest($filters['program_id'], 'participants', $options);
             
-            // Get participant count for logging
-            $participantCount = count($participants);
+            log_message('info', 'Participant export requested using DB-direct mode');
             
-            log_message('info', "Participant export requested: $participantCount records found");
+            // Use DB-direct export method
+            $result = $this->ybbExport->exportParticipantsFromDB($filters, $options);
             
-            // Check if dataset exceeds API limits (50,000 records)
-            if ($participantCount > 50000) {
-                log_message('warning', "Dataset too large ($participantCount records). API limit is 50,000 records.");
-                
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => "Dataset too large ($participantCount records). Maximum allowed is 50,000 records. Please apply additional filters to reduce the dataset size."
-                ]);
-            }
-            
-            // Get chunk threshold from config (default: 5000)
-            $chunkThreshold = 5000; // Using the configured chunk threshold
-            
-            // Determine export strategy based on dataset size and template
-            if ($participantCount > $chunkThreshold) {
-                log_message('info', "Large dataset detected ($participantCount records). Using chunked export strategy.");
-                
-                // Use 'complete' template for large datasets to ensure chunking at 5k threshold
-                $options['template'] = 'complete';
-                $options['force_chunking'] = true;
-                $options['chunk_size'] = $chunkThreshold;
-                $options['total_records'] = $participantCount;
-                
-                log_message('info', "Chunked export: $participantCount records, template=complete, chunk_size=$chunkThreshold");
-                
-                $result = $this->ybbExport->exportParticipants($participants, $options);
-            } else {
-                // Use standard template for smaller datasets (single file)
-                log_message('info', "Processing all $participantCount records as single file");
-                $options['template'] = 'standard';
-                $options['total_records'] = $participantCount;
-                
-                $result = $this->ybbExport->exportParticipants($participants, $options);
-            }
+            // Extract record count from result
+            $participantCount = $result['data']['record_count'] ?? 0;
             
             if ($result['success']) {
                 // Extract performance metrics for logging and response
@@ -185,25 +143,9 @@ class YbbExportController extends AdminBaseController
                 // Enhanced error logging for debugging
                 log_message('error', 'Participants export failed: ' . $result['message']);
                 log_message('error', 'Export context: ' . json_encode([
-                    'participant_count' => count($participants),
                     'program_id' => $filters['program_id'] ?? 'unknown',
-                    'payload_size' => strlen(json_encode($participants)),
                     'export_options' => $options
                 ]));
-                
-                // Log sample data for debugging (first record only, sanitized)
-                if (!empty($participants)) {
-                    $sampleRecord = $participants[0];
-                    $sampleSanitized = [];
-                    foreach ($sampleRecord as $key => $value) {
-                        if (is_string($value) && strlen($value) > 100) {
-                            $sampleSanitized[$key] = substr($value, 0, 97) . '...';
-                        } else {
-                            $sampleSanitized[$key] = $value;
-                        }
-                    }
-                    log_message('debug', 'Sample participant record: ' . json_encode($sampleSanitized));
-                }
                 
                 return $this->response->setJSON([
                     'success' => false,
@@ -236,50 +178,26 @@ class YbbExportController extends AdminBaseController
             $trackPerformance = $this->request->getPost('track_performance') === 'true' || 
                                $this->request->getGet('track_performance') === 'true';
             
-            // Get payments data with performance monitoring
-            $dataStartTime = microtime(true);
-            $payments = $this->_getPaymentsData($filters);
-            $dataFetchTime = microtime(true) - $dataStartTime;
-            
-            if (empty($payments)) {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'No payments found for export'
-                ]);
-            }
-
-            $recordCount = count($payments);
-            log_message('info', "Payments export initiated for {$recordCount} records with performance tracking: " . ($trackPerformance ? 'enabled' : 'disabled'));
-
-            // Intelligent export strategy selection
-            $exportStrategy = $this->_determineExportStrategy($recordCount, 'payments');
-            
             // Get enhanced export options with chunking support
             $options = $this->_getExportOptions('payments', $filters);
-            $options['export_strategy'] = $exportStrategy;
-            $options['chunk_size'] = $this->_getOptimalChunkSize($recordCount, 'payments');
             $options['track_performance'] = $trackPerformance;
             
-            // Add performance context to options
-            if ($trackPerformance) {
-                $options['performance_context'] = [
-                    'data_fetch_time' => $dataFetchTime,
-                    'record_count' => $recordCount,
-                    'memory_before_export' => memory_get_usage(true)
-                ];
-            }
+            log_message('info', "Payments export initiated using DB-direct mode with performance tracking: " . ($trackPerformance ? 'enabled' : 'disabled'));
             
-            // Log export request for tracking with enhanced metadata
-            $options['export_strategy'] = $exportStrategy; // Add strategy to options for logging
+            // Log export request for tracking
             $exportRequestId = $this->_logExportRequest($filters['program_id'], 'payments', $options);
             
-            // Create export using YBB Export API with performance tracking
+            // Create export using YBB Export API DB-direct method
             $exportStartTime = microtime(true);
-            $result = $this->ybbExport->exportPayments($payments, $options);
+            $result = $this->ybbExport->exportPaymentsFromDB($filters, $options);
             $exportTime = microtime(true) - $exportStartTime;
             
             if ($result['success']) {
                 $totalTime = microtime(true) - $startTime;
+                
+                // Extract record count from result
+                $recordCount = $result['data']['record_count'] ?? 0;
+                $exportStrategy = $result['data']['export_strategy'] ?? 'direct';
                 
                 // Enhanced logging with comprehensive metadata
                 $logData = [
@@ -303,7 +221,6 @@ class YbbExportController extends AdminBaseController
                 if ($trackPerformance) {
                     $performanceMetrics = [
                         'record_count' => $recordCount,
-                        'data_fetch_time' => $dataFetchTime,
                         'export_time' => $exportTime,
                         'total_time' => $totalTime,
                         'export_strategy' => $exportStrategy,
@@ -340,18 +257,14 @@ class YbbExportController extends AdminBaseController
                 $this->_updateExportRequestLog($exportRequestId, [
                     'status' => 'error',
                     'error_message' => $result['message'],
-                    'record_count' => $recordCount,
-                    'export_strategy' => $exportStrategy,
                     'processing_time' => microtime(true) - $startTime
                 ]);
                 
-                log_message('error', "Payments export failed: {$result['message']} (Strategy: {$exportStrategy}, Records: {$recordCount})");
+                log_message('error', "Payments export failed: {$result['message']}");
                 
                 return $this->response->setJSON([
                     'success' => false,
-                    'message' => $result['message'],
-                    'recordCount' => $recordCount,
-                    'exportStrategy' => $exportStrategy
+                    'message' => $result['message']
                 ]);
             }
             
@@ -374,143 +287,21 @@ class YbbExportController extends AdminBaseController
     public function exportAmbassadors()
     {
         try {
-            $startTime = microtime(true);
-            
-            // Get filters from request
-            $filters = $this->_getFiltersFromRequest();
-            
-            // Performance tracking: Enable if requested
-            $trackPerformance = $this->request->getPost('track_performance') === 'true' || 
-                               $this->request->getGet('track_performance') === 'true';
-            
-            // Get ambassadors data with performance monitoring
-            $dataStartTime = microtime(true);
-            $ambassadors = $this->_getAmbassadorsData($filters);
-            $dataFetchTime = microtime(true) - $dataStartTime;
-            
-            if (empty($ambassadors)) {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'No ambassadors found for export'
-                ]);
-            }
-
-            $recordCount = count($ambassadors);
-            log_message('info', "Ambassadors export initiated for {$recordCount} records with performance tracking: " . ($trackPerformance ? 'enabled' : 'disabled'));
-
-            // Intelligent export strategy selection (ambassadors can handle larger datasets)
-            $exportStrategy = $this->_determineExportStrategy($recordCount, 'ambassadors');
-            
-            // Get enhanced export options with chunking support
-            $options = $this->_getExportOptions('ambassadors', $filters);
-            $options['export_strategy'] = $exportStrategy;
-            $options['chunk_size'] = $this->_getOptimalChunkSize($recordCount, 'ambassadors');
-            $options['track_performance'] = $trackPerformance;
-            
-            // Add performance context to options
-            if ($trackPerformance) {
-                $options['performance_context'] = [
-                    'data_fetch_time' => $dataFetchTime,
-                    'record_count' => $recordCount,
-                    'memory_before_export' => memory_get_usage(true)
-                ];
-            }
-            
-            // Log export request for tracking with enhanced metadata
-            $options['export_strategy'] = $exportStrategy; // Add strategy to options for logging
-            $exportRequestId = $this->_logExportRequest($filters['program_id'], 'ambassadors', $options);
-            
-            // Create export using YBB Export API with performance tracking
-            $exportStartTime = microtime(true);
-            $result = $this->ybbExport->exportAmbassadors($ambassadors, $options);
-            $exportTime = microtime(true) - $exportStartTime;
-            
-            if ($result['success']) {
-                $totalTime = microtime(true) - $startTime;
-                
-                // Enhanced logging with comprehensive metadata
-                $logData = [
-                    'status' => 'success',
-                    'export_id' => $result['exportId'],
-                    'record_count' => $recordCount,
-                    'export_strategy' => $exportStrategy,
-                    'file_type' => $result['fileType'] ?? 'unknown',
-                    'chunk_count' => $result['chunkCount'] ?? 1,
-                    'total_files' => $result['totalFiles'] ?? 1
-                ];
-
-                // Add performance data if tracking is enabled
-                if ($trackPerformance && isset($result['performanceStats'])) {
-                    $logData['performance_data'] = json_encode($result['performanceStats']);
-                }
-
-                $this->_updateExportRequestLog($exportRequestId, $logData);
-
-                // Log performance metrics
-                if ($trackPerformance) {
-                    $performanceMetrics = [
-                        'record_count' => $recordCount,
-                        'data_fetch_time' => $dataFetchTime,
-                        'export_time' => $exportTime,
-                        'total_time' => $totalTime,
-                        'export_strategy' => $exportStrategy,
-                        'memory_usage' => memory_get_peak_usage(true),
-                        'total_processing_time_seconds' => $totalTime,
-                        'records_per_second' => $recordCount / max($totalTime, 0.001)
-                    ];
-                    
-                    $this->_logPerformanceMetrics($performanceMetrics, $recordCount, $exportStrategy === 'chunked');
-                }
-                
-                log_message('info', "Ambassadors export completed successfully: {$recordCount} records, strategy: {$exportStrategy}, time: {$totalTime}s");
-
-                // Build user-friendly message - use the correct parameters
-                $message = $this->_buildExportMessage($result, $recordCount, $result['performanceStats'] ?? []);
-                
-                return $this->response->setJSON([
-                    'success' => true,
-                    'exportId' => $result['exportId'],
-                    'message' => $message,
-                    'recordCount' => $recordCount,
-                    'exportStrategy' => $exportStrategy,
-                    'fileType' => $result['fileType'],
-                    'totalFiles' => $result['totalFiles'],
-                    'chunkCount' => $result['chunkCount'] ?? null,
-                    'compressedSize' => $result['compressedSize'] ?? null,
-                    'compressionRatio' => $result['compressionRatio'] ?? null,
-                    'status' => 'completed',
-                    'performanceStats' => $result['performanceStats'] ?? null,
-                    'downloadUrl' => $result['downloadUrl'] ?? null
-                ]);
-            } else {
-                // Enhanced error logging
-                $this->_updateExportRequestLog($exportRequestId, [
-                    'status' => 'error',
-                    'error_message' => $result['message'],
-                    'record_count' => $recordCount,
-                    'export_strategy' => $exportStrategy,
-                    'processing_time' => microtime(true) - $startTime
-                ]);
-                
-                log_message('error', "Ambassadors export failed: {$result['message']} (Strategy: {$exportStrategy}, Records: {$recordCount})");
-                
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => $result['message'],
-                    'recordCount' => $recordCount,
-                    'exportStrategy' => $exportStrategy
-                ]);
-            }
-            
-        } catch (\Exception $e) {
-            $processingTime = microtime(true) - ($startTime ?? microtime(true));
-            
-            log_message('error', "Exception in exportAmbassadors: {$e->getMessage()} (Processing time: {$processingTime}s)");
+            // Ambassadors export is not yet implemented with DB-direct method
+            // TODO: Implement exportAmbassadorsFromDB in YbbExport library
             
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'An error occurred during export: ' . $e->getMessage(),
-                'processingTime' => $processingTime
+                'message' => 'Ambassadors export is currently unavailable. This feature requires implementation of DB-direct export method.',
+                'error_code' => 'FEATURE_NOT_IMPLEMENTED'
+            ]);
+            
+        } catch (\Exception $e) {
+            log_message('error', "Exception in exportAmbassadors: {$e->getMessage()}");
+            
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'An error occurred during export: ' . $e->getMessage()
             ]);
         }
     }
@@ -1057,11 +848,16 @@ class YbbExportController extends AdminBaseController
         // Add payment status description
         if (isset($filters['payment_status']) && $filters['payment_status'] !== 'all') {
             $statusMap = [
-                '0' => 'Created',
-                '1' => 'Pending',
-                '2' => 'Successful',
-                '3' => 'Cancelled',
-                '4' => 'Rejected'
+                '0' => 'Pending',
+                '1' => 'Processing',
+                '2' => 'Success',
+                '3' => 'Failed',
+                '4' => 'Cancelled',
+                0 => 'Pending',
+                1 => 'Processing',
+                2 => 'Success',
+                3 => 'Failed',
+                4 => 'Cancelled'
             ];
             $descriptors[] = $statusMap[$filters['payment_status']] ?? 'Status_' . $filters['payment_status'];
         }

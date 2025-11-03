@@ -44,13 +44,17 @@ class ProgramPaymentPeriods extends AdminBaseController
             return redirect()->to('/master-data/program-payments')->with('error', 'You do not have access to this payment');
         }
         
-        // Get all periods for this payment
+        // Get all periods for this payment (hierarchical view)
         $periods = $this->programPaymentModel->getPaymentPeriods($paymentId);
+        $periodHierarchy = $this->periodModel->getPeriodHierarchy($paymentId, false);
+        $basePeriods = $this->periodModel->getBasePeriods($paymentId, false);
         
         $data = [
             'title' => 'Payment Periods - ' . $payment->name,
             'payment' => $payment,
-            'periods' => $periods
+            'periods' => $periods,
+            'periodHierarchy' => $periodHierarchy,
+            'basePeriods' => $basePeriods
         ];
         
         return view('master-data/program-payments/periods', $data);
@@ -109,7 +113,9 @@ class ProgramPaymentPeriods extends AdminBaseController
             'name' => $this->request->getPost('name'),
             'description' => $this->request->getPost('description'),
             'start_date' => $this->request->getPost('start_date'),
-            'end_date' => $this->request->getPost('end_date')
+            'end_date' => $this->request->getPost('end_date'),
+            'parent_period_id' => $this->request->getPost('parent_period_id') ?: null,
+            'extension_type' => $this->request->getPost('extension_type') ?: 'continuation'
         ];
         
         // Add the period
@@ -187,7 +193,9 @@ class ProgramPaymentPeriods extends AdminBaseController
             'description' => $this->request->getPost('description'),
             'start_date' => $this->request->getPost('start_date'),
             'end_date' => $this->request->getPost('end_date'),
-            'is_active' => $this->request->getPost('is_active') ?? 1
+            'is_active' => $this->request->getPost('is_active') ?? 1,
+            'parent_period_id' => $this->request->getPost('parent_period_id') ?: null,
+            'extension_type' => $this->request->getPost('extension_type') ?: 'continuation'
         ];
         
         // Update the period
@@ -296,9 +304,16 @@ class ProgramPaymentPeriods extends AdminBaseController
             ]);
         }
         
+        // Get effective date range if this is an extension period
+        $effectiveRange = null;
+        if ($period->parent_period_id) {
+            $effectiveRange = $this->periodModel->getEffectiveDateRange($period->id);
+        }
+        
         return $this->response->setJSON([
             'success' => true,
-            'data' => $period
+            'data' => $period,
+            'effective_range' => $effectiveRange
         ]);
     }
     

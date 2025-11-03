@@ -816,7 +816,7 @@ class Participants extends AdminBaseController
             $statusResult = $ybbExport->getExportStatus($exportId);
             
             if ($statusResult['success']) {
-                $statusData = $statusResult['data'];
+                $statusData = $statusResult['data'] ?? $statusResult;
                 
                 // Standardize status response format
                 $response = [
@@ -826,7 +826,7 @@ class Participants extends AdminBaseController
                         'status' => $statusData['status'] ?? 'unknown',
                         'progress' => $statusData['progress'] ?? 0,
                         'records_processed' => $statusData['records_processed'] ?? 0,
-                        'total_records' => $statusData['total_records'] ?? 0,
+                        'total_records' => $statusData['total_records'] ?? ($statusData['record_count'] ?? 0),
                         'created_at' => $statusData['created_at'] ?? null,
                         'updated_at' => $statusData['updated_at'] ?? null,
                         'estimated_completion' => $statusData['estimated_completion'] ?? null,
@@ -838,11 +838,11 @@ class Participants extends AdminBaseController
                 ];
                 
                 // If export is completed and has a file, construct download URL
-                if (in_array(strtolower($statusData['status'] ?? ''), ['completed', 'ready']) && 
+                if (in_array(strtolower($statusData['status'] ?? ''), ['completed', 'ready', 'success']) && 
                     !empty($statusData['file_name'])) {
                     
                     // Build download URL using API base URL
-                    $downloadUrl = $statusData['download_url'] ?? null;
+                    $downloadUrl = $statusData['download_url'] ?? $statusData['file_url'] ?? null;
                     if (!$downloadUrl) {
                         // Construct download URL according to documentation: /api/ybb/export/{id}/download
                         $apiBaseUrl = getenv('YBB_EXPORT_API_URL') ?: 'http://127.0.0.1:5000';
@@ -854,7 +854,7 @@ class Participants extends AdminBaseController
                     }
                     
                     $response['data']['download_url'] = $downloadUrl;
-                    $response['data']['records_exported'] = $statusData['records_processed'] ?? $statusData['total_records'] ?? 0;
+                    $response['data']['records_exported'] = $statusData['records_processed'] ?? $statusData['record_count'] ?? ($statusData['total_records'] ?? 0);
                 }
                 
                 log_message('info', "Export status retrieved successfully: " . json_encode($response['data']));
@@ -867,7 +867,9 @@ class Participants extends AdminBaseController
                 return $this->response->setJSON([
                     'success' => false,
                     'message' => $statusResult['message'] ?? 'Failed to retrieve export status',
-                    'error_code' => $statusResult['error_code'] ?? 'STATUS_CHECK_FAILED'
+                    'error_code' => $statusResult['error_code'] ?? 'STATUS_CHECK_FAILED',
+                    'export_id' => $exportId,
+                    'suggestion' => $statusResult['suggestion'] ?? 'Please check if the export still exists or create a new export'
                 ]);
             }
             

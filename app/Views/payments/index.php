@@ -483,11 +483,11 @@
                                 <label for="statusFilter" class="form-label">Payment Status</label>
                                 <select class="form-select" name="status" id="statusFilter">
                                     <option value="">All Statuses</option>
-                                    <option value="0">Created</option>
-                                    <option value="1">Pending</option>
+                                    <option value="0">Pending</option>
+                                    <option value="1">Processing</option>
                                     <option value="2">Success</option>
-                                    <option value="3">Cancelled</option>
-                                    <option value="4">Rejected</option>
+                                    <option value="3">Failed</option>
+                                    <option value="4">Cancelled</option>
                                 </select>
                             </div>
                         </div>

@@ -396,8 +396,21 @@ class Payments extends AdminBaseController
             // Map all documented filters from YBB_DB_EXPORT_API_INTEGRATION_GUIDE.md
             
             // Status filter (0=pending, 1=processing, 2=success, 3=failed, 4=cancelled)
-            if (isset($requestFilters['status']) && $requestFilters['status'] !== '' && $requestFilters['status'] !== null) {
-                $filters['status'] = $requestFilters['status'];
+            // Empty string or "all" returns all payment statuses (no filter applied)
+            if (isset($requestFilters['status']) && $requestFilters['status'] !== '' && $requestFilters['status'] !== null && $requestFilters['status'] !== 'all') {
+                // Ensure status is numeric (convert if string is provided)
+                if (!is_numeric($requestFilters['status'])) {
+                    $statusMap = [
+                        'pending' => 0,
+                        'processing' => 1,
+                        'success' => 2,
+                        'failed' => 3,
+                        'cancelled' => 4
+                    ];
+                    $filters['status'] = $statusMap[strtolower($requestFilters['status'])] ?? $requestFilters['status'];
+                } else {
+                    $filters['status'] = (int)$requestFilters['status'];
+                }
             }
             
             // Payment method filter
@@ -623,18 +636,34 @@ class Payments extends AdminBaseController
 
             if ($result['success']) {
                 // Build full download URL if relative path provided
-                $downloadUrl = $result['download_url'] ?? null;
+                $downloadUrl = $result['data']['download_url'] ?? $result['download_url'] ?? null;
+                
                 if ($downloadUrl && !str_starts_with($downloadUrl, 'http')) {
                     $apiBaseUrl = getenv('YBB_EXPORT_API_URL') ?: 'http://127.0.0.1:5000';
-                    $downloadUrl = rtrim($apiBaseUrl, '/') . "/api/ybb/export/{$exportId}/download";
-                    $result['download_url'] = $downloadUrl;
+                    $downloadUrl = rtrim($apiBaseUrl, '/') . $downloadUrl;
                 }
                 
-                return $this->response->setJSON($result);
+                // Normalize response format
+                $response = [
+                    'success' => true,
+                    'export_id' => $exportId,
+                    'status' => $result['data']['status'] ?? $result['status'] ?? 'completed',
+                    'download_url' => $downloadUrl,
+                    'file_name' => $result['data']['file_name'] ?? $result['file_name'] ?? null,
+                    'file_size' => $result['data']['file_size'] ?? $result['file_size'] ?? null,
+                    'record_count' => $result['data']['record_count'] ?? $result['record_count'] ?? 0,
+                    'created_at' => $result['data']['created_at'] ?? $result['created_at'] ?? null,
+                    'expires_at' => $result['data']['expires_at'] ?? $result['expires_at'] ?? null
+                ];
+                
+                return $this->response->setJSON($response);
             } else {
                 return $this->response->setJSON([
                     'success' => false,
-                    'message' => $result['message'] ?? 'Export not found'
+                    'message' => $result['message'] ?? 'Export not found',
+                    'error_code' => $result['error_code'] ?? 'EXPORT_NOT_FOUND',
+                    'export_id' => $exportId,
+                    'suggestion' => $result['suggestion'] ?? 'Please create a new export'
                 ])->setStatusCode(404);
             }
 

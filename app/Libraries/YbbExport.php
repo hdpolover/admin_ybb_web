@@ -204,13 +204,13 @@ class YbbExport
                 // Nested format: {status: "success", data: {export_id, ...}}
                 $exportData = $apiData['data'];
                 $exportId = $exportData['export_id'];
-                $downloadUrl = $exportData['download_url'] ?? "/api/ybb/export/{$exportId}/download";
+                $downloadUrl = $exportData['file_url'] ?? $exportData['download_url'] ?? "/api/ybb/export/{$exportId}/download";
                 
                 $responseData = [
                     'export_id' => $exportId,
                     'download_url' => $downloadUrl,
                     'record_count' => $exportData['record_count'] ?? 0,
-                    'created_at' => $exportData['generated_at'] ?? ($apiData['system_info']['generated_at'] ?? null),
+                    'created_at' => $exportData['generated_at'] ?? ($apiData['metadata']['generated_at'] ?? null),
                     'expires_at' => $exportData['expires_at'] ?? null,
                     'file_name' => $exportData['file_name'] ?? null,
                     'file_size' => $exportData['file_size'] ?? null,
@@ -221,7 +221,7 @@ class YbbExport
                 $responseData['metadata'] = [
                     'export_strategy' => $apiData['export_strategy'] ?? 'single_file',
                     'performance_metrics' => $apiData['performance_metrics'] ?? [],
-                    'system_info' => $apiData['system_info'] ?? []
+                    'system_info' => $apiData['metadata'] ?? []
                 ];
 
                 if ($this->config->enableDebugLogging) {
@@ -236,7 +236,7 @@ class YbbExport
             } elseif (isset($apiData['export_id'])) {
                 // Direct format: {export_id, file_name, record_count, ...} at top level
                 $exportId = $apiData['export_id'];
-                $downloadUrl = $apiData['download_url'] ?? "/api/ybb/export/{$exportId}/download";
+                $downloadUrl = $apiData['file_url'] ?? $apiData['download_url'] ?? "/api/ybb/export/{$exportId}/download";
                 
                 $responseData = [
                     'export_id' => $exportId,
@@ -647,8 +647,34 @@ class YbbExport
                 
                 // Validate file was actually downloaded
                 if ($fileSize > 0) {
+                    // Validate Excel file format (check for PK signature)
+                    $fileHandle = fopen($savePath, 'r');
+                    $header = fread($fileHandle, 2);
+                    fclose($fileHandle);
+                    
+                    // Excel files start with PK (ZIP format header: 0x504B)
+                    $isValidExcel = ($header === 'PK');
+                    
+                    if (!$isValidExcel && strpos($contentType, 'application/json') !== false) {
+                        // File contains JSON error response instead of Excel file
+                        $jsonContent = file_get_contents($savePath);
+                        $jsonData = json_decode($jsonContent, true);
+                        
+                        // Clean up invalid file
+                        unlink($savePath);
+                        
+                        return [
+                            'success' => false,
+                            'message' => $jsonData['message'] ?? 'Export file is not available. The file may have expired.',
+                            'error_code' => $jsonData['error_code'] ?? 'FILE_NOT_AVAILABLE',
+                            'export_id' => $jsonData['export_id'] ?? null,
+                            'suggestion' => 'Please create a new export',
+                            'http_code' => $httpCode
+                        ];
+                    }
+                    
                     if ($this->config->enableDebugLogging) {
-                        log_message('info', "File downloaded successfully: {$url} -> {$savePath} ({$fileSize} bytes, Content-Type: {$contentType})");
+                        log_message('info', "File downloaded successfully: {$url} -> {$savePath} ({$fileSize} bytes, Content-Type: {$contentType}, Valid Excel: " . ($isValidExcel ? 'Yes' : 'No') . ")");
                     }
                     
                     return [
@@ -656,12 +682,33 @@ class YbbExport
                         'file_path' => $savePath,
                         'file_size' => $fileSize,
                         'content_type' => $contentType,
+                        'is_valid_excel' => $isValidExcel,
                         'message' => 'File downloaded successfully'
                     ];
                 } else {
                     if ($this->config->enableDebugLogging) {
                         log_message('warning', "Downloaded file is empty: {$savePath}");
                     }
+                }
+            }
+            
+            // Handle 404 errors specifically (file not found/expired)
+            if ($httpCode === 404) {
+                // Try to read the response body for more details
+                if (file_exists($savePath) && filesize($savePath) > 0) {
+                    $errorContent = file_get_contents($savePath);
+                    $errorData = json_decode($errorContent, true);
+                    
+                    unlink($savePath);
+                    
+                    return [
+                        'success' => false,
+                        'message' => $errorData['message'] ?? 'Export file not found. The file may have expired or been deleted.',
+                        'error_code' => 'FILE_NOT_FOUND',
+                        'export_id' => $errorData['export_id'] ?? null,
+                        'suggestion' => 'Please create a new export',
+                        'http_code' => 404
+                    ];
                 }
             }
             

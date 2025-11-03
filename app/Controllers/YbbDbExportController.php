@@ -531,18 +531,20 @@ class YbbDbExportController extends ResourceController
         
         $builder->whereIn('participant_id', $participantIds);
         
-        // Status filter
-        if (isset($filters['status']) && $filters['status'] !== 'all') {
-            $statusMap = [
-                'pending' => 0,
-                'processing' => 1,
-                'success' => 2,
-                'failed' => 3,
-                'cancelled' => 4
-            ];
-            
-            $status = $statusMap[$filters['status']] ?? $filters['status'];
-            $builder->where('status', $status);
+        // Status filter (expecting numeric values: 0=pending, 1=processing, 2=success, 3=failed, 4=cancelled)
+        if (isset($filters['status']) && $filters['status'] !== 'all' && $filters['status'] !== '') {
+            // If status is string, map to numeric
+            if (!is_numeric($filters['status'])) {
+                $statusMap = [
+                    'pending' => 0,
+                    'processing' => 1,
+                    'success' => 2,
+                    'failed' => 3,
+                    'cancelled' => 4
+                ];
+                $filters['status'] = $statusMap[$filters['status']] ?? $filters['status'];
+            }
+            $builder->where('status', (int)$filters['status']);
         }
         
         // Payment method filter

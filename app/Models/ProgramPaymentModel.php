@@ -195,10 +195,35 @@ class ProgramPaymentModel extends Model {
             if ($currentPeriod) {
                 log_message('debug', "Found active period for payment {$payment->id}: {$currentPeriod->name} ({$currentPeriod->start_date} to {$currentPeriod->end_date})");
                 
-                // Use current period dates
-                $payment->start_date = $currentPeriod->start_date;
-                $payment->end_date = $currentPeriod->end_date;
-                $payment->current_period_name = $currentPeriod->name;
+                // Check if this is an extension period - if so, get effective date range
+                if ($currentPeriod->parent_period_id) {
+                    $effectiveRange = $this->periodModel->getEffectiveDateRange($currentPeriod->id);
+                    
+                    if ($effectiveRange) {
+                        log_message('debug', "Period is an extension, using effective range: {$effectiveRange['start_date']} to {$effectiveRange['end_date']}");
+                        
+                        // Use effective date range (parent's start, extension's end)
+                        $payment->start_date = $effectiveRange['start_date'];
+                        $payment->end_date = $effectiveRange['end_date'];
+                        $payment->current_period_name = $effectiveRange['display_label'];
+                        $payment->extension_active_from = $effectiveRange['extension_active_from'];
+                        $payment->is_extension_period = true;
+                        $payment->extension_type = $currentPeriod->extension_type;
+                    } else {
+                        // Fallback to period's own dates
+                        $payment->start_date = $currentPeriod->start_date;
+                        $payment->end_date = $currentPeriod->end_date;
+                        $payment->current_period_name = $currentPeriod->name;
+                        $payment->is_extension_period = true;
+                    }
+                } else {
+                    // Base period - use its own dates
+                    $payment->start_date = $currentPeriod->start_date;
+                    $payment->end_date = $currentPeriod->end_date;
+                    $payment->current_period_name = $currentPeriod->name;
+                    $payment->is_extension_period = false;
+                }
+                
                 $payment->has_active_period = true;
             } else {
                 log_message('debug', "No active period found for payment {$payment->id}, checking upcoming periods");
@@ -209,10 +234,32 @@ class ProgramPaymentModel extends Model {
                 if ($nextPeriod) {
                     log_message('debug', "Found upcoming period for payment {$payment->id}: {$nextPeriod->name} ({$nextPeriod->start_date} to {$nextPeriod->end_date})");
                     
-                    // Use next period dates
-                    $payment->start_date = $nextPeriod->start_date;
-                    $payment->end_date = $nextPeriod->end_date;
-                    $payment->current_period_name = $nextPeriod->name;
+                    // Check if upcoming period is an extension
+                    if ($nextPeriod->parent_period_id) {
+                        $effectiveRange = $this->periodModel->getEffectiveDateRange($nextPeriod->id);
+                        
+                        if ($effectiveRange) {
+                            $payment->start_date = $effectiveRange['start_date'];
+                            $payment->end_date = $effectiveRange['end_date'];
+                            $payment->current_period_name = $effectiveRange['display_label'];
+                            $payment->extension_active_from = $effectiveRange['extension_active_from'];
+                            $payment->is_extension_period = true;
+                            $payment->extension_type = $nextPeriod->extension_type;
+                        } else {
+                            $payment->start_date = $nextPeriod->start_date;
+                            $payment->end_date = $nextPeriod->end_date;
+                            $payment->current_period_name = $nextPeriod->name;
+                            $payment->is_extension_period = true;
+                            $payment->extension_type = $nextPeriod->extension_type;
+                        }
+                    } else {
+                        // Base period
+                        $payment->start_date = $nextPeriod->start_date;
+                        $payment->end_date = $nextPeriod->end_date;
+                        $payment->current_period_name = $nextPeriod->name;
+                        $payment->is_extension_period = false;
+                    }
+                    
                     $payment->has_active_period = false;
                     $payment->upcoming_period = true;
                 } else {
@@ -224,10 +271,32 @@ class ProgramPaymentModel extends Model {
                     if ($lastEndedPeriod) {
                         log_message('debug', "Found last ended period for payment {$payment->id}: {$lastEndedPeriod->name} ({$lastEndedPeriod->start_date} to {$lastEndedPeriod->end_date})");
                         
-                        // Use last ended period dates
-                        $payment->start_date = $lastEndedPeriod->start_date;
-                        $payment->end_date = $lastEndedPeriod->end_date;
-                        $payment->current_period_name = $lastEndedPeriod->name;
+                        // Check if ended period was an extension
+                        if ($lastEndedPeriod->parent_period_id) {
+                            $effectiveRange = $this->periodModel->getEffectiveDateRange($lastEndedPeriod->id);
+                            
+                            if ($effectiveRange) {
+                                $payment->start_date = $effectiveRange['start_date'];
+                                $payment->end_date = $effectiveRange['end_date'];
+                                $payment->current_period_name = $effectiveRange['display_label'];
+                                $payment->extension_active_from = $effectiveRange['extension_active_from'];
+                                $payment->is_extension_period = true;
+                                $payment->extension_type = $lastEndedPeriod->extension_type;
+                            } else {
+                                $payment->start_date = $lastEndedPeriod->start_date;
+                                $payment->end_date = $lastEndedPeriod->end_date;
+                                $payment->current_period_name = $lastEndedPeriod->name;
+                                $payment->is_extension_period = true;
+                                $payment->extension_type = $lastEndedPeriod->extension_type;
+                            }
+                        } else {
+                            // Base period
+                            $payment->start_date = $lastEndedPeriod->start_date;
+                            $payment->end_date = $lastEndedPeriod->end_date;
+                            $payment->current_period_name = $lastEndedPeriod->name;
+                            $payment->is_extension_period = false;
+                        }
+                        
                         $payment->has_active_period = false;
                         $payment->upcoming_period = false;
                         $payment->last_ended_period = true;
@@ -239,6 +308,7 @@ class ProgramPaymentModel extends Model {
                         $payment->upcoming_period = false;
                         $payment->last_ended_period = false;
                         $payment->current_period_name = null;
+                        $payment->is_extension_period = false;
                         // Keep original dates if any exist
                     }
                 }
@@ -252,6 +322,7 @@ class ProgramPaymentModel extends Model {
             $payment->upcoming_period = false;
             $payment->last_ended_period = false;
             $payment->current_period_name = null;
+            $payment->is_extension_period = false;
         }
     }
     
@@ -270,17 +341,23 @@ class ProgramPaymentModel extends Model {
      * Add a new period to a payment
      *
      * @param int $paymentId The payment ID
-     * @param array $periodData Period data (name, description, start_date, end_date)
+     * @param array $periodData Period data (name, description, start_date, end_date, parent_period_id, extension_type)
      * @return array Result with success status and message
      */
     public function addPaymentPeriod($paymentId, $periodData)
     {
         try {
+            $parentPeriodId = $periodData['parent_period_id'] ?? null;
+            $extensionType = $periodData['extension_type'] ?? 'continuation';
+            
             // Validate dates
             $validation = $this->periodModel->validatePeriodDates(
                 $paymentId,
                 $periodData['start_date'],
-                $periodData['end_date']
+                $periodData['end_date'],
+                null,
+                $parentPeriodId,
+                $extensionType
             );
             
             if (!$validation['valid']) {
@@ -293,6 +370,8 @@ class ProgramPaymentModel extends Model {
             // Prepare period data
             $insertData = [
                 'payment_id' => $paymentId,
+                'parent_period_id' => $parentPeriodId,
+                'extension_type' => $extensionType,
                 'name' => $periodData['name'],
                 'description' => $periodData['description'] ?? '',
                 'start_date' => $periodData['start_date'],
@@ -344,12 +423,17 @@ class ProgramPaymentModel extends Model {
                 ];
             }
             
+            $parentPeriodId = $periodData['parent_period_id'] ?? $period->parent_period_id;
+            $extensionType = $periodData['extension_type'] ?? $period->extension_type ?? 'continuation';
+            
             // Validate dates (excluding current period from overlap check)
             $validation = $this->periodModel->validatePeriodDates(
                 $period->payment_id,
                 $periodData['start_date'],
                 $periodData['end_date'],
-                $periodId
+                $periodId,
+                $parentPeriodId,
+                $extensionType
             );
             
             if (!$validation['valid']) {
@@ -364,7 +448,9 @@ class ProgramPaymentModel extends Model {
                 'name' => $periodData['name'],
                 'description' => $periodData['description'] ?? $period->description,
                 'start_date' => $periodData['start_date'],
-                'end_date' => $periodData['end_date']
+                'end_date' => $periodData['end_date'],
+                'parent_period_id' => $parentPeriodId,
+                'extension_type' => $extensionType
             ];
             
             if (isset($periodData['is_active'])) {
@@ -401,6 +487,15 @@ class ProgramPaymentModel extends Model {
                 return [
                     'success' => false,
                     'message' => 'Period not found'
+                ];
+            }
+            
+            // Check if period can be deleted (no extensions)
+            $canDelete = $this->periodModel->canDeletePeriod($periodId);
+            if (!$canDelete['can_delete']) {
+                return [
+                    'success' => false,
+                    'message' => $canDelete['message']
                 ];
             }
             

@@ -499,4 +499,90 @@ class AdminManagement extends AdminBaseController
             ]);
         }
     }
+
+    /**
+     * Reset admin password (Super admin only)
+     */
+    public function resetPassword($id)
+    {
+        // Only super admins can reset passwords
+        if ($this->currentUser->role !== 'super_admin') {
+            return $this->response->setJSON([
+                'success' => false, 
+                'message' => 'Access denied. Only super admins can reset passwords.'
+            ])->setStatusCode(403);
+        }
+
+        if ($this->request->getMethod() !== 'post') {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Invalid request method'
+            ])->setStatusCode(405);
+        }
+
+        $admin = $this->adminModel->find($id);
+        if (!$admin || $admin->is_deleted) {
+            return $this->response->setJSON([
+                'success' => false, 
+                'message' => 'Admin not found'
+            ])->setStatusCode(404);
+        }
+
+        // Prevent resetting own password through this method
+        if ($admin->id == $this->currentUser->id) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Please use the profile page to change your own password'
+            ])->setStatusCode(400);
+        }
+
+        // Validate new password
+        $validation = \Config\Services::validation();
+        $validation->setRules([
+            'new_password' => 'required|min_length[8]',
+            'confirm_password' => 'required|matches[new_password]'
+        ], [
+            'new_password' => [
+                'required' => 'Password is required',
+                'min_length' => 'Password must be at least 8 characters long'
+            ],
+            'confirm_password' => [
+                'required' => 'Password confirmation is required',
+                'matches' => 'Passwords do not match'
+            ]
+        ]);
+
+        if (!$validation->withRequest($this->request)->run()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'errors' => $validation->getErrors()
+            ]);
+        }
+
+        try {
+            $newPassword = $this->request->getPost('new_password');
+            
+            $this->adminModel->update($id, [
+                'password' => password_hash($newPassword, PASSWORD_DEFAULT),
+                'updated_at' => date('Y-m-d H:i:s'),
+                'updated_by' => $this->currentUser->id
+            ]);
+
+            // Log the password reset action
+            log_message('info', "Super admin {$this->currentUser->email} reset password for admin {$admin->email} (ID: {$id})");
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Password reset successfully for ' . $admin->name
+            ]);
+
+        } catch (\Exception $e) {
+            log_message('error', 'Password reset failed: ' . $e->getMessage());
+            
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to reset password: ' . $e->getMessage()
+            ]);
+        }
+    }
 }

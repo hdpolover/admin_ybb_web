@@ -13,6 +13,8 @@ class ProgramPaymentPeriodModel extends Model
 
     protected $allowedFields = [
         'payment_id',
+        'parent_period_id',
+        'extension_type',
         'name',
         'description',
         'start_date',
@@ -198,14 +200,17 @@ class ProgramPaymentPeriodModel extends Model
 
     /**
      * Validate period dates for non-overlapping constraint
+     * Extension periods (with parent_period_id) are allowed to overlap
      *
      * @param int $paymentId The payment ID
      * @param string $startDate The start date to validate
      * @param string $endDate The end date to validate
      * @param int|null $excludeId Period ID to exclude from validation (for updates)
+     * @param int|null $parentPeriodId Parent period ID if this is an extension
+     * @param string $extensionType Type of extension: 'continuation' or 'parallel'
      * @return array Validation result with 'valid' boolean and 'message'
      */
-    public function validatePeriodDates($paymentId, $startDate, $endDate, $excludeId = null)
+    public function validatePeriodDates($paymentId, $startDate, $endDate, $excludeId = null, $parentPeriodId = null, $extensionType = 'continuation')
     {
         // Basic date validation
         if (strtotime($startDate) >= strtotime($endDate)) {
@@ -215,10 +220,64 @@ class ProgramPaymentPeriodModel extends Model
             ];
         }
 
-        // Check for overlaps with existing periods
+        // If this is an extension period, validate against parent
+        if ($parentPeriodId) {
+            $parentPeriod = $this->find($parentPeriodId);
+            
+            if (!$parentPeriod) {
+                return [
+                    'valid' => false,
+                    'message' => 'Parent period not found'
+                ];
+            }
+            
+            // Validate parent belongs to same payment
+            if ($parentPeriod->payment_id != $paymentId) {
+                return [
+                    'valid' => false,
+                    'message' => 'Parent period must belong to the same payment'
+                ];
+            }
+            
+            // Validate extension type rules
+            if ($extensionType === 'continuation') {
+                // Continuation must start on or after parent's end date
+                if (strtotime($startDate) < strtotime($parentPeriod->end_date)) {
+                    return [
+                        'valid' => false,
+                        'message' => "Continuation extension must start on or after parent period end date ({$parentPeriod->end_date})"
+                    ];
+                }
+            } elseif ($extensionType === 'parallel') {
+                // Parallel extension must have some overlap with parent
+                $parentStart = strtotime($parentPeriod->start_date);
+                $parentEnd = strtotime($parentPeriod->end_date);
+                $newStart = strtotime($startDate);
+                $newEnd = strtotime($endDate);
+                
+                // Check if there's any overlap
+                $hasOverlap = ($newStart <= $parentEnd && $newEnd >= $parentStart);
+                
+                if (!$hasOverlap) {
+                    return [
+                        'valid' => false,
+                        'message' => "Parallel extension must overlap with parent period ({$parentPeriod->start_date} to {$parentPeriod->end_date})"
+                    ];
+                }
+            }
+            
+            // Extension periods are allowed to overlap - skip overlap check
+            return [
+                'valid' => true,
+                'message' => 'Extension period dates are valid'
+            ];
+        }
+
+        // For base periods (no parent), check for overlaps with OTHER base periods only
         $builder = $this->builder();
         $builder->where('payment_id', $paymentId)
-                ->where('is_deleted', 0);
+                ->where('is_deleted', 0)
+                ->where('parent_period_id IS NULL', null, false); // Only check against base periods
                 
         if ($excludeId) {
             $builder->where('id !=', $excludeId);
@@ -248,7 +307,7 @@ class ProgramPaymentPeriodModel extends Model
         if ($conflicting) {
             return [
                 'valid' => false,
-                'message' => "Period overlaps with existing period: {$conflicting->name} ({$conflicting->start_date} to {$conflicting->end_date})"
+                'message' => "Period overlaps with existing base period: {$conflicting->name} ({$conflicting->start_date} to {$conflicting->end_date})"
             ];
         }
         
@@ -299,5 +358,150 @@ class ProgramPaymentPeriodModel extends Model
             log_message('error', "Error reordering periods for payment {$paymentId}: " . $e->getMessage());
             return false;
         }
+    }
+
+    /**
+     * Get effective date range for a period (includes parent if extension)
+     *
+     * @param int $periodId The period ID
+     * @return array|null Effective range with start, end, and metadata
+     */
+    public function getEffectiveDateRange($periodId)
+    {
+        $period = $this->find($periodId);
+        
+        if (!$period) {
+            return null;
+        }
+        
+        // Base period - use its own dates
+        if (!$period->parent_period_id) {
+            return [
+                'start_date' => $period->start_date,
+                'end_date' => $period->end_date,
+                'display_label' => $period->name,
+                'is_extension' => false,
+                'period_id' => $period->id
+            ];
+        }
+        
+        // Extension period - get parent info
+        $parent = $this->find($period->parent_period_id);
+        
+        if (!$parent) {
+            // Parent not found, fallback to period's own dates
+            return [
+                'start_date' => $period->start_date,
+                'end_date' => $period->end_date,
+                'display_label' => $period->name,
+                'is_extension' => true,
+                'period_id' => $period->id
+            ];
+        }
+        
+        return [
+            'start_date' => $parent->start_date,  // Show from parent's start
+            'end_date' => $period->end_date,      // Until extension's end
+            'display_label' => "{$parent->name} + {$period->name}",
+            'extension_active_from' => $period->start_date,  // When extension actually begins
+            'parent_period_name' => $parent->name,
+            'extension_period_name' => $period->name,
+            'extension_type' => $period->extension_type,
+            'is_extension' => true,
+            'parent_period_id' => $parent->id,
+            'period_id' => $period->id
+        ];
+    }
+
+    /**
+     * Get all base periods (non-extension) for a payment
+     *
+     * @param int $paymentId The payment ID
+     * @param bool $activeOnly Whether to get only active periods
+     * @return array Base periods
+     */
+    public function getBasePeriods($paymentId, $activeOnly = true)
+    {
+        $builder = $this->builder();
+        $builder->where('payment_id', $paymentId)
+                ->where('is_deleted', 0)
+                ->where('parent_period_id IS NULL', null, false);
+        
+        if ($activeOnly) {
+            $builder->where('is_active', 1);
+        }
+        
+        $builder->orderBy('order_number', 'ASC');
+        return $builder->get()->getResult();
+    }
+
+    /**
+     * Get all extension periods for a specific parent period
+     *
+     * @param int $parentPeriodId The parent period ID
+     * @param bool $activeOnly Whether to get only active periods
+     * @return array Extension periods
+     */
+    public function getExtensionsByParent($parentPeriodId, $activeOnly = true)
+    {
+        $builder = $this->builder();
+        $builder->where('parent_period_id', $parentPeriodId)
+                ->where('is_deleted', 0);
+        
+        if ($activeOnly) {
+            $builder->where('is_active', 1);
+        }
+        
+        $builder->orderBy('start_date', 'ASC');
+        return $builder->get()->getResult();
+    }
+
+    /**
+     * Get period hierarchy (base periods with their extensions)
+     *
+     * @param int $paymentId The payment ID
+     * @param bool $activeOnly Whether to get only active periods
+     * @return array Hierarchical period structure
+     */
+    public function getPeriodHierarchy($paymentId, $activeOnly = true)
+    {
+        $basePeriods = $this->getBasePeriods($paymentId, $activeOnly);
+        $hierarchy = [];
+        
+        foreach ($basePeriods as $basePeriod) {
+            $extensions = $this->getExtensionsByParent($basePeriod->id, $activeOnly);
+            
+            $hierarchy[] = [
+                'base' => $basePeriod,
+                'extensions' => $extensions,
+                'has_extensions' => count($extensions) > 0
+            ];
+        }
+        
+        return $hierarchy;
+    }
+
+    /**
+     * Check if a period can be deleted (has no extensions)
+     *
+     * @param int $periodId The period ID
+     * @return array Result with 'can_delete' boolean and 'message'
+     */
+    public function canDeletePeriod($periodId)
+    {
+        $extensions = $this->getExtensionsByParent($periodId, false);
+        
+        if (count($extensions) > 0) {
+            return [
+                'can_delete' => false,
+                'message' => 'Cannot delete period with active extensions. Delete extensions first.',
+                'extension_count' => count($extensions)
+            ];
+        }
+        
+        return [
+            'can_delete' => true,
+            'message' => 'Period can be deleted'
+        ];
     }
 }

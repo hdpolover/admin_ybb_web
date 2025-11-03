@@ -115,11 +115,16 @@ class ExportFilenameHelper
         if ($type === 'payments') {
             if (isset($filters['payment_status']) && $filters['payment_status'] !== 'all') {
                 $paymentStatusMap = [
-                    '0' => 'Created',
-                    '1' => 'Pending',
-                    '2' => 'Successful',
-                    '3' => 'Cancelled',
-                    '4' => 'Rejected'
+                    '0' => 'Pending',
+                    '1' => 'Processing',
+                    '2' => 'Success',
+                    '3' => 'Failed',
+                    '4' => 'Cancelled',
+                    0 => 'Pending',
+                    1 => 'Processing',
+                    2 => 'Success',
+                    3 => 'Failed',
+                    4 => 'Cancelled'
                 ];
                 $descriptions[] = $paymentStatusMap[$filters['payment_status']] ?? 'Status_' . $filters['payment_status'];
             }

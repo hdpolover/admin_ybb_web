@@ -309,6 +309,11 @@
                             if (row.can_edit) {
                                 actions += '<button class="btn btn-sm btn-success edit-admin" data-id="' + row.id + '" title="Edit"><i class="ri-pencil-line"></i></button>';
                             }
+                            <?php if ($currentUser->role === 'super_admin'): ?>
+                            if (row.can_edit && row.id !== <?= $currentUser->id ?>) {
+                                actions += '<button class="btn btn-sm btn-warning reset-password-admin" data-id="' + row.id + '" data-name="' + row.name + '" title="Reset Password"><i class="ri-lock-password-line"></i></button>';
+                            }
+                            <?php endif; ?>
                             if (row.can_delete) {
                                 actions += '<button class="btn btn-sm btn-danger delete-admin" data-id="' + row.id + '" title="Delete"><i class="ri-delete-bin-line"></i></button>';
                             }
@@ -364,6 +369,12 @@
                 deleteAdmin(adminId);
             });
 
+            $(document).on('click', '.reset-password-admin', function() {
+                const adminId = $(this).data('id');
+                const adminName = $(this).data('name');
+                showResetPasswordModal(adminId, adminName);
+            });
+
             // Add admin button click (for the button in the card header)
             $(document).on('click', '[data-bs-target="#admin-modal"]', function() {
                 showAddAdminModal();
@@ -379,6 +390,83 @@
 
             $('#update-admin-btn').click(function() {
                 updateAdmin();
+            });
+
+            $('#confirm-reset-password-btn').click(function() {
+                resetAdminPassword();
+            });
+
+            // Generate password button
+            $('#generate-password-btn').click(function() {
+                const password = generateSecurePassword(12);
+                $('#new-password').val(password);
+                $('#confirm-password').val(password);
+                
+                // Show passwords
+                $('#new-password, #confirm-password').attr('type', 'text');
+                $('#toggle-password-icon').removeClass('ri-eye-line').addClass('ri-eye-off-line');
+                $('#toggle-confirm-password-icon').removeClass('ri-eye-line').addClass('ri-eye-off-line');
+                
+                // Copy to clipboard
+                copyToClipboard(password).then(() => {
+                    $('#generated-password-info').removeClass('d-none');
+                    setTimeout(() => {
+                        $('#generated-password-info').addClass('d-none');
+                    }, 5000);
+                }).catch(err => {
+                    console.error('Failed to copy password:', err);
+                });
+            });
+
+            // Toggle password visibility
+            $('#toggle-password-visibility').click(function() {
+                const passwordField = $('#new-password');
+                const icon = $('#toggle-password-icon');
+                
+                if (passwordField.attr('type') === 'password') {
+                    passwordField.attr('type', 'text');
+                    icon.removeClass('ri-eye-line').addClass('ri-eye-off-line');
+                } else {
+                    passwordField.attr('type', 'password');
+                    icon.removeClass('ri-eye-off-line').addClass('ri-eye-line');
+                }
+            });
+
+            // Toggle confirm password visibility
+            $('#toggle-confirm-password-visibility').click(function() {
+                const passwordField = $('#confirm-password');
+                const icon = $('#toggle-confirm-password-icon');
+                
+                if (passwordField.attr('type') === 'password') {
+                    passwordField.attr('type', 'text');
+                    icon.removeClass('ri-eye-line').addClass('ri-eye-off-line');
+                } else {
+                    passwordField.attr('type', 'password');
+                    icon.removeClass('ri-eye-off-line').addClass('ri-eye-line');
+                }
+            });
+
+            // Copy password button
+            $('#copy-password-btn').click(function() {
+                const password = $('#new-password').val();
+                if (password) {
+                    copyToClipboard(password).then(() => {
+                        const btn = $(this);
+                        const originalHtml = btn.html();
+                        btn.html('<i class="ri-check-line"></i>');
+                        setTimeout(() => {
+                            btn.html(originalHtml);
+                        }, 2000);
+                    }).catch(err => {
+                        console.error('Failed to copy password:', err);
+                        Swal.fire({
+                            title: 'Error',
+                            text: 'Failed to copy password to clipboard',
+                            icon: 'error',
+                            confirmButtonColor: '#f06548'
+                        });
+                    });
+                }
             });
         });
 
@@ -541,6 +629,147 @@
                 complete: function() {
                     // Reset button state
                     updateBtn.html(originalText).prop('disabled', false);
+                }
+            });
+        }
+
+        function showResetPasswordModal(adminId, adminName) {
+            $('#reset-admin-id').val(adminId);
+            $('#reset-admin-name').text(adminName);
+            $('#reset-password-form')[0].reset();
+            $('#reset-password-errors').addClass('d-none').text('');
+            $('#generated-password-info').addClass('d-none');
+            
+            // Reset password field types to password
+            $('#new-password, #confirm-password').attr('type', 'password');
+            $('#toggle-password-icon').removeClass('ri-eye-off-line').addClass('ri-eye-line');
+            $('#toggle-confirm-password-icon').removeClass('ri-eye-off-line').addClass('ri-eye-line');
+            
+            $('#reset-password-modal').modal('show');
+        }
+
+        function generateSecurePassword(length = 12) {
+            // Define character sets
+            const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+            const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            const numbers = '0123456789';
+            const specialChars = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+            const allChars = lowercase + uppercase + numbers + specialChars;
+            
+            let password = '';
+            
+            // Ensure at least one character from each set
+            password += lowercase[Math.floor(Math.random() * lowercase.length)];
+            password += uppercase[Math.floor(Math.random() * uppercase.length)];
+            password += numbers[Math.floor(Math.random() * numbers.length)];
+            password += specialChars[Math.floor(Math.random() * specialChars.length)];
+            
+            // Fill the rest randomly
+            for (let i = password.length; i < length; i++) {
+                password += allChars[Math.floor(Math.random() * allChars.length)];
+            }
+            
+            // Shuffle the password to randomize character positions
+            return password.split('').sort(() => Math.random() - 0.5).join('');
+        }
+
+        function copyToClipboard(text) {
+            if (navigator.clipboard && window.isSecureContext) {
+                return navigator.clipboard.writeText(text);
+            } else {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    textArea.remove();
+                    return Promise.resolve();
+                } catch (error) {
+                    textArea.remove();
+                    return Promise.reject(error);
+                }
+            }
+        }
+
+        function resetAdminPassword() {
+            const adminId = $('#reset-admin-id').val();
+            const newPassword = $('#new-password').val();
+            const confirmPassword = $('#confirm-password').val();
+            const resetBtn = $('#confirm-reset-password-btn');
+            const originalText = resetBtn.html();
+
+            // Client-side validation
+            if (!newPassword || !confirmPassword) {
+                $('#reset-password-errors').removeClass('d-none').html('<i class="ri-error-warning-line me-1"></i>All fields are required');
+                return;
+            }
+
+            if (newPassword.length < 8) {
+                $('#reset-password-errors').removeClass('d-none').html('<i class="ri-error-warning-line me-1"></i>Password must be at least 8 characters long');
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                $('#reset-password-errors').removeClass('d-none').html('<i class="ri-error-warning-line me-1"></i>Passwords do not match');
+                return;
+            }
+
+            // Hide errors
+            $('#reset-password-errors').addClass('d-none').text('');
+
+            // Disable button and show loading
+            resetBtn.html('<span class="spinner-border spinner-border-sm me-1"></span>Resetting...').prop('disabled', true);
+
+            $.ajax({
+                url: `/settings/admin-management/reset-password/${adminId}`,
+                method: 'POST',
+                data: {
+                    new_password: newPassword,
+                    confirm_password: confirmPassword
+                },
+                success: function(response) {
+                    if (response.success) {
+                        $('#reset-password-modal').modal('hide');
+                        
+                        Swal.fire({
+                            title: 'Success!',
+                            text: response.message || 'Password reset successfully',
+                            icon: 'success',
+                            confirmButtonColor: '#0ab39c',
+                            confirmButtonText: 'OK'
+                        });
+                    } else {
+                        // Show validation errors
+                        let errorHtml = '<i class="ri-error-warning-line me-1"></i>';
+                        if (response.errors) {
+                            errorHtml += Object.values(response.errors).join('<br>');
+                        } else {
+                            errorHtml += response.message || 'Failed to reset password';
+                        }
+                        $('#reset-password-errors').removeClass('d-none').html(errorHtml);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX Error:', xhr.responseText);
+                    let errorMsg = 'Failed to reset password. Please try again.';
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.message) {
+                            errorMsg = response.message;
+                        }
+                    } catch (e) {
+                        // Use default error message
+                    }
+                    $('#reset-password-errors').removeClass('d-none').html('<i class="ri-error-warning-line me-1"></i>' + errorMsg);
+                },
+                complete: function() {
+                    // Reset button state
+                    resetBtn.html(originalText).prop('disabled', false);
                 }
             });
         }
@@ -895,6 +1124,73 @@
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary" id="save-admin-btn">Save Admin</button>
                 <button type="button" class="btn btn-primary" id="update-admin-btn" style="display: none;">Update Admin</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reset Password Modal -->
+<div class="modal fade" id="reset-password-modal" tabindex="-1" aria-labelledby="reset-password-modal-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title text-white" id="reset-password-modal-title">
+                    <i class="ri-lock-password-line me-2"></i>Reset Admin Password
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning" role="alert">
+                    <i class="ri-alert-line me-2"></i>
+                    <strong>Warning:</strong> You are about to reset the password for <span id="reset-admin-name" class="fw-bold"></span>.
+                    The admin will need to use this new password to log in.
+                </div>
+                <form id="reset-password-form">
+                    <input type="hidden" id="reset-admin-id" name="admin_id">
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label for="new-password" class="form-label mb-0">New Password <span class="text-danger">*</span></label>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="generate-password-btn">
+                                <i class="ri-refresh-line me-1"></i>Generate Password
+                            </button>
+                        </div>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="new-password" name="new_password" 
+                                   placeholder="Enter new password" required minlength="8">
+                            <button class="btn btn-outline-secondary" type="button" id="toggle-password-visibility">
+                                <i class="ri-eye-line" id="toggle-password-icon"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary" type="button" id="copy-password-btn" title="Copy to clipboard">
+                                <i class="ri-file-copy-line"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">Password must be at least 8 characters long</small>
+                        <div id="generated-password-info" class="alert alert-success mt-2 d-none">
+                            <i class="ri-information-line me-1"></i>
+                            <strong>Generated password copied to clipboard!</strong> Make sure to save it securely.
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="confirm-password" class="form-label">Confirm Password <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="confirm-password" name="confirm_password" 
+                                   placeholder="Confirm new password" required minlength="8">
+                            <button class="btn btn-outline-secondary" type="button" id="toggle-confirm-password-visibility">
+                                <i class="ri-eye-line" id="toggle-confirm-password-icon"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="reset-password-errors" class="alert alert-danger d-none"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" id="confirm-reset-password-btn">
+                    <i class="ri-lock-password-line me-1"></i>Reset Password
+                </button>
             </div>
         </div>
     </div>
