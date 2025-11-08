@@ -24,6 +24,12 @@
         "countryCode": "+93"
     },
     {
+        "id": 4,
+        "flagImg": "assets/images/flags/alba.svg",
+        "countryName": "Albania",
+        "countryCode": "+355"
+    },
+    {
         "id": 5,
         "flagImg": "assets/images/flags/ag.svg",
         "countryName": "Antigua and Barbuda",
