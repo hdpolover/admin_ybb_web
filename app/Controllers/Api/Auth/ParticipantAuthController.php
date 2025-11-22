@@ -41,12 +41,17 @@ class ParticipantAuthController extends BaseAuthController
             $authData = $model->signIn($email, $password, $web_url);
 
             // Check if authentication failed
-            if (!$authData || !$authData['is_authenticated']) {
+            if (!$authData || !$authData['is_authenticated'] || !isset($authData['user'])) {
                 $message = isset($authData['message']) ? $authData['message'] : 'Invalid email or password.';
                 return $this->respondUnauthorized($message);
             }
 
             $user = $authData['user'];
+            
+            // Additional safety check
+            if (!$user) {
+                return $this->respondUnauthorized('Invalid email or password.');
+            }
 
             // Check web settings to see if verification is required
             $webSettingModel = new \App\Models\WebSettingModel();
@@ -194,10 +199,22 @@ class ParticipantAuthController extends BaseAuthController
         $webUrl = $this->getInput('web_url');
         $ambassadorId = $this->getInput('ambassador_id');
         $encryptedQuery = $this->getInput('q'); // Ambassador referral query parameter
+        $programName = $this->getInput('program'); // Program name from URL params (e.g., japan-youth-summit-2025)
+        $category = $this->getInput('category'); // Participant category (fully_funded or self_funded)
 
         // Validate required input
         if (empty($email) || empty($password) || empty($fullName) || empty($webUrl)) {
             return $this->respondValidationErrors('Email, password, full name, and web_url are required.');
+        }
+
+        // Validate category if provided
+        if (!empty($category)) {
+            $allowedCategories = ['fully_funded', 'self_funded', 'fully-funded', 'self-funded'];
+            if (!in_array(strtolower($category), $allowedCategories)) {
+                return $this->respondValidationErrors('Invalid category. Allowed values are: fully_funded or self_funded.');
+            }
+            // Normalize category to use underscore format
+            $category = str_replace('-', '_', strtolower($category));
         }
 
         // Normalize the web URL
@@ -212,16 +229,39 @@ class ParticipantAuthController extends BaseAuthController
 
         $programCategoryId = $programCategory->id;
 
-        // Get the first active program for this category (or you can modify this logic as needed)
-        $programs = $programModel->getPrograms($programCategoryId);
-        
-        if (empty($programs)) {
-            return $this->respondValidationErrors('No active programs found for this category.');
-        }
+        // Get program based on program name parameter or use first active program
+        if (!empty($programName)) {
+            // Convert slug format to program name (e.g., japan-youth-summit-2025 -> Japan Youth Summit 2025)
+            $programNameFormatted = ucwords(str_replace('-', ' ', $programName));
+            
+            $program = $programModel->getProgramBySlugAndCategory($programName, $programCategoryId);
+            
+            if (!$program) {
+                // Try with formatted name
+                $program = $programModel->where('name', $programNameFormatted)
+                    ->where('program_category_id', $programCategoryId)
+                    ->where('is_active', 1)
+                    ->where('is_deleted', 0)
+                    ->first();
+            }
+            
+            if (!$program) {
+                return $this->respondValidationErrors('Program "' . $programName . '" not found or is not active for this category.');
+            }
+            
+            $programId = $program->id;
+        } else {
+            // Get the first active program for this category
+            $programs = $programModel->getPrograms($programCategoryId);
+            
+            if (empty($programs)) {
+                return $this->respondValidationErrors('No active programs found for this category.');
+            }
 
-        // Use the first active program (you can modify this logic if needed)
-        $program = $programs[0];
-        $programId = $program->id;
+            // Use the first active program
+            $program = $programs[0];
+            $programId = $program->id;
+        }
 
         // Handle ambassador referral query parameter if provided
         $ambassadorRefCode = null;
@@ -323,17 +363,7 @@ class ParticipantAuthController extends BaseAuthController
                     ]);
 
                     if ($existingParticipant) {
-                        // return $this->respondValidationErrors('Participant is already registered for this program. Please sign in to continue.');
-                        if (isset($response['message'])) {
-                            $errorMessage = $response['message'];
-                        } 
-                        elseif (isset($response['errors'])) {
-                            if (is_array($response['errors'])) {
-                                $errorMessage = implode(' ', $response['errors']);
-                            } else {
-                                $errorMessage = $response['errors'];
-                            }
-                        }
+                        return $this->respondValidationErrors('You are already registered for this program. Please sign in to continue.');
                     }
 
                     // Create participant for existing user
@@ -342,6 +372,11 @@ class ParticipantAuthController extends BaseAuthController
                         'program_id' => $programId,
                         'full_name' => $fullName,
                     ];
+                    
+                    // Add category if provided
+                    if (!empty($category)) {
+                        $participantData['category'] = $category;
+                    }
 
                     $participant = $participantModel->createParticipant($participantData);
 
@@ -394,6 +429,11 @@ class ParticipantAuthController extends BaseAuthController
                     'program_id' => $programId,
                     'full_name' => $fullName,
                 ];
+                
+                // Add category if provided
+                if (!empty($category)) {
+                    $participantData['category'] = $category;
+                }
 
                 $participant = $participantModel->createParticipant($participantData);
 

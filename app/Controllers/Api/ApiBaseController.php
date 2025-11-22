@@ -193,6 +193,8 @@ class ApiBaseController extends ResourceController
     protected function respondValidationErrors($errors, string $message = 'Validation error'): ResponseInterface
     {
         if (is_string($errors)) {
+            // If errors is a string, use it as the main message
+            $message = $errors;
             $errors = ['message' => $errors];
         }
 
