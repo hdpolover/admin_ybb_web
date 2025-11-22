@@ -323,7 +323,17 @@ class ParticipantAuthController extends BaseAuthController
                     ]);
 
                     if ($existingParticipant) {
-                        return $this->respondValidationErrors('Participant is already registered for this program. Please sign in to continue.');
+                        // return $this->respondValidationErrors('Participant is already registered for this program. Please sign in to continue.');
+                        if (isset($response['message'])) {
+                            $errorMessage = $response['message'];
+                        } 
+                        elseif (isset($response['errors'])) {
+                            if (is_array($response['errors'])) {
+                                $errorMessage = implode(' ', $response['errors']);
+                            } else {
+                                $errorMessage = $response['errors'];
+                            }
+                        }
                     }
 
                     // Create participant for existing user

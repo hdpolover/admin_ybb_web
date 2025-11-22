@@ -1528,5 +1528,11 @@
         "flagImg": "assets/images/flags/zw.svg",
         "countryName": "Zimbabwe",
         "countryCode": "+263"
+    },
+    {
+        "id": 259,
+        "flagImg": "assets/images/flags/alba.svg",
+        "countryName": "Albania",
+        "countryCode": "+355"
     }
 ]
