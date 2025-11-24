@@ -27,6 +27,7 @@ class ParticipantModel extends Model
         'user_id',
         'account_id',
         'full_name',
+        'nickname',
         'program_id',
         'gender',
         'birthdate',
@@ -1164,6 +1165,7 @@ class ParticipantModel extends Model
                 'participants.id as participant_id',
                 'participants.account_id as participant_account_id', 
                 'participants.full_name as participant_full_name',
+                'participants.nickname as participant_nickname',
                 'participants.gender as participant_gender',
                 'participants.birthdate as participant_birthdate',
                 'participants.nationality as participant_nationality',
@@ -1341,6 +1343,7 @@ class ParticipantModel extends Model
             'Participant_ID' => $participant['participant_id'] ?? 'N/A',
             'Account_ID' => $participant['participant_account_id'] ?? 'N/A',
             'Full_Name' => $participant['participant_full_name'] ?? 'Unknown',
+            'Nickname' => $participant['participant_nickname'] ?? 'Not Provided',
             'Email' => $participant['participant_email'] ?? 'No Email',
             
             // === CONTACT INFORMATION (High Priority) ===

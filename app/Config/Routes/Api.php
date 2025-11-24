@@ -67,6 +67,13 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     // Server time endpoint - publicly accessible
     $routes->get('server-time', 'ServerTimeController::getServerTime');
 
+    // Countries API routes - publicly accessible
+    $routes->get('countries', 'CountriesApiController::index');
+    $routes->get('countries/search', 'CountriesApiController::search');
+    $routes->get('countries/codes', 'CountriesApiController::codes');
+    $routes->get('countries/by-name/(:segment)', 'CountriesApiController::getByName/$1');
+    $routes->get('countries/(:num)', 'CountriesApiController::show/$1');
+
     // Program Speakers API routes
     $routes->group('program-speakers', function ($routes) {
         // Basic CRUD

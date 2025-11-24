@@ -196,6 +196,7 @@ class ParticipantAuthController extends BaseAuthController
         $email = $this->getInput('email');
         $password = $this->getInput('password');
         $fullName = $this->getInput('full_name');
+        $nickname = $this->getInput('nickname');
         $webUrl = $this->getInput('web_url');
         $ambassadorId = $this->getInput('ambassador_id');
         $encryptedQuery = $this->getInput('q'); // Ambassador referral query parameter
@@ -251,16 +252,21 @@ class ParticipantAuthController extends BaseAuthController
             
             $programId = $program->id;
         } else {
-            // Get the first active program for this category
-            $programs = $programModel->getPrograms($programCategoryId);
+            // No program specified - get the most recent active program for this category
+            $program = $programModel->where('program_category_id', $programCategoryId)
+                ->where('is_active', 1)
+                ->where('is_deleted', 0)
+                ->orderBy('created_at', 'DESC')
+                ->first();
             
-            if (empty($programs)) {
-                return $this->respondValidationErrors('No active programs found for this category.');
+            if (!$program) {
+                return $this->respondValidationErrors('No active programs found for this category. Please contact support.');
             }
 
-            // Use the first active program
-            $program = $programs[0];
             $programId = $program->id;
+            
+            // Log for monitoring
+            log_message('info', "User registered to default active program: {$program->name} (ID: {$programId}) for category ID: {$programCategoryId}");
         }
 
         // Handle ambassador referral query parameter if provided
@@ -373,6 +379,11 @@ class ParticipantAuthController extends BaseAuthController
                         'full_name' => $fullName,
                     ];
                     
+                    // Add nickname if provided
+                    if (!empty($nickname)) {
+                        $participantData['nickname'] = $nickname;
+                    }
+                    
                     // Add category if provided
                     if (!empty($category)) {
                         $participantData['category'] = $category;
@@ -395,6 +406,7 @@ class ParticipantAuthController extends BaseAuthController
                     // response data
                     $responseData = [
                         'is_new' => false,
+                        'message' => 'Welcome back! You have been successfully registered for this program.',
                         'participant' => $participant,
                     ];
                     
@@ -403,7 +415,7 @@ class ParticipantAuthController extends BaseAuthController
                         $responseData['ambassador'] = $ambassadorInfo;
                     }
 
-                    return $this->respondSuccess($responseData, self::HTTP_CREATED, 'Participant sign up successful.');
+                    return $this->respondSuccess($responseData, self::HTTP_CREATED, 'Registration successful. You can now sign in with your existing password.');
                 }
             } else {
                 // generate verification token
@@ -429,6 +441,11 @@ class ParticipantAuthController extends BaseAuthController
                     'program_id' => $programId,
                     'full_name' => $fullName,
                 ];
+                
+                // Add nickname if provided
+                if (!empty($nickname)) {
+                    $participantData['nickname'] = $nickname;
+                }
                 
                 // Add category if provided
                 if (!empty($category)) {
