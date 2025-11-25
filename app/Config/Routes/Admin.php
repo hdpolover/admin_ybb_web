@@ -130,6 +130,13 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
             $routes->post('update-status', 'Submissions\Agreements::updateStatus');
         });
         
+        // Essays routes
+        $routes->group('essays', function ($routes) {
+            $routes->get('/', 'Submissions\Essays::index');
+            $routes->post('getData', 'Submissions\Essays::getData');
+            $routes->get('view/(:num)', 'Submissions\Essays::view/$1');
+        });
+        
     });
     
        
