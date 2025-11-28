@@ -217,7 +217,7 @@
                                                 <option value="">All Program Payments</option>
                                                 <?php
                                                 foreach ($programPayments as $payment): ?>
-                                                    <option value="<?= $payment->id ?>"><?= $payment->name ?></option>
+                                                    <option value="<?= $payment->id ?>"><?= esc($payment->name) ?><?= ($payment->is_active == 0) ? ' (Inactive)' : '' ?></option>
                                                 <?php endforeach; ?>
                                             </select>
                                         </div>

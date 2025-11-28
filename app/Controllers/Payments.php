@@ -36,7 +36,7 @@ class Payments extends AdminBaseController
         $this->programId = $programId;
         $this->program = $this->programModel->find($programId);
         $this->paymentMethods = $this->paymentMethodModel->getByProgramId($programId);
-        $this->programPayments = $this->programPaymentModel->getByProgramId($programId);
+        $this->programPayments = $this->programPaymentModel->getAllForAdminFilter($programId);
     }
 
     public function index()

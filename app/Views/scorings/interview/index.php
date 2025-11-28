@@ -1143,11 +1143,12 @@
                                     $programId = session('current_program');
                                     // Load program payment model
                                     $programPaymentModel = new \App\Models\ProgramPaymentModel();
-                                    // Get available program payments
-                                    $programPayments = $programPaymentModel->getByProgramId($programId);
-                                    // Display options
+                                    // Get available program payments (include inactive for admin filtering)
+                                    $programPayments = $programPaymentModel->getAllForAdminFilter($programId);
+                                    // Display options with status indicators
                                     foreach ($programPayments as $payment) {
-                                        echo '<option value="' . $payment->id . '">' . esc($payment->name) . '</option>';
+                                        $statusText = ($payment->is_active == 0) ? ' (Inactive)' : '';
+                                        echo '<option value="' . $payment->id . '">' . esc($payment->name) . $statusText . '</option>';
                                     }
                                     ?>
                                 </select>

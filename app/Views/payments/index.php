@@ -503,7 +503,7 @@
                                 <select class="form-select" name="program_payment_id" id="programPaymentFilter">
                                     <option value="">All Program Payments</option>
                                     <?php foreach ($programPayments as $payment): ?>
-                                        <option value="<?= $payment->id ?>"><?= esc($payment->name) ?></option>
+                                        <option value="<?= $payment->id ?>"><?= esc($payment->name) ?><?= ($payment->is_active == 0) ? ' (Inactive)' : '' ?></option>
                                     <?php endforeach; ?>
                                 </select>
                                 <div class="form-text text-muted">Filter by specific program payment type</div>

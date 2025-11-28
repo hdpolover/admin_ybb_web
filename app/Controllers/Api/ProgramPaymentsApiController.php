@@ -99,8 +99,14 @@ class ProgramPaymentsApiController extends ApiBaseController
      * Get program payments by program ID
      * GET /api/program-payments/program/{programId}
      * 
+     * Query parameters:
+     * - include_inactive: Set to 'true' to include inactive payments (for admin use)
+     * 
      * IMPORTANT: Program payment data is NOT cached to ensure real-time period information
      * Payment periods can change availability and dates dynamically
+     * 
+     * By default, only returns active payments for participants.
+     * Admin interfaces can pass include_inactive=true to see all payments.
      */
     public function getByProgramId($programId = null)
     {
@@ -114,16 +120,21 @@ class ProgramPaymentsApiController extends ApiBaseController
         $this->response->setHeader('Expires', 'Thu, 01 Jan 1970 00:00:00 GMT');
 
         try {
+            // Check if admin wants to include inactive payments
+            $includeInactive = $this->request->getGet('include_inactive') === 'true';
+            
             // Always fetch fresh data - NO CACHING for program payment data with periods
-            // Get all payments (active and inactive, but exclude deleted)
-            // The model's getByProgramId method already enhances payments with current period data
-            $programPayments = $this->model->getByProgramId($programId, false, false);
+            // By default, only show active payments to participants
+            // Admin interfaces can request inactive payments via include_inactive parameter
+            $activeOnly = !$includeInactive;
+            $programPayments = $this->model->getByProgramId($programId, $activeOnly, false);
 
             if (!$programPayments) {
                 return $this->respondNotFound('Program payments not found for this program ID');
             }
 
-            log_message('info', "Program payments accessed for program {$programId}, Count: " . count($programPayments));
+            $logSuffix = $includeInactive ? ' (including inactive)' : ' (active only)';
+            log_message('info', "Program payments accessed for program {$programId}, Count: " . count($programPayments) . $logSuffix);
 
             return $this->respondSuccess($programPayments, self::HTTP_OK, 'Program payments retrieved successfully');
         } catch (\Exception $e) {

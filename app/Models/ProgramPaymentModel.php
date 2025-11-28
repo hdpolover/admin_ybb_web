@@ -75,6 +75,22 @@ class ProgramPaymentModel extends Model {
     }
 
     /**
+     * Get all program payments for admin filtering purposes
+     * This includes both active and inactive payments for admin dashboards
+     * 
+     * NOTE: This method is specifically for admin interfaces where both active 
+     * and inactive payments need to be visible for filtering/reporting purposes.
+     * For participant-facing features, use getByProgramId() with activeOnly=true.
+     *
+     * @param int $programId The program ID
+     * @return array All program payments (active and inactive) for admin filtering
+     */
+    public function getAllForAdminFilter($programId)
+    {
+        return $this->getByProgramId($programId, false, false); // Include inactive, exclude deleted
+    }
+
+    /**
      * Get registration payment information for a program
      * Uses periods to determine current availability
      *

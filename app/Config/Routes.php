@@ -64,6 +64,10 @@ $routes->group('', ['namespace' => 'App\Controllers'], function ($routes) {
         $routes->post('email/send', 'ConfigTestController::testEmail');
     });
     
+    // Debug routes (admin only - requires program selection)
+    $routes->get('debug-program-payments', 'DebugProgramPayments::index', ['filter' => 'auth,program_selection']);
+    $routes->get('debug-program-payments/create-test', 'DebugProgramPayments::createTestInactive', ['filter' => 'auth,program_selection']);
+    
     // Email testing routes
     $routes->group('test-email', function ($routes) {
         $routes->get('forgot-password', 'EmailTestingController::testForgotPassword');
