@@ -299,7 +299,7 @@ class ParticipantAuthController extends BaseAuthController
                 // Store ambassador info for response
                 $ambassadorInfo = [
                     'id' => $ambassador->id,
-                    'full_name' => $ambassador->full_name,
+                    'name' => $ambassador->name,
                     'ref_code' => $ambassador->ref_code
                 ];
                 
@@ -342,7 +342,7 @@ class ParticipantAuthController extends BaseAuthController
             if (empty($ambassadorInfo)) {
                 $ambassadorInfo = [
                     'id' => $ambassador->id,
-                    'full_name' => $ambassador->full_name,
+                    'name' => $ambassador->name,
                     'ref_code' => $ambassador->ref_code
                 ];
             }

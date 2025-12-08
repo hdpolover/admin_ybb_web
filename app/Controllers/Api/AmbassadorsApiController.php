@@ -211,7 +211,8 @@ class AmbassadorsApiController extends ApiBaseController
      * Generate referral link for an ambassador.
      * GET /api/ambassadors/{id}/generate-link
      * 
-     * IMPORTANT: Only generates link if ambassador belongs to the currently selected program
+     * Generates referral link using the ambassador's program_id from database.
+     * No session program selection required - ambassador already belongs to a specific program.
      */
     public function generateLink($id)
     {
@@ -221,24 +222,13 @@ class AmbassadorsApiController extends ApiBaseController
         $this->response->setHeader('Expires', '0');
 
         try {
-            // Get current program ID from session
-            $programId = session('current_program');
-            
-            if (!$programId) {
-                return $this->failValidationErrors('No program selected');
-            }
-
             $ambassador = $this->model->find($id);
 
             if (!$ambassador) {
                 return $this->failNotFound('Ambassador not found');
             }
-            
-            // Security check: Ensure ambassador belongs to the current program
-            if ($ambassador->program_id != $programId) {
-                return $this->failNotFound('Ambassador not found in selected program');
-            }
 
+            // Get program info directly from ambassador's program_id
             $program = $this->programModel->getProgramById($ambassador->program_id);
             $programCategoryId = $program->program_category_id ?? null;
             $programCategory = $this->programCategoryModel->getProgramCategoryById($programCategoryId);
@@ -249,6 +239,11 @@ class AmbassadorsApiController extends ApiBaseController
 
             $refCode = $ambassador->ref_code;
             $webUrl = rtrim($programCategory->web_url, '/'); // Remove trailing slash if present
+            
+            // Ensure web_url has https:// prefix
+            if (!preg_match('/^https?:\/\//', $webUrl)) {
+                $webUrl = 'https://' . $webUrl;
+            }
 
             // Encrypt the ref code
             $query = $refCode;
