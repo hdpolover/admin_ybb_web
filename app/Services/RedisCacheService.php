@@ -228,12 +228,41 @@ class RedisCacheService
     public function deleteByPattern(string $pattern): bool
     {
         try {
-            // This is a simplified implementation
-            // In production, you might want to use Redis SCAN with pattern matching
             $this->logger->info("Cache PATTERN DELETE: {$pattern}");
-            
-            // For now, we'll increment the version to effectively invalidate all caches
-            // A more sophisticated approach would scan and delete matching keys
+
+            $handler = $this->cache;
+
+            // Use reflection to access protected redis instance in RedisHandler
+            // We need to check if the class name contains RedisHandler as it might be namespaced differently
+            if (strpos(get_class($handler), 'RedisHandler') !== false) {
+                try {
+                    $refProperty = new \ReflectionProperty($handler, 'redis');
+                    $refProperty->setAccessible(true);
+                    $redis = $refProperty->getValue($handler);
+                    
+                    if ($redis) {
+                        // Get prefix from config
+                        $prefix = '';
+                        $config = config('Cache');
+                        if ($config) {
+                             $prefix = $config->prefix ?? '';
+                        }
+                        
+                        $fullPattern = $prefix . $pattern . '*';
+                        
+                        // Use keys command (caution using in prod with large datasets)
+                        $keys = $redis->keys($fullPattern);
+                        if (!empty($keys)) {
+                            $redis->del($keys);
+                            $this->logger->info("Deleted " . count($keys) . " keys matching {$fullPattern}");
+                        }
+                        return true;
+                    }
+                } catch (\Exception $ex) {
+                    $this->logger->warning("Reflection access to Redis failed: " . $ex->getMessage());
+                }
+            }
+
             return true;
         } catch (\Exception $e) {
             $this->logger->error("Cache PATTERN DELETE error for pattern {$pattern}: " . $e->getMessage());
@@ -244,7 +273,7 @@ class RedisCacheService
     /**
      * Cache or retrieve data with automatic key generation
      */
-    public function remember(string $endpoint, array $parameters = [], callable $callback = null, ?string $userId = null)
+    public function remember(string $endpoint, array $parameters = [], ?callable $callback = null, ?string $userId = null)
     {
         $key = $this->generateKey($endpoint, $parameters, $userId);
         $cached = $this->get($key);
