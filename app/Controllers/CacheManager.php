@@ -163,4 +163,50 @@ class CacheManager extends AdminBaseController
             return $this->response->setJSON(['error' => $e->getMessage()]);
         }
     }
+
+    /**
+     * Clear ALL cache (System-wide)
+     * GET /cache/clear/all
+     */
+    public function clearAll()
+    {
+        try {
+            $this->initCache();
+            $cache = \Config\Services::cache();
+            
+            // Perform a full clean
+            $result = $cache->clean();
+            
+            if ($result) {
+                log_message('info', 'Full system cache cleared via Admin Dashboard');
+                $message = 'Full system cache cleared successfully';
+                $success = true;
+            } else {
+                log_message('error', 'Failed to clear full system cache');
+                $message = 'Failed to clear full system cache';
+                $success = false;
+            }
+            
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON([
+                    'success' => $success,
+                    'message' => $message
+                ]);
+            }
+            
+            return redirect()->back()->with($success ? 'message' : 'error', $message);
+            
+        } catch (\Exception $e) {
+            log_message('error', 'Exception clearing full cache: ' . $e->getMessage());
+            
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Exception: ' . $e->getMessage()
+                ]);
+            }
+            
+            return redirect()->back()->with('error', 'Exception: ' . $e->getMessage());
+        }
+    }
 }

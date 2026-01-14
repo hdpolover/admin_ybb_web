@@ -135,6 +135,13 @@
             </div>
             <div class="d-flex align-items-center">
                 <div class="d-flex align-items-center">
+                    <!-- Clear Cache Button -->
+                    <div class="ms-1 header-item d-none d-sm-flex">
+                        <a href="<?= site_url('cache/clear/all') ?>" class="btn btn-icon btn-topbar btn-ghost-secondary rounded-circle" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Clear System Cache" onclick="return confirm('Are you sure you want to clear all system cache? This might affect performance temporarily.')">
+                            <i class='ri-refresh-line fs-22'></i>
+                        </a>
+                    </div>
+
                     <!-- Program Selector Dropdown - Always visible -->
                     <div class="dropdown ms-1 topbar-head-dropdown header-item">
                         <button type="button" class="btn program-selector-btn" id="program-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">

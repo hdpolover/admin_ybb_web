@@ -454,6 +454,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->get('clear/programs', 'CacheManager::clearProgramCaches');
         $routes->get('clear/program/(:num)', 'CacheManager::clearProgramCache/$1');
         $routes->get('clear/landing', 'CacheManager::clearLandingCache');
+        $routes->get('clear/all', 'CacheManager::clearAll');
         $routes->get('stats', 'CacheManager::stats');
     });
 });
