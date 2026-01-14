@@ -319,6 +319,7 @@ class RedisCacheService
             "program-payments_program_{$programId}",
             "payment-methods_program_{$programId}",
             "documents_program_{$programId}",
+            "all_categories_with_programs",
         ];
         
         foreach ($patterns as $pattern) {
@@ -348,6 +349,7 @@ class RedisCacheService
             "landing",
             "web-settings",
             "program-announcements",
+            "all_categories_with_programs",
         ];
         
         foreach ($patterns as $pattern) {
