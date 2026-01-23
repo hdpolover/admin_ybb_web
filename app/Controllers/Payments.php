@@ -905,13 +905,47 @@ class Payments extends AdminBaseController
      */
     private function handleSuccessfulPaymentActions($payment)
     {
-        // You can add code here to:
-        // 1. Update participant payment status if needed
-        // 2. Send confirmation email to participant
-        // 3. Generate receipt or invoice
-        // 4. Update any other related records
+        // Update participant payment status based on program payment category
+        try {
+            if ($payment->participant_id) {
+                // Initialize models
+                $statusModel = new \App\Models\ParticipantStatusModel();
+                $programPaymentModel = new \App\Models\ProgramPaymentModel();
+                
+                // Get program payment details to determine category
+                $programPayment = $programPaymentModel->find($payment->program_payment_id);
+                
+                if ($programPayment) {
+                     $statusPayload = [];
+                     
+                     // Map payment category to status
+                     if ($programPayment->category === 'registration') {
+                         $statusPayload['payment_status'] = 1; 
+                     } elseif ($programPayment->category === 'program_fee_1' || $programPayment->category === 'batch_1') {
+                         $statusPayload['payment_status'] = 2; 
+                         $statusPayload['general_status'] = 2;
+                     } elseif ($programPayment->category === 'program_fee_2' || $programPayment->category === 'batch_2') {
+                         $statusPayload['payment_status'] = 3; 
+                         $statusPayload['general_status'] = 3;
+                     }
+                     
+                     if (!empty($statusPayload)) {
+                        $statusRecord = $statusModel->getParticipantStatusById($payment->participant_id);
+                        
+                        if ($statusRecord) {
+                            $statusModel->update($statusRecord->id, $statusPayload);
+                            log_message('info', "Payments::handleSuccessfulPaymentActions - Updated payment status ({$statusPayload['payment_status']}) for participant ID: {$payment->participant_id}");
+                        } else {
+                            log_message('warning', "Payments::handleSuccessfulPaymentActions - Status record not found for participant ID: {$payment->participant_id}");
+                        }
+                     }
+                }
+            }
+        } catch (\Exception $e) {
+            log_message('error', "Payments::handleSuccessfulPaymentActions - Error updating participant status: " . $e->getMessage());
+        }
 
-        // For now, we'll just log the action
+        // Log the manual update action
         log_message('info', "Payment {$payment->id} was manually marked as successful");
     }
 }

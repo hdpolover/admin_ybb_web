@@ -28,6 +28,7 @@ class ApiBaseController extends ResourceController
     const HTTP_FORBIDDEN = 403;
     const HTTP_NOT_FOUND = 404;
     const HTTP_METHOD_NOT_ALLOWED = 405;
+    const HTTP_CONFLICT = 409;
     const HTTP_UNPROCESSABLE_ENTITY = 422;
     const HTTP_INTERNAL_ERROR = 500;
     const HTTP_NOT_IMPLEMENTED = 501;
@@ -61,7 +62,7 @@ class ApiBaseController extends ResourceController
      *
      * @return mixed
      */
-    public function respond($data = null, int $status = null, string $message = '')
+    public function respond($data = null, ?int $status = null, string $message = '')
     {
         // Check if response is null and create a new one if needed
         if ($this->response === null) {
@@ -115,7 +116,7 @@ class ApiBaseController extends ResourceController
      * @param array $additional Additional data to include
      * @return ResponseInterface
      */
-    protected function respondSuccess($data, int $code = self::HTTP_OK, string $message = 'Success', array $pagination = null, array $additional = []): ResponseInterface
+    protected function respondSuccess($data, int $code = self::HTTP_OK, string $message = 'Success', ?array $pagination = null, array $additional = []): ResponseInterface
     {
         $response = [
             'status' => 'success',

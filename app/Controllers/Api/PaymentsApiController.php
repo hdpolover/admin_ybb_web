@@ -210,7 +210,36 @@ class PaymentsApiController extends ApiBaseController
             // Always fetch fresh data - NO CACHING for payment information
             $payments = $paymentModel->getPaymentsByParticipantIdAndProgramPaymentId($participantId, $programPaymentId);
 
-            // if no payments found, return empty array
+            // if no payments found, try to auto-heal by checking other participants for the same user
+            if (!$payments) {
+                try {
+                    // Determine user ID of the current participant
+                    $participantModel = new \App\Models\ParticipantModel();
+                    $currentParticipant = $participantModel->find($participantId);
+                    
+                    if ($currentParticipant && !empty($currentParticipant->user_id)) {
+                        // Find all participants for this user in the same program
+                        $siblingParticipants = $participantModel->where('user_id', $currentParticipant->user_id)
+                                                              ->where('program_id', $currentParticipant->program_id)
+                                                              ->where('id !=', $participantId) // Exclude current
+                                                              ->where('is_deleted', 0)
+                                                              ->findAll();
+                                                              
+                        foreach ($siblingParticipants as $sibling) {
+                            $siblingPayments = $paymentModel->getPaymentsByParticipantIdAndProgramPaymentId($sibling->id, $programPaymentId);
+                            if (!empty($siblingPayments)) {
+                                log_message('warning', "Auto-healing payment lookup: Requested participant {$participantId} has no payments, but sibling {$sibling->id} does. Returning sibling payments.");
+                                $payments = $siblingPayments;
+                                break; 
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {
+                    log_message('error', 'Auto-healing check failed: ' . $e->getMessage());
+                }
+            }
+
+            // if still no payments found, return empty array
             if (!$payments) {
                 $payments = [];
             }

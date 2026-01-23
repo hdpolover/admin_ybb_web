@@ -134,6 +134,17 @@ class ParticipantsApiController extends ApiBaseController
                 return $this->respondValidationErrors($this->validator->getErrors());
             }
 
+            // Check if participant already exists for this user and program
+            $existingParticipant = $this->model->where('user_id', $data['user_id'])
+                                              ->where('program_id', $data['program_id'])
+                                              ->where('is_deleted', 0)
+                                              ->first();
+            
+            if ($existingParticipant) {
+                log_message('warning', "Prevented duplicate participant creation (API) for User ID: {$data['user_id']}, Program ID: {$data['program_id']}");
+                return $this->respondError('Participant already exists for this program', self::HTTP_CONFLICT);
+            }
+
             // Insert the data
             $participantId = $this->model->insert($data);
 
@@ -530,7 +541,9 @@ class ParticipantsApiController extends ApiBaseController
         try {
             if (!$userId) {
                 return $this->respondError('User ID is required', self::HTTP_BAD_REQUEST);
-            }            // Get input from POST instead of JSON
+            }
+            
+            // Get input from POST instead of JSON
             $data = $this->request->getPost();
 
             // Check if POST data is empty
@@ -555,6 +568,18 @@ class ParticipantsApiController extends ApiBaseController
             $program = $programModel->find($data['program_id']);
             if (!$program) {
                 return $this->respondNotFound("Program with ID {$data['program_id']} not found");
+            }
+
+            // Check if participant already exists for this user and program
+            $existingParticipant = $this->model->where('user_id', $userId)
+                                              ->where('program_id', $data['program_id'])
+                                              ->where('is_deleted', 0)
+                                              ->first();
+            
+            if ($existingParticipant) {
+                log_message('info', "Prevented duplicate participant creation (User Flow) for User ID: {$userId}, Program ID: {$data['program_id']}");
+                // Return existing participant so the flow continues smoothly
+                return $this->respondCreated($existingParticipant, 'Participant already exists');
             }
 
             // Initialize participant data
@@ -647,7 +672,9 @@ class ParticipantsApiController extends ApiBaseController
         } catch (\Exception $e) {
             return $this->respondError('An error occurred: ' . $e->getMessage(), self::HTTP_INTERNAL_ERROR);
         }
-    }    /**
+    }
+
+    /**
      * 🔍 Check Participant Category Switch Eligibility (READ)
      * GET /api/participants/{participantId}/switch-category/check
      * 

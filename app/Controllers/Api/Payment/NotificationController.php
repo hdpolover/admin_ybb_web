@@ -158,25 +158,60 @@ class NotificationController extends BasePaymentController
         try {
             log_message('info', "NotificationController::handleSuccessfulPayment - Processing successful payment for payment ID: {$payment->id}");
 
-            // You can add code here to:
-            // 1. Update participant status (e.g., mark as paid)
-            // 2. Send confirmation email to participant
-            // 3. Create any necessary program enrollment records
-            // 4. Generate receipts or invoices
-
-            // Example: Update participant payment status
+            // Update participant status based on program payment category
             if ($payment->participant_id) {
+                // Initialize correct models
+                $statusModel = new \App\Models\ParticipantStatusModel();
+                $programPaymentModel = new \App\Models\ProgramPaymentModel();
+                
+                // Get program payment details to determine category
+                $programPayment = $programPaymentModel->find($payment->program_payment_id);
+                
+                if ($programPayment) {
+                     $statusPayload = [];
+                     
+                     // Helper logic to map payment category to status
+                     // 1 (regist_paid), 2 (batch 1 paid), 3 (batch 2 paid)
+                     // General Status: 2 (payment batch 1 submit), 3 (payment batch 2 submit)
+                     
+                     if ($programPayment->category === 'registration') {
+                         $statusPayload['payment_status'] = 1; 
+                         // general_status usually stays as is (0 or 1) for registration fee
+                     } 
+                     elseif ($programPayment->category === 'program_fee_1' || $programPayment->category === 'batch_1') {
+                         $statusPayload['payment_status'] = 2;
+                         $statusPayload['general_status'] = 2; // Update general status to "payment batch 1 submit"
+                     }
+                     elseif ($programPayment->category === 'program_fee_2' || $programPayment->category === 'batch_2') {
+                         $statusPayload['payment_status'] = 3;
+                         $statusPayload['general_status'] = 3; // Update general status to "payment batch 2 submit"
+                     }
+                     
+                     if (!empty($statusPayload)) {
+                        // Find status record (or create if missing?) - usually exists upon registration
+                        $statusRecord = $statusModel->getParticipantStatusById($payment->participant_id);
+                        
+                        if ($statusRecord) {
+                            $statusModel->update($statusRecord->id, $statusPayload);
+                            log_message('info', "NotificationController::handleSuccessfulPayment - Updated payment status ({$statusPayload['payment_status']}) for participant ID: {$payment->participant_id} (Category: {$programPayment->category})");
+                        } else {
+                             log_message('error', "NotificationController::handleSuccessfulPayment - Status record not found for participant ID: {$payment->participant_id}");
+                        }
+                     }
+                }
+
+                // Legacy update (kept for safety if other parts of the system read this, although it's not in allowedFields)
                 $participantModel = new \App\Models\ParticipantModel();
                 $participant = $participantModel->find($payment->participant_id);
 
                 if ($participant) {
                     // Update participant payment status or any other relevant fields
                     $participantModel->update($payment->participant_id, [
-                        'payment_status' => 'paid',
-                        'payment_date' => date('Y-m-d H:i:s')
+                        // 'payment_status' => 'paid', // Removed invalid field
+                        'updated_at' => date('Y-m-d H:i:s') 
                     ]);
 
-                    log_message('info', "NotificationController::handleSuccessfulPayment - Updated payment status for participant ID: {$payment->participant_id}");
+                    log_message('info', "NotificationController::handleSuccessfulPayment - Updated participant record timestamp for participant ID: {$payment->participant_id}");
 
                     // You could also trigger an email notification here
                     $this->sendPaymentConfirmationEmail($participant, $payment);
@@ -274,10 +309,13 @@ class NotificationController extends BasePaymentController
         try {
             log_message('info', 'NotificationController::handleMidtransFinish - Received finish redirect from Midtrans');
 
+            /** @var \CodeIgniter\HTTP\IncomingRequest $request */
+            $request = $this->request;
+
             // Get transaction details from the query parameters
-            $orderId = $this->request->getGet('order_id');
-            $status = $this->request->getGet('transaction_status');
-            $fraudStatus = $this->request->getGet('fraud_status') ?? null;
+            $orderId = $request->getGet('order_id');
+            $status = $request->getGet('transaction_status');
+            $fraudStatus = $request->getGet('fraud_status') ?? null;
 
             log_message('info', "NotificationController::handleMidtransFinish - Order ID: {$orderId}, Status: {$status}, Fraud Status: {$fraudStatus}");
 
@@ -323,13 +361,16 @@ class NotificationController extends BasePaymentController
         } catch (\Exception $e) {
             log_message('error', 'NotificationController::handleMidtransFinish - Error: ' . $e->getMessage());
 
+            /** @var \CodeIgniter\HTTP\IncomingRequest $request */
+            $request = $this->request;
+
             // Return error API response
             return $this->respond([
                 'status' => 500,
                 'error' => true,
                 'message' => 'Error processing payment completion: ' . $e->getMessage(),
                 'data' => [
-                    'order_id' => $this->request->getGet('order_id') ?? null
+                    'order_id' => $request->getGet('order_id') ?? null
                 ]
             ], 500);
         }
@@ -347,8 +388,11 @@ class NotificationController extends BasePaymentController
         try {
             log_message('info', 'NotificationController::handleMidtransUnfinish - Received unfinish redirect from Midtrans');
 
+            /** @var \CodeIgniter\HTTP\IncomingRequest $request */
+            $request = $this->request;
+
             // Get transaction details from the query parameters
-            $orderId = $this->request->getGet('order_id');
+            $orderId = $request->getGet('order_id');
 
             log_message('info', "NotificationController::handleMidtransUnfinish - Order ID: {$orderId}");
 
@@ -393,16 +437,19 @@ class NotificationController extends BasePaymentController
         } catch (\Exception $e) {
             log_message('error', 'NotificationController::handleMidtransUnfinish - Error: ' . $e->getMessage());
 
+            /** @var \CodeIgniter\HTTP\IncomingRequest $request */
+            $request = $this->request;
+
             // Return error API response
             return $this->respond([
                 'status' => 500,
                 'error' => true,
                 'message' => 'Error processing unfinished payment: ' . $e->getMessage(),
                 'data' => [
-                    'order_id' => $this->request->getGet('order_id') ?? null,
+                    'order_id' => $request->getGet('order_id') ?? null,
                     'redirect_params' => [
                         'path' => '/payment/error',
-                        'query' => ['order_id' => $this->request->getGet('order_id') ?? '']
+                        'query' => ['order_id' => $request->getGet('order_id') ?? '']
                     ]
                 ]
             ], 500);
@@ -421,10 +468,13 @@ class NotificationController extends BasePaymentController
         try {
             log_message('info', 'NotificationController::handleMidtransError - Received error redirect from Midtrans');
 
+            /** @var \CodeIgniter\HTTP\IncomingRequest $request */
+            $request = $this->request;
+
             // Get transaction details from the query parameters
-            $orderId = $this->request->getGet('order_id');
-            $statusCode = $this->request->getGet('status_code') ?? 'unknown';
-            $statusMessage = $this->request->getGet('status_message') ?? 'Unknown error';
+            $orderId = $request->getGet('order_id');
+            $statusCode = $request->getGet('status_code') ?? 'unknown';
+            $statusMessage = $request->getGet('status_message') ?? 'Unknown error';
 
             log_message('error', "NotificationController::handleMidtransError - Order ID: {$orderId}, Status code: {$statusCode}, Message: {$statusMessage}");
 
@@ -473,16 +523,19 @@ class NotificationController extends BasePaymentController
         } catch (\Exception $e) {
             log_message('error', 'NotificationController::handleMidtransError - Error: ' . $e->getMessage());
 
+            /** @var \CodeIgniter\HTTP\IncomingRequest $request */
+            $request = $this->request;
+
             // Return error API response
             return $this->respond([
                 'status' => 500,
                 'error' => true,
                 'message' => 'Error processing payment failure: ' . $e->getMessage(),
                 'data' => [
-                    'order_id' => $this->request->getGet('order_id') ?? null,
+                    'order_id' => $request->getGet('order_id') ?? null,
                     'redirect_params' => [
                         'path' => '/payment/error',
-                        'query' => ['order_id' => $this->request->getGet('order_id') ?? '']
+                        'query' => ['order_id' => $request->getGet('order_id') ?? '']
                     ]
                 ]
             ], 500);

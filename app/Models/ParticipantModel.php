@@ -348,6 +348,16 @@ class ParticipantModel extends Model
             throw new \InvalidArgumentException('Missing required fields: user_id, program_id, full_name');
         }
 
+        // Check for existing participant to prevent duplicates
+        $existingParticipant = $this->where('user_id', $data['user_id'])
+            ->where('program_id', $data['program_id'])
+            ->where('is_deleted', 0)
+            ->first();
+
+        if ($existingParticipant) {
+            return $existingParticipant;
+        }
+
         // Set default values
         $data['account_id'] = $this->generateAccountId($data['user_id']);
         $data['is_active'] = 1;
