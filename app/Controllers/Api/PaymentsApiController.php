@@ -165,8 +165,56 @@ class PaymentsApiController extends ApiBaseController
         try {
             // Always fetch fresh data - NO CACHING for payment information
             $payments = $paymentModel->getPaymentsByParticipantId($participantId);
-
+            
+            // Normalize to array if null
             if (!$payments) {
+                $payments = [];
+            }
+
+            // Auto-healing: Check other participants (siblings) for the same user in the same program
+            // This fixes issues where payments are attached to a duplicate participant record
+            try {
+                $participantModel = new \App\Models\ParticipantModel();
+                $currentParticipant = $participantModel->find($participantId);
+                
+                if ($currentParticipant && !empty($currentParticipant->user_id)) {
+                    // Find all participants for this user in the same program
+                    $siblingParticipants = $participantModel->where('user_id', $currentParticipant->user_id)
+                                                          ->where('program_id', $currentParticipant->program_id)
+                                                          ->where('id !=', $participantId) // Exclude current
+                                                          ->where('is_deleted', 0)
+                                                          ->findAll();
+                                                          
+                    if (!empty($siblingParticipants)) {
+                        foreach ($siblingParticipants as $sibling) {
+                            $siblingPayments = $paymentModel->getPaymentsByParticipantId($sibling->id);
+                            if (!empty($siblingPayments)) {
+                                log_message('warning', "Auto-healing dashboard lookup: Found payments for sibling participant {$sibling->id}, merging with requested participant {$participantId}.");
+                                
+                                // Merge logic to avoid duplicates if any
+                                // Assuming payments are objects as per Model definition
+                                foreach ($siblingPayments as $sp) {
+                                    $exists = false;
+                                    foreach ($payments as $existingP) {
+                                        if ($existingP->id == $sp->id) {
+                                            $exists = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!$exists) {
+                                        $payments[] = $sp;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                log_message('error', 'Auto-healing check in getPaymentsByParticipantId failed: ' . $e->getMessage());
+                // Continue with just the direct payments
+            }
+
+            if (empty($payments)) {
                 return $this->respondNotFound('No payments found for this participant ID');
             }
 
