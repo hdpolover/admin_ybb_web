@@ -153,7 +153,7 @@
                                 <div class="card-body">
                                     <!-- Filter Controls -->
                                     <div class="row mb-4">
-                                        <div class="col-md-12 mb-3">
+                                        <div class="col-md-9 mb-3">
                                             <div class="input-group search-box">
                                                 <span class="input-group-text bg-light border-end-0">
                                                     <i class="ri-search-line text-muted"></i>
@@ -169,29 +169,18 @@
                                                 <small>Press Enter or click Search to filter results</small>
                                             </div>
                                         </div>
-                                        <!-- <div class="col-md-3 mb-2">
-                                            <label class="form-label">Category</label>
-                                            <select id="filter-category" class="form-select">
-                                                <option value="">All Categories</option>
-                                                <option value="fully_funded">Fully Funded</option>
-                                                <option value="self_funded">Self Funded</option>
-                                            </select>
+                                        <div class="col-md-3 mb-3">
+                                            <div class="input-group">
+                                                <input type="text" id="submission-date-range" class="form-control" 
+                                                    placeholder="Select Submission Date" readonly style="background-color: #fff; cursor: pointer;">
+                                                <span class="input-group-text"><i class="ri-calendar-event-line"></i></span>
+                                            </div>
+                                            <div class="form-text text-muted mt-1">
+                                                <small>Select range to freeze list order</small>
+                                            </div>
                                         </div>
-                                        <div class="col-md-3 mb-2">
-                                            <label class="form-label">Form Status</label>
-                                            <select id="filter-form-status" class="form-select">
-                                                <option value="">All Statuses</option>
-                                                <option value="0">Not Started</option>
-                                                <option value="1">On Progress</option>
-                                                <option value="2">Submitted</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-3 d-flex align-items-end mb-2">
-                                            <button id="apply-filters" class="btn btn-primary me-2">Apply
-                                                Filters</button>
-                                            <button id="reset-filters" class="btn btn-light">Reset</button>
-                                        </div> -->
                                     </div>
+                                    <!-- commented out old filters -->
                                     <table id="participants-datatable"
                                         class="table table-bordered dt-responsive nowrap table-striped align-middle"
                                         style="width:100%">
@@ -200,7 +189,8 @@
                                                 <th>#</th>
                                                 <th>Participant Details</th>
                                                 <th>Submission Status</th>
-                                                <th>Registered On</th>
+                                                <th>Score Status</th>
+                                                <th>Submitted On</th>
                                                 <th>Actions</th>
                                             </tr>
                                         </thead>
@@ -269,6 +259,7 @@
                     d.category = $('#filter-category').val();
                     d.form_status = $('#filter-form-status').val();
                     d.search.value = $('#search-box').val(); // Add search term
+                    d.submission_date = $('#submission-date-range').val(); // Add date filter
                     return d;
                 }
             },
@@ -311,10 +302,15 @@
                 },
                 {
                     data: 'submission_status',
-                    width: "20%"
+                    width: "15%"
                 },
                 {
-                    data: 'registered_on',
+                    data: 'score_status',
+                    width: "15%",
+                    orderable: true
+                },
+                {
+                    data: 'submitted_on',
                     width: "15%"
                 },
                 {
@@ -325,7 +321,7 @@
                 }
             ],
             order: [
-                [4, 'desc'] // Order by registration date (descending)
+                [5, 'asc'] // Order by registration date (ascending)
             ],
             pageLength: 10,
             lengthMenu: [
@@ -358,20 +354,24 @@
         });
 
         // Handle filter buttons
-        document.getElementById('apply-filters').addEventListener('click', function() {
-            participantsTable.ajax.reload();
-        });
+        if (document.getElementById('apply-filters')) {
+            document.getElementById('apply-filters').addEventListener('click', function() {
+                participantsTable.ajax.reload();
+            });
+        }
 
-        document.getElementById('reset-filters').addEventListener('click', function() {
-            // Reset all filter select values
-            document.getElementById('filter-category').value = '';
-            document.getElementById('filter-form-status').value = '';
-            document.getElementById('search-box').value = '';
+        if (document.getElementById('reset-filters')) {
+            document.getElementById('reset-filters').addEventListener('click', function() {
+                // Reset all filter select values
+                if (document.getElementById('filter-category')) document.getElementById('filter-category').value = '';
+                if (document.getElementById('filter-form-status')) document.getElementById('filter-form-status').value = '';
+                if (document.getElementById('search-box')) document.getElementById('search-box').value = '';
 
-            // Reload the table with reset filters
-            participantsTable.search('').draw(); // Clear the search
-            participantsTable.ajax.reload();
-        });
+                // Reload the table with reset filters
+                participantsTable.search('').draw(); // Clear the search
+                participantsTable.ajax.reload();
+            });
+        }
 
         // Handle delete participant
         $(document).on('click', '.delete-participant', function() {
@@ -399,7 +399,26 @@
             }
         });
 
-        // Initialize Date Range Picker
+        // Initialize Date Range Picker for Submission Date
+        $('#submission-date-range').daterangepicker({
+            autoUpdateInput: false,
+            locale: {
+                cancelLabel: 'Clear',
+                format: 'YYYY-MM-DD'
+            }
+        });
+
+        $('#submission-date-range').on('apply.daterangepicker', function(ev, picker) {
+            $(this).val(picker.startDate.format('YYYY-MM-DD') + ' - ' + picker.endDate.format('YYYY-MM-DD'));
+            participantsTable.ajax.reload();
+        });
+
+        $('#submission-date-range').on('cancel.daterangepicker', function(ev, picker) {
+            $(this).val('');
+            participantsTable.ajax.reload();
+        });
+
+        // Initialize Date Range Picker for Export
         $('#export-date-range').daterangepicker({
             autoUpdateInput: false,
             locale: {

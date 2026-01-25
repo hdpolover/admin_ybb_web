@@ -1058,28 +1058,32 @@ File: Main Js File
 				});
 
 				var notificationDropdown = document.getElementById('notificationDropdown')
-				notificationDropdown.addEventListener('hide.bs.dropdown', function (event) {
-					element.checked = false;
-					document.querySelectorAll('.notification-item').forEach(function (item) {
-						item.classList.remove("active");
-					})
-					document.getElementById('notification-actions').style.display = '';
-				});
+				if (notificationDropdown) {
+					notificationDropdown.addEventListener('hide.bs.dropdown', function (event) {
+						element.checked = false;
+						document.querySelectorAll('.notification-item').forEach(function (item) {
+							item.classList.remove("active");
+						})
+						document.getElementById('notification-actions').style.display = '';
+					});
+				}
 			});
 
 			var removeItem = document.getElementById('removeNotificationModal');
-			removeItem.addEventListener('show.bs.modal', function (event) {
-				document.getElementById("delete-notification").addEventListener("click", function () {
-					Array.from(document.querySelectorAll(".notification-item")).forEach(function (element) {
-						if (element.classList.contains("active")) {
-							element.remove();
-						}
-					});
-					emptyNotification();
-
-					document.getElementById("NotificationModalbtn-close").click();
+			if (removeItem) {
+				removeItem.addEventListener('show.bs.modal', function (event) {
+					document.getElementById("delete-notification").addEventListener("click", function () {
+						Array.from(document.querySelectorAll(".notification-item")).forEach(function (element) {
+							if (element.classList.contains("active")) {
+								element.remove();
+							}
+						});
+						emptyNotification();
+	
+						document.getElementById("NotificationModalbtn-close").click();
+					})
 				})
-			})
+			}
 		}
 	}
 

@@ -98,18 +98,19 @@ class Scorings extends AdminBaseController
         $order = isset($request['order'][0]) ? [
             'column' => $request['order'][0]['column'],
             'dir' => $request['order'][0]['dir']
-        ] : ['column' => 4, 'dir' => 'desc'];
+        ] : ['column' => 4, 'dir' => 'asc'];
 
         // Column names
         $columns = [
-            'created_at',               // Order number
+            'participant_statuses.updated_at', // Order # (Stable if sorted by submission time)
             'participants.account_id',  // Account ID
             'full_name',               // Participant Details
             'participant_statuses.form_status', // Submission Status
-            'created_at',              // Registered On
+            'participants.score_status', // Score Status
+            'participant_statuses.updated_at', // Submitted On
         ];
 
-        $orderColumn = $columns[$order['column']] ?? 'created_at';
+        $orderColumn = $columns[$order['column']] ?? 'participant_statuses.updated_at';
         $programId = session('current_program');
 
         // Get data from database
@@ -117,7 +118,8 @@ class Scorings extends AdminBaseController
                 participants.*, 
                 users.email,
                 participants.phone_number,
-                participant_statuses.form_status
+                participant_statuses.form_status,
+                participant_statuses.updated_at as submitted_at
             ')
             ->join('users', 'users.id = participants.user_id')
             ->join('participant_statuses', 'participant_statuses.participant_id = participants.id', 'left')
@@ -146,11 +148,22 @@ class Scorings extends AdminBaseController
             $builder->where('participant_statuses.form_status', $form_status);
         }
 
+        // Apply Submission Date filter
+        $submissionDate = $request['submission_date'] ?? '';
+        if (!empty($submissionDate)) {
+            $dates = explode(' - ', $submissionDate);
+            if (count($dates) == 2) {
+                $builder->where('DATE(participant_statuses.updated_at) >=', $dates[0])
+                        ->where('DATE(participant_statuses.updated_at) <=', $dates[1]);
+            }
+        }
+
         // Get total count
         $totalRecords = $builder->countAllResults(false);
 
         // Order and limit
         $result = $builder->orderBy($orderColumn, $order['dir'])
+            ->orderBy('participants.id', 'ASC')
             ->limit($length, $start)
             ->get()->getResult();
         // Format data for DataTable
@@ -160,6 +173,18 @@ class Scorings extends AdminBaseController
         foreach ($result as $row) {
             // Get submission status based only on form_status
             $submissionStatus = $this->getFormStatusBadge($row->form_status ?? 0);
+            
+            // Format score status badge
+            $scoreStatusBadge = '<span class="badge bg-secondary-subtle text-secondary">No Score</span>';
+            if ($row->score_status == 'rejected') {
+                $scoreStatusBadge = '<span class="badge bg-danger-subtle text-danger">Rejected</span>';
+            } elseif ($row->score_status == 'go_to_interview') {
+                $scoreStatusBadge = '<span class="badge bg-success-subtle text-success">Interview</span>';
+            }
+
+            $currentScore = $row->score_total > 0 ? $row->score_total : 0;
+            $displayScore = '<div><span class="fs-12 text-muted">Total: </span><span class="fw-bold">' . number_format($currentScore, 2) . '</span></div>' . $scoreStatusBadge;
+
             $data[] = [
                 'order_number' => $counter++,
                 'account_id' => $row->account_id,
@@ -170,7 +195,8 @@ class Scorings extends AdminBaseController
                     'nationality' => $row->nationality ?? 'N/A'
                 ],
                 'submission_status' => $submissionStatus,
-                'registered_on' => date('M d, Y', strtotime($row->created_at)),
+                'score_status' => $displayScore,
+                'submitted_on' => $row->submitted_at ? date('M d, Y H:i', strtotime($row->submitted_at)) : 'N/A',
                 'actions' => '
                     <div class="d-flex gap-2">
                         <a href="' . base_url('scorings/fully_funded/view/' . $row->id) . '" class="btn btn-sm btn-soft-primary">
@@ -203,7 +229,7 @@ class Scorings extends AdminBaseController
         $order = isset($request['order'][0]) ? [
             'column' => $request['order'][0]['column'],
             'dir' => $request['order'][0]['dir']
-        ] : ['column' => 4, 'dir' => 'desc'];
+        ] : ['column' => 4, 'dir' => 'asc'];
 
         // Column names
         $columns = [
@@ -262,6 +288,7 @@ class Scorings extends AdminBaseController
 
         // Order and limit
         $result = $builder->orderBy($orderColumn, $order['dir'])
+            ->orderBy('participants.id', 'ASC')
             ->limit($length, $start)
             ->get()->getResult();
         // Format data for DataTable
