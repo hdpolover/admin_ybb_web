@@ -91,11 +91,17 @@ class ProgramModel extends Model
      */
     public function getActivePrograms($programCategoryId)
     {
+        $currentDate = date('Y-m-d');
         $builder = $this->builder();
         $builder->select('*')
             ->where('program_category_id', $programCategoryId)
             ->where('is_active', 1)
-            ->where('is_deleted', 0);
+            ->where('is_deleted', 0)
+            ->groupStart() // Add logic to only show programs that have not ended yet OR have no end date
+                ->where('end_date >=', $currentDate)
+                ->orWhere('end_date', null)
+                ->orWhere('end_date', '0000-00-00')
+            ->groupEnd();
         
         $programs = $builder->get()->getResult();
         
@@ -289,11 +295,25 @@ class ProgramModel extends Model
      */
     public function getPreviousPrograms($webUrl = null, $categoryId = null)
     {
+        $currentDate = date('Y-m-d');
+        
         $builder = $this->db->table($this->table);
         $builder->select('programs.*, program_categories.web_url as category_web_url');
         $builder->join('program_categories', 'program_categories.id = programs.program_category_id', 'left');
         $builder->where('programs.is_deleted', 0);
-        $builder->where('programs.is_active', 0); // Only inactive programs
+        
+        // Show as previous if:
+        // 1. Manually set to inactive (is_active = 0)
+        // 2. OR active but end date has passed
+        $builder->groupStart()
+            ->where('programs.is_active', 0)
+            ->orGroupStart()
+                ->where('programs.is_active', 1)
+                ->where('programs.end_date <', $currentDate)
+                ->where('programs.end_date IS NOT NULL')
+                ->where('programs.end_date !=', '0000-00-00')
+            ->groupEnd()
+        ->groupEnd();
         
         // Filter by category
         if ($webUrl) {

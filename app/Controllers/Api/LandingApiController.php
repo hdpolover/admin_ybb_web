@@ -199,7 +199,8 @@ class LandingApiController extends ApiBaseController
 
             $normalizedWebUrl = normalize_web_url($webUrl);
 
-            $data = $this->cacheResponse(function() use ($normalizedWebUrl) {
+            // $data = $this->cacheResponse(function() use ($normalizedWebUrl) { // DISABLE CACHE
+            $data = (function() use ($normalizedWebUrl) {
                 // Get program category by web_url
                 $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $normalizedWebUrl]);
 
@@ -285,7 +286,7 @@ class LandingApiController extends ApiBaseController
                     'hasPhotos' => $hasPhotos,
                     'photos' => $groupedPhotos,
                 ];
-            }, ['web_url' => $normalizedWebUrl], null, 1800); // 30 minutes cache
+            })(); // }, ['web_url' => $normalizedWebUrl], null, 1800); // 30 minutes cache
 
             if ($data === null) {
                 return $this->respondNotFound('Program category not found');
@@ -314,7 +315,8 @@ class LandingApiController extends ApiBaseController
 
             $normalizedWebUrl = normalize_web_url($webUrl);
 
-            $data = $this->cacheResponse(function() use ($normalizedWebUrl) {
+            // $data = $this->cacheResponse(function() use ($normalizedWebUrl) { // DISABLE CACHE
+            $data = (function() use ($normalizedWebUrl) {
                 // Get program category by web_url
                 $category = $this->programCategoryModel->getProgramCategoryByParams(['web_url' => $normalizedWebUrl]);
 
@@ -337,7 +339,7 @@ class LandingApiController extends ApiBaseController
                     'previousPrograms' => $previousPrograms,
                     'otherPrograms' => $otherPrograms
                 ];
-            }, ['web_url' => $normalizedWebUrl, 'v' => '3'], null, 3600); // 1 hour cache
+            })(); // }, ['web_url' => $normalizedWebUrl, 'v' => '3'], null, 3600); // 1 hour cache
 
             if ($data === null) {
                 return $this->respondNotFound('Program category not found');
