@@ -35,6 +35,7 @@ class PaymentModel extends Model
         'account_name',
         'amount',
         'usd_amount',
+        'exchange_rate',
         'currency',
         'source_name',
         'is_active',

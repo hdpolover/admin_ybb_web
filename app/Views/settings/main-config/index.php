@@ -248,15 +248,66 @@
                                                                 <i class="ri-exchange-dollar-line text-success fs-20 me-2"></i>
                                                                 <label for="usd_in_idr" class="form-label mb-0 fs-15 fw-medium">USD to IDR Exchange Rate</label>
                                                             </div>
+                                                            <div class="alert alert-soft-info border-0 py-2 px-3 mb-3">
+                                                                <i class="ri-information-line me-1"></i>
+                                                                This rate applies only to <strong><?= htmlspecialchars($program->name ?? 'this program') ?></strong>. Other programs/batches are not affected.
+                                                            </div>
                                                             <div class="input-group input-group-lg">
                                                                 <span class="input-group-text bg-success bg-opacity-10 text-success">IDR</span>
-                                                                <input type="text" class="form-control form-control-lg" id="usd_in_idr" name="usd_in_idr" value="<?= $settings->usd_in_idr ?? 15000 ?>" min="0" step="100">
+                                                                <input type="text" class="form-control form-control-lg" id="usd_in_idr" name="usd_in_idr" value="<?= $program->usd_in_idr ?? $settings->usd_in_idr ?? 15000 ?>" min="0" step="100">
                                                             </div>
                                                             <div class="form-text mt-2">
-                                                                <span class="badge bg-light text-dark">Current rate: 1 USD = <?= number_format($settings->usd_in_idr ?? 15000, 0, ',', '.') ?> IDR</span>
-                                                                <input type="hidden" name="current_usd_in_idr" value="<?= $settings->usd_in_idr ?? 15000 ?>">
+                                                                <span class="badge bg-light text-dark">Current rate for <?= htmlspecialchars($program->name ?? 'this program') ?>: 1 USD = <?= number_format($program->usd_in_idr ?? $settings->usd_in_idr ?? 15000, 0, ',', '.') ?> IDR</span>
+                                                                <input type="hidden" name="current_usd_in_idr" value="<?= $program->usd_in_idr ?? $settings->usd_in_idr ?? 15000 ?>">
                                                             </div>
                                                         </div>
+
+                                                        <!-- Sibling Programs Rate Comparison -->
+                                                        <?php if (!empty($siblingPrograms) && count($siblingPrograms) > 1): ?>
+                                                        <hr class="my-3">
+                                                        <div class="mb-0">
+                                                            <div class="d-flex align-items-center mb-2">
+                                                                <i class="ri-list-check-2 text-success fs-18 me-2"></i>
+                                                                <span class="fw-medium fs-14">Exchange Rates for All Batches</span>
+                                                            </div>
+                                                            <div class="table-responsive">
+                                                                <table class="table table-sm table-borderless mb-0">
+                                                                    <thead>
+                                                                        <tr class="text-muted small">
+                                                                            <th class="ps-0">Program / Batch</th>
+                                                                            <th class="text-end pe-0">Rate (IDR)</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        <?php foreach ($siblingPrograms as $sibling): ?>
+                                                                        <tr class="<?= ($sibling->id == $program->id) ? 'fw-semibold' : '' ?>">
+                                                                            <td class="ps-0">
+                                                                                <?php if ($sibling->id == $program->id): ?>
+                                                                                    <i class="ri-arrow-right-s-fill text-success me-1"></i>
+                                                                                <?php endif; ?>
+                                                                                <?= htmlspecialchars($sibling->name) ?>
+                                                                                <?php if ($sibling->id == $program->id): ?>
+                                                                                    <span class="badge bg-success-subtle text-success ms-1">Current</span>
+                                                                                <?php endif; ?>
+                                                                                <?php if (!$sibling->is_active): ?>
+                                                                                    <span class="badge bg-secondary-subtle text-secondary ms-1">Inactive</span>
+                                                                                <?php endif; ?>
+                                                                            </td>
+                                                                            <td class="text-end pe-0">
+                                                                                <span class="<?= ($sibling->id == $program->id) ? 'text-success' : '' ?>">
+                                                                                    <?= number_format($sibling->usd_in_idr ?? 0, 0, ',', '.') ?>
+                                                                                </span>
+                                                                            </td>
+                                                                        </tr>
+                                                                        <?php endforeach; ?>
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                            <p class="text-muted small mb-0 mt-2">
+                                                                <i class="ri-swap-line me-1"></i>Switch program in the topbar to edit another batch's rate.
+                                                            </p>
+                                                        </div>
+                                                        <?php endif; ?>
                                                     </div>
                                                 </div>
                                             </div>

@@ -32,6 +32,7 @@ class ProgramModel extends Model
         'confirmation_desc',
         'is_active',
         'is_registration_open',
+        'usd_in_idr',
         'is_deleted',
         'created_at',
         'updated_at'

@@ -50,13 +50,27 @@ class MainConfig extends AdminBaseController
             $settings = $this->webSettingModel->getSettingByProgramCategoryId($program->program_category_id);
         }
 
+        // If program doesn't have its own exchange rate yet, fall back to web_settings rate
+        if (empty($program->usd_in_idr)) {
+            $programModel->update($programId, ['usd_in_idr' => $settings->usd_in_idr ?? 15000]);
+            $program = $programModel->find($programId);
+        }
+
         // Get topbar data from session (already loaded by AdminBaseController)
         $topbarData = $this->session->get('topbar_data', []);
+
+        // Get sibling programs (same category) for exchange rate comparison
+        $siblingPrograms = $programModel
+            ->where('program_category_id', $program->program_category_id)
+            ->where('is_deleted', 0)
+            ->orderBy('id', 'ASC')
+            ->findAll();
 
         $data = [
             'title' => 'Main Configuration',
             'settings' => $settings,
             'program' => $program,
+            'siblingPrograms' => $siblingPrograms,
             'topbarData' => $topbarData
         ];
 
@@ -117,36 +131,50 @@ class MainConfig extends AdminBaseController
             'is_active' => $is_active,
         ]);
 
-        // Prepare data for web settings update
+        // Prepare data for web settings update (no longer includes usd_in_idr)
         $data = [
             'is_maintenance_mode' => $this->request->getPost('is_maintenance_mode') ? 1 : 0,
             'is_verification_required' => $this->request->getPost('is_verification_required') ? 1 : 0,
         ];
 
-        // Only update usd_in_idr if it's provided (handle empty string case)
+        // Handle per-program exchange rate (stored in programs table, not web_settings)
         $usdInIdr = $this->request->getPost('usd_in_idr');
         log_message('debug', 'MainConfig::update - USD in IDR raw value: "' . $usdInIdr . '", Type: ' . gettype($usdInIdr));
 
         if ($usdInIdr !== '' && $usdInIdr !== null) {
-            $data['usd_in_idr'] = $usdInIdr;
-            log_message('debug', 'MainConfig::update - Using submitted USD in IDR value: ' . $usdInIdr);
+            $programUsdInIdr = $usdInIdr;
+            log_message('debug', 'MainConfig::update - Using submitted USD in IDR value for program: ' . $programUsdInIdr);
         } else {
-            // If empty, keep the current value
-            $data['usd_in_idr'] = $settings->usd_in_idr;
-            log_message('debug', 'MainConfig::update - Using existing USD in IDR value: ' . $settings->usd_in_idr);
+            // If empty, keep the current program value
+            $programUsdInIdr = $program->usd_in_idr ?? $settings->usd_in_idr ?? 15000;
+            log_message('debug', 'MainConfig::update - Using existing USD in IDR value: ' . $programUsdInIdr);
         }
 
-        log_message('debug', 'MainConfig::update - Data to update: ' . json_encode($data));        // Update settings
+        log_message('debug', 'MainConfig::update - Data to update: ' . json_encode($data));
         log_message('debug', 'MainConfig::update - Attempting to update settings with ID: ' . $id);
 
         try {
+            // Update web_settings (maintenance mode, verification)
             $updateResult = $this->webSettingModel->update($id, $data);
-            log_message('debug', 'MainConfig::update - Update result: ' . ($updateResult ? 'Success' : 'Failure'));
+            log_message('debug', 'MainConfig::update - Web settings update result: ' . ($updateResult ? 'Success' : 'Failure'));
 
-            if ($updateResult) {
+            // Update per-program exchange rate in the programs table
+            $programUpdateResult = $programModel->update($programId, ['usd_in_idr' => $programUsdInIdr]);
+            log_message('debug', 'MainConfig::update - Program usd_in_idr update result: ' . ($programUpdateResult ? 'Success' : 'Failure'));
+
+            if ($updateResult && $programUpdateResult) {
                 // Invalidate web settings cache after successful update
                 $this->invalidateWebSettingsCache($settings->program_category_id);
-                
+
+                // Invalidate programs API cache so participant app gets the new exchange rate
+                $this->initCache();
+                $this->invalidateProgramCache((string) $programId);
+                log_message('info', 'MainConfig::update - Invalidated program cache for program ID: ' . $programId);
+
+                // Also clear file-based program cache
+                $cache = \Config\Services::cache();
+                $cache->delete("programs_category_{$program->program_category_id}_v1");
+
                 $session = session();
                 $session->setFlashdata('swalSuccess', 'Settings updated successfully');
                 log_message('debug', 'MainConfig::update - Success message set in flashdata');

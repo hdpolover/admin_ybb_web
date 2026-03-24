@@ -131,14 +131,22 @@ class TransactionController extends BasePaymentController
             log_message('info', 'TransactionController::createTransaction - Getting web setting data for program category ID: ' . $program->program_category_id);
             log_message('debug', 'TransactionController::createTransaction - Program data: ID=' . $program->id . ', Name=' . ($program->name ?? 'N/A') . ', Category_ID=' . $program->program_category_id);
             
-            $webSetting = $this->webSettingModel->getSettingByProgramCategoryId($program->program_category_id);
-
-            if (!$webSetting) {
-                log_message('error', 'TransactionController::createTransaction - Web setting not found for program category ID: ' . $program->program_category_id);
-                return $this->respondError('Web setting not found for program category ID: ' . $program->program_category_id, 404);
+            // Get exchange rate: prefer per-program rate, fall back to web_settings category rate
+            $usdInIdr = 0;
+            if (!empty($program->usd_in_idr) && $program->usd_in_idr > 0) {
+                $usdInIdr = $program->usd_in_idr;
+                log_message('debug', 'TransactionController::createTransaction - Using per-program exchange rate: ' . $usdInIdr);
+            } else {
+                $webSetting = $this->webSettingModel->getSettingByProgramCategoryId($program->program_category_id);
+                if ($webSetting) {
+                    $usdInIdr = $webSetting->usd_in_idr ?? 0;
+                    log_message('debug', 'TransactionController::createTransaction - Falling back to web_settings exchange rate: ' . $usdInIdr);
+                } else {
+                    log_message('error', 'TransactionController::createTransaction - No exchange rate found for program ID: ' . $program->id . ' or category ID: ' . $program->program_category_id);
+                    return $this->respondError('Exchange rate not configured for this program', 404);
+                }
             }
-            log_message('debug', 'TransactionController::createTransaction - Web setting found: ' . json_encode($webSetting));            $usdInIdr = $webSetting->usd_in_idr ?? 0;
-            log_message('debug', 'TransactionController::createTransaction - USD to IDR conversion rate extracted: ' . $usdInIdr);
+            log_message('debug', 'TransactionController::createTransaction - Final USD to IDR conversion rate: ' . $usdInIdr);
 
             if ($usdInIdr <= 0) {
                 log_message('error', 'TransactionController::createTransaction - Invalid USD to IDR conversion rate: ' . $usdInIdr);
@@ -178,6 +186,7 @@ class TransactionController extends BasePaymentController
                 'payment_method_id' => $paymentMethod->id,
                 'amount' => (float) $amount,
                 'usd_amount' => (float) $usdAmount,
+                'exchange_rate' => (float) $usdInIdr,
                 'currency' => $currency,
                 'status' => self::STATUS_PENDING,
                 'notes' => $data['notes'] ?? 'Payment for YBB Program',
