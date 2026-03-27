@@ -133,6 +133,7 @@ class TransactionController extends BasePaymentController
             
             // Get exchange rate: prefer per-program rate, fall back to web_settings category rate
             $usdInIdr = 0;
+            $webSetting = null;
             if (!empty($program->usd_in_idr) && $program->usd_in_idr > 0) {
                 $usdInIdr = $program->usd_in_idr;
                 log_message('debug', 'TransactionController::createTransaction - Using per-program exchange rate: ' . $usdInIdr);
@@ -335,10 +336,11 @@ class TransactionController extends BasePaymentController
                 log_message('info', 'TransactionController::createTransaction - Order ID: ' . $orderId);
                 log_message('info', 'TransactionController::createTransaction - Gross Amount (IDR): ' . $amount);
                 
+                $roundedAmount = (int) round($amount);
                 $params = [
                     'transaction_details' => [
                         'order_id' => $orderId,
-                        'gross_amount' => (float) $amount
+                        'gross_amount' => $roundedAmount
                     ],
                     'customer_details' => [
                         'first_name' => $participant->full_name ?? 'Customer',
@@ -347,7 +349,7 @@ class TransactionController extends BasePaymentController
                     'item_details' => [
                         [
                             'id' => $data['program_payment_id'],
-                            'price' => (float) $amount,
+                            'price' => $roundedAmount,
                             'quantity' => 1,
                             'name' => $program->name ?? 'YBB Program Payment',
                             'category' => $programPayment->category ?? 'registration'
