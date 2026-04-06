@@ -8,6 +8,7 @@ use App\Controllers\Api\Payment\ConfigController;
 use App\Controllers\Api\Payment\TransactionController;
 use App\Controllers\Api\Payment\WebhookController;
 use App\Controllers\Api\Payment\StatusController;
+use App\Controllers\Api\Payment\CancelController;
 
 /**
  * Main Payments API Controller that routes to specialized payment controllers
@@ -19,6 +20,7 @@ class PaymentsApiController extends ApiBaseController
     protected $transactionController;
     protected $webhookController;
     protected $statusController;
+    protected $cancelController;
 
     /**
      * Initialize controller, set models
@@ -42,6 +44,9 @@ class PaymentsApiController extends ApiBaseController
         
         $this->statusController = new StatusController();
         $this->statusController->initController($request, $response, $logger);
+
+        $this->cancelController = new CancelController();
+        $this->cancelController->initController($request, $response, $logger);
     }
 
     /**
@@ -388,6 +393,18 @@ class PaymentsApiController extends ApiBaseController
         );
     }
 
+
+    /**
+     * Cancel a pending payment (automatic or manual)
+     * Routes to CancelController::cancelPayment()
+     *
+     * @param int|null $id Payment ID
+     * @return ResponseInterface
+     */
+    public function cancelPayment($id = null): ResponseInterface
+    {
+        return $this->cancelController->cancelPayment($id);
+    }
 
     /**
      * index - GET {{api_url}}/payments/{{payment_id}}

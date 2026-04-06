@@ -244,18 +244,18 @@ class Participants extends AdminBaseController
     public function edit($id)
     {
         try {
-            // Get participant data directly from model
-            $participant = $this->participantModel->getById($id);
+            // Use find() to get only the participant's own fields (avoids heavy JOIN in getById)
+            $participant = $this->participantModel->where('id', $id)->where('is_deleted', 0)->first();
 
             if (!$participant) {
-                return redirect()->to('/participants')
+                return redirect()->to('/users/participants')
                     ->with('error', 'Participant not found');
             }
 
-            // Get user data
-            $userId = $participant['user_id'];
-            $user = $this->userModel->find($userId);
-            $participant['user'] = $user;
+            // Convert object to array if necessary
+            if (is_object($participant)) {
+                $participant = (array) $participant;
+            }
 
             return view('users/participants/edit', ['participant' => $participant]);
         } catch (\Exception $e) {
@@ -284,7 +284,6 @@ class Participants extends AdminBaseController
             $validation = \Config\Services::validation();
             $validation->setRules([
                 'full_name' => 'required|string|max_length[255]',
-                'program_id' => 'required|integer',
             ]);
 
             if (!$validation->run($data)) {
@@ -293,10 +292,13 @@ class Participants extends AdminBaseController
                     ->withInput();
             }
 
+            // Only update allowed profile fields (exclude system fields passed via POST)
+            unset($data['program_id'], $data['user_id'], $data['account_id'], $data['csrf_token']);
+
             // Update participant
             $this->participantModel->update($id, $data);
 
-            return redirect()->to('/participants')
+            return redirect()->to('/users/participants/view/' . $id)
                 ->with('success', 'Participant updated successfully');
         } catch (\Exception $e) {
             return redirect()->back()

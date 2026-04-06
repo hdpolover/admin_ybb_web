@@ -51,6 +51,19 @@
                 <div class="container-fluid">
                     <?php echo view('partials/page-title', array('pagetitle' => 'Participants', 'title' => 'Participant Details')); ?>
 
+                    <?php if (session()->getFlashdata('success')): ?>
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="ri-check-line me-2"></i><?= session()->getFlashdata('success') ?>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    <?php endif; ?>
+                    <?php if (session()->getFlashdata('error')): ?>
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="ri-error-warning-line me-2"></i><?= session()->getFlashdata('error') ?>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    <?php endif; ?>
+
                     <!-- Participant Details Section -->
                     <div class="row">
                         <div class="col-xl-12">
@@ -61,11 +74,14 @@
                                         <div class="col-md-4">
                                             <div class="text-center border-end p-4">
                                                 <div class="profile-user position-relative d-inline-block mx-auto mb-4">
-                                                    <img src="<?= !empty($participant->picture_url) ? $participant->picture_url : '/assets/images/users/avatar-1.jpg' ?>"
+                                                    <img src="<?= !empty($participant->picture_url) ? $participant->picture_url : '/assets/images/users/user-dummy-img.jpg' ?>"
                                                         class="rounded-circle avatar-xl img-thumbnail user-profile-image"
                                                         alt="Participant Profile">
                                                 </div>
                                                 <h5 class="fs-17 mb-1"><?= $participant->full_name ?></h5>
+                                                <?php if (!empty($participant->nickname)): ?>
+                                                    <p class="text-muted mb-1 fst-italic">"<?= htmlspecialchars($participant->nickname) ?>"</p>
+                                                <?php endif; ?>
                                                 <p class="text-muted mb-0">
                                                     <i class="ri-account-circle-line align-bottom text-primary me-1"></i>
                                                     ID: <?= $participant->account_id ?>
@@ -98,8 +114,12 @@
                                                     <table class="table table-borderless mb-0">
                                                         <tbody>
                                                             <tr>
-                                                                <th scope="row">Full Name</th>
-                                                                <td><?= $participant->full_name ?></td>
+                                                                <th scope="row" width="140">Full Name</th>
+                                                                <td><?= htmlspecialchars($participant->full_name) ?></td>
+                                                            </tr>
+                                                            <tr>
+                                                                <th scope="row">Nickname</th>
+                                                                <td><?= !empty($participant->nickname) ? htmlspecialchars($participant->nickname) : '<span class="text-muted">N/A</span>' ?></td>
                                                             </tr>
                                                             <tr>
                                                                 <th scope="row">Email</th>
@@ -107,7 +127,13 @@
                                                             </tr>
                                                             <tr>
                                                                 <th scope="row">Phone</th>
-                                                                <td><?= $participant->phone_number ?? 'N/A' ?></td>
+                                                                <td>
+                                                                    <?php if (!empty($participant->country_code) && !empty($participant->phone_number)): ?>
+                                                                        <?= htmlspecialchars($participant->country_code . ' ' . $participant->phone_number) ?>
+                                                                    <?php else: ?>
+                                                                        <?= $participant->phone_number ?? 'N/A' ?>
+                                                                    <?php endif; ?>
+                                                                </td>
                                                             </tr>
                                                             <tr>
                                                                 <th scope="row">Nationality</th>
@@ -173,12 +199,20 @@
                                                             <table class="table table-borderless mb-0">
                                                                 <tbody>
                                                                     <tr>
-                                                                        <th scope="row" width="200">Birth Date</th>
+                                                                        <th scope="row" width="200">Nickname</th>
+                                                                        <td><?= !empty($participant->nickname) ? htmlspecialchars(strtoupper($participant->nickname)) : '<span class="text-muted">N/A</span>' ?></td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <th scope="row">Birth Date</th>
                                                                         <td><?= !empty($participant->birthdate) ? date('d M Y', strtotime($participant->birthdate)) : 'N/A' ?></td>
                                                                     </tr>
                                                                     <tr>
                                                                         <th scope="row">Gender</th>
                                                                         <td><?= $participant->gender ?? 'N/A' ?></td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <th scope="row">Nationality</th>
+                                                                        <td><?= $participant->nationality ?? 'N/A' ?></td>
                                                                     </tr>
                                                                     <tr>
                                                                         <th scope="row">Origin Address</th>
@@ -190,7 +224,7 @@
                                                                     </tr>
                                                                     <tr>
                                                                         <th scope="row">T-Shirt Size</th>
-                                                                        <td><?= $participant->tshirt_size ?? 'N/A' ?></td>
+                                                                        <td><?= !empty($participant->tshirt_size) ? strtoupper($participant->tshirt_size) : 'N/A' ?></td>
                                                                     </tr>
                                                                     <tr>
                                                                         <th scope="row">Disease History</th>
@@ -321,22 +355,18 @@
                                                             <table class="table table-borderless mb-0">
                                                                 <tbody>
                                                                     <tr>
-                                                                        <th scope="row" width="200">Emergency Contact</th>
-                                                                        <td><?= $participant->emergency_account ?? 'N/A' ?></td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th scope="row">Relation</th>
-                                                                        <td><?= $participant->contact_relation ?? 'N/A' ?></td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <th scope="row">Phone Number</th>
+                                                                        <th scope="row" width="200">Phone Number</th>
                                                                         <td>
-                                                                            <?php if (!empty($participant->emergency_country_code) && !empty($participant->emergency_phone_flag)): ?>
-                                                                                <?= $participant->emergency_country_code ?> <?= $participant->emergency_account ?>
+                                                                            <?php if (!empty($participant->emergency_country_code) && !empty($participant->emergency_account)): ?>
+                                                                                <?= htmlspecialchars($participant->emergency_country_code . ' ' . $participant->emergency_account) ?>
                                                                             <?php else: ?>
                                                                                 <?= $participant->emergency_account ?? 'N/A' ?>
                                                                             <?php endif; ?>
                                                                         </td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <th scope="row">Relation</th>
+                                                                        <td><?= $participant->contact_relation ?? 'N/A' ?></td>
                                                                     </tr>
                                                                 </tbody>
                                                             </table>

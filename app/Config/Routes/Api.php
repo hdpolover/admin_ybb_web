@@ -48,6 +48,7 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->get('payments/status/(:segment)', 'PaymentsApiController::getStatus/$1', ['filter' => 'jwt']);
     $routes->get('payments/participant/(:num)', 'PaymentsApiController::getPaymentsByParticipantId/$1', ['filter' => 'jwt']);
     $routes->get('payments/program-payment/(:num)/participant/(:num)', 'PaymentsApiController::getPaymentsByProgramPaymentIdAndParticipantId/$1/$2', ['filter' => 'jwt']);
+    $routes->post('payments/cancel/(:num)', 'PaymentsApiController::cancelPayment/$1', ['filter' => 'jwt']);
 
     // Other protected routes
     $routes->get('my-programs', 'ProgramsApiController::getUserPrograms', ['filter' => 'jwt']);

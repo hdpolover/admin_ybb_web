@@ -432,12 +432,10 @@
 
                             // Avatar display - either picture or placeholder
                             html += '<div class="avatar-xs me-2">';
-                            if (data.picture_url && data.picture_url !== '' && data.picture_url !== 'null') {
-                                html += '<img src="' + data.picture_url + '" alt="' + data.full_name + '" class="avatar-xs rounded-circle" />';
-                            } else {
-                                html += '<span class="avatar-title rounded-circle bg-soft-primary text-primary">' +
-                                    (data.full_name ? data.full_name.charAt(0).toUpperCase() : '?') + '</span>';
-                            }
+                            var imgSrc = (data.picture_url && data.picture_url !== '' && data.picture_url !== 'null')
+                                ? data.picture_url
+                                : '/assets/images/users/user-dummy-img.jpg';
+                            html += '<img src="' + imgSrc + '" alt="' + data.full_name + '" class="rounded-circle" style="width:32px;height:32px;object-fit:cover;" />';
                             html += '</div>';
 
                             // Participant info

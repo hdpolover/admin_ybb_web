@@ -44,6 +44,7 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
         $routes->get('participants', 'Participants::index');
         $routes->get('participants/view/(:num)', 'Participants::view/$1');
         $routes->get('participants/edit/(:num)', 'Participants::edit/$1');
+        $routes->post('participants/update/(:num)', 'Participants::update/$1');
         $routes->get('participants/getData', 'Participants::getData');
         $routes->post('participants/export', 'Participants::export');
         $routes->post('participants/export_statistics', 'Participants::export_statistics');

@@ -1980,7 +1980,7 @@ class ParticipantModel extends Model
                 <a href="' . base_url('users/participants/view/' . $participantId) . '" class="btn btn-sm btn-soft-primary" title="View">
                     <i class="ri-eye-fill align-bottom"></i>
                 </a>
-                <a href="' . base_url('participants/edit/' . $participantId) . '" class="btn btn-sm btn-soft-warning" title="Edit">
+                <a href="' . base_url('users/participants/edit/' . $participantId) . '" class="btn btn-sm btn-soft-warning" title="Edit">
                     <i class="ri-pencil-fill align-bottom"></i>
                 </a>
                 <button type="button" class="btn btn-sm btn-soft-danger delete-participant" data-id="' . $participantId . '" title="Delete">
