@@ -2,6 +2,7 @@
 
 namespace App\Controllers\Api\Payment;
 
+use App\Gateways\GatewayFactory;
 use CodeIgniter\HTTP\ResponseInterface;
 
 class TransactionController extends BasePaymentController
@@ -105,9 +106,10 @@ class TransactionController extends BasePaymentController
             }
             log_message('debug', 'TransactionController::createTransaction - Payment method found: ' . json_encode($paymentMethod));
 
-            // Determine payment method
-            $paymentMethodType = ($paymentMethod->type === 'gateway') ?
-                self::PAYMENT_METHOD_MIDTRANS : self::PAYMENT_METHOD_MANUAL;            // get program payment data
+            // Determine if this is a gateway payment or manual bank transfer
+            $isGatewayPayment = ($paymentMethod->type === 'gateway');
+
+            // get program payment data
             log_message('info', 'TransactionController::createTransaction - Getting program payment data for ID: ' . $data['program_payment_id']);
             $programPayment = $this->programPaymentModel->find($data['program_payment_id']);
 
@@ -217,11 +219,14 @@ class TransactionController extends BasePaymentController
             // For payments, generate a unique order ID
             $orderId = $this->generateOrderId($paymentId);
 
-            // Update payment with transaction_code
-            $this->paymentModel->update($paymentId, ['transaction_code' => $transactionCode, 'order_id' => $orderId]);            // For manual payment, handle proof upload if available
+            // Update payment with transaction_code and order_id
+            $this->paymentModel->update($paymentId, ['transaction_code' => $transactionCode, 'order_id' => $orderId]);
 
-            if ($paymentMethodType === self::PAYMENT_METHOD_MANUAL) {
-                // Process proof file upload if provided
+            // ---------------------------------------------------------------
+            // MANUAL BANK TRANSFER
+            // ---------------------------------------------------------------
+            if (!$isGatewayPayment) {
+                // Process optional proof file upload
                 $paymentProofUrl = null;
                 $file = $this->request->getFile('proof');
 
@@ -231,29 +236,19 @@ class TransactionController extends BasePaymentController
                     }
 
                     $allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
-                    if (!in_array($file->getMimeType(), $allowedTypes)) {
+                    if (!\in_array($file->getMimeType(), $allowedTypes)) {
                         return $this->respondError('Only JPEG, PNG, and PDF files are allowed', 400);
                     }
 
-                    // Generate new filename
-                    $newName = $orderId . '_' . $file->getRandomName();
-
-                    $multipartData[] = [
-                        'name'     => 'image',
-                        'contents' => fopen($file->getTempName(), 'r'),
-                        'filename' => $file->getClientName()
-                    ];
-
-                    // Prepare file data for storage helper
+                    $newName  = $orderId . '_' . $file->getRandomName();
                     $fileData = [
-                        'name' => $file->getName(),
-                        'type' => $file->getMimeType(),
+                        'name'     => $file->getName(),
+                        'type'     => $file->getMimeType(),
                         'tmp_name' => $file->getTempName(),
-                        'error' => $file->getError(),
-                        'size' => $file->getSize()
+                        'error'    => $file->getError(),
+                        'size'     => $file->getSize()
                     ];
 
-                    // Upload to storage using helper
                     $uploadResult = upload_file_to_storage(
                         $fileData,
                         'payments/' . $program->id,
@@ -265,38 +260,25 @@ class TransactionController extends BasePaymentController
                         return $this->respondError('Failed to upload payment proof: ' . $uploadResult['message'], 500);
                     }
 
-                    // Set payment proof URL from upload result
-                    $paymentProofUrl = $uploadResult['url'];
-
-                    // Additional notes about proof upload
-                    $existingNotes = $paymentData['notes'] ?? '';
+                    $paymentProofUrl  = $uploadResult['url'];
+                    $existingNotes    = $paymentData['notes'] ?? '';
                     $paymentData['notes'] = trim($existingNotes . "\n\n" . date('Y-m-d H:i:s') . " - Payment proof uploaded during transaction creation.");
 
-                    // Update payment with proof file info
                     $this->paymentModel->update($paymentId, [
                         'proof_url' => $paymentProofUrl,
-                        'notes' => $paymentData['notes']
+                        'notes'     => $paymentData['notes']
                     ]);
                 }
 
-                // Update payment status to 'pending' for manual payments
                 $this->paymentModel->update($paymentId, ['status' => self::STATUS_PENDING]);
 
-                // get payment data
                 $payment = $this->paymentModel->find($paymentId);
-
                 if (!$payment) {
                     return $this->respondError('Payment not found', 404);
                 }
 
-                // update participant category to self-funded if applicable
-                if ($this->updateParticipantCategoryIfSelfFunded($paymentData['participant_id'], $paymentData['program_payment_id'])) {
-                    log_message('info', 'TransactionController::createTransaction - Participant category updated to self_funded successfully');
-                } else {
-                    log_message('info', 'TransactionController::createTransaction - No update needed for participant category');
-                }
+                $this->updateParticipantCategoryIfSelfFunded($paymentData['participant_id'], $paymentData['program_payment_id']);
 
-                // Return success response with payment details
                 return $this->respondSuccess(
                     $payment,
                     self::HTTP_OK,
@@ -304,117 +286,83 @@ class TransactionController extends BasePaymentController
                 );
             }
 
-            // update participant category to self-funded if applicable
-            if ($this->updateParticipantCategoryIfSelfFunded($paymentData['participant_id'], $paymentData['program_payment_id'])) {
-                log_message('info', 'TransactionController::createTransaction - Participant category updated to self_funded successfully');
-            } else {
-                log_message('info', 'TransactionController::createTransaction - No update needed for participant category');
-            }
+            // ---------------------------------------------------------------
+            // GATEWAY PAYMENT (Midtrans, Xendit, …)
+            // ---------------------------------------------------------------
+            $this->updateParticipantCategoryIfSelfFunded($paymentData['participant_id'], $paymentData['program_payment_id']);
 
             $userModel = new \App\Models\UserModel();
-            $user = $userModel->find($participant->user_id);
+            $user      = $userModel->find($participant->user_id);
 
             if (!$user) {
                 return $this->respondError('User not found', 404);
             }
 
-            // For Midtrans payments
+            // Build normalized phone number
+            $phone = null;
+            if (!empty($participant->phone_number)) {
+                $rawPhone = (!empty($participant->country_code) ? $participant->country_code : '') . $participant->phone_number;
+                $phone    = preg_replace('/\D/', '', $rawPhone);
+            }
+
             try {
-                // Make sure Midtrans is properly configured with server key directly from our config
-                $midtransConfig = new \App\Config\Midtrans\Config();
-                \Midtrans\Config::$serverKey = $midtransConfig->getServerKey();
-                \Midtrans\Config::$isProduction = $midtransConfig->isProduction();
-                \Midtrans\Config::$isSanitized = true;
-                \Midtrans\Config::$is3ds = true;
+                $gateway = GatewayFactory::makeFromPaymentMethod($paymentMethod);
 
-                // Log the server key to help with debugging (mask it for security)
-                $serverKeyLength = strlen(\Midtrans\Config::$serverKey);
-                $maskedServerKey = substr(\Midtrans\Config::$serverKey, 0, 4) . str_repeat('*', $serverKeyLength - 8) . substr(\Midtrans\Config::$serverKey, -4);
-                log_message('debug', 'TransactionController::createTransaction - Configuring Midtrans with server key: ' . $maskedServerKey);
-                log_message('debug', 'TransactionController::createTransaction - Production mode: ' . (\Midtrans\Config::$isProduction ? 'true' : 'false'));                // Set transaction parameters for Midtrans
-                log_message('info', 'TransactionController::createTransaction - Preparing Midtrans transaction parameters:');
-                log_message('info', 'TransactionController::createTransaction - Order ID: ' . $orderId);
-                log_message('info', 'TransactionController::createTransaction - Gross Amount (IDR): ' . $amount);
-                
-                $roundedAmount = (int) round($amount);
-                $params = [
-                    'transaction_details' => [
-                        'order_id' => $orderId,
-                        'gross_amount' => $roundedAmount
-                    ],
-                    'customer_details' => [
+                log_message('info', "TransactionController::createTransaction - Using gateway: {$gateway->getProviderName()}, Order ID: {$orderId}, IDR: {$amount}, USD: {$usdAmount}");
+
+                $gatewayResult = $gateway->createTransaction([
+                    'order_id'   => $orderId,
+                    'amount'     => $amount,
+                    'usd_amount' => $usdAmount,
+                    'customer'   => [
                         'first_name' => $participant->full_name ?? 'Customer',
-                        'email' => $user->email ?? ''
+                        'email'      => $user->email ?? '',
+                        'phone'      => $phone,
                     ],
-                    'item_details' => [
-                        [
-                            'id' => $data['program_payment_id'],
-                            'price' => $roundedAmount,
-                            'quantity' => 1,
-                            'name' => $program->name ?? 'YBB Program Payment',
-                            'category' => $programPayment->category ?? 'registration'
-                        ]
+                    'item' => [
+                        'id'       => $data['program_payment_id'],
+                        'name'     => $program->name ?? 'YBB Program Payment',
+                        'category' => $programPayment->category ?? 'registration',
                     ],
-                    'custom_field1' => 'USD Amount: $' . number_format($usdAmount, 2),
-                    'custom_field2' => 'Conversion Rate: 1 USD = ' . number_format($usdInIdr, 0) . ' IDR'
-                ];
-
-                log_message('debug', 'TransactionController::createTransaction - Midtrans params: ' . json_encode($params));
-
-                // Add phone to customer_details only if it exists
-                if (!empty($participant->phone_number)) {
-                    if (!empty($participant->country_code)) {
-                        $phoneNumber = $participant->country_code . $participant->phone_number;
-                    } else {
-                        $phoneNumber = $participant->phone_number;
-                    }
-
-                    // remove non-numeric characters from phone number
-                    $phoneNumber = preg_replace('/\D/', '', $phoneNumber);
-                    $params['customer_details']['phone'] = $phoneNumber;
-                }                // Create Snap Token
-                log_message('info', 'TransactionController::createTransaction - Creating Midtrans Snap Token for Order ID: ' . $orderId . ', Amount: IDR ' . number_format($amount, 0) . ' (from USD ' . $usdAmount . ')');
-                log_message('info', 'TransactionController::createTransaction - FINAL VERIFICATION - USD: ' . $usdAmount . ' * Rate: ' . $usdInIdr . ' = IDR: ' . $amount);
-                
-                $snapToken = \Midtrans\Snap::getSnapToken($params);
-                log_message('info', 'TransactionController::createTransaction - Snap token created successfully: ' . $snapToken);
-
-                // Generate redirect URL based on environment
-                $redirectUrl = \Midtrans\Config::$isProduction
-                    ? "https://app.midtrans.com/snap/v2/vtweb/{$snapToken}"
-                    : "https://app.sandbox.midtrans.com/snap/v2/vtweb/{$snapToken}";
-
-                // Update payment status to 'pending' and save the redirect URL
-                $this->paymentModel->update($paymentId, [
-                    'status' => self::STATUS_PENDING,
-                    'payment_url' => $redirectUrl
-                ]);
-                $returnData = [
-                    'order_id' => $orderId,
-                    'payment_id' => $paymentId,
-                    'token' => $snapToken,
-                    'redirect_url' => $redirectUrl,
-                    'amount_details' => [
-                        'usd_amount' => $usdAmount,
-                        'idr_amount' => $amount,
+                    'meta' => [
                         'conversion_rate' => $usdInIdr,
-                        'currency' => 'IDR'
                     ],
-                    'program_details' => [
-                        'program_name' => $program->name ?? 'YBB Program',
-                        'payment_category' => $programPayment->category ?? 'registration'
-                    ]
-                ];                // Return success response with token
+                ]);
+
+                $redirectUrl    = $gatewayResult['redirect_url'];
+                $token          = $gatewayResult['token'];
+                $gatewayTxnId   = $gatewayResult['gateway_txn_id'] ?? null;
+
+                $updateData = ['status' => self::STATUS_PENDING, 'payment_url' => $redirectUrl];
+                if ($gatewayTxnId) {
+                    $updateData['transaction_id'] = $gatewayTxnId;
+                }
+                $this->paymentModel->update($paymentId, $updateData);
+
                 return $this->respondSuccess(
-                    $returnData,
+                    [
+                        'order_id'       => $orderId,
+                        'payment_id'     => $paymentId,
+                        'token'          => $token,
+                        'redirect_url'   => $redirectUrl,
+                        'gateway'        => $gateway->getProviderName(),
+                        'amount_details' => [
+                            'usd_amount'      => $usdAmount,
+                            'idr_amount'      => $amount,
+                            'conversion_rate' => $usdInIdr,
+                            'currency'        => 'IDR',
+                        ],
+                        'program_details' => [
+                            'program_name'     => $program->name ?? 'YBB Program',
+                            'payment_category' => $programPayment->category ?? 'registration',
+                        ],
+                    ],
                     self::HTTP_OK,
-                    'Midtrans transaction created successfully. USD ' . $usdAmount . ' converted to IDR ' . number_format($amount, 0) . ' at rate 1:' . number_format($usdInIdr, 0)
+                    ucfirst($gateway->getProviderName()) . ' transaction created successfully. USD ' . $usdAmount . ' converted to IDR ' . number_format($amount, 0) . ' at rate 1:' . number_format($usdInIdr, 0)
                 );
             } catch (\Exception $e) {
-                // Delete the payment record if Midtrans transaction fails
                 $this->paymentModel->delete($paymentId);
-
-                log_message('error', 'Midtrans API Error: ' . $e->getMessage());
+                log_message('error', 'Gateway API Error: ' . $e->getMessage());
                 return $this->fail('Payment failed. Please try again later. Error: ' . $e->getMessage(), 500);
             }
         } catch (\Exception $e) {

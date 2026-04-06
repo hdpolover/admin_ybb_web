@@ -17,6 +17,7 @@
         "midtrans/midtrans-php": "^2.6",
         "phpoffice/phpspreadsheet": "^4.4",
         "psr/log": "^1.1",
+        "xendit/xendit-php": "^7.0",
         "zircote/swagger-php": "^5.0"
     },
     "require-dev": {

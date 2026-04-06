@@ -10,7 +10,7 @@ class PaymentMethodModel extends Model
     // `id`, `program_id`, `name`, `description`, `type`, `img_url`, `is_active`, `is_deleted`, `created_at`, `updated_at`
     protected $table      = 'payment_methods';
     protected $primaryKey = 'id';
-    protected $allowedFields = ['program_id', 'name', 'description', 'type', 'img_url', 'is_active', 'is_deleted', 'created_at', 'updated_at'];
+    protected $allowedFields = ['program_id', 'name', 'description', 'type', 'gateway_provider', 'img_url', 'is_active', 'is_deleted', 'created_at', 'updated_at'];
     protected $useTimestamps = true;
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';

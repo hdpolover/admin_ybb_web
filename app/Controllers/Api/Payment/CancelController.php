@@ -2,13 +2,16 @@
 
 namespace App\Controllers\Api\Payment;
 
+use App\Gateways\GatewayFactory;
 use CodeIgniter\HTTP\ResponseInterface;
 
 class CancelController extends BasePaymentController
 {
     /**
-     * Cancel a pending payment
-     * Supports both Midtrans (automatic) and manual payments.
+     * Cancel a pending payment.
+     * For gateway payments, attempts cancellation on the gateway side first,
+     * then marks our local record as cancelled regardless of the gateway outcome
+     * (gateway may not have a record if the user never visited the payment page).
      *
      * @param int|null $id Payment ID
      * @return ResponseInterface
@@ -30,20 +33,25 @@ class CancelController extends BasePaymentController
                 return $this->fail('Only pending payments can be cancelled', 400);
             }
 
-            // For Midtrans payments, attempt to cancel on Midtrans side first
-            if ($payment->payment_method_id == self::PAYMENT_METHOD_MIDTRANS && !empty($payment->order_id)) {
-                try {
-                    \Midtrans\Transaction::cancel($payment->order_id);
-                    log_message('info', 'CancelController::cancelPayment - Midtrans transaction cancelled for order ID: ' . $payment->order_id);
-                } catch (\Exception $e) {
-                    // Midtrans may not have a record if the user never visited the payment page
-                    log_message('info', 'CancelController::cancelPayment - Midtrans cancel skipped (order may not exist on Midtrans): ' . $e->getMessage());
+            // For gateway payments, attempt cancellation on the gateway side
+            if (!empty($payment->order_id)) {
+                $paymentMethod = $this->paymentMethodModel->find($payment->payment_method_id);
+
+                if ($paymentMethod && $paymentMethod->type === 'gateway' && !empty($paymentMethod->gateway_provider)) {
+                    try {
+                        $gateway = GatewayFactory::make($paymentMethod->gateway_provider);
+                        $gateway->cancelTransaction($payment->order_id);
+                        log_message('info', "CancelController::cancelPayment - {$paymentMethod->gateway_provider} transaction cancelled for order: {$payment->order_id}");
+                    } catch (\Exception $e) {
+                        // Non-fatal: gateway may not have a record yet (user never opened payment page)
+                        log_message('info', "CancelController::cancelPayment - gateway cancel skipped: " . $e->getMessage());
+                    }
                 }
             }
 
-            $existingNotes = $payment->notes ?? '';
-            $cancelNote = date('Y-m-d H:i:s') . ' - Payment cancelled by participant.';
-            $combinedNotes = trim($existingNotes . "\n\n" . $cancelNote);
+            $existingNotes  = $payment->notes ?? '';
+            $cancelNote     = date('Y-m-d H:i:s') . ' - Payment cancelled by participant.';
+            $combinedNotes  = trim($existingNotes . "\n\n" . $cancelNote);
 
             $this->paymentModel->update($id, [
                 'status'     => self::STATUS_CANCELLED,

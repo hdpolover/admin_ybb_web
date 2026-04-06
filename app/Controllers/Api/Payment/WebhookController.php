@@ -2,84 +2,80 @@
 
 namespace App\Controllers\Api\Payment;
 
+use App\Gateways\GatewayFactory;
 use CodeIgniter\HTTP\ResponseInterface;
 
+/**
+ * WebhookController
+ *
+ * Legacy Midtrans webhook handler reachable at /api/payments/webhook.
+ * Kept for backward compatibility — the primary Midtrans webhook route is
+ * /api/payment/notification/midtrans → NotificationController::handleMidtransNotification.
+ *
+ * Delegates status mapping entirely to MidtransGateway so logic is not duplicated.
+ */
 class WebhookController extends BasePaymentController
 {
-    /**
-     * Handle webhook notifications from Midtrans
-     *
-     * @return ResponseInterface
-     */
     public function webhook(): ResponseInterface
     {
         try {
-            $notification = new \Midtrans\Notification();
-            
-            // Get important data
-            $transactionStatus = $notification->transaction_status;
-            $fraudStatus = $notification->fraud_status ?? null;
-            $orderId = $notification->order_id;
-            $paymentType = $notification->payment_type ?? '';
-            
-            // Log webhook data for debugging
-            log_message('info', 'Midtrans webhook received: ' . json_encode($notification));
-            
-            // Find payment by transaction_id (order_id)
-            $payment = $this->paymentModel->where('transaction_id', $orderId)->first();
-            
+            $input = file_get_contents('php://input');
+            log_message('info', 'WebhookController::webhook - received: ' . $input);
+
+            $payload = json_decode($input, true) ?? [];
+
+            // Also handle legacy \Midtrans\Notification object-style input
+            if (empty($payload)) {
+                try {
+                    $notification = new \Midtrans\Notification();
+                    $payload = [
+                        'order_id'           => $notification->order_id,
+                        'transaction_status' => $notification->transaction_status,
+                        'fraud_status'       => $notification->fraud_status ?? null,
+                        'transaction_id'     => $notification->transaction_id ?? null,
+                        'payment_type'       => $notification->payment_type ?? '',
+                    ];
+                } catch (\Exception $e) {
+                    log_message('error', 'WebhookController::webhook - could not parse Midtrans notification: ' . $e->getMessage());
+                    return $this->fail('Error processing webhook', 500);
+                }
+            }
+
+            $orderId = $payload['order_id'] ?? null;
+            if (!$orderId) {
+                log_message('error', 'WebhookController::webhook - Missing order_id');
+                return $this->fail('Missing order_id', 400);
+            }
+
+            $gateway = GatewayFactory::make('midtrans');
+            $result  = $gateway->parseWebhookPayload($payload);
+
+            $payment = $this->paymentModel->where('order_id', $orderId)
+                ->orWhere('transaction_id', $orderId)
+                ->first();
+
             if (!$payment) {
-                log_message('error', 'Payment not found for webhook: ' . $orderId);
+                log_message('error', "WebhookController::webhook - Payment not found for order_id: {$orderId}");
                 return $this->fail('Payment not found', 404);
             }
-            
-            // Process transaction status
-            $newStatus = self::STATUS_CREATED; // Default: created
-            
-            if ($transactionStatus == 'capture') {
-                if ($fraudStatus == 'challenge') {
-                    // Payment needs review
-                    $newStatus = self::STATUS_PENDING; // Pending
-                } else if ($fraudStatus == 'accept') {
-                    // Payment success
-                    $newStatus = self::STATUS_SUCCESS; // Success
-                }
-            } else if ($transactionStatus == 'settlement') {
-                $newStatus = self::STATUS_SUCCESS; // Success
-            } else if ($transactionStatus == 'pending') {
-                $newStatus = self::STATUS_PENDING; // Pending
-            } else if (in_array($transactionStatus, ['deny', 'cancel', 'expire'])) {
-                $newStatus = self::STATUS_CANCELLED; // Cancelled
-            } else if ($transactionStatus == 'refund') {
-                $newStatus = self::STATUS_REJECTED; // Rejected/Refunded
-            }
-            
-            // Combine existing notes with the new notification data
-            $existingNotes = $payment->notes ?? '';
-            $combinedNotes = $existingNotes . "\n\n" . date('Y-m-d H:i:s') . " - Midtrans webhook: " . json_encode($notification);
-            
-            // Update payment details
-            $updated = $this->paymentModel->update($payment->id, [
-                'status' => $newStatus,
-                'payment_method' => $paymentType,
-                'payment_date' => date('Y-m-d H:i:s'),
+
+            $updateData = [
+                'status'     => $result['status'],
+                'notes'      => trim(($payment->notes ?? '') . "\n\n" . $result['note']),
                 'updated_at' => date('Y-m-d H:i:s'),
-                'notes' => trim($combinedNotes)
-            ]);
-            
-            if (!$updated) {
-                log_message('error', 'Failed to update payment record from webhook');
-                return $this->fail('Failed to update payment status', 500);
+            ];
+            if (!empty($payload['payment_type'])) {
+                $updateData['payment_method'] = $payload['payment_type'];
             }
-            
-            return $this->respond([
-                'status' => 200,
-                'error' => false,
-                'message' => 'Webhook processed successfully'
-            ]);
-            
+            if (!empty($result['transaction_id'])) {
+                $updateData['transaction_id'] = $result['transaction_id'];
+            }
+
+            $this->paymentModel->update($payment->id, $updateData);
+
+            return $this->respond(['status' => 200, 'error' => false, 'message' => 'Webhook processed successfully']);
         } catch (\Exception $e) {
-            log_message('error', 'Webhook Error: ' . $e->getMessage());
+            log_message('error', 'WebhookController::webhook - Error: ' . $e->getMessage());
             return $this->fail('Error processing webhook: ' . $e->getMessage(), 500);
         }
     }

@@ -104,13 +104,22 @@ class PaymentMethods extends AdminBaseController
         $programId = session('current_program');
 
         // Prepare data
+        $type            = $this->request->getPost('type') ?: 'manual';
+        $gatewayProvider = $this->request->getPost('gateway_provider') ?: null;
+
+        // gateway_provider is only meaningful for 'gateway' type methods
+        if ($type !== 'gateway') {
+            $gatewayProvider = null;
+        }
+
         $data = [
-            'program_id' => $programId,
-            'name' => $this->request->getPost('name'),
-            'description' => $this->request->getPost('description'),
-            'type' => $this->request->getPost('type') ?: 'manual',
-            'is_active' => $this->request->getPost('is_active') ?: 1,
-            'is_deleted' => 0
+            'program_id'       => $programId,
+            'name'             => $this->request->getPost('name'),
+            'description'      => $this->request->getPost('description'),
+            'type'             => $type,
+            'gateway_provider' => $gatewayProvider,
+            'is_active'        => $this->request->getPost('is_active') ?: 1,
+            'is_deleted'       => 0
         ];
 
         // Handle image upload if available
@@ -200,12 +209,20 @@ class PaymentMethods extends AdminBaseController
         }
 
         // Prepare data
+        $type            = $this->request->getPost('type') ?: 'manual';
+        $gatewayProvider = $this->request->getPost('gateway_provider') ?: null;
+
+        if ($type !== 'gateway') {
+            $gatewayProvider = null;
+        }
+
         $data = [
-            'name' => $this->request->getPost('name'),
-            'description' => $this->request->getPost('description'),
-            'program_id' => $programId,
-            'type' => $this->request->getPost('type') ?: 'manual',
-            'is_active' => $this->request->getPost('is_active') ?: 1,
+            'name'             => $this->request->getPost('name'),
+            'description'      => $this->request->getPost('description'),
+            'program_id'       => $programId,
+            'type'             => $type,
+            'gateway_provider' => $gatewayProvider,
+            'is_active'        => $this->request->getPost('is_active') ?: 1,
         ];
 
         // Handle image upload if available

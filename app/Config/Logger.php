@@ -3,7 +3,6 @@
 namespace Config;
 
 use CodeIgniter\Config\BaseConfig;
-use CodeIgniter\Log\Handlers\FileHandler;
 
 class Logger extends BaseConfig
 {
@@ -38,7 +37,7 @@ class Logger extends BaseConfig
      *
      * @var array|int
      */
-    public $threshold = 9; // Temporarily set to maximum level to capture all logs
+    public $threshold = 3; // Critical and above only (overridden per environment via .env)
 
     /**
      * --------------------------------------------------------------------------
@@ -76,75 +75,12 @@ class Logger extends BaseConfig
     public array $handlers = [
 
         /*
-         * --------------------------------------------------------------------
-         * File Handler
-         * --------------------------------------------------------------------
+         * Writes to PHP's error_log(), which Apache routes to /dev/stderr.
+         * Docker captures stderr and manages rotation — no log files on disk.
          */
-        FileHandler::class => [
-
-            // The log levels that this handler will handle.
-            'handles' => [
-                'critical',
-                'alert',
-                'emergency',
-                'debug',
-                'error',
-                'info',
-                'notice',
-                'warning',
-            ],
-
-            /*
-             * The default filename extension for log files.
-             * An extension of 'php' allows for protecting the log files via basic
-             * scripting, when they are to be stored under a publicly accessible directory.
-             *
-             * Note: Leaving it blank will default to 'log'.
-             */
-            'fileExtension' => '',
-
-            /*
-             * The file system permissions to be applied on newly created log files.
-             *
-             * IMPORTANT: This MUST be an integer (no quotes) and you MUST use octal
-             * integer notation (i.e. 0700, 0644, etc.)
-             */
-            'filePermissions' => 0644,
-
-            /*
-             * Logging Directory Path
-             *
-             * By default, logs are written to WRITEPATH . 'logs/'
-             * Specify a different destination here, if desired.
-             */
-            'path' => '',
+        'CodeIgniter\Log\Handlers\ErrorlogHandler' => [
+            'handles'     => ['critical', 'alert', 'emergency', 'error', 'warning', 'notice', 'info', 'debug'],
+            'messageType' => 0,
         ],
-
-        /*
-         * The ChromeLoggerHandler requires the use of the Chrome web browser
-         * and the ChromeLogger extension. Uncomment this block to use it.
-         */
-        // 'CodeIgniter\Log\Handlers\ChromeLoggerHandler' => [
-        //     /*
-        //      * The log levels that this handler will handle.
-        //      */
-        //     'handles' => ['critical', 'alert', 'emergency', 'debug',
-        //                   'error', 'info', 'notice', 'warning'],
-        // ],
-
-        /*
-         * The ErrorlogHandler writes the logs to PHP's native `error_log()` function.
-         * Uncomment this block to use it.
-         */
-        // 'CodeIgniter\Log\Handlers\ErrorlogHandler' => [
-        //     /* The log levels this handler can handle. */
-        //     'handles' => ['critical', 'alert', 'emergency', 'debug', 'error', 'info', 'notice', 'warning'],
-        //
-        //     /*
-        //     * The message type where the error should go. Can be 0 or 4, or use the
-        //     * class constants: `ErrorlogHandler::TYPE_OS` (0) or `ErrorlogHandler::TYPE_SAPI` (4)
-        //     */
-        //     'messageType' => 0,
-        // ],
     ];
 }

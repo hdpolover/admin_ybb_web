@@ -2,46 +2,48 @@
 
 namespace App\Controllers\Api\Payment;
 
+use App\Gateways\GatewayFactory;
 use CodeIgniter\HTTP\ResponseInterface;
 
 class ConfigController extends BasePaymentController
 {
     /**
-     * Get Midtrans client key for frontend initialization
+     * Return frontend configuration for a payment gateway.
      *
-     * This endpoint is NEVER cached to ensure payment configuration
-     * is always current and secure
+     * Default (no ?provider param) returns Midtrans config for backward
+     * compatibility with existing frontend JS that calls /api/payments/config.
+     *
+     * Pass ?provider=xendit to get Xendit config.
+     *
+     * This endpoint is NEVER cached.
      *
      * @return ResponseInterface
      */
     public function getConfig(): ResponseInterface
     {
         try {
-            // Set cache-prevention headers to ensure no browser/proxy caching
             $this->response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
             $this->response->setHeader('Pragma', 'no-cache');
             $this->response->setHeader('Expires', 'Thu, 01 Jan 1970 00:00:00 GMT');
-            
-            // Always create a fresh instance to prevent any object-level caching
-            $midtransConfig = new \App\Config\Midtrans\Config();
-            
+
+            $provider = $this->request->getGet('provider') ?? 'midtrans';
+
+            $gateway      = GatewayFactory::make($provider);
+            $clientConfig = $gateway->getClientConfig();
+
             return $this->respond([
-                'status' => 200,
-                'error' => false,
-                'data' => [
-                    'clientKey' => $midtransConfig->getClientKey(),
-                    'isProduction' => $midtransConfig->isProduction(),
-                    'supportedPaymentMethods' => [
-                        ['id' => self::PAYMENT_METHOD_MIDTRANS, 'name' => 'Online Payment (Credit Card, Virtual Account, E-wallet)'],
-                        ['id' => self::PAYMENT_METHOD_MANUAL, 'name' => 'Manual Bank Transfer']
-                    ],
-                    // Add timestamp to ensure unique response
-                    'timestamp' => time(),
-                    'cache_disabled' => true
-                ]
+                'status'    => 200,
+                'error'     => false,
+                'data'      => array_merge($clientConfig, [
+                    'provider'        => $provider,
+                    'timestamp'       => time(),
+                    'cache_disabled'  => true,
+                ]),
             ]);
+        } catch (\InvalidArgumentException $e) {
+            return $this->fail('Unknown payment provider: ' . $this->request->getGet('provider'), 400);
         } catch (\Exception $e) {
-            log_message('error', 'Error getting payment config: ' . $e->getMessage());
+            log_message('error', 'ConfigController::getConfig - ' . $e->getMessage());
             return $this->fail('Error retrieving payment configuration', 500);
         }
     }

@@ -51,6 +51,6 @@ RUN mkdir -p writable/cache writable/logs writable/session writable/uploads \
     && chown -R www-data:www-data writable public
 
 # Persist sessions and export temp files across container restarts
-VOLUME ["/var/www/html/writable/session", "/var/www/html/writable/logs", "/var/www/html/writable/uploads"]
+VOLUME ["/var/www/html/writable/session", "/var/www/html/writable/uploads"]
 
 EXPOSE 80

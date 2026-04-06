@@ -212,6 +212,16 @@
                             </div>
                         </div>
 
+                        <div class="mb-3" id="gateway_provider_group" style="display:none;">
+                            <label for="gateway_provider" class="form-label">Gateway Provider*</label>
+                            <select class="form-select" id="gateway_provider" name="gateway_provider">
+                                <option value="">— select provider —</option>
+                                <option value="midtrans">Midtrans</option>
+                                <option value="xendit">Xendit</option>
+                            </select>
+                            <small class="text-muted">API credentials for the selected provider must be set in the server's .env file.</small>
+                        </div>
+
                         <div class="mb-3">
                             <label for="payment_image" class="form-label">Payment Method Image</label>
                             <div class="input-group">
@@ -283,6 +293,16 @@
                                     </select>
                                 </div>
                             </div>
+                        </div>
+
+                        <div class="mb-3" id="edit_gateway_provider_group" style="display:none;">
+                            <label for="edit_gateway_provider" class="form-label">Gateway Provider*</label>
+                            <select class="form-select" id="edit_gateway_provider" name="gateway_provider">
+                                <option value="">— select provider —</option>
+                                <option value="midtrans">Midtrans</option>
+                                <option value="xendit">Xendit</option>
+                            </select>
+                            <small class="text-muted">API credentials for the selected provider must be set in the server's .env file.</small>
                         </div>
 
                         <div class="mb-3">
@@ -696,6 +716,14 @@
                             $('#edit_payment_id').val(method.id);
                             $('#edit_name').val(method.name);
                             $('#edit_type').val(method.type || 'manual');
+                            // Show/populate gateway provider if applicable
+                            if (method.type === 'gateway') {
+                                $('#edit_gateway_provider_group').show();
+                                $('#edit_gateway_provider').val(method.gateway_provider || '');
+                            } else {
+                                $('#edit_gateway_provider_group').hide();
+                                $('#edit_gateway_provider').val('');
+                            }
 
                             // Handle image preview for existing image
                             if (method.img_url) {
@@ -955,6 +983,26 @@
                 $(this).addClass('was-validated');
             });
         }
+
+        // Show/hide gateway_provider field based on type selection (Add modal)
+        $('#type').on('change', function () {
+            if ($(this).val() === 'gateway') {
+                $('#gateway_provider_group').show();
+            } else {
+                $('#gateway_provider_group').hide();
+                $('#gateway_provider').val('');
+            }
+        });
+
+        // Show/hide gateway_provider field based on type selection (Edit modal)
+        $('#edit_type').on('change', function () {
+            if ($(this).val() === 'gateway') {
+                $('#edit_gateway_provider_group').show();
+            } else {
+                $('#edit_gateway_provider_group').hide();
+                $('#edit_gateway_provider').val('');
+            }
+        });
     </script>
 </body>
 
