@@ -1,0 +1,13 @@
+.git
+.github
+.env
+writable/cache/*
+writable/logs/*
+writable/session/*
+writable/uploads/*
+vendor
+tests
+*.md
+*.py
+*.sql
+node_modules
