@@ -105,6 +105,7 @@ $routes->group('', ['namespace' => 'App\Controllers'], function ($routes) {
 
 // Payment webhook route - no authentication required for external service callbacks
 $routes->post('api/payment/notification/midtrans', 'Api\Payment\NotificationController::handleMidtransNotification');
+$routes->post('api/payment/notification/xendit', 'Api\Payment\NotificationController::handleXenditNotification');
 $routes->get('api/payment/finish/midtrans', 'Api\Payment\NotificationController::handleMidtransFinish');
 $routes->get('api/payment/unfinish/midtrans', 'Api\Payment\NotificationController::handleMidtransUnfinish');
 $routes->get('api/payment/error/midtrans', 'Api\Payment\NotificationController::handleMidtransError');

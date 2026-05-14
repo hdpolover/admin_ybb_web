@@ -185,8 +185,8 @@ class NotificationController extends BasePaymentController
             ];
 
             return $this->processGatewayWebhook('xendit', $payload, $headers);
-        } catch (\Exception $e) {
-            log_message('error', 'NotificationController::handleXenditNotification - ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            log_message('error', 'NotificationController::handleXenditNotification - [' . get_class($e) . '] ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
             // Return 200 to prevent Xendit from retrying on our processing errors
             return $this->respond(['status' => 'OK', 'message' => 'Error occurred but notification received'], 200);
         }
@@ -232,7 +232,7 @@ class NotificationController extends BasePaymentController
         try {
             $this->paymentModel->update($payment->id, $updateData);
             log_message('info', "NotificationController::processGatewayWebhook ({$provider}) - Payment {$payment->id} updated to status {$newStatus}");
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             log_message('error', "NotificationController::processGatewayWebhook ({$provider}) - DB update error: " . $e->getMessage());
         }
 

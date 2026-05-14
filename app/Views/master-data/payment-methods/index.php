@@ -972,9 +972,15 @@
                         });
                     },
                     error: function(xhr) {
+                        var msg = 'Failed to update payment method. Please try again.';
+                        try {
+                            var res = JSON.parse(xhr.responseText);
+                            if (res && res.message) msg = res.message;
+                        } catch(e) {}
+                        Swal.close();
                         Swal.fire({
                             title: 'Error',
-                            text: 'Failed to update payment method. Please try again.',
+                            text: msg,
                             icon: 'error',
                             confirmButtonColor: '#f06548'
                         });

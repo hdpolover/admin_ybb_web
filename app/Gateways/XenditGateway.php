@@ -52,17 +52,19 @@ class XenditGateway implements PaymentGatewayInterface
         $description = ($params['item']['name'] ?? 'YBB Program Payment')
             . ' (USD ' . number_format($params['usd_amount'], 2) . ')';
 
-        $customer = new CustomerObject([
-            'given_names'   => $params['customer']['first_name'],
-            'email'         => $params['customer']['email'],
-            'mobile_number' => $params['customer']['phone'] ?? null,
-        ]);
+        $customerData = [
+            'given_names' => $params['customer']['first_name'],
+            'email'       => $params['customer']['email'],
+        ];
+        if (!empty($params['customer']['phone'])) {
+            $customerData['mobile_number'] = $params['customer']['phone'];
+        }
+        $customer = new CustomerObject($customerData);
 
         $item = new InvoiceItem([
             'name'     => $params['item']['name'],
             'quantity' => 1,
             'price'    => (float) $params['amount'],
-            'category' => $params['item']['category'],
         ]);
 
         $createRequest = new CreateInvoiceRequest([
@@ -104,7 +106,7 @@ class XenditGateway implements PaymentGatewayInterface
 
         // Most recent invoice for this external_id
         $invoice      = $invoices[0];
-        $xenditStatus = strtoupper($invoice->getStatus() ?? 'PENDING');
+        $xenditStatus = strtoupper((string) ($invoice->getStatus() ?? 'PENDING'));
 
         return [
             'status' => $this->mapStatus($xenditStatus),

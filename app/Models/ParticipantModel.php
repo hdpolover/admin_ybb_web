@@ -254,37 +254,47 @@ class ParticipantModel extends Model
         // Execute query
         $result = $builder->get()->getResultArray();
 
+        if (empty($result)) {
+            return ['data' => [], 'total' => $total];
+        }
+
+        // Batch-load related data to avoid N+1 queries
+        $participantIds = array_column($result, 'id');
+        $userIds        = array_unique(array_column($result, 'user_id'));
+
+        // One query for all users
+        $userModel = new UserModel();
+        $usersRaw  = $userModel->whereIn('id', $userIds)->findAll();
+        $usersById = [];
+        foreach ($usersRaw as $u) {
+            $usersById[is_object($u) ? $u->id : $u['id']] = $u;
+        }
+
+        // One query for all essays
+        $participantEssayModel = new ParticipantEssayModel();
+        $essaysRaw  = $participantEssayModel->whereIn('participant_id', $participantIds)->findAll();
+        $essaysByParticipantId = [];
+        foreach ($essaysRaw as $e) {
+            $pid = is_object($e) ? $e->participant_id : $e['participant_id'];
+            $essaysByParticipantId[$pid][] = $e;
+        }
+
+        // One query for all payments
+        $paymentModel = new PaymentModel();
+        $paymentsRaw  = $paymentModel->whereIn('participant_id', $participantIds)->findAll();
+        $paymentsByParticipantId = [];
+        foreach ($paymentsRaw as $p) {
+            $pid = is_object($p) ? $p->participant_id : $p['participant_id'];
+            $paymentsByParticipantId[$pid][] = $p;
+        }
+
+        // Map everything together — zero additional queries
         $participants = [];
-
-        // Map to entities
         foreach ($result as $row) {
-            $tempParticipant = $row;
-
-            $userId = $row['user_id'];
-
-            // set user
-            $userModel =  new UserModel();
-
-            $user = $userModel->find($userId);
-
-            $tempParticipant['user'] = $user;
-
-            // set essay
-            $participantEssayModel = new ParticipantEssayModel();
-
-            $participantEssay = $participantEssayModel->getParticipantEssayByParticipantId($row['id']);
-
-            $tempParticipant['essays'] = $participantEssay;
-
-            // set payments - Always fetch fresh payment data for participants
-            $paymentModel = new PaymentModel();
-
-            // Use the correct method name to get participant payments
-            $payments = $paymentModel->getPaymentsByParticipantId($row['id']);
-
-            $tempParticipant['payments'] = $payments;
-
-            $participants[] = $tempParticipant;
+            $row['user']     = $usersById[$row['user_id']] ?? null;
+            $row['essays']   = $essaysByParticipantId[$row['id']] ?? [];
+            $row['payments'] = $paymentsByParticipantId[$row['id']] ?? [];
+            $participants[]  = $row;
         }
 
         return [

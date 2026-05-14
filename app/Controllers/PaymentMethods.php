@@ -29,8 +29,8 @@ class PaymentMethods extends AdminBaseController
         // Get current program ID from session
         $programId = session('current_program');
 
-        // Get all payment methods for the current program
-        $paymentMethods = $this->paymentMethodModel->getActiveByProgramId($programId);
+        // Get all payment methods for the current program (active and inactive, excluding deleted)
+        $paymentMethods = $this->paymentMethodModel->getByProgramId($programId);
 
 
         $program = $this->programModel->find($programId);
@@ -118,7 +118,7 @@ class PaymentMethods extends AdminBaseController
             'description'      => $this->request->getPost('description'),
             'type'             => $type,
             'gateway_provider' => $gatewayProvider,
-            'is_active'        => $this->request->getPost('is_active') ?: 1,
+            'is_active'        => $this->request->getPost('is_active') !== null ? (int)$this->request->getPost('is_active') : 1,
             'is_deleted'       => 0
         ];
 
@@ -204,8 +204,12 @@ class PaymentMethods extends AdminBaseController
         ];
 
         if (!$this->validate($rules)) {
+            $errors = implode(', ', $this->validator->getErrors());
+            if ($this->request->isAJAX()) {
+                return $this->response->setStatusCode(422)->setJSON(['success' => false, 'message' => 'Validation failed: ' . $errors]);
+            }
             return redirect()->to('/master-data/payment-methods')
-                ->with('error', 'Failed to update payment method: ' . implode(', ', $this->validator->getErrors()));
+                ->with('error', 'Failed to update payment method: ' . $errors);
         }
 
         // Prepare data
@@ -222,7 +226,7 @@ class PaymentMethods extends AdminBaseController
             'program_id'       => $programId,
             'type'             => $type,
             'gateway_provider' => $gatewayProvider,
-            'is_active'        => $this->request->getPost('is_active') ?: 1,
+            'is_active'        => $this->request->getPost('is_active') !== null ? (int)$this->request->getPost('is_active') : 1,
         ];
 
         // Handle image upload if available
@@ -260,14 +264,28 @@ class PaymentMethods extends AdminBaseController
 
         // Update the payment method
         if ($this->paymentMethodModel->update($id, $data)) {
-            // Invalidate program cache after successful payment method update
+            // Explicitly clear all payment-method-related cache keys
+            $cache = \Config\Services::cache();
+            $cache->delete("payment_method_{$id}");
+            $cache->delete("payment_methods_all");
+            $cache->delete("payment_methods_program_{$paymentMethod->program_id}");
+
+            // Broad Redis pattern invalidation via Cacheable trait
             $this->invalidateProgramCache($paymentMethod->program_id);
-            
+
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON(['success' => true, 'message' => 'Payment method updated successfully']);
+            }
             return redirect()->to('/master-data/payment-methods')
                 ->with('success', 'Payment method updated successfully');
         } else {
+            $modelErrors = $this->paymentMethodModel->errors();
+            $errorMsg = $modelErrors ? implode(', ', $modelErrors) : 'Failed to update payment method';
+            if ($this->request->isAJAX()) {
+                return $this->response->setStatusCode(422)->setJSON(['success' => false, 'message' => $errorMsg]);
+            }
             return redirect()->to('/master-data/payment-methods')
-                ->with('error', 'Failed to update payment method');
+                ->with('error', $errorMsg);
         }
     }
 

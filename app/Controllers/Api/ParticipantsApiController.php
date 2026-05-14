@@ -586,7 +586,7 @@ class ParticipantsApiController extends ApiBaseController
             $participantData = [
                 'user_id' => $userId,
                 'program_id' => $data['program_id'],
-                'full_name' => isset($data['full_name']) ? $data['full_name'] : $user->full_name,
+                'full_name' => !empty($data['full_name']) ? $data['full_name'] : ($user->full_name ?? $user->name ?? ''),
             ];
 
             // Add any other provided fields from the request
