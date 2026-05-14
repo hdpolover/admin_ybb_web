@@ -59,7 +59,7 @@ class PaymentMethodsApiController extends ApiBaseController
             return $this->respondValidationErrors('Program ID is required');
         }
 
-        $paymentMethods = $this->model->getByProgramId($programId);
+        $paymentMethods = $this->model->getActiveByProgramId($programId);
 
         if (empty($paymentMethods)) {
             return $this->respondNotFound('No payment methods found for this program');

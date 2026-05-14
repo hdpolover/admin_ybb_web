@@ -255,8 +255,10 @@ class AmbassadorsApiController extends ApiBaseController
             }
             
             // The url_encrypt function already makes the string URL-safe,
-            // but we'll use urlencode as an extra precaution when adding to the URL
-            $referralLink = $webUrl . '/sign-up?q=' . urlencode($encryptedQuery);
+            // but we'll use urlencode as an extra precaution when adding to the URL.
+            // Include ?program= slug so the API doesn't fall back to the newest active program.
+            $programSlug = urlencode(strtolower(str_replace(' ', '-', $program->name)));
+            $referralLink = $webUrl . '/sign-up?q=' . urlencode($encryptedQuery) . '&program=' . $programSlug;
 
             $data = [
                 'ref_code' => $refCode,
@@ -392,9 +394,10 @@ class AmbassadorsApiController extends ApiBaseController
 
                     // Encrypt the ref code
                     $encryptedQuery = url_encrypt($refCode);
-                    
+
                     if ($encryptedQuery !== false) {
-                        $shareableLink = $webUrl . '/sign-up?q=' . urlencode($encryptedQuery);
+                        $programSlug = urlencode(strtolower(str_replace(' ', '-', $program->name)));
+                        $shareableLink = $webUrl . '/sign-up?q=' . urlencode($encryptedQuery) . '&program=' . $programSlug;
                     }
                 }
             } catch (\Exception $linkError) {
@@ -509,9 +512,10 @@ class AmbassadorsApiController extends ApiBaseController
                     }
 
                     $encryptedQuery = url_encrypt($refCode);
-                    
+
                     if ($encryptedQuery !== false) {
-                        $shareableLink = $webUrl . '/sign-up?q=' . urlencode($encryptedQuery);
+                        $programSlug = urlencode(strtolower(str_replace(' ', '-', $program->name)));
+                        $shareableLink = $webUrl . '/sign-up?q=' . urlencode($encryptedQuery) . '&program=' . $programSlug;
                     }
                 }
             } catch (\Exception $linkError) {
@@ -1780,9 +1784,10 @@ class AmbassadorsApiController extends ApiBaseController
 
                     // Encrypt the ref code
                     $encryptedQuery = url_encrypt($refCode);
-                    
+
                     if ($encryptedQuery !== false) {
-                        $shareableLink = $webUrl . '/sign-up?q=' . urlencode($encryptedQuery);
+                        $programSlug = urlencode(strtolower(str_replace(' ', '-', $program->name)));
+                        $shareableLink = $webUrl . '/sign-up?q=' . urlencode($encryptedQuery) . '&program=' . $programSlug;
                     } else {
                         $linkGenerationError = 'Failed to encrypt referral code';
                     }

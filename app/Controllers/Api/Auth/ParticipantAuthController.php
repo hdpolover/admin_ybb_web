@@ -288,9 +288,18 @@ class ParticipantAuthController extends BaseAuthController
                     return $this->respondValidationErrors('Invalid ambassador referral code.');
                 }
                 
-                // Check if ambassador belongs to the same program
+                // Check if ambassador belongs to the same program.
+                // If not, use the ambassador's own program — this handles the case where the
+                // referral link was generated for an older program (no ?program= in the URL),
+                // so the API defaulted to the newest active program instead of the correct one.
                 if ($ambassador->program_id != $programId) {
-                    return $this->respondValidationErrors('Ambassador referral is not valid for this program.');
+                    $ambassadorProgram = $programModel->find($ambassador->program_id);
+                    if (!$ambassadorProgram || !$ambassadorProgram->is_active) {
+                        return $this->respondValidationErrors('Ambassador referral is not valid for this program.');
+                    }
+                    log_message('info', 'Registration program overridden from ID ' . $programId . ' to ambassador\'s program ID ' . $ambassador->program_id . ' based on referral link.');
+                    $programId = $ambassador->program_id;
+                    $program = $ambassadorProgram;
                 }
                 
                 // Set ambassador ID for later use
