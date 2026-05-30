@@ -43,43 +43,22 @@ $routes->group('', ['namespace' => 'App\Controllers'], function ($routes) {
     // Auth routes
     $routes->group('auth', function ($routes) {
         $routes->get('signOut', 'Auth::signOut');
-        
-        // Google OAuth routes
-        $routes->get('google/login', 'GoogleAuthController::login');
-        $routes->get('google/callback', 'GoogleAuthController::callback');
-        $routes->post('google/revoke', 'GoogleAuthController::revoke');
-        $routes->post('google/test-email', 'GoogleAuthController::testEmail');
     });
-    
-    // Email test routes
-    $routes->group('email-test', function ($routes) {
-        $routes->get('/', 'EmailTestController::index');
-        $routes->post('check-oauth', 'EmailTestController::checkOAuth');
-        $routes->post('test-email', 'EmailTestController::testEmail');
-    });
-    
-    // Configuration test routes
-    $routes->group('config-test', function ($routes) {
-        $routes->get('email', 'ConfigTestController::email');
-        $routes->post('email/send', 'ConfigTestController::testEmail');
-    });
-    
+
     // Debug routes (admin only - requires program selection)
     $routes->get('debug-program-payments', 'DebugProgramPayments::index', ['filter' => 'auth,program_selection']);
     $routes->get('debug-program-payments/create-test', 'DebugProgramPayments::createTestInactive', ['filter' => 'auth,program_selection']);
-    
-    // Email testing routes
-    $routes->group('test-email', function ($routes) {
+
+    // Email testing routes (admin only — diagnostic tooling for Resend pipeline)
+    $routes->group('test-email', ['filter' => 'auth'], function ($routes) {
         $routes->get('forgot-password', 'EmailTestingController::testForgotPassword');
         $routes->post('forgot-password', 'EmailTestingController::testForgotPassword');
-        $routes->get('oauth-direct', 'EmailTestingController::testDirectOAuth');
-        $routes->post('oauth-direct', 'EmailTestingController::testDirectOAuth');
         $routes->get('verification', 'EmailTestingController::testVerificationEmail');
         $routes->post('verification', 'EmailTestingController::testVerificationEmail');
     });
-    
-    // Debug authentication routes (only for development)
-    $routes->group('debug', function ($routes) {
+
+    // Debug authentication routes (admin only — diagnostic tooling)
+    $routes->group('debug', ['filter' => 'auth'], function ($routes) {
         $routes->get('auth', 'DebugAuth::index');
         $routes->post('auth/sign-in', 'DebugAuth::signIn');
         $routes->get('menu', 'DebugMenu::index');

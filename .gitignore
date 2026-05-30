@@ -8,13 +8,27 @@ Thumbs.db
 .env
 
 # Ignore log and cache files
+*.log
 writable/logs/*
+!writable/logs/index.html
 writable/cache/*
+!writable/cache/index.html
 writable/debugbar/*
+!writable/debugbar/.gitkeep
 writable/session/*
+
+# Ignore runtime uploads and generated caches (keep placeholders)
+writable/uploads/*
+!writable/uploads/index.html
+public/writable/cache/*
+!public/writable/cache/index.html
 
 # Ignore vendor and dependencies
 /vendor/
 
 # Ignore Composer files except composer.json
 composer.lock
+
+# Ignore test / build artifacts
+.phpunit.result.cache
+/build/

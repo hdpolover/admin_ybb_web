@@ -61,6 +61,13 @@ class PasswordRecoveryController extends BaseAuthController
             $web_url = normalize_web_url($web_url);
         }
 
+        // Generic response returned for every outcome below to prevent user enumeration.
+        $genericResponse = fn () => $this->respondSuccess(
+            null,
+            self::HTTP_OK,
+            'If an account exists for that email, password reset instructions have been sent.'
+        );
+
         // Try to find user by (email + web_url) when web_url is available, otherwise fall back to email-only
         if (!empty($web_url)) {
             $user = $userModel->getUserByEmailAndWebUrl($email, $web_url);
@@ -69,7 +76,8 @@ class PasswordRecoveryController extends BaseAuthController
         }
 
         if (!$user) {
-            return $this->respondNotFound('User not found.');
+            log_message('info', 'PasswordRecovery: forgot-password requested for unknown email {email}', ['email' => $email]);
+            return $genericResponse();
         }
 
         try {
@@ -93,14 +101,15 @@ class PasswordRecoveryController extends BaseAuthController
             $emailSent = $emailService->sendPasswordResetEmail($email, $token, $web_url);
 
             if (!$emailSent) {
-                return $this->respondError('Failed to send password reset email. Please try again later.');
+                log_message('error', 'PasswordRecovery: email send returned false for {email}', ['email' => $email]);
+                return $genericResponse();
             }
 
-            log_message('info', "Password reset link sent to {$email} with token: {$token}");
-
-            return $this->respondSuccess(null, self::HTTP_OK, 'Password reset instructions sent to your email.');
+            log_message('info', 'PasswordRecovery: reset link sent to {email}', ['email' => $email]);
+            return $genericResponse();
         } catch (\Exception $e) {
-            return $this->respondError('Failed to initiate password reset: ' . $e->getMessage());
+            log_message('error', 'PasswordRecovery: failed for {email}: {error}', ['email' => $email, 'error' => $e->getMessage()]);
+            return $genericResponse();
         }
     }
 
@@ -131,7 +140,8 @@ class PasswordRecoveryController extends BaseAuthController
 
             return $this->respondSuccess($resetData, self::HTTP_OK, 'Token valid. Please reset your password.');
         } catch (\Exception $e) {
-            return $this->respondError('Failed to verify token: ' . $e->getMessage());
+            log_message('error', 'PasswordRecovery: verifyToken failed: {error}', ['error' => $e->getMessage()]);
+            return $this->respondError('Failed to verify token. Please try again later.');
         }
     }
 
@@ -171,7 +181,8 @@ class PasswordRecoveryController extends BaseAuthController
 
             return $this->respondSuccess(null, self::HTTP_OK, 'Password reset successfully. You can now sign in with your new password.');
         } catch (\Exception $e) {
-            return $this->respondError('Failed to reset password: ' . $e->getMessage());
+            log_message('error', 'PasswordRecovery: resetPassword failed: {error}', ['error' => $e->getMessage()]);
+            return $this->respondError('Failed to reset password. Please try again later.');
         }
     }
 }

@@ -5,18 +5,17 @@
     "homepage": "https://codeigniter.com",
     "license": "MIT",
     "require": {
-        "php": "^7.4 || ^8.0",
+        "php": "^8.1",
         "ext-intl": "*",
         "ext-json": "*",
         "ext-mbstring": "*",
         "dompdf/dompdf": "^3.1",
         "firebase/php-jwt": "^6.11",
-        "google/apiclient": "^2.18",
         "laminas/laminas-escaper": "^2.9",
-        "league/oauth2-google": "^4.0",
         "midtrans/midtrans-php": "^2.6",
         "phpoffice/phpspreadsheet": "^4.4",
         "psr/log": "^1.1",
+        "resend/resend-php": "^1.1",
         "xendit/xendit-php": "^7.0",
         "zircote/swagger-php": "^5.0"
     },
@@ -53,7 +52,21 @@
     "config": {
         "optimize-autoloader": true,
         "preferred-install": "dist",
-        "sort-packages": true
+        "sort-packages": true,
+        "platform": {
+            "php": "8.1.34"
+        },
+        "audit": {
+            "ignore": {
+                "PKSA-y2cr-5h3j-g3ys": "firebase/php-jwt 6.11.x advisory — address in dedicated PR (requires bumping to 7.x)",
+                "PKSA-gz3f-3cz3-3wsw": "phpoffice/phpspreadsheet 4.x advisory — address in dedicated PR",
+                "PKSA-x13r-n4wc-4gcr": "phpoffice/phpspreadsheet 4.x advisory — address in dedicated PR",
+                "PKSA-8cfg-tzhf-fr83": "phpoffice/phpspreadsheet 4.x advisory — address in dedicated PR",
+                "PKSA-hznc-gbby-6w16": "phpoffice/phpspreadsheet 4.x advisory — address in dedicated PR",
+                "PKSA-jtdk-dcr5-f11n": "phpoffice/phpspreadsheet 4.x advisory — address in dedicated PR",
+                "PKSA-64jn-3d9t-gncx": "phpoffice/phpspreadsheet 4.x advisory — address in dedicated PR"
+            }
+        }
     },
     "autoload": {
         "psr-4": {
