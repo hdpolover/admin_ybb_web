@@ -115,9 +115,10 @@ class Scorings extends AdminBaseController
 
         // Get data from database
         $builder = $this->participantModel->select('
-                participants.*, 
+                participants.*,
                 users.email,
                 participants.phone_number,
+                participants.category,
                 participant_statuses.form_status,
                 participant_statuses.updated_at as submitted_at
             ')
@@ -137,8 +138,8 @@ class Scorings extends AdminBaseController
                 ->orLike('participants.nationality', $search)
                 ->groupEnd();
         }        // Apply filters
-        $category = 'fully_funded';
-        if ($category !== '' && $category !== null) {
+        $category = $this->request->getGet('category') ?: 'fully_funded';
+        if ($category !== 'all') {
             $builder->where('participants.category', $category);
         }
 
@@ -194,6 +195,7 @@ class Scorings extends AdminBaseController
                     'email' => $row->email,
                     'nationality' => $row->nationality ?? 'N/A'
                 ],
+                'category' => $this->getCategoryBadge($row->category ?? ''),
                 'submission_status' => $submissionStatus,
                 'score_status' => $displayScore,
                 'submitted_on' => $row->submitted_at ? date('M d, Y H:i', strtotime($row->submitted_at)) : 'N/A',
@@ -245,9 +247,10 @@ class Scorings extends AdminBaseController
 
         // Get data from database
         $builder = $this->participantModel->select('
-                participants.*, 
+                participants.*,
                 users.email,
                 participants.phone_number,
+                participants.category,
                 participant_statuses.form_status
             ')
             ->join('users', 'users.id = participants.user_id')
@@ -265,10 +268,10 @@ class Scorings extends AdminBaseController
                 ->orLike('participants.account_id', $search)
                 ->orLike('participants.nationality', $search)
                 ->groupEnd();
-        }       
+        }
         // Apply filters
-        $category = 'fully_funded';
-        if ($category !== '' && $category !== null) {
+        $category = $this->request->getGet('category') ?: 'fully_funded';
+        if ($category !== 'all') {
             $builder->where('participants.category', $category);
         }
         // Apply filters
@@ -308,6 +311,7 @@ class Scorings extends AdminBaseController
                     'email' => $row->email,
                     'nationality' => $row->nationality ?? 'N/A'
                 ],
+                'category' => $this->getCategoryBadge($row->category ?? ''),
                 'submission_status' => $submissionStatus,
                 'registered_on' => date('M d, Y', strtotime($row->created_at)),
                 'actions' => $scoreStatus

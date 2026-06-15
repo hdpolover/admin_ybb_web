@@ -149,7 +149,7 @@
                                 <div class="card-body">
                                     <!-- Filter Controls -->
                                     <div class="row mb-4">
-                                        <div class="col-md-12 mb-3">
+                                        <div class="col-md-9 mb-3">
                                             <div class="input-group search-box">
                                                 <span class="input-group-text bg-light border-end-0">
                                                     <i class="ri-search-line text-muted"></i>
@@ -165,28 +165,14 @@
                                                 <small>Press Enter or click Search to filter results</small>
                                             </div>
                                         </div>
-                                        <!-- <div class="col-md-3 mb-2">
+                                        <div class="col-md-3 mb-3">
                                             <label class="form-label">Category</label>
                                             <select id="filter-category" class="form-select">
-                                                <option value="">All Categories</option>
-                                                <option value="fully_funded">Fully Funded</option>
+                                                <option value="fully_funded" selected>Fully Funded</option>
                                                 <option value="self_funded">Self Funded</option>
+                                                <option value="all">All Categories</option>
                                             </select>
                                         </div>
-                                        <div class="col-md-3 mb-2">
-                                            <label class="form-label">Form Status</label>
-                                            <select id="filter-form-status" class="form-select">
-                                                <option value="">All Statuses</option>
-                                                <option value="0">Not Started</option>
-                                                <option value="1">On Progress</option>
-                                                <option value="2">Submitted</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-3 d-flex align-items-end mb-2">
-                                            <button id="apply-filters" class="btn btn-primary me-2">Apply
-                                                Filters</button>
-                                            <button id="reset-filters" class="btn btn-light">Reset</button>
-                                        </div> -->
                                     </div>
                                     <table id="participants-datatable"
                                         class="table table-bordered dt-responsive nowrap table-striped align-middle"
@@ -195,6 +181,7 @@
                                             <tr>
                                                 <th>#</th>
                                                 <th>Participant Details</th>
+                                                <th>Category</th>
                                                 <th>Submission Status</th>
                                                 <th>Registered On</th>
                                                 <th>Score Status</th>
@@ -306,6 +293,10 @@
                     }
                 },
                 {
+                    data: 'category',
+                    width: "10%"
+                },
+                {
                     data: 'submission_status',
                     width: "20%"
                 },
@@ -353,19 +344,8 @@
             performSearch();
         });
 
-        // Handle filter buttons
-        document.getElementById('apply-filters').addEventListener('click', function() {
-            participantsTable.ajax.reload();
-        });
-
-        document.getElementById('reset-filters').addEventListener('click', function() {
-            // Reset all filter select values
-            document.getElementById('filter-category').value = '';
-            document.getElementById('filter-form-status').value = '';
-            document.getElementById('search-box').value = '';
-
-            // Reload the table with reset filters
-            participantsTable.search('').draw(); // Clear the search
+        // Reload table when category filter changes
+        $('#filter-category').on('change', function() {
             participantsTable.ajax.reload();
         });
 

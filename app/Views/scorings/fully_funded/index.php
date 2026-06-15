@@ -171,13 +171,21 @@
                                         </div>
                                         <div class="col-md-3 mb-3">
                                             <div class="input-group">
-                                                <input type="text" id="submission-date-range" class="form-control" 
+                                                <input type="text" id="submission-date-range" class="form-control"
                                                     placeholder="Select Submission Date" readonly style="background-color: #fff; cursor: pointer;">
                                                 <span class="input-group-text"><i class="ri-calendar-event-line"></i></span>
                                             </div>
                                             <div class="form-text text-muted mt-1">
                                                 <small>Select range to freeze list order</small>
                                             </div>
+                                        </div>
+                                        <div class="col-md-3 mb-3">
+                                            <label class="form-label">Category</label>
+                                            <select id="filter-category" class="form-select">
+                                                <option value="fully_funded" selected>Fully Funded</option>
+                                                <option value="self_funded">Self Funded</option>
+                                                <option value="all">All Categories</option>
+                                            </select>
                                         </div>
                                     </div>
                                     <!-- commented out old filters -->
@@ -188,6 +196,7 @@
                                             <tr>
                                                 <th>#</th>
                                                 <th>Participant Details</th>
+                                                <th>Category</th>
                                                 <th>Submission Status</th>
                                                 <th>Score Status</th>
                                                 <th>Submitted On</th>
@@ -301,6 +310,10 @@
                     }
                 },
                 {
+                    data: 'category',
+                    width: "10%"
+                },
+                {
                     data: 'submission_status',
                     width: "15%"
                 },
@@ -315,7 +328,7 @@
                 },
                 {
                     data: 'actions',
-                    width: "15%",
+                    width: "10%",
                     orderable: false,
                     searchable: false
                 }
@@ -415,6 +428,11 @@
 
         $('#submission-date-range').on('cancel.daterangepicker', function(ev, picker) {
             $(this).val('');
+            participantsTable.ajax.reload();
+        });
+
+        // Reload table when category filter changes
+        $('#filter-category').on('change', function() {
             participantsTable.ajax.reload();
         });
 
