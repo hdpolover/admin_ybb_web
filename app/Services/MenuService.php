@@ -17,6 +17,48 @@ class MenuService
                     'active_patterns' => ['/dashboard']
                 ],
                 [
+                    'label' => 'Analytics',
+                    'icon' => 'fas fa-chart-pie',
+                    'children' => [
+                        [
+                            'label' => 'Knowledge Source',
+                            'url' => '/dashboard/knowledge-source',
+                            'icon' => 'fas fa-chart-pie',
+                            'active_patterns' => ['/dashboard/knowledge-source']
+                        ],
+                        [
+                            'label' => 'Nationality',
+                            'url' => '/dashboard/nationality-analytics',
+                            'icon' => 'fas fa-globe',
+                            'active_patterns' => ['/dashboard/nationality-analytics']
+                        ],
+                        [
+                            'label' => 'Gender',
+                            'url' => '/dashboard/gender-analytics',
+                            'icon' => 'fas fa-venus-mars',
+                            'active_patterns' => ['/dashboard/gender-analytics']
+                        ],
+                        [
+                            'label' => 'Age Distribution',
+                            'url' => '/dashboard/age-analytics',
+                            'icon' => 'fas fa-birthday-cake',
+                            'active_patterns' => ['/dashboard/age-analytics']
+                        ],
+                        [
+                            'label' => 'Registrations',
+                            'url' => '/dashboard/registrations-analytics',
+                            'icon' => 'fas fa-user-plus',
+                            'active_patterns' => ['/dashboard/registrations-analytics']
+                        ],
+                        [
+                            'label' => 'Ambassadors',
+                            'url' => '/dashboard/ambassadors-analytics',
+                            'icon' => 'fas fa-bullhorn',
+                            'active_patterns' => ['/dashboard/ambassadors-analytics']
+                        ]
+                    ]
+                ],
+                [
                     'label' => 'Program Management',
                     'icon' => 'fas fa-cogs',
                     'children' => [
@@ -181,6 +223,48 @@ class MenuService
                     'active_patterns' => ['/dashboard']
                 ],
                 [
+                    'label' => 'Analytics',
+                    'icon' => 'fas fa-chart-pie',
+                    'children' => [
+                        [
+                            'label' => 'Knowledge Source',
+                            'url' => '/dashboard/knowledge-source',
+                            'icon' => 'fas fa-chart-pie',
+                            'active_patterns' => ['/dashboard/knowledge-source']
+                        ],
+                        [
+                            'label' => 'Nationality',
+                            'url' => '/dashboard/nationality-analytics',
+                            'icon' => 'fas fa-globe',
+                            'active_patterns' => ['/dashboard/nationality-analytics']
+                        ],
+                        [
+                            'label' => 'Gender',
+                            'url' => '/dashboard/gender-analytics',
+                            'icon' => 'fas fa-venus-mars',
+                            'active_patterns' => ['/dashboard/gender-analytics']
+                        ],
+                        [
+                            'label' => 'Age Distribution',
+                            'url' => '/dashboard/age-analytics',
+                            'icon' => 'fas fa-birthday-cake',
+                            'active_patterns' => ['/dashboard/age-analytics']
+                        ],
+                        [
+                            'label' => 'Registrations',
+                            'url' => '/dashboard/registrations-analytics',
+                            'icon' => 'fas fa-user-plus',
+                            'active_patterns' => ['/dashboard/registrations-analytics']
+                        ],
+                        [
+                            'label' => 'Ambassadors',
+                            'url' => '/dashboard/ambassadors-analytics',
+                            'icon' => 'fas fa-bullhorn',
+                            'active_patterns' => ['/dashboard/ambassadors-analytics']
+                        ]
+                    ]
+                ],
+                [
                     'label' => 'Participants',
                     'url' => '/participants',
                     'icon' => 'fas fa-users',
@@ -243,6 +327,48 @@ class MenuService
                     'active_patterns' => ['/dashboard']
                 ],
                 [
+                    'label' => 'Analytics',
+                    'icon' => 'fas fa-chart-pie',
+                    'children' => [
+                        [
+                            'label' => 'Knowledge Source',
+                            'url' => '/dashboard/knowledge-source',
+                            'icon' => 'fas fa-chart-pie',
+                            'active_patterns' => ['/dashboard/knowledge-source']
+                        ],
+                        [
+                            'label' => 'Nationality',
+                            'url' => '/dashboard/nationality-analytics',
+                            'icon' => 'fas fa-globe',
+                            'active_patterns' => ['/dashboard/nationality-analytics']
+                        ],
+                        [
+                            'label' => 'Gender',
+                            'url' => '/dashboard/gender-analytics',
+                            'icon' => 'fas fa-venus-mars',
+                            'active_patterns' => ['/dashboard/gender-analytics']
+                        ],
+                        [
+                            'label' => 'Age Distribution',
+                            'url' => '/dashboard/age-analytics',
+                            'icon' => 'fas fa-birthday-cake',
+                            'active_patterns' => ['/dashboard/age-analytics']
+                        ],
+                        [
+                            'label' => 'Registrations',
+                            'url' => '/dashboard/registrations-analytics',
+                            'icon' => 'fas fa-user-plus',
+                            'active_patterns' => ['/dashboard/registrations-analytics']
+                        ],
+                        [
+                            'label' => 'Ambassadors',
+                            'url' => '/dashboard/ambassadors-analytics',
+                            'icon' => 'fas fa-bullhorn',
+                            'active_patterns' => ['/dashboard/ambassadors-analytics']
+                        ]
+                    ]
+                ],
+                [
                     'label' => 'Announcements',
                     'url' => '/announcements',
                     'icon' => 'fas fa-bullhorn',
@@ -291,6 +417,48 @@ class MenuService
                     'url' => '/dashboard',
                     'icon' => 'fas fa-tachometer-alt',
                     'active_patterns' => ['/dashboard']
+                ],
+                [
+                    'label' => 'Analytics',
+                    'icon' => 'fas fa-chart-pie',
+                    'children' => [
+                        [
+                            'label' => 'Knowledge Source',
+                            'url' => '/dashboard/knowledge-source',
+                            'icon' => 'fas fa-chart-pie',
+                            'active_patterns' => ['/dashboard/knowledge-source']
+                        ],
+                        [
+                            'label' => 'Nationality',
+                            'url' => '/dashboard/nationality-analytics',
+                            'icon' => 'fas fa-globe',
+                            'active_patterns' => ['/dashboard/nationality-analytics']
+                        ],
+                        [
+                            'label' => 'Gender',
+                            'url' => '/dashboard/gender-analytics',
+                            'icon' => 'fas fa-venus-mars',
+                            'active_patterns' => ['/dashboard/gender-analytics']
+                        ],
+                        [
+                            'label' => 'Age Distribution',
+                            'url' => '/dashboard/age-analytics',
+                            'icon' => 'fas fa-birthday-cake',
+                            'active_patterns' => ['/dashboard/age-analytics']
+                        ],
+                        [
+                            'label' => 'Registrations',
+                            'url' => '/dashboard/registrations-analytics',
+                            'icon' => 'fas fa-user-plus',
+                            'active_patterns' => ['/dashboard/registrations-analytics']
+                        ],
+                        [
+                            'label' => 'Ambassadors',
+                            'url' => '/dashboard/ambassadors-analytics',
+                            'icon' => 'fas fa-bullhorn',
+                            'active_patterns' => ['/dashboard/ambassadors-analytics']
+                        ]
+                    ]
                 ],
                 [
                     'label' => 'Participants',

@@ -215,12 +215,15 @@
                     <!-- Registration Chart -->
                     <div class="row">
                         <div class="col-xl-8">
-                            <div class="card">
+                            <div class="card card-height-100">
                                 <div class="card-header border-0 align-items-center d-flex">
                                     <h4 class="card-title mb-0 flex-grow-1">
                                         <span id="registration-title">Daily Registration Trend</span>
                                     </h4>
-                                    <div>
+                                    <div class="flex-shrink-0 d-flex align-items-center gap-1">
+                                        <a href="<?= site_url('dashboard/registrations-analytics') ?>" class="btn btn-soft-primary btn-sm me-1">
+                                            Analytics
+                                        </a>
                                         <button type="button" class="btn btn-soft-secondary btn-sm" data-period="day" data-title="Daily Registration Trend">
                                             Daily
                                         </button>
@@ -250,25 +253,31 @@
                                 <div class="card-header align-items-center d-flex">
                                     <h4 class="card-title mb-0 flex-grow-1">Gender Distribution</h4>
                                     <div class="flex-shrink-0">
+                                        <a href="<?= site_url('dashboard/gender-analytics') ?>" class="btn btn-soft-primary btn-sm me-1">
+                                            Analytics
+                                        </a>
                                         <button type="button" class="btn btn-soft-info btn-sm view-all-btn" data-chart-type="gender">
                                             View All
                                         </button>
                                     </div>
                                 </div>
                                 <div class="card-body">
-                                    <div id="gender-chart" class="apex-charts" style="height: 400px;"></div>
+                                    <div id="gender-chart" class="apex-charts" style="height: 360px;"></div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Age and Nationality -->
+                    <!-- Age, Nationality and Knowledge Sources -->
                     <div class="row">
-                        <div class="col-xl-6">
-                            <div class="card">
+                        <div class="col-xl-4 col-md-6">
+                            <div class="card card-height-100">
                                 <div class="card-header align-items-center d-flex">
                                     <h4 class="card-title mb-0 flex-grow-1">Age Distribution</h4>
                                     <div class="flex-shrink-0">
+                                        <a href="<?= site_url('dashboard/age-analytics') ?>" class="btn btn-soft-primary btn-sm me-1">
+                                            Analytics
+                                        </a>
                                         <button type="button" class="btn btn-soft-info btn-sm view-all-btn" data-chart-type="age">
                                             View All
                                         </button>
@@ -280,11 +289,14 @@
                             </div>
                         </div>
 
-                        <div class="col-xl-6">
-                            <div class="card">
+                        <div class="col-xl-4 col-md-6">
+                            <div class="card card-height-100">
                                 <div class="card-header align-items-center d-flex">
                                     <h4 class="card-title mb-0 flex-grow-1">Top Nationalities</h4>
                                     <div class="flex-shrink-0">
+                                        <a href="<?= site_url('dashboard/nationality-analytics') ?>" class="btn btn-soft-primary btn-sm me-1">
+                                            Analytics
+                                        </a>
                                         <button type="button" class="btn btn-soft-info btn-sm view-all-btn" data-chart-type="nationality">
                                             View All
                                         </button>
@@ -292,6 +304,25 @@
                                 </div>
                                 <div class="card-body">
                                     <div id="nationality-chart" class="apex-charts" style="height: 350px;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-4 col-md-6">
+                            <div class="card card-height-100">
+                                <div class="card-header align-items-center d-flex">
+                                    <h4 class="card-title mb-0 flex-grow-1">Top Knowledge Sources</h4>
+                                    <div class="flex-shrink-0">
+                                        <a href="<?= site_url('dashboard/knowledge-source') ?>" class="btn btn-soft-primary btn-sm me-1">
+                                            Analytics
+                                        </a>
+                                        <button type="button" class="btn btn-soft-info btn-sm view-all-btn" data-chart-type="knowledgeSource">
+                                            View All
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div id="knowledge-source-chart" class="apex-charts" style="height: 350px;"></div>
                                 </div>
                             </div>
                         </div>
@@ -304,6 +335,9 @@
                                 <div class="card-header align-items-center d-flex">
                                     <h4 class="card-title mb-0 flex-grow-1">Top Ambassadors</h4>
                                     <div class="flex-shrink-0">
+                                        <a href="<?= site_url('dashboard/ambassadors-analytics') ?>" class="btn btn-soft-primary btn-sm me-1">
+                                            Analytics
+                                        </a>
                                         <a href="<?= site_url('ambassadors') ?>" class="btn btn-soft-info btn-sm">
                                             View All Ambassadors
                                         </a>
@@ -867,6 +901,45 @@
                 nationalityOptions
             );
             nationalityChart.render();
+
+            // Knowledge Source Chart
+            var knowledgeSourceData = <?= $knowledgeSourceChartData ?>;
+            var knowledgeSourceOptions = {
+                chart: {
+                    height: 350,
+                    type: 'pie',
+                },
+                series: knowledgeSourceData.values,
+                labels: knowledgeSourceData.labels,
+                colors: ['#038edc', '#f7b84b', '#51d28c', '#f34e4e', '#564ab1', '#f1734f', '#45cb85'],
+                legend: {
+                    position: 'bottom'
+                },
+                plotOptions: {
+                    pie: {
+                        donut: {
+                            size: '70%',
+                        }
+                    }
+                },
+                noData: {
+                    text: 'No knowledge source data available',
+                    align: 'center',
+                    verticalAlign: 'middle',
+                    offsetX: 0,
+                    offsetY: 0,
+                    style: {
+                        color: "#6c757d",
+                        fontSize: '16px',
+                        fontFamily: "Poppins"
+                    }
+                }
+            };
+            var knowledgeSourceChart = new ApexCharts(
+                document.querySelector("#knowledge-source-chart"),
+                knowledgeSourceOptions
+            );
+            knowledgeSourceChart.render();
 
             // Period filter buttons        
             document.querySelectorAll('button[data-period]').forEach(function(button) {
@@ -1645,6 +1718,98 @@
                     });
             };
 
+            window.loadKnowledgeSourceData = function() {
+                console.log('Loading knowledge source data...');
+                var loadingElement = document.getElementById('knowledge-source-loading');
+                if (loadingElement) loadingElement.classList.add('active');
+
+                fetch('<?= site_url('dashboard/ajaxKnowledgeSourceStats') ?>?fullData=1')
+                    .then(function(response) {
+                        if (response.ok) {
+                            return response.json();
+                        } else {
+                            throw new Error('Network response was not ok: ' + response.status);
+                        }
+                    })
+                    .then(function(data) {
+                        console.log('Knowledge source data received:', data);
+
+                        if (!data || !data.labels || !data.values) {
+                            throw new Error('Invalid data structure received from server');
+                        }
+
+                        // Calculate total for percentages
+                        var total = data.values.reduce(function(a, b) { return a + b; }, 0);
+
+                        // Clear existing table data
+                        var tableBody = document.querySelector('#knowledge-source-datatable tbody');
+                        if (!tableBody) {
+                            throw new Error('Table body element not found');
+                        }
+
+                        // Create new table content
+                        var html = '';
+                        for (var i = 0; i < data.labels.length; i++) {
+                            var percentage = total > 0 ? ((data.values[i] / total) * 100).toFixed(1) + '%' : '0%';
+                            html += '<tr>' +
+                                '<td>' + data.labels[i] + '</td>' +
+                                '<td>' + data.values[i] + '</td>' +
+                                '<td>' + percentage + '</td>' +
+                                '</tr>';
+                        }
+                        tableBody.innerHTML = html;
+
+                        // Initialize DataTable with a safety check
+                        setTimeout(function() {
+                            try {
+                                if (typeof jQuery === 'undefined') {
+                                    throw new Error('jQuery not available');
+                                }
+                                if (typeof jQuery.fn.DataTable === 'undefined') {
+                                    throw new Error('DataTables plugin not available');
+                                }
+
+                                // Destroy existing table if already initialized
+                                if (jQuery.fn.DataTable.isDataTable('#knowledge-source-datatable')) {
+                                    jQuery('#knowledge-source-datatable').DataTable().destroy();
+                                }
+
+                                window.knowledgeSourceTable = jQuery('#knowledge-source-datatable').DataTable({
+                                    dom: 'Blfrtip',
+                                    buttons: [
+                                        { extend: 'copy', className: 'btn btn-sm btn-light' },
+                                        { extend: 'csv', className: 'btn btn-sm btn-light' },
+                                        { extend: 'excel', className: 'btn btn-sm btn-light' },
+                                        { extend: 'pdf', className: 'btn btn-sm btn-light' },
+                                        { extend: 'print', className: 'btn btn-sm btn-light' }
+                                    ],
+                                    lengthChange: true,
+                                    lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'All']],
+                                    pageLength: 10,
+                                    searching: true,
+                                    ordering: true,
+                                    language: {
+                                        search: 'Search sources:',
+                                        lengthMenu: 'Show _MENU_ sources'
+                                    }
+                                });
+
+                                console.log('Knowledge Source DataTable initialized successfully');
+                            } catch (err) {
+                                console.error('Failed to initialize knowledge source DataTable:', err);
+                                console.log('Using fallback table display without DataTables');
+                            } finally {
+                                if (loadingElement) loadingElement.classList.remove('active');
+                            }
+                        }, 300);
+                    })
+                    .catch(function(error) {
+                        console.error('Error loading knowledge source data:', error);
+                        alert('Failed to load knowledge source data: ' + error.message);
+                        if (loadingElement) loadingElement.classList.remove('active');
+                    });
+            };
+
             // Initialize modal triggers using vanilla JS
             document.querySelectorAll('.view-all-btn').forEach(function(button) {
                 button.addEventListener('click', function() {
@@ -1716,6 +1881,25 @@
                                 console.log('Nationality modal shown, loading data');
                                 window.loadNationalityData();
                                 // Remove event listener to prevent multiple calls
+                                modalElement.removeEventListener('shown.bs.modal', onceShown);
+                            }, {
+                                once: true
+                            });
+
+                        } else if (chartType === 'knowledgeSource') {
+                            console.log('Opening knowledge source modal');
+                            var modalElement = document.getElementById('knowledgeSourceModal');
+
+                            if (!modalElement) {
+                                throw new Error('Knowledge source modal element not found');
+                            }
+
+                            var modal = new bootstrap.Modal(modalElement);
+                            modal.show();
+
+                            modalElement.addEventListener('shown.bs.modal', function onceShown() {
+                                console.log('Knowledge source modal shown, loading data');
+                                window.loadKnowledgeSourceData();
                                 modalElement.removeEventListener('shown.bs.modal', onceShown);
                             }, {
                                 once: true
@@ -1853,6 +2037,43 @@
         </div>
     </div>
 
+    <!-- Knowledge Source Distribution Modal -->
+    <div class="modal fade" id="knowledgeSourceModal" tabindex="-1" aria-labelledby="knowledgeSourceModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="knowledgeSourceModalLabel">All Knowledge Source Distribution</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body position-relative">
+                    <!-- Loading spinner for this modal -->
+                    <div id="knowledge-source-loading" class="chart-loading-overlay">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table id="knowledge-source-datatable" class="table table-bordered table-striped dt-responsive nowrap w-100">
+                            <thead>
+                                <tr>
+                                    <th>Source</th>
+                                    <th>Count</th>
+                                    <th>Percentage</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Data will be loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Final script fix for modals -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -1912,7 +2133,7 @@
                 });
                 
                 // Do the same for other modals to ensure consistency
-                $('#genderModal, #ageModal').on('hidden.bs.modal', function () {
+                $('#genderModal, #ageModal, #knowledgeSourceModal').on('hidden.bs.modal', function () {
                     $('.modal-backdrop').remove();
                     $('body').removeClass('modal-open');
                     $('body').css('padding-right', '');

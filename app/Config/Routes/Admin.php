@@ -8,6 +8,13 @@ $routes->group('', ['namespace' => 'App\Controllers', 'filter' => 'auth'], funct
     $routes->get('dashboard/ajaxGenderStats', 'Dashboard::ajaxGenderStats');
     $routes->get('dashboard/ajaxAgeStats', 'Dashboard::ajaxAgeStats');
     $routes->get('dashboard/ajaxNationalityStats', 'Dashboard::ajaxNationalityStats');
+    $routes->get('dashboard/knowledge-source', 'Dashboard::knowledgeSource');
+    $routes->get('dashboard/ajaxKnowledgeSourceStats', 'Dashboard::ajaxKnowledgeSourceStats');
+    $routes->get('dashboard/nationality-analytics', 'Dashboard::nationalityAnalytics');
+    $routes->get('dashboard/gender-analytics', 'Dashboard::genderAnalytics');
+    $routes->get('dashboard/age-analytics', 'Dashboard::ageAnalytics');
+    $routes->get('dashboard/registrations-analytics', 'Dashboard::registrationsAnalytics');
+    $routes->get('dashboard/ambassadors-analytics', 'Dashboard::ambassadorsAnalytics');
     // welcome
     $routes->get('welcome', 'Welcome::index');
     $routes->get('welcome/set-program/(:num)', 'Welcome::setProgram/$1');
